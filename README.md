@@ -251,13 +251,16 @@ make build        # 构建 server 二进制 + web 产物
 ## Security
 
 - OIDC **Authorization Code + PKCE**，State（HMAC 签名 + 过期）与 Nonce 双重校验。
-- 会话 Cookie：**HttpOnly + Secure + SameSite**，HMAC 签名防篡改，过期时间可配。
+- 会话 Cookie：**HttpOnly + Secure + SameSite=Lax**，HMAC 签名防篡改，有效期可配（见文档"已知权衡"）。
 - **CSRF 双提交**：写请求必须携带与 `velora_csrf` Cookie 一致的 `X-CSRF-Token`。
-- **Open Redirect 防护**：OIDC 回调落点仅允许站内相对路径；Launch 不接受客户端 URL。
-- **权限强制**：应用列表按访问策略过滤（前端隐藏），Launch / 详情接口后端再次校验（403）。
-- 输入校验：URL 仅允许 http/https 且含主机名；编码唯一性；枚举白名单。
+- **Open Redirect 防护**：OIDC 回调落点仅允许站内相对路径（严格校验，拒绝 `\`、`//`、百分号编码绕过）；Launch 不接受客户端 URL。
+- **可信代理**：默认仅信任回环，`TRUSTED_PROXIES` 显式配置反代网段，防止 `X-Forwarded-For` 伪造绕过限流 / 污染审计 IP。
+- **CORS fail-closed**：未配置 `CORS_ALLOWED_ORIGINS` 时不输出任何跨域头。
+- **Web 安全头**：Nginx 输出 CSP / X-Frame-Options / nosniff / Referrer-Policy / Permissions-Policy。
+- **权限强制**：应用列表按访问策略过滤（前端隐藏），Launch / 详情 / 收藏后端再次校验（403）；策略明细仅管理员可见。
+- 输入校验：URL 仅允许 http/https 且含主机名；编码唯一性；枚举白名单；标签 ID 存在性校验。
 - 统一响应结构，不向前端返回 SQL 错误 / 堆栈 / 内部路径 / 密钥。
-- 审计日志覆盖登录、登出、应用增删改、启动、收藏、策略变更。
+- 审计日志覆盖登录、登出、应用增删改、启动、收藏、策略变更；审计写入不依赖请求上下文（客户端断开不丢失）。
 
 ---
 

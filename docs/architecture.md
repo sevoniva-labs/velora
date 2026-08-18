@@ -90,7 +90,13 @@ internal/platform     config / db / errs / response / httpserver
 - `server/migrations/*.sql`，按文件名顺序执行，`schema_migrations` 记录，幂等。
 - 通过 `//go:embed` 嵌入二进制（`migrations` 包），`velora serve` 启动时自动迁移。
 
-## 9. 中国大陆开发环境
+## 9. 已知权衡（Phase 1 明示）
+
+- **无状态会话**：Session Cookie 为 HMAC 签名、无服务端存储。角色变更（如管理员回收）最长延迟一个 `SESSION_TTL_HOURS`（默认 168h，可按需调小）；登出只清除本地 Cookie，被盗 Cookie 无法主动作废（生产可引入服务端会话/黑名单，属 Phase 2）。
+- **PKCE verifier 随 state 传递**：stateless state 内包含 code_verifier，会出现在回调 URL 中（浏览器历史/Referrer）。OIDC 库对 verifier 的时效敏感且 code 一次性，风险有限；如需更强隔离，可改为服务端短时存储 state（Phase 2 选项）。
+- **列表过滤在内存完成**：`ListPublic` 先查库再按访问策略过滤+内存分页。应用量小时简单可靠；量大后应将策略过滤下沉到 SQL（Phase 2 优化）。
+
+## 10. 中国大陆开发环境
 
 - Go：`GOPROXY=https://goproxy.cn,direct`（`scripts/bootstrap-cn.sh` 提供，不修改全局配置）。
 - pnpm：`web/.npmrc` 项目级 `registry=https://registry.npmmirror.com`。

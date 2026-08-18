@@ -614,22 +614,14 @@ button {
 
 .velora-workbench {
   display: grid;
-  grid-template-columns: 33% 1fr;
+  grid-template-columns: 1fr 1fr;
+  grid-auto-rows: 1fr;
   gap: 14px;
   margin-top: 14px;
-  align-items: stretch;
-  /* 三块区域等高且保留基本高度（内容少时也不塌陷） */
   min-height: 440px;
 }
-.velora-workbench .velora-col {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-  min-width: 0;
-}
-/* 区域内面板等高：左栏 1 块撑满，右栏 2 块各占一半 */
-.velora-workbench .velora-col > .velora-panel {
-  flex: 1;
+/* 四块区域等高：每块面板弹性占满所在格子，内部 flex 纵向布局 */
+.velora-workbench > .velora-panel {
   min-height: 0;
   display: flex;
   flex-direction: column;
@@ -654,9 +646,6 @@ button {
   .velora-workbench {
     grid-template-columns: 1fr;
     min-height: 0;
-  }
-  .velora-workbench .velora-col > .velora-panel {
-    flex: none;
   }
   .velora-recent-list,
   .velora-cat-grid,

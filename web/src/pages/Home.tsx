@@ -15,6 +15,7 @@ import { AppIcon } from '../components/AppCard'
 import QueryErrorState from '../components/QueryErrorState'
 import { formatRelativeTime } from '../utils/format'
 import { usePageTitle } from '../hooks/usePageTitle'
+import type { Application } from '../types'
 
 /** 应用图标（分类占位）：按 code 稳定映射到一套线性图标 */
 const CATEGORY_ICONS = [AppstoreOutlined, FolderOpenOutlined, FireOutlined, SoundOutlined]
@@ -75,6 +76,11 @@ export default function Home() {
   const { data: popular, isLoading: loadingPopular, isError: errorPopular, refetch: refetchPopular } = useQuery({
     queryKey: queryKeys.popular,
     queryFn: () => listPopular(6),
+  })
+
+  const { data: favApps, isLoading: loadingFav, isError: errorFav, refetch: refetchFav } = useQuery({
+    queryKey: queryKeys.favorites,
+    queryFn: () => listApplications({ favorites: true, pageSize: 100 }),
   })
 
   return (
@@ -170,140 +176,169 @@ export default function Home() {
 
       {/* 33 / 67 双栏 */}
       <div className="velora-workbench">
-        {/* 左栏：最近使用 */}
-        <div className="velora-col">
-          <section className="velora-panel">
-            <div className="velora-panel-head">
-              <h2 className="velora-panel-title">最近使用</h2>
-              <div className="velora-panel-more">
-                <a onClick={() => navigate('/applications')}>
-                  全部应用 <ArrowRightOutlined />
-                </a>
-              </div>
+        {/* 最近使用 */}
+        <section className="velora-panel">
+          <div className="velora-panel-head">
+            <h2 className="velora-panel-title">最近使用</h2>
+            <div className="velora-panel-more">
+              <a onClick={() => navigate('/applications')}>
+                全部应用 <ArrowRightOutlined />
+              </a>
             </div>
-            {loadingRecent ? (
-              <Skeleton active paragraph={{ rows: 4 }} style={{ padding: '4px 18px 16px' }} />
-            ) : errorRecent ? (
-              <QueryErrorState compact refetch={refetchRecent} />
-            ) : recent && recent.length > 0 ? (
-              <div className="velora-recent-list">
-                {recent.map((item) => (
-                  <div
-                    key={item.application.id}
-                    className="velora-recent-item"
-                    role="button"
-                    tabIndex={0}
-                    onClick={() => launchApp(item.application.id)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' || e.key === ' ') {
-                        e.preventDefault()
-                        launchApp(item.application.id)
-                      }
-                    }}
-                  >
-                    <AppIcon app={item.application} size={32} />
-                    <div className="velora-recent-item-main">
-                      <div className="velora-recent-item-name">{item.application.name}</div>
-                      <div className="velora-recent-item-meta">
-                        {formatRelativeTime(item.lastVisitedAt)} · 使用 {item.visitCount} 次
-                      </div>
+          </div>
+          {loadingRecent ? (
+            <Skeleton active paragraph={{ rows: 4 }} style={{ padding: '4px 18px 16px' }} />
+          ) : errorRecent ? (
+            <QueryErrorState compact refetch={refetchRecent} />
+          ) : recent && recent.length > 0 ? (
+            <div className="velora-recent-list">
+              {recent.map((item) => (
+                <div
+                  key={item.application.id}
+                  className="velora-recent-item"
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => launchApp(item.application.id)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault()
+                      launchApp(item.application.id)
+                    }
+                  }}
+                >
+                  <AppIcon app={item.application} size={32} />
+                  <div className="velora-recent-item-main">
+                    <div className="velora-recent-item-name">{item.application.name}</div>
+                    <div className="velora-recent-item-meta">
+                      {formatRelativeTime(item.lastVisitedAt)} · 使用 {item.visitCount} 次
                     </div>
                   </div>
-                ))}
-              </div>
-            ) : (
-              <Empty
-                image={Empty.PRESENTED_IMAGE_SIMPLE}
-                description="暂无使用记录"
-                style={{ padding: '28px 18px' }}
-              />
-            )}
-          </section>
-        </div>
-
-        {/* 右栏：分类 + 热门 */}
-        <div className="velora-col">
-          <section className="velora-panel">
-            <div className="velora-panel-head">
-              <h2 className="velora-panel-title">应用分类</h2>
-              <div className="velora-panel-more">
-                <a onClick={() => navigate('/applications')}>
-                  全部 <ArrowRightOutlined />
-                </a>
-              </div>
+                </div>
+              ))}
             </div>
-            {categories && categories.length > 0 ? (
-              <div className="velora-cat-grid">
-                {categories.slice(0, 6).map((cat) => (
-                  <div
-                    key={cat.id}
-                    className="velora-cat-card"
-                    role="button"
-                    tabIndex={0}
-                    onClick={() => navigate(`/applications?categoryId=${cat.id}`)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' || e.key === ' ') {
-                        e.preventDefault()
-                        navigate(`/applications?categoryId=${cat.id}`)
-                      }
-                    }}
-                  >
-                    <span className="velora-cat-card-icon">{categoryIcon(cat.code)}</span>
-                    <span className="velora-cat-card-main">
-                      <span className="velora-cat-card-name">{cat.name}</span>
-                      <span className="velora-cat-card-desc">{cat.description || '浏览该分类应用'}</span>
-                    </span>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <Empty
-                image={Empty.PRESENTED_IMAGE_SIMPLE}
-                description="暂无分类"
-                style={{ padding: '24px 0' }}
-              />
-            )}
-          </section>
+          ) : (
+            <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="暂无使用记录" style={{ padding: '28px 18px' }} />
+          )}
+        </section>
 
-          <section className="velora-panel">
-            <div className="velora-panel-head">
-              <h2 className="velora-panel-title">热门应用</h2>
-              <div className="velora-panel-more">
-                <a onClick={() => navigate('/applications')}>
-                  更多 <ArrowRightOutlined />
-                </a>
-              </div>
+        {/* 应用分类 */}
+        <section className="velora-panel">
+          <div className="velora-panel-head">
+            <h2 className="velora-panel-title">应用分类</h2>
+            <div className="velora-panel-more">
+              <a onClick={() => navigate('/applications')}>
+                全部 <ArrowRightOutlined />
+              </a>
             </div>
-            {loadingPopular ? (
-              <Skeleton active paragraph={{ rows: 3 }} style={{ padding: '4px 18px 16px' }} />
-            ) : errorPopular ? (
-              <QueryErrorState compact refetch={refetchPopular} />
-            ) : popular && popular.length > 0 ? (
-              <div className="velora-popular-row">
-                {popular.map((app) => (
-                  <div
-                    key={app.id}
-                    className="velora-popular-item"
-                    role="button"
-                    tabIndex={0}
-                    onClick={() => launchApp(app.id)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' || e.key === ' ') {
-                        e.preventDefault()
-                        launchApp(app.id)
-                      }
-                    }}
-                  >
-                    <AppIcon app={app} size={30} />
-                    <span className="velora-popular-name">{app.name}</span>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="暂无热门应用" style={{ padding: '24px 0' }} />
-            )}
-          </section>
-        </div>
+          </div>
+          {categories && categories.length > 0 ? (
+            <div className="velora-cat-grid">
+              {categories.slice(0, 6).map((cat) => (
+                <div
+                  key={cat.id}
+                  className="velora-cat-card"
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => navigate(`/applications?categoryId=${cat.id}`)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault()
+                      navigate(`/applications?categoryId=${cat.id}`)
+                    }
+                  }}
+                >
+                  <span className="velora-cat-card-icon">{categoryIcon(cat.code)}</span>
+                  <span className="velora-cat-card-main">
+                    <span className="velora-cat-card-name">{cat.name}</span>
+                    <span className="velora-cat-card-desc">{cat.description || '浏览该分类应用'}</span>
+                  </span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="暂无分类" style={{ padding: '24px 0' }} />
+          )}
+        </section>
+
+        {/* 热门应用 */}
+        <section className="velora-panel">
+          <div className="velora-panel-head">
+            <h2 className="velora-panel-title">热门应用</h2>
+            <div className="velora-panel-more">
+              <a onClick={() => navigate('/applications')}>
+                更多 <ArrowRightOutlined />
+              </a>
+            </div>
+          </div>
+          {loadingPopular ? (
+            <Skeleton active paragraph={{ rows: 3 }} style={{ padding: '4px 18px 16px' }} />
+          ) : errorPopular ? (
+            <QueryErrorState compact refetch={refetchPopular} />
+          ) : popular && popular.length > 0 ? (
+            <div className="velora-popular-row">
+              {popular.map((app) => (
+                <div
+                  key={app.id}
+                  className="velora-popular-item"
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => launchApp(app.id)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault()
+                      launchApp(app.id)
+                    }
+                  }}
+                >
+                  <AppIcon app={app} size={30} />
+                  <span className="velora-popular-name">{app.name}</span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="暂无热门应用" style={{ padding: '24px 0' }} />
+          )}
+        </section>
+
+        {/* 我的收藏 */}
+        <section className="velora-panel">
+          <div className="velora-panel-head">
+            <h2 className="velora-panel-title">我的收藏</h2>
+            <div className="velora-panel-more">
+              <a onClick={() => navigate('/favorites')}>
+                全部 <ArrowRightOutlined />
+              </a>
+            </div>
+          </div>
+          {loadingFav ? (
+            <Skeleton active paragraph={{ rows: 3 }} style={{ padding: '4px 18px 16px' }} />
+          ) : errorFav ? (
+            <QueryErrorState compact refetch={refetchFav} />
+          ) : favApps && favApps.items.length > 0 ? (
+            <div className="velora-popular-row">
+              {favApps.items.slice(0, 6).map((app: Application) => (
+                <div
+                  key={app.id}
+                  className="velora-popular-item"
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => launchApp(app.id)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault()
+                      launchApp(app.id)
+                    }
+                  }}
+                >
+                  <AppIcon app={app} size={30} />
+                  <span className="velora-popular-name">{app.name}</span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="暂无收藏，点击应用卡片上的爱心收藏" style={{ padding: '24px 0' }} />
+          )}
+        </section>
       </div>
     </div>
   )

@@ -128,15 +128,21 @@ make dev-web                # Vite :5173（/api 代理到 :8080）
 
 Casdoor 与 Velora 共用 PostgreSQL Server 但使用**独立 database**（`casdoor` / `velora`），由 `deployments/compose/init-db.sql` 初始化。Velora 永远通过 OIDC / API 获取身份信息。
 
-### OIDC Configuration（一次性）
+### OIDC Configuration（一次性，2 分钟）
 
-1. 启动后打开 Casdoor <http://localhost:8443>（默认账号 `admin` / `123`）。
-2. 创建（或使用内置的）一个**应用**：
-   - 名称：`velora`，`Client ID` / `Client Secret` 复制到 `.env` / compose 环境变量；
-   - 回调地址（Redirect URI）：`http://localhost:8080/api/v1/auth/oidc/callback`；
-   - 授权类型勾选 **Authorization Code**，启用 **PKCE**。
-3. 为需要管理门户的用户分配角色 `velora_admin`（对应 `.env` 的 `VELORA_ADMIN_ROLE`）。
-4. 登录流程：访问 Velora → 未登录自动跳 Casdoor → 认证 → 回调换 Token → 建立 HttpOnly Session → 进入门户。
+> Velora 只消费 Casdoor 的身份，**不会**自动在你的 Casdoor 里创建应用——身份体系归 Casdoor 管。
+> 下表把 `.env` / `docker-compose.yml` 中的默认值对应到 Casdoor UI 操作：
+
+1. 启动后打开 Casdoor 控制台 <http://localhost:8443>（默认账号 `admin` / `123`）。
+2. 打开 **应用 → 添加应用**，填写：
+   - 名称：`velora`（对应 `CASDOOR_CLIENT_ID` / compose 环境变量 `CASDOOR_CLIENT_ID=velora`）；
+   - 回调地址（Redirect URI）：`http://localhost:8080/api/v1/auth/oidc/callback`（对应 `CASDOOR_REDIRECT_URI`）；
+   - 授权类型勾选 **Authorization Code**，并在高级选项中启用 **PKCE**；
+   - 保存后复制该应用的 **Client ID / Client Secret** 到 `.env`（compose 环境变量 `CASDOOR_CLIENT_SECRET`）。
+3. 用户授权：在 **用户** 中给门户管理员添加角色 `velora_admin`（对应 `VELORA_ADMIN_ROLE`）；普通用户登录后自动拥有门户访问权。
+4. 打开 Velora Web <http://localhost:5173> → 未登录自动跳 Casdoor → 认证 → 回到门户。
+
+> 提示：`make docker-up` 启动的 Casdoor 使用 `initData=true`，已内置 `admin` 账号与 `built-in` 示例应用；为 Velora 新建应用即可，无需改动内置数据。
 
 ### 应用接入类型
 

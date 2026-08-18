@@ -1,15 +1,13 @@
 import { useEffect, useState } from 'react'
-import { App as AntdApp, Button, Form, Input, Select, Typography } from 'antd'
-import { LockOutlined, SafetyCertificateOutlined, UserOutlined } from '@ant-design/icons'
+import { App as AntdApp, Button, Form, Input, Select } from 'antd'
+import { LockOutlined, UserOutlined } from '@ant-design/icons'
 import { useSearchParams } from 'react-router-dom'
-import { getSystemVersion, loginWithPassword, oidcLoginUrl } from '../api/api'
+import { getSystemVersion, loginWithPassword } from '../api/api'
 
 /**
  * Velora 登录页：复用 Spectra Web 的视觉体系（技术蓝分栏版式）。
- * 身份认证由 Casdoor 统一完成 —— 页面提供两种入口：
- *   1. 账号密码直登：后端代理 Casdoor OAuth2 password 模式（推荐，无需跳转）；
- *   2. Sign in with SSO：标准 OIDC 授权码跳转（备选）。
- * Velora 不实现任何密码认证逻辑，密码仅经 HTTPS 提交给 Casdoor。
+ * 登录即 SSO：账号密码由 Velora 后端代理 Casdoor OAuth2 password 模式认证
+ * （Velora 不实现密码认证，密码仅经 HTTPS 提交给 Casdoor，不落库）。
  */
 export default function Login() {
   const [searchParams] = useSearchParams()
@@ -26,7 +24,6 @@ export default function Login() {
 
   // 未登录访问受保护页面时，携带 redirect 以便登录后跳回。
   const redirect = searchParams.get('redirect')
-  const loginHref = oidcLoginUrl(redirect && redirect.startsWith('/') ? redirect : undefined)
 
   const onFinish = async (values: { username: string; password: string }) => {
     setSubmitting(true)
@@ -145,18 +142,6 @@ export default function Login() {
                   </Button>
                 </Form.Item>
               </Form>
-
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '4px 0 16px' }}>
-                <span style={{ flex: 1, height: 1, background: '#e5e8ee' }} aria-hidden="true" />
-                <Typography.Text type="secondary" style={{ fontSize: 12.5 }}>
-                  或使用单点登录
-                </Typography.Text>
-                <span style={{ flex: 1, height: 1, background: '#e5e8ee' }} aria-hidden="true" />
-              </div>
-
-              <Button size="large" block icon={<SafetyCertificateOutlined />} href={loginHref}>
-                Sign in with SSO
-              </Button>
 
               <div style={{ marginTop: 20, fontSize: 12.5, color: '#98a2b3' }}>
                 登录即代表您同意企业的应用访问规范。遇到问题请联系系统管理员。

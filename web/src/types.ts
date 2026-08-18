@@ -13,6 +13,8 @@ export interface CurrentUser {
   avatar: string
   organization: string
   roles: string[]
+  /** 服务端按 VELORA_ADMIN_ROLE 计算的管理员标记 */
+  admin?: boolean
   groups: string[]
 }
 

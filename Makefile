@@ -23,11 +23,12 @@ bootstrap: ## 中国大陆开发环境引导（Go 代理 / pnpm 源 / Docker 镜
 	./scripts/bootstrap-cn.sh
 
 init: bootstrap ## 初始化：依赖安装 + .env 准备
-	@test -f .env || cp .env.example .env && echo "=> .env 已准备（请按需修改）"
+	@if [ ! -f .env ]; then cp .env.example .env && echo "=> 已从 .env.example 创建 .env（请按需修改）"; else echo "=> .env 已存在，跳过"; fi
 	cd server && go mod download
 	cd web && pnpm install
 
-dev: dev-web dev-server ## 同时启动前后端开发（Ctrl+C 停止）
+dev: ## 同时启动前后端开发（Ctrl+C 停止）
+	$(MAKE) -j2 dev-web dev-server
 
 dev-web: ## 前端开发服务器（:5173）
 	cd web && pnpm dev

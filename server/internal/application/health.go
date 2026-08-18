@@ -52,7 +52,10 @@ func (h *HealthChecker) Check(ctx context.Context, app *Application) string {
 	}
 	h.mu.Unlock()
 
-	status := h.probe(ctx, app.HealthCheckURL)
+	// 探测使用独立 context：客户端断开不取消探测，也不受请求 deadline 影响。
+	probeCtx, cancel := context.WithTimeout(context.Background(), h.timeout)
+	defer cancel()
+	status := h.probe(probeCtx, app.HealthCheckURL)
 
 	h.mu.Lock()
 	h.cache[app.ID] = healthEntry{status: status, checkedAt: time.Now()}

@@ -8,7 +8,7 @@ import { useMe } from './auth/useMe'
 export default function AdminApp() {
   const me = useMe()
   const navigate = useNavigate()
-  const isAdmin = (me.data?.roles ?? []).includes('velora_admin')
+  const isAdmin = me.data?.admin === true
 
   if (me.isLoading) {
     return (

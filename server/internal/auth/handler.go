@@ -2,6 +2,7 @@ package auth
 
 import (
 	"net/http"
+	"net/url"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -74,6 +75,8 @@ func (h *Handler) Callback(c *gin.Context) {
 		return
 	}
 	path, maxAge, secure, domain := h.sessions.CookieOptions()
+	// 显式 SameSite=Lax：顶层导航可携带（OIDC 回跳），并抑制跨站写请求携带。
+	c.SetSameSite(http.SameSiteLaxMode)
 	c.SetCookie(SessionCookieName, encoded, maxAge, path, domain, secure, true)
 
 	// CSRF 双提交 Cookie。
@@ -105,30 +108,44 @@ func (h *Handler) logout(c *gin.Context) {
 		h.onLogout(c, u)
 	}
 	path, _, secure, domain := h.sessions.CookieOptions()
+	c.SetSameSite(http.SameSiteLaxMode)
 	c.SetCookie(SessionCookieName, "", -1, path, domain, secure, true)
 	c.SetCookie(CSRFCookieName, "", -1, path, domain, secure, false)
 	response.OK(c, gin.H{"status": "ok"})
 }
 
-// me 返回当前登录用户。
+// me 返回当前登录用户（含 admin 标记，供前端控制管理入口展示）。
 func (h *Handler) me(c *gin.Context) {
 	u, err := RequireUser(c)
 	if err != nil {
 		response.Error(c, errs.Unauthorized(""))
 		return
 	}
-	response.OK(c, u)
+	type meView struct {
+		*CurrentUser
+		Admin bool `json:"admin"`
+	}
+	response.OK(c, &meView{CurrentUser: u, Admin: u.IsAdmin(h.adminRole)})
 }
 
 // sanitizeRedirect 仅允许站内相对路径，防 Open Redirect。
+//
+// 严格校验（url.Parse + 字符黑名单），杜绝反斜杠 / 百分号编码绕过：
+//   - 必须以 / 开头、无 scheme、无 host（含 \ 与 %2f/%5c 解码后的变体）
+//   - 原始串不得包含 \、"//"、":"、%2f、%5c（大小写不敏感）
 func (h *Handler) sanitizeRedirect(redirect string) string {
 	redirect = strings.TrimSpace(redirect)
 	if redirect == "" {
 		return h.defaultRedirect
 	}
-	// 必须为站内相对路径：以 / 开头，但不以 // 开头（防 protocol-relative），且不含 scheme。
-	if strings.HasPrefix(redirect, "/") && !strings.HasPrefix(redirect, "//") && !strings.Contains(redirect, "://") {
-		return redirect
+	lower := strings.ToLower(redirect)
+	if strings.ContainsAny(redirect, "\\:") ||
+		strings.Contains(lower, "%2f") || strings.Contains(lower, "%5c") {
+		return h.defaultRedirect
 	}
-	return h.defaultRedirect
+	u, err := url.Parse(redirect)
+	if err != nil || u.Scheme != "" || u.Host != "" || u.IsAbs() || !strings.HasPrefix(redirect, "/") {
+		return h.defaultRedirect
+	}
+	return redirect
 }

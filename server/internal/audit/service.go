@@ -89,7 +89,10 @@ func (s *Service) Record(c *gin.Context, e Entry) {
 		Detail:     e.Detail,
 		CreatedAt:  time.Now(),
 	}
-	if err := s.db.WithContext(c.Request.Context()).Create(&log).Error; err != nil {
+	// 用独立 context（超时 5s）：客户端断开不丢失审计；审计失败不应阻断主流程。
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	if err := s.db.WithContext(ctx).Create(&log).Error; err != nil {
 		// 审计失败不应阻断主流程，仅记录错误日志（由调用方 logger 处理）。
 		_ = err
 	}

@@ -2,6 +2,7 @@ package application
 
 import (
 	"context"
+	"net/http"
 	"sort"
 	"strings"
 	"time"
@@ -10,6 +11,7 @@ import (
 
 	"github.com/sevoniva-labs/velora/server/internal/auth"
 	"github.com/sevoniva-labs/velora/server/internal/platform/errs"
+	"github.com/sevoniva-labs/velora/server/internal/tag"
 )
 
 // DTO 为应用对外视图。
@@ -137,8 +139,10 @@ func (s *Service) ListPublic(ctx context.Context, user *auth.CurrentUser, f List
 	if f.Page < 1 {
 		f.Page = 1
 	}
-	if f.PageSize < 1 || f.PageSize > 100 {
+	if f.PageSize < 1 {
 		f.PageSize = 24
+	} else if f.PageSize > 100 {
+		f.PageSize = 100
 	}
 
 	q := s.db.WithContext(ctx).Model(&Application{}).Where("status = ?", StatusEnabled)
@@ -237,8 +241,10 @@ func (s *Service) AdminList(ctx context.Context, f ListFilter) (*Page, error) {
 	if f.Page < 1 {
 		f.Page = 1
 	}
-	if f.PageSize < 1 || f.PageSize > 100 {
+	if f.PageSize < 1 {
 		f.PageSize = 20
+	} else if f.PageSize > 100 {
+		f.PageSize = 100
 	}
 	q := s.db.WithContext(ctx).Model(&Application{})
 	if kw := strings.TrimSpace(f.Keyword); kw != "" {
@@ -298,6 +304,9 @@ func (s *Service) Create(ctx context.Context, operator string, in Input) (*DTO, 
 		CreatedBy:              operator,
 		UpdatedBy:              operator,
 	}
+	if err := s.validateTagIDs(ctx, in.TagIDs); err != nil {
+		return nil, err
+	}
 	if err := s.repo.Create(ctx, app); err != nil {
 		return nil, err
 	}
@@ -356,6 +365,9 @@ func (s *Service) Update(ctx context.Context, operator string, id uint64, in Inp
 	app.HealthCheckURL = in.HealthCheckURL
 	app.UpdatedBy = operator
 
+	if err := s.validateTagIDs(ctx, in.TagIDs); err != nil {
+		return nil, err
+	}
 	if err := s.repo.Update(ctx, app); err != nil {
 		return nil, err
 	}
@@ -396,6 +408,21 @@ func (s *Service) SetPolicies(ctx context.Context, id uint64, policies []PolicyD
 	return s.repo.ReplacePolicies(ctx, id, toPolicyModels(policies))
 }
 
+// validateTagIDs 校验标签 ID 全部存在，防止外键错误变成 500。
+func (s *Service) validateTagIDs(ctx context.Context, ids []uint64) error {
+	if len(ids) == 0 {
+		return nil
+	}
+	var count int64
+	if err := s.db.WithContext(ctx).Model(&tag.Tag{}).Where("id IN ?", ids).Count(&count).Error; err != nil {
+		return errs.DB(err)
+	}
+	if count != int64(len(ids)) {
+		return errs.New(errs.CodeTagNotFound, http.StatusBadRequest, "存在无效的标签 ID")
+	}
+	return nil
+}
+
 // toDTO 转换（isAdmin 控制敏感字段是否输出）。
 func (s *Service) toDTO(app *Application, isAdmin bool) *DTO {
 	dto := &DTO{
@@ -425,8 +452,11 @@ func (s *Service) toDTO(app *Application, isAdmin bool) *DTO {
 	for _, t := range app.Tags {
 		dto.Tags = append(dto.Tags, TagDTO{ID: t.ID, Code: t.Code, Name: t.Name})
 	}
-	for _, p := range app.Policies {
-		dto.Policies = append(dto.Policies, PolicyDTO{PolicyType: p.PolicyType, Value: p.Value})
+	// 策略（组织/角色/组名）仅管理员可见，普通用户只需可见性结果。
+	if isAdmin {
+		for _, p := range app.Policies {
+			dto.Policies = append(dto.Policies, PolicyDTO{PolicyType: p.PolicyType, Value: p.Value})
+		}
 	}
 	if isAdmin {
 		dto.HomeURL = app.HomeURL

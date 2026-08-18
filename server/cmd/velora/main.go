@@ -104,18 +104,27 @@ func serve(cfg *config.Config) error {
 		IdleTimeout:       120 * time.Second,
 	}
 
+	serveErr := make(chan error, 1)
 	go func() {
 		slog.Info("Velora server 启动", "addr", srv.Addr, "env", cfg.Env)
 		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-			slog.Error("HTTP 服务异常", "error", err)
+			serveErr <- err
+			return
 		}
+		serveErr <- nil
 	}()
 
-	// Graceful Shutdown。
+	// 端口占用等启动失败：立即退出而非阻塞在信号通道上。
 	stop := make(chan os.Signal, 1)
 	signal.Notify(stop, syscall.SIGINT, syscall.SIGTERM)
-	<-stop
-	slog.Info("收到退出信号，开始优雅关闭…")
+	select {
+	case err := <-serveErr:
+		if err != nil {
+			return fmt.Errorf("HTTP 服务启动失败: %w", err)
+		}
+	case <-stop:
+		slog.Info("收到退出信号，开始优雅关闭…")
+	}
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	if err := srv.Shutdown(shutdownCtx); err != nil {
@@ -138,19 +147,21 @@ func migrate(cfg *config.Config) error {
 }
 
 func setupLogger(cfg *config.Config) {
-	var handler slog.Handler
-	if cfg.Env == "production" {
-		handler = slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo})
-	} else {
-		handler = slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug})
-	}
+	level := slog.LevelInfo
 	switch cfg.LogLevel {
 	case "debug":
-		handler = slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug})
+		level = slog.LevelDebug
 	case "warn":
-		handler = slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelWarn})
+		level = slog.LevelWarn
 	case "error":
-		handler = slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelError})
+		level = slog.LevelError
+	}
+	// 格式由运行环境决定（生产 JSON，开发 Text），LOG_LEVEL 只控制级别。
+	var handler slog.Handler
+	if cfg.Env == "production" {
+		handler = slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: level})
+	} else {
+		handler = slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: level})
 	}
 	slog.SetDefault(slog.New(handler))
 }

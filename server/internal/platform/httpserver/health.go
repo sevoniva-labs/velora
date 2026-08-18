@@ -3,6 +3,7 @@ package httpserver
 import (
 	"crypto/rand"
 	"encoding/hex"
+	"strings"
 	"sync"
 	"time"
 
@@ -61,9 +62,16 @@ func metricsHandler() gin.HandlerFunc {
 		sb = append(sb, "# HELP velora_up Whether Velora is up.\n# TYPE velora_up gauge\nvelora_up 1\n"...)
 		sb = append(sb, "# HELP velora_http_requests_total Total HTTP requests by method and path.\n# TYPE velora_http_requests_total counter\n"...)
 		for k, v := range metricsCounters.requests {
+			// k 为 "METHOD:path"，拆分后输出 method/path 两个 label（path 为路由模板，基数可控）。
+			parts := strings.SplitN(k, ":", 2)
+			method, path := parts[0], ""
+			if len(parts) == 2 {
+				path = parts[1]
+			}
 			sb = append(sb, "velora_http_requests_total{method=\""...)
-			// 简单转义（method/path 来自路由，安全字符集内）。
-			sb = append(sb, k...)
+			sb = append(sb, method...)
+			sb = append(sb, "\",path=\""...)
+			sb = append(sb, path...)
 			sb = append(sb, "\"} "...)
 			sb = appendInt(sb, v)
 			sb = append(sb, '\n')

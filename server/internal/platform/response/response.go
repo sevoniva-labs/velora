@@ -4,6 +4,7 @@
 package response
 
 import (
+	"errors"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -84,8 +85,8 @@ func RequestID(c *gin.Context) string {
 }
 
 func asErr(err error, target **errs.Error) bool {
-	if e, ok := err.(*errs.Error); ok {
-		*target = e
+	// 用 errors.As：支持被 %w 包装的业务错误，避免降级为 500。
+	if errors.As(err, target) {
 		return true
 	}
 	return false

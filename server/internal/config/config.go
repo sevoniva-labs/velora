@@ -36,6 +36,7 @@ type Config struct {
 	AdminRole string
 
 	CORSAllowedOrigins []string
+	TrustedProxies     []string
 
 	HealthCheckTimeout time.Duration
 }
@@ -79,6 +80,15 @@ func Load() (*Config, error) {
 		}
 	}
 
+	// 可信反向代理网段（默认仅回环；经 nginx/网关部署时配置其网段以保留真实客户端 IP）。
+	if proxies := getEnv("TRUSTED_PROXIES", "127.0.0.1,::1"); proxies != "" {
+		for _, p := range strings.Split(proxies, ",") {
+			if p = strings.TrimSpace(p); p != "" {
+				cfg.TrustedProxies = append(cfg.TrustedProxies, p)
+			}
+		}
+	}
+
 	if err := cfg.validate(); err != nil {
 		return nil, err
 	}
@@ -89,8 +99,18 @@ func (c *Config) validate() error {
 	if strings.TrimSpace(c.SessionSecret) == "" {
 		return fmt.Errorf("SESSION_SECRET 未设置：请生成至少 32 字节随机值（openssl rand -hex 32）")
 	}
+	if len(c.SessionSecret) < 32 {
+		return fmt.Errorf("SESSION_SECRET 长度不足 32 字节")
+	}
 	if strings.TrimSpace(c.CasdoorIssuer) == "" || strings.TrimSpace(c.CasdoorClientID) == "" {
 		return fmt.Errorf("CASDOOR_ISSUER / CASDOOR_CLIENT_ID 未设置")
+	}
+	// clientSecret 同时用作 OIDC state / 回调签名密钥：为空将导致签名可伪造，必须显式配置。
+	if strings.TrimSpace(c.CasdoorClientSecret) == "" {
+		return fmt.Errorf("CASDOOR_CLIENT_SECRET 未设置：请填写 Casdoor 中 Velora 应用的 Client Secret")
+	}
+	if strings.TrimSpace(c.CasdoorRedirectURI) == "" {
+		return fmt.Errorf("CASDOOR_REDIRECT_URI 未设置：请配置 OIDC 回调地址")
 	}
 	if strings.TrimSpace(c.DatabaseURL) == "" {
 		return fmt.Errorf("DATABASE_URL 未设置")

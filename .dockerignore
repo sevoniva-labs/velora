@@ -1,0 +1,19 @@
+# Docker 构建上下文排除（加速构建 + 防止宿主 node_modules 覆盖容器依赖）
+**/node_modules
+**/.git
+.git
+**/dist
+server/bin
+server/tmp
+.env
+.env.*
+!.env.example
+*.log
+.DS_Store
+docs
+README.md
+LICENSE
+Makefile
+docker-compose.yml
+deployments/compose
+scripts

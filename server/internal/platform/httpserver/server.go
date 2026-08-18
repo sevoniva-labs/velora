@@ -1,6 +1,7 @@
 package httpserver
 
 import (
+	"fmt"
 	"log/slog"
 	"net/http"
 	"sync"
@@ -39,6 +40,10 @@ func New(deps Deps) (*gin.Engine, error) {
 	}
 
 	r := gin.New()
+	// 仅信任配置的代理网段（默认回环），防止 X-Forwarded-For 伪造绕过限流 / 污染审计 IP。
+	if err := r.SetTrustedProxies(deps.Cfg.TrustedProxies); err != nil {
+		return nil, fmt.Errorf("设置可信代理失败: %w", err)
+	}
 	r.Use(Recovery(), RequestID(), SecurityHeaders())
 	r.Use(CORS(deps.Cfg.CORSAllowedOrigins))
 	r.Use(Logger())

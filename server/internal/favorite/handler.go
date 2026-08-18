@@ -1,6 +1,7 @@
 package favorite
 
 import (
+	"net/http"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
@@ -42,8 +43,8 @@ func (h *Handler) list(c *gin.Context) {
 	}
 	page, err := h.appSvc.ListPublic(c.Request.Context(), user, application.ListFilter{
 		FavoritesOnly: true,
-		Page:          1,
-		PageSize:      100,
+		Page:          getIntParam(c, "page", 1),
+		PageSize:      getIntParam(c, "pageSize", 100),
 	})
 	if err != nil {
 		response.Error(c, err)
@@ -71,6 +72,10 @@ func (h *Handler) add(c *gin.Context) {
 	}
 	if !application.CanAccess(user, app.Policies) {
 		response.Error(c, errs.Forbidden("无权访问该应用"))
+		return
+	}
+	if app.Status != application.StatusEnabled {
+		response.Error(c, errs.New(errs.CodeApplicationNotFound, http.StatusNotFound, "应用不可用"))
 		return
 	}
 	if err := h.service.Add(ctx, user.ID, appID); err != nil {
@@ -117,4 +122,18 @@ func parseAppID(c *gin.Context) (uint64, bool) {
 		return 0, false
 	}
 	return id, true
+}
+
+
+// getIntParam 解析正整数查询参数，非法或缺失时返回默认值。
+func getIntParam(c *gin.Context, key string, def int) int {
+	v := c.Query(key)
+	if v == "" {
+		return def
+	}
+	n, err := strconv.Atoi(v)
+	if err != nil || n < 1 {
+		return def
+	}
+	return n
 }

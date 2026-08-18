@@ -25,7 +25,7 @@ export function PortalLayout({ children }: PortalLayoutProps) {
   const { message } = AntdApp.useApp()
   const me = useMe()
 
-  const isAdmin = (me.data?.roles ?? []).includes('velora_admin')
+  const isAdmin = me.data?.admin === true
   const displayName = me.data?.displayName || me.data?.username || '用户'
   const activeKey = NAV_ITEMS.find((i) => location.pathname.startsWith(i.path))?.key ?? 'home'
 

@@ -34,7 +34,7 @@ func Logger() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		start := time.Now()
 		c.Next()
-		observeRequest(c.Request.Method, c.Request.URL.Path)
+		observeRequest(c.Request.Method, c.FullPath())
 		attrs := []any{
 			"method", c.Request.Method,
 			"path", c.Request.URL.Path,
@@ -74,7 +74,8 @@ func Recovery() gin.HandlerFunc {
 	}
 }
 
-// CORS 允许配置的来源跨域（开发期前后端分离用）。
+// CORS 仅对配置中的来源输出跨域头（fail-closed）。
+// 未配置任何来源时不输出任何 CORS 头，避免"任意 Origin + 凭据"的放开基线。
 func CORS(allowedOrigins []string) gin.HandlerFunc {
 	allowed := map[string]bool{}
 	for _, o := range allowedOrigins {
@@ -82,7 +83,7 @@ func CORS(allowedOrigins []string) gin.HandlerFunc {
 	}
 	return func(c *gin.Context) {
 		origin := c.GetHeader("Origin")
-		if origin != "" && (len(allowed) == 0 || allowed[strings.TrimRight(origin, "/")]) {
+		if origin != "" && allowed[strings.TrimRight(origin, "/")] {
 			c.Header("Access-Control-Allow-Origin", origin)
 			c.Header("Vary", "Origin")
 			c.Header("Access-Control-Allow-Credentials", "true")

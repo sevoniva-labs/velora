@@ -9,6 +9,8 @@
 # ============================================================================
 
 SHELL := /bin/bash
+# Homebrew 工具链兜底（macOS 下 go 常位于此；该目录不存在时不影响其它平台）
+export PATH := /opt/homebrew/bin:$(PATH)
 DOCKER_REGISTRY ?= docker.m.daocloud.io
 
 .PHONY: help init bootstrap dev dev-web dev-server test lint build \

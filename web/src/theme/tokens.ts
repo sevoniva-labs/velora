@@ -8,6 +8,10 @@ export const brandColors = {
   primaryActive: '#0958D9',
   primarySoft: '#E6F4FF',
   primarySofter: '#F0F7FF',
+  /** 顶栏品牌渐变（浅色体系的蓝色调，非深色） */
+  headerFrom: '#1D4ED8',
+  headerMid: '#2563EB',
+  headerTo: '#3B82F6',
 } as const
 
 export const functionalColors = {
@@ -40,7 +44,7 @@ export const fontSize = {
 } as const
 
 export const layoutSize = {
-  headerHeight: 56,
+  headerHeight: 64,
   siderWidth: 216,
   siderCollapsedWidth: 64,
   contentSafePadding: 24,
@@ -101,7 +105,7 @@ export const veloraTheme: ThemeConfig = {
   components: {
     Layout: {
       headerHeight: layoutSize.headerHeight,
-      headerBg: neutralColors.bgContainer,
+      headerBg: brandColors.headerMid,
       siderBg: neutralColors.bgSider,
       bodyBg: neutralColors.bgLayout,
     },

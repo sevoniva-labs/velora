@@ -1,5 +1,5 @@
-/* Velora 门户样式：企业门户 —— 克制、标准、信息优先。
-   白底简洁顶栏 + 浅灰内容底；组件使用 AntD 标准品质，仅保留必要布局骨架。 */
+/* Velora 门户样式：企业门户 —— 蓝色品牌顶栏 + 浅色内容区、标准组件、克制。
+   顶栏为品牌蓝色渐变（浅色体系），内容区浅灰底，组件使用 AntD 标准品质。 */
 
 :root {
   --velora-primary: #1677ff;
@@ -7,6 +7,9 @@
   --velora-primary-active: #0958d9;
   --velora-primary-soft: #e6f4ff;
   --velora-primary-softer: #f0f7ff;
+  --velora-header-from: #1d4ed8;
+  --velora-header-mid: #2563eb;
+  --velora-header-to: #3b82f6;
   --velora-title: #1f2937;
   --velora-text: #4b5563;
   --velora-secondary: #9ca3af;
@@ -14,6 +17,7 @@
   --velora-border-light: #f3f4f6;
   --velora-bg-layout: #f5f6f8;
   --velora-bg-container: #ffffff;
+  --velora-on-header: #ffffff;
   color: var(--velora-title, var(--ant-color-text));
   background: var(--velora-bg-layout, var(--ant-color-bg-layout));
   font-family:
@@ -59,7 +63,7 @@ button {
   min-width: 0;
 }
 
-/* ---------- 顶栏（白底 + 细分隔线） ---------- */
+/* ---------- 顶栏（品牌蓝渐变 + 白色文字 + 顶部光泽细线） ---------- */
 
 .velora-header.ant-layout-header {
   position: sticky;
@@ -67,19 +71,22 @@ button {
   top: 0;
   display: flex;
   align-items: center;
-  height: 56px !important;
+  height: 64px !important;
   line-height: normal !important;
   padding: 0 20px 0 0 !important;
-  color: var(--velora-title);
-  background: var(--velora-bg-container, var(--ant-color-bg-container)) !important;
-  border-bottom: 1px solid var(--velora-border, var(--ant-color-border));
+  color: var(--velora-on-header);
+  background:
+    linear-gradient(rgba(255, 255, 255, 0.14), rgba(255, 255, 255, 0)) 0 0 / 100% 1px no-repeat,
+    radial-gradient(900px 200px at 12% -80%, rgba(255, 255, 255, 0.14), transparent 62%),
+    linear-gradient(100deg, var(--velora-header-from) 0%, var(--velora-header-mid) 52%, var(--velora-header-to) 100%) !important;
+  box-shadow: 0 3px 12px color-mix(in srgb, var(--velora-header-from) 30%, transparent);
 }
 .velora-header-brand {
   display: flex;
   align-items: center;
   flex: 0 0 216px;
   width: 216px;
-  height: 56px;
+  height: 64px;
   padding: 0 16px;
   overflow: hidden;
 }
@@ -99,7 +106,7 @@ button {
   align-items: center;
   gap: 10px;
   min-width: 0;
-  height: 56px;
+  height: 64px;
   text-decoration: none;
   white-space: nowrap;
 }
@@ -111,7 +118,8 @@ button {
   height: 30px;
   flex: 0 0 30px;
   border-radius: 8px;
-  background: transparent;
+  background: var(--velora-on-header);
+  box-shadow: 0 2px 8px rgba(2, 8, 20, 0.2);
 }
 .velora-brand-mark img {
   display: block;
@@ -124,29 +132,29 @@ button {
 }
 .velora-brand-name {
   overflow: hidden;
-  color: var(--velora-title);
+  color: var(--velora-on-header);
   font-size: 15px;
   font-weight: 600;
   text-overflow: ellipsis;
 }
 .velora-brand-sub {
-  color: var(--velora-secondary);
+  color: rgba(255, 255, 255, 0.78);
   font-size: 11px;
 }
 
-/* 顶栏导航（浅色） */
+/* 顶栏导航（白色系） */
 .velora-module-nav {
   display: flex;
   align-items: center;
   gap: 2px;
   margin-left: 8px;
-  height: 56px;
+  height: 64px;
 }
 .velora-module-tab {
   appearance: none;
   border: none;
   background: transparent;
-  color: var(--velora-text);
+  color: rgba(255, 255, 255, 0.82);
   font-size: 14px;
   font-weight: 500;
   font-family: inherit;
@@ -160,12 +168,12 @@ button {
   white-space: nowrap;
 }
 .velora-module-tab:hover {
-  background: var(--velora-border-light, var(--ant-color-fill-alter));
-  color: var(--velora-title);
+  background: rgba(255, 255, 255, 0.16);
+  color: #fff;
 }
 .velora-module-tab.is-active {
-  color: var(--velora-primary, var(--ant-color-primary));
-  background: var(--velora-primary-soft, var(--ant-color-primary-bg));
+  color: #fff;
+  background: rgba(255, 255, 255, 0.24);
   font-weight: 600;
 }
 @media (max-width: 860px) {
@@ -180,7 +188,7 @@ button {
   justify-content: flex-end;
   flex: 1;
   min-width: 0;
-  height: 56px;
+  height: 64px;
   gap: 10px;
 }
 
@@ -191,16 +199,28 @@ button {
 .velora-header-search .ant-input-affix-wrapper {
   height: 32px;
   border-radius: 6px;
-  background: var(--velora-bg-layout, var(--ant-color-bg-layout));
-  border-color: var(--velora-border, var(--ant-color-border));
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  color: var(--velora-on-header);
+  background: rgba(255, 255, 255, 0.12);
 }
 .velora-header-search .ant-input-search-btn {
   height: 32px !important;
   border: 0 !important;
   padding-inline: 8px;
-  color: var(--velora-secondary) !important;
+  color: rgba(255, 255, 255, 0.82) !important;
   background: transparent !important;
   box-shadow: none !important;
+}
+.velora-header-search .ant-input-affix-wrapper:hover,
+.velora-header-search .ant-input-affix-wrapper:focus-within {
+  border-color: rgba(255, 255, 255, 0.4);
+  background: rgba(255, 255, 255, 0.2);
+}
+.velora-header-search input {
+  color: var(--velora-on-header);
+}
+.velora-header-search input::placeholder {
+  color: rgba(255, 255, 255, 0.68);
 }
 @media (max-width: 1080px) {
   .velora-header-search {
@@ -208,31 +228,31 @@ button {
   }
 }
 
-/* 用户区 */
+/* 用户区（白色系） */
 .velora-user-chip {
   display: inline-flex;
   align-items: center;
   gap: 8px;
   height: 34px;
   padding: 0 10px 0 4px;
-  border: 1px solid var(--velora-border, var(--ant-color-border));
+  border: 1px solid rgba(255, 255, 255, 0.22);
   border-radius: 8px;
-  background: var(--velora-bg-container, var(--ant-color-bg-container));
+  background: rgba(255, 255, 255, 0.12);
   cursor: pointer;
   transition: background 0.15s ease;
 }
 .velora-user-chip:hover {
-  background: var(--velora-border-light, var(--ant-color-fill-alter));
+  background: rgba(255, 255, 255, 0.2);
 }
 .velora-user-chip .ant-avatar {
   color: var(--velora-primary);
-  background: var(--velora-primary-soft);
+  background: var(--velora-on-header);
   font-weight: 600;
 }
 .velora-user-chip-name {
   max-width: 120px;
   overflow: hidden;
-  color: var(--velora-title);
+  color: var(--velora-on-header);
   font-size: 13px;
   font-weight: 500;
   text-overflow: ellipsis;
@@ -246,12 +266,12 @@ button {
   height: 32px;
   border: 0;
   border-radius: 6px;
-  color: var(--velora-text);
+  color: var(--velora-on-header);
   background: transparent;
   font-size: 15px;
 }
 .velora-header-trigger:hover {
-  background: var(--velora-border-light, var(--ant-color-fill-alter));
+  background: rgba(255, 255, 255, 0.16);
 }
 .velora-sider-trigger {
   margin-left: 4px;
@@ -507,13 +527,13 @@ button {
 
 .velora-sider.ant-layout-sider {
   position: sticky;
-  top: 56px;
+  top: 64px;
   align-self: flex-start;
   flex: 0 0 216px;
   width: 216px !important;
   max-width: 216px !important;
   min-width: 216px !important;
-  height: calc(100vh - 56px);
+  height: calc(100vh - 64px);
   transition: none !important;
   background: var(--velora-bg-sider, var(--ant-color-bg-layout)) !important;
   border-right: 1px solid var(--velora-border-light, var(--ant-color-border-secondary));
@@ -590,22 +610,27 @@ button {
   background: var(--velora-bg-layout, var(--ant-color-bg-layout));
 }
 .velora-login-header {
-  min-height: 56px;
+  min-height: 64px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 0 32px;
-  color: var(--velora-title);
-  background: var(--velora-bg-container, var(--ant-color-bg-container));
-  border-bottom: 1px solid var(--velora-border, var(--ant-color-border));
+  color: var(--velora-on-header);
+  background:
+    radial-gradient(720px 200px at 10% -80%, rgba(255, 255, 255, 0.14), transparent 65%),
+    linear-gradient(100deg, var(--velora-header-from) 0%, var(--velora-header-mid) 55%, var(--velora-header-to) 100%);
 }
 .velora-login-lockup {
   display: flex;
   align-items: center;
   gap: 10px;
-  color: var(--velora-title);
+  color: var(--velora-on-header);
   font-size: 15px;
   font-weight: 600;
+}
+.velora-login-lockup .velora-brand-mark {
+  background: var(--velora-on-header);
+  box-shadow: 0 2px 8px rgba(2, 8, 20, 0.2);
 }
 .velora-login-note {
   margin-top: 20px;
@@ -614,7 +639,7 @@ button {
   line-height: 1.7;
 }
 .velora-login-main {
-  min-height: calc(100dvh - 56px - 56px);
+  min-height: calc(100dvh - 64px - 56px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -718,8 +743,7 @@ button {
   font-size: 12px;
   background: var(--velora-bg-container, var(--ant-color-bg-container));
   border-top: 1px solid var(--velora-border, var(--ant-color-border));
-}
-@media (max-width: 720px) {
+}@media (max-width: 720px) {
   .velora-login-card {
     grid-template-columns: minmax(0, 1fr);
   }

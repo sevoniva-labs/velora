@@ -2,13 +2,15 @@ import { useState } from 'react'
 import { usePageTitle } from '../../hooks/usePageTitle'
 import QueryErrorState from '../../components/QueryErrorState'
 import { isSafeHttpUrl } from '../../utils/format'
-import { App as AntdApp, Button, Form, Input, InputNumber, Modal, Popconfirm, Select, Space, Switch, Table, Tag, Typography } from 'antd'
+import { App as AntdApp, Button, Form, Input, InputNumber, Modal, Popconfirm, Select, Space, Switch, Table, Tag, Tooltip, Typography } from 'antd'
+import { CloudSyncOutlined } from '@ant-design/icons'
 import { PlusOutlined } from '@ant-design/icons'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   adminCreateApplication,
   adminDeleteApplication,
   adminListApplications,
+  adminSyncApplications,
   adminUpdateApplication,
   listCategories,
   listTags,
@@ -65,6 +67,15 @@ export default function AdminApplications() {
       invalidate()
     },
     onError: (err) => message.error(err instanceof Error ? err.message : '删除失败'),
+  })
+
+  const syncMutation = useMutation({
+    mutationFn: adminSyncApplications,
+    onSuccess: (r) => {
+      message.success(`同步完成：新增 ${r.created} 个，更新 ${r.updated} 个（共 ${r.total} 个 Casdoor 应用）`)
+      invalidate()
+    },
+    onError: (err) => message.error(err instanceof Error ? err.message : '同步失败'),
   })
 
   const openCreate = () => {
@@ -126,9 +137,16 @@ export default function AdminApplications() {
             维护门户中的应用目录、接入类型与展示信息。
           </Typography.Paragraph>
         </div>
-        <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>
-          新建应用
-        </Button>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <Tooltip title="把 Casdoor 中接入统一登录的应用（含图标/名称）同步为门户应用，门户只展示这些应用">
+            <Button icon={<CloudSyncOutlined />} loading={syncMutation.isPending} onClick={() => syncMutation.mutate()}>
+              从 Casdoor 同步
+            </Button>
+          </Tooltip>
+          <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>
+            新建应用
+          </Button>
+        </div>
       </div>
 
       <Input.Search

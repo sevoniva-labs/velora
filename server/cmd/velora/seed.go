@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log/slog"
 
-	"github.com/sevoniva-labs/velora/server/internal/application"
 	"github.com/sevoniva-labs/velora/server/internal/config"
 	"github.com/sevoniva-labs/velora/server/internal/platform/db"
 )
@@ -81,83 +80,6 @@ func seed(cfg *config.Config) error {
 		tagID[t.Code] = id
 	}
 	slog.Info("标签 Seed 完成", "count", len(tags))
-
-	// --- 示例应用（占位地址，非真实企业信息） ---
-	apps := []struct {
-		Code     string
-		Name     string
-		Desc     string
-		Keywords string
-		Icon     string
-		Category string
-		HomeURL  string
-		SSOType  string
-		Featured bool
-		Tags     []string
-		Health   string
-	}{
-		{"devops", "DevOps 平台", "统一 DevOps 流水线、制品与发布平台", "devops,流水线,发布", "🚀", "ops", "https://devops.example.internal", application.SSOTypeURL, true, []string{"ci"}, ""},
-		{"git", "Git Repository", "企业级代码托管与代码评审", "git,代码托管,仓库", "🧬", "rd", "https://git.example.internal", application.SSOTypeURL, true, []string{"code"}, "https://git.example.internal/healthz"},
-		{"artifact", "Artifact Repository", "制品仓库：Maven / npm / PyPI 等", "artifact,制品,仓库,包管理", "📦", "rd", "https://artifact.example.internal", application.SSOTypeURL, false, []string{"ci"}, ""},
-		{"test", "Test Platform", "自动化测试与质量门禁平台", "test,测试,自动化", "🧪", "qa", "https://test.example.internal", application.SSOTypeURL, false, []string{"ci"}, ""},
-		{"data", "Data Platform", "数据开发、调度与 BI 报表平台", "data,数据,BI,报表", "📊", "data", "https://data.example.internal", application.SSOTypeURL, false, []string{"bi"}, ""},
-		{"ai", "AI Platform", "企业 AI 平台与智能助手", "ai,智能,大模型", "🤖", "ai", "https://ai.example.internal", application.SSOTypeOIDC, true, []string{"genai"}, ""},
-		{"im", "企业 IM", "企业内部即时通讯与协同", "im,即时通讯,协同", "💬", "office", "https://im.example.internal", application.SSOTypeURL, false, []string{"im"}, ""},
-		{"monitor", "监控平台", "基础设施与应用监控告警", "monitor,监控,告警", "📡", "ops", "https://monitor.example.internal", application.SSOTypeURL, false, []string{"monitor"}, "https://monitor.example.internal/healthz"},
-	}
-
-	for _, a := range apps {
-		var appID uint64
-		var catIDVal any
-		if v, ok := catID[a.Category]; ok {
-			catIDVal = v
-		} else {
-			catIDVal = nil
-		}
-		err := gormDB.Raw(
-			`INSERT INTO applications
-			   (code, name, description, keywords, icon, category_id, home_url, launch_url, sso_type,
-			    owner, department, status, sort, is_featured, health_check_enabled, health_check_url, created_by, updated_by)
-			 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, '', '', 'ENABLED', 0, ?, ?, ?, 'seed', 'seed')
-			 ON CONFLICT (code) DO UPDATE SET
-			   name = EXCLUDED.name, description = EXCLUDED.description, keywords = EXCLUDED.keywords,
-			   icon = EXCLUDED.icon, category_id = EXCLUDED.category_id, home_url = EXCLUDED.home_url,
-			   launch_url = EXCLUDED.launch_url, sso_type = EXCLUDED.sso_type, is_featured = EXCLUDED.is_featured,
-			   health_check_enabled = EXCLUDED.health_check_enabled, health_check_url = EXCLUDED.health_check_url
-			 RETURNING id`,
-			a.Code, a.Name, a.Desc, a.Keywords, a.Icon, catIDVal, a.HomeURL, a.HomeURL, a.SSOType,
-			a.Featured, a.Health != "", a.Health,
-		).Scan(&appID).Error
-		if err != nil {
-			return fmt.Errorf("写入应用 %s 失败: %w", a.Code, err)
-		}
-
-		// 标签关系。
-		for _, t := range a.Tags {
-			if id, ok := tagID[t]; ok {
-				if err := gormDB.Exec(
-					`INSERT INTO application_tag_relations (application_id, tag_id) VALUES (?, ?)
-					 ON CONFLICT DO NOTHING`, appID, id,
-				).Error; err != nil {
-					return fmt.Errorf("写入应用标签失败: %w", err)
-				}
-			}
-		}
-		// 默认 EVERYONE 策略（首次插入时）。
-		var polCount int64
-		if err := gormDB.Table("application_access_policies").
-			Where("application_id = ?", appID).Count(&polCount).Error; err != nil {
-			return err
-		}
-		if polCount == 0 {
-			if err := gormDB.Exec(
-				`INSERT INTO application_access_policies (application_id, policy_type, value, created_at, updated_at)
-				 VALUES (?, 'EVERYONE', '', now(), now())`, appID,
-			).Error; err != nil {
-				return err
-			}
-		}
-	}
-	slog.Info("应用 Seed 完成", "count", len(apps))
+	slog.Info("Seed 完成：分类与标签（示例应用已移除，门户应用请从 Casdoor 同步或管理后台创建）")
 	return nil
 }

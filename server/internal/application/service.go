@@ -10,6 +10,7 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/sevoniva-labs/velora/server/internal/auth"
+	"github.com/sevoniva-labs/velora/server/internal/casdoor"
 	"github.com/sevoniva-labs/velora/server/internal/platform/errs"
 	"github.com/sevoniva-labs/velora/server/internal/tag"
 )
@@ -588,4 +589,100 @@ func ValidPolicyType(t string) bool {
 		return true
 	}
 	return false
+}
+
+// SyncFromCasdoor 将 Casdoor 应用（OIDC 客户端）同步为门户应用：
+//   - 按 casdoor_client_id 匹配，已存在则刷新名称/图标/主页/描述（保留分类、策略、收藏、标签等门户配置）
+//   - 不存在则创建（默认启用、EVERYONE 可见、SSO 类型 OIDC）
+//
+// 同步只写入 Velora 侧数据，不修改 Casdoor 任何内容。
+func (s *Service) SyncFromCasdoor(ctx context.Context, operator string, apps []casdoor.SyncedApplication) (created, updated int, err error) {
+	for _, in := range apps {
+		if strings.TrimSpace(in.DisplayName) == "" && strings.TrimSpace(in.Name) == "" {
+			continue
+		}
+		existing, gerr := s.repo.GetByCasdoorClientID(ctx, in.ClientID)
+		if gerr != nil {
+			return created, updated, gerr
+		}
+
+		name := strings.TrimSpace(in.DisplayName)
+		if name == "" {
+			name = in.Name
+		}
+		icon := strings.TrimSpace(in.Logo)
+		home := strings.TrimSpace(in.HomepageURL)
+
+		if existing != nil {
+			existing.Name = name
+			if icon != "" {
+				existing.Icon = icon
+			}
+			if home != "" {
+				existing.HomeURL = home
+			}
+			if in.Description != "" {
+				existing.Description = in.Description
+			}
+			existing.SSOType = SSOTypeOIDC
+			existing.UpdatedBy = operator
+			if uerr := s.repo.Update(ctx, existing); uerr != nil {
+				return created, updated, uerr
+			}
+			updated++
+			continue
+		}
+
+		code := syncCode(in.Name)
+		if code == "" {
+			code = syncCode(name)
+		}
+		// 编码冲突时追加 client id 片段保证唯一。
+		if conflict, cerr := s.repo.GetByCode(ctx, code); cerr != nil {
+			return created, updated, cerr
+		} else if conflict != nil {
+			suffix := in.ClientID
+			if len(suffix) > 6 {
+				suffix = suffix[:6]
+			}
+			code = code + "-" + suffix
+		}
+
+		app := &Application{
+			Code:                   code,
+			Name:                   name,
+			Description:            in.Description,
+			Icon:                   icon,
+			HomeURL:                home,
+			SSOType:                SSOTypeOIDC,
+			CasdoorApplicationName: in.Name,
+			CasdoorClientID:        in.ClientID,
+			Status:                 StatusEnabled,
+			CreatedBy:              operator,
+			UpdatedBy:              operator,
+		}
+		if cerr := s.repo.Create(ctx, app); cerr != nil {
+			return created, updated, cerr
+		}
+		// 新同步应用默认 EVERYONE 可见，管理员后续可调整。
+		if perr := s.repo.ReplacePolicies(ctx, app.ID, []AccessPolicy{{PolicyType: PolicyTypeEveryone}}); perr != nil {
+			return created, updated, perr
+		}
+		created++
+	}
+	return created, updated, nil
+}
+
+// syncCode 将 Casdoor 应用标识转换为门户应用编码（小写字母数字连字符）。
+func syncCode(name string) string {
+	var b strings.Builder
+	for _, r := range strings.ToLower(strings.TrimSpace(name)) {
+		switch {
+		case r >= 'a' && r <= 'z', r >= '0' && r <= '9':
+			b.WriteRune(r)
+		case r == ' ' || r == '_' || r == '-':
+			b.WriteByte('-')
+		}
+	}
+	return strings.Trim(b.String(), "-")
 }

@@ -13,6 +13,7 @@ import (
 	"github.com/sevoniva-labs/velora/server/internal/application"
 	"github.com/sevoniva-labs/velora/server/internal/audit"
 	"github.com/sevoniva-labs/velora/server/internal/auth"
+	"github.com/sevoniva-labs/velora/server/internal/casdoor"
 	"github.com/sevoniva-labs/velora/server/internal/category"
 	"github.com/sevoniva-labs/velora/server/internal/config"
 	"github.com/sevoniva-labs/velora/server/internal/favorite"
@@ -86,7 +87,11 @@ func New(deps Deps) (*gin.Engine, error) {
 	appService := application.NewService(deps.DB, deps.AdminRole, deps.Cfg.CasdoorIssuer, deps.Cfg.HealthCheckTimeout)
 	appRepo := application.NewRepository(deps.DB)
 	visitService := visit.NewService(deps.DB)
-	application.NewHandler(appService, appRepo, visitService, deps.Audit, deps.AdminRole).Register(secured)
+	var syncClient *casdoor.Client
+	if deps.Cfg.CasdoorAdminUsername != "" && deps.Cfg.CasdoorAdminPassword != "" {
+		syncClient = casdoor.NewClient(deps.Cfg.CasdoorIssuer, deps.Cfg.CasdoorClientID, deps.Cfg.CasdoorClientSecret, deps.Cfg.CasdoorAdminUsername, deps.Cfg.CasdoorAdminPassword)
+	}
+	application.NewHandler(appService, appRepo, visitService, deps.Audit, deps.AdminRole, syncClient).Register(secured)
 
 	favService := favorite.NewService(deps.DB)
 	favorite.NewHandler(favService, appService, appRepo, deps.Audit).Register(secured)

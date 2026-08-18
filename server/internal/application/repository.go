@@ -62,6 +62,28 @@ func (r *Repository) GetByCode(ctx context.Context, code string) (*Application, 
 	return &app, nil
 }
 
+// GetByCasdoorClientID 按 Casdoor 客户端 ID 查询（同步匹配用）。
+func (r *Repository) GetByCasdoorClientID(ctx context.Context, clientID string) (*Application, error) {
+	var app Application
+	err := r.db.WithContext(ctx).Where("casdoor_client_id = ?", clientID).First(&app).Error
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, nil
+		}
+		return nil, errs.DB(err)
+	}
+	return &app, nil
+}
+
+// ListAll 查询全部应用（无分页，同步对账用）。
+func (r *Repository) ListAll(ctx context.Context) ([]Application, error) {
+	var apps []Application
+	if err := r.db.WithContext(ctx).Find(&apps).Error; err != nil {
+		return nil, errs.DB(err)
+	}
+	return apps, nil
+}
+
 // Create 创建应用。
 func (r *Repository) Create(ctx context.Context, app *Application) error {
 	if err := r.db.WithContext(ctx).Create(app).Error; err != nil {

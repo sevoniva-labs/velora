@@ -144,6 +144,10 @@ export function adminDeleteApplication(id: number | string): Promise<void> {
   return apiFetch(`/admin/applications/${id}`, { method: 'DELETE' })
 }
 
+export function adminSyncApplications(): Promise<{ total: number; created: number; updated: number }> {
+  return apiFetch('/admin/applications/sync', { method: 'POST' })
+}
+
 export function adminSetPolicies(id: number | string, policies: { policyType: string; value: string }[]): Promise<unknown> {
   return apiFetch(`/admin/applications/${id}/policies`, { method: 'PUT', body: { policies } })
 }

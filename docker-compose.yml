@@ -85,6 +85,8 @@ services:
       CASDOOR_CLIENT_ID: ${CASDOOR_CLIENT_ID:-velora}
       CASDOOR_CLIENT_SECRET: ${CASDOOR_CLIENT_SECRET:-change-me}
       CASDOOR_REDIRECT_URI: http://localhost:8080/api/v1/auth/oidc/callback
+      CASDOOR_ADMIN_USERNAME: ${CASDOOR_ADMIN_USERNAME:-admin}
+      CASDOOR_ADMIN_PASSWORD: ${CASDOOR_ADMIN_PASSWORD:-123}
       SESSION_SECRET: ${SESSION_SECRET:-docker-compose-dev-secret-change-me}
       COOKIE_SECURE: "false"
       CORS_ALLOWED_ORIGINS: http://localhost:5173

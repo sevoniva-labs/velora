@@ -27,6 +27,9 @@ type Config struct {
 	CasdoorClientSecret    string
 	CasdoorRedirectURI     string
 	CasdoorDefaultRedirect string
+	// Casdoor 管理员凭据：仅用于服务端同步应用列表（读取管理 API），不用于用户认证。
+	CasdoorAdminUsername string
+	CasdoorAdminPassword string
 
 	SessionSecret string
 	SessionTTL    time.Duration
@@ -61,6 +64,8 @@ func Load() (*Config, error) {
 		CasdoorClientSecret:    getEnv("CASDOOR_CLIENT_SECRET", ""),
 		CasdoorRedirectURI:     getEnv("CASDOOR_REDIRECT_URI", ""),
 		CasdoorDefaultRedirect: getEnv("CASDOOR_DEFAULT_REDIRECT", "/home"),
+		CasdoorAdminUsername:   getEnv("CASDOOR_ADMIN_USERNAME", ""),
+		CasdoorAdminPassword:   getEnv("CASDOOR_ADMIN_PASSWORD", ""),
 
 		SessionSecret: getEnv("SESSION_SECRET", ""),
 		SessionTTL:    time.Duration(getEnvInt("SESSION_TTL_HOURS", 168)) * time.Hour,

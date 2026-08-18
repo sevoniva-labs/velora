@@ -10,6 +10,7 @@ import (
 
 	"github.com/sevoniva-labs/velora/server/internal/audit"
 	"github.com/sevoniva-labs/velora/server/internal/auth"
+	"github.com/sevoniva-labs/velora/server/internal/casdoor"
 	"github.com/sevoniva-labs/velora/server/internal/permission"
 	"github.com/sevoniva-labs/velora/server/internal/platform/errs"
 	"github.com/sevoniva-labs/velora/server/internal/platform/response"
@@ -27,11 +28,12 @@ type Handler struct {
 	visits    VisitRecorder
 	audit     *audit.Service
 	adminRole string
+	sync      *casdoor.Client
 }
 
 // NewHandler 创建应用 Handler。
-func NewHandler(service *Service, repo *Repository, visits VisitRecorder, auditSvc *audit.Service, adminRole string) *Handler {
-	return &Handler{service: service, repo: repo, visits: visits, audit: auditSvc, adminRole: adminRole}
+func NewHandler(service *Service, repo *Repository, visits VisitRecorder, auditSvc *audit.Service, adminRole string, syncClient *casdoor.Client) *Handler {
+	return &Handler{service: service, repo: repo, visits: visits, audit: auditSvc, adminRole: adminRole, sync: syncClient}
 }
 
 // Register 注册路由。
@@ -51,6 +53,9 @@ func (h *Handler) Register(r gin.IRouter) {
 	admin.PUT("/:id", h.update)
 	admin.DELETE("/:id", h.delete)
 	admin.PUT("/:id/policies", h.setPolicies)
+	if h.sync != nil {
+		admin.POST("/sync", h.syncFromCasdoor)
+	}
 }
 
 // recent 最近使用。
@@ -353,3 +358,35 @@ func parseUintList(values []string) []uint64 {
 }
 
 var _ = http.StatusOK
+
+// syncFromCasdoor 手动触发：从 Casdoor 同步应用列表（管理员）。
+func (h *Handler) syncFromCasdoor(c *gin.Context) {
+	user, err := auth.RequireUser(c)
+	if err != nil {
+		response.Error(c, errs.Unauthorized(""))
+		return
+	}
+	if h.sync == nil {
+		response.Error(c, errs.New(errs.CodeInternal, http.StatusBadGateway, "未配置 Casdoor 同步凭据"))
+		return
+	}
+
+	apps, err := h.sync.FetchApplications(c.Request.Context())
+	if err != nil {
+		response.Error(c, errs.New(errs.CodeInternal, http.StatusBadGateway, "从 Casdoor 同步失败: "+err.Error()))
+		return
+	}
+	created, updated, err := h.service.SyncFromCasdoor(c.Request.Context(), user.ID, apps)
+	if err != nil {
+		response.Error(c, err)
+		return
+	}
+
+	h.audit.Record(c, audit.Entry{
+		Operator: user.ID,
+		Action:   audit.ActionAppCreate,
+		Resource: "applications/sync",
+		Detail:   "从 Casdoor 同步应用",
+	})
+	response.OK(c, gin.H{"total": len(apps), "created": created, "updated": updated})
+}

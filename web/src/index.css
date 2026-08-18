@@ -224,46 +224,47 @@ button {
   gap: 10px;
 }
 
-/* 顶栏紧凑搜索（桌面端） */
+/* 顶栏搜索：易点工作台风格玻璃搜索条（非 antd Input，纯自定义样式） */
 .velora-header-search {
-  width: 240px;
+  flex: 1;
+  max-width: 470px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  background: rgba(255, 255, 255, 0.22);
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  border-radius: 11px;
+  padding: 8px 14px;
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 13px;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  transition: background 0.18s ease, border-color 0.18s ease;
 }
-/* antd 6 中搜索按钮被 group-addon 包裹，需一并去除默认浅灰背景/边框，让按钮融入输入框 */
-.velora-header-search .ant-input-group-wrapper,
-.velora-header-search .ant-input-wrapper,
-.velora-header-search .ant-input-group,
-.velora-header-search .ant-input-group-addon {
-  background: transparent !important;
-  border: 0 !important;
-  box-shadow: none !important;
-  padding: 0 !important;
+.velora-header-search:hover,
+.velora-header-search:focus-within {
+  background: rgba(255, 255, 255, 0.3);
+  border-color: rgba(255, 255, 255, 0.45);
 }
-.velora-header-search .ant-input-group-addon:last-child {
-  border-radius: 0 9px 9px 0 !important;
-  overflow: hidden;
-}
-.velora-header-search .ant-input-affix-wrapper {
-  height: 34px;
-  border-radius: 9px;
-  border: 1px solid rgba(255, 255, 255, 0.22);
-  color: var(--velora-on-header);
-  background: rgba(255, 255, 255, 0.12);
-}
-.velora-header-search .ant-input-search-btn {
-  height: 34px !important;
-  border: 0 !important;
-  padding-inline: 10px;
-  color: rgba(255, 255, 255, 0.82) !important;
-  background: transparent !important;
-  box-shadow: none !important;
-}
-.velora-header-search .ant-input-affix-wrapper:hover,
-.velora-header-search .ant-input-affix-wrapper:focus-within {
-  border-color: rgba(255, 255, 255, 0.4);
-  background: rgba(255, 255, 255, 0.2);
+.velora-header-search svg {
+  width: 16px;
+  height: 16px;
+  stroke: rgba(255, 255, 255, 0.85);
+  fill: none;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  flex-shrink: 0;
 }
 .velora-header-search input {
-  color: var(--velora-on-header);
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: #fff;
+  font-size: 13px;
 }
 .velora-header-search input::placeholder {
   color: rgba(255, 255, 255, 0.68);

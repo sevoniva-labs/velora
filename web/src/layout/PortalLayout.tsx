@@ -1,8 +1,9 @@
 // 普通用户门户外壳：深海军蓝顶栏（品牌 + 导航 + 搜索 + 用户）+ 居中内容区。
 import type { ReactNode } from 'react'
-import { App as AntdApp, Avatar, Dropdown, Input, Layout } from 'antd'
+import { App as AntdApp, Avatar, Dropdown, Layout } from 'antd'
 import { LogoutOutlined, SettingOutlined, UserOutlined } from '@ant-design/icons'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { useState, type KeyboardEvent } from 'react'
 import { useMe } from '../auth/useMe'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { logout, getPortalSettings, queryKeys } from '../api/api'
@@ -43,6 +44,8 @@ export function PortalLayout({ children }: PortalLayoutProps) {
     },
   })
 
+  // 顶栏搜索：yidian 风格玻璃搜索条，回车跳转应用中心并携带关键词。
+  const [keyword, setKeyword] = useState('')
   const onHeaderSearch = (value: string) => {
     const q = value.trim()
     navigate(q ? `/applications?keyword=${encodeURIComponent(q)}` : '/applications')
@@ -87,12 +90,20 @@ export function PortalLayout({ children }: PortalLayoutProps) {
         </nav>
 
         <div className="velora-header-toolbar">
-          <div className="velora-header-search">
-            <Input.Search
-              size="middle"
-              allowClear
-              placeholder="搜索应用…"
-              onSearch={onHeaderSearch}
+          <div className="velora-header-search" role="search">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <circle cx="11" cy="11" r="7" />
+              <path d="M21 21l-4.3-4.3" />
+            </svg>
+            <input
+              value={keyword}
+              onChange={(e) => setKeyword(e.target.value)}
+              onKeyDown={(e: KeyboardEvent<HTMLInputElement>) => {
+                if (e.key === 'Enter') {
+                  onHeaderSearch(keyword)
+                }
+              }}
+              placeholder="搜索应用、资讯、文档、知识库等"
               aria-label="搜索应用"
             />
           </div>

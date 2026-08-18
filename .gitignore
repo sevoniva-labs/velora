@@ -1,0 +1,33 @@
+# --- OS ---
+.DS_Store
+Thumbs.db
+
+# --- Go ---
+server/bin/
+server/tmp/
+*.test
+*.out
+coverage.txt
+
+# --- Node / pnpm ---
+node_modules/
+dist/
+dist-ssr/
+*.local
+.pnpm-store/
+
+# --- 环境与密钥（禁止提交真实凭据） ---
+.env
+.env.*
+!.env.example
+
+# --- IDE ---
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# --- 日志 / 临时 ---
+*.log
+logs/
+tmp/

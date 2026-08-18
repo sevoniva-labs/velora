@@ -1,0 +1,136 @@
+package httpserver
+
+import (
+	"log/slog"
+	"net/http"
+	"sync"
+	"time"
+
+	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
+
+	"github.com/sevoniva-labs/velora/server/internal/application"
+	"github.com/sevoniva-labs/velora/server/internal/audit"
+	"github.com/sevoniva-labs/velora/server/internal/auth"
+	"github.com/sevoniva-labs/velora/server/internal/category"
+	"github.com/sevoniva-labs/velora/server/internal/config"
+	"github.com/sevoniva-labs/velora/server/internal/favorite"
+	"github.com/sevoniva-labs/velora/server/internal/platform/errs"
+	"github.com/sevoniva-labs/velora/server/internal/platform/response"
+	"github.com/sevoniva-labs/velora/server/internal/portal"
+	"github.com/sevoniva-labs/velora/server/internal/tag"
+	"github.com/sevoniva-labs/velora/server/internal/visit"
+)
+
+// Deps 为组装路由所需的依赖。
+type Deps struct {
+	Cfg       *config.Config
+	DB        *gorm.DB
+	Sessions  *auth.SessionStore
+	OIDC      *auth.OIDCManager
+	Audit     *audit.Service
+	AdminRole string
+}
+
+// New 组装 Gin Engine 与全部路由。
+func New(deps Deps) (*gin.Engine, error) {
+	if deps.Cfg.Env == "production" {
+		gin.SetMode(gin.ReleaseMode)
+	}
+
+	r := gin.New()
+	r.Use(Recovery(), RequestID(), SecurityHeaders())
+	r.Use(CORS(deps.Cfg.CORSAllowedOrigins))
+	r.Use(Logger())
+	r.Use(rateLimit(300, time.Minute))
+
+	RegisterHealth(r, deps.DB)
+
+	api := r.Group("/api/v1")
+
+	// --- 公开端点 ---
+	api.GET("/system/version", func(c *gin.Context) {
+		response.OK(c, gin.H{"application": "velora", "version": "0.1.0"})
+	})
+
+	oidcHandler := auth.NewHandler(deps.OIDC, deps.Sessions, deps.AdminRole, deps.Cfg.CasdoorDefaultRedirect,
+		func(c *gin.Context, userID string) {
+			deps.Audit.Record(c, audit.Entry{Operator: userID, Action: audit.ActionLogin, Resource: "session"})
+		},
+		func(c *gin.Context, userID string) {
+			deps.Audit.Record(c, audit.Entry{Operator: userID, Action: audit.ActionLogout, Resource: "session"})
+		},
+	)
+	api.GET("/auth/oidc/login", rateLimit(30, time.Minute), oidcHandler.Login)
+	api.GET("/auth/oidc/callback", rateLimit(60, time.Minute), oidcHandler.Callback)
+
+	// --- 受保护端点（登录 + CSRF） ---
+	secured := api.Group("")
+	secured.Use(Auth(deps.Sessions), CSRF())
+
+	oidcHandler.Register(secured) // /auth/logout, /me
+
+	categoryService := category.NewService(deps.DB)
+	category.NewHandler(categoryService, deps.Audit, deps.AdminRole).Register(secured)
+
+	tagService := tag.NewService(deps.DB)
+	tag.NewHandler(tagService, deps.Audit, deps.AdminRole).Register(secured)
+
+	appService := application.NewService(deps.DB, deps.AdminRole, deps.Cfg.CasdoorIssuer, deps.Cfg.HealthCheckTimeout)
+	appRepo := application.NewRepository(deps.DB)
+	visitService := visit.NewService(deps.DB)
+	application.NewHandler(appService, appRepo, visitService, deps.Audit, deps.AdminRole).Register(secured)
+
+	favService := favorite.NewService(deps.DB)
+	favorite.NewHandler(favService, appService, appRepo, deps.Audit).Register(secured)
+
+	portalService := portal.NewService(deps.DB)
+	portal.NewHandler(portalService, deps.Audit, deps.AdminRole).Register(secured)
+
+	audit.NewHandler(deps.Audit, deps.AdminRole).Register(secured)
+
+	return r, nil
+}
+
+// rateLimit 简易内存限流：窗口内每 IP 允许 n 次。
+func rateLimit(n int, window time.Duration) gin.HandlerFunc {
+	type entry struct {
+		count int
+		start time.Time
+	}
+	var mu sync.Mutex
+	buckets := map[string]*entry{}
+	go func() {
+		ticker := time.NewTicker(window)
+		for range ticker.C {
+			mu.Lock()
+			now := time.Now()
+			for k, e := range buckets {
+				if now.Sub(e.start) > window {
+					delete(buckets, k)
+				}
+			}
+			mu.Unlock()
+		}
+	}()
+	return func(c *gin.Context) {
+		key := c.ClientIP()
+		mu.Lock()
+		e, ok := buckets[key]
+		if !ok || time.Since(e.start) > window {
+			e = &entry{start: time.Now()}
+			buckets[key] = e
+		}
+		e.count++
+		over := e.count > n
+		mu.Unlock()
+		if over {
+			response.ErrorWith(c, http.StatusTooManyRequests, errs.CodeRateLimited, "请求过于频繁，请稍后再试")
+			c.Abort()
+			return
+		}
+		c.Next()
+	}
+}
+
+var _ = slog.Info

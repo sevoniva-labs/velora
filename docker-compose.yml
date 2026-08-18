@@ -1,0 +1,110 @@
+# Velora 本地开发 / 演示编排：PostgreSQL + Casdoor + Velora Server + Velora Web
+# Redis 通过 --profile redis 可选启动（第一阶段未强制使用）。
+#
+# 中国大陆环境：可用 DOCKER_REGISTRY=docker.m.daocloud.io docker compose ... 加速拉取
+# 官方源：        DOCKER_REGISTRY=docker.io docker compose ...
+name: velora
+
+x-registry: &registry "${DOCKER_REGISTRY:-docker.m.daocloud.io}"
+
+services:
+  postgres:
+    image: ${DOCKER_REGISTRY:-docker.m.daocloud.io}/library/postgres:16-alpine
+    container_name: velora-postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - velora-pgdata:/var/lib/postgresql/data
+      # 首次初始化创建两个独立 database：velora / casdoor（数据严格隔离）
+      - ./deployments/compose/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  redis:
+    image: ${DOCKER_REGISTRY:-docker.m.daocloud.io}/library/redis:7-alpine
+    container_name: velora-redis
+    profiles: ["redis"]
+    ports:
+      - "6379:6379"
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - velora-redisdata:/data
+
+  casdoor:
+    image: ${DOCKER_REGISTRY:-docker.m.daocloud.io}/casbin/casdoor:v1.762.0
+    container_name: velora-casdoor
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      RUNNING_IN_DOCKER: "true"
+      driverName: postgres
+      dbName: casdoor
+      dataSourceName: "user=postgres password=postgres host=postgres port=5432 sslmode=disable dbname=casdoor"
+      # 首次启动加载内置初始化数据（admin / built-in 应用）
+      initData: "true"
+      origin: "http://localhost:8443"
+    ports:
+      - "8443:8000"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8000/healthz >/dev/null 2>&1 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+
+  server:
+    build:
+      context: .
+      dockerfile: deployments/docker/Dockerfile.server
+      args:
+        DOCKER_REGISTRY: ${DOCKER_REGISTRY:-docker.m.daocloud.io}
+    container_name: velora-server
+    depends_on:
+      postgres:
+        condition: service_healthy
+      casdoor:
+        condition: service_healthy
+    environment:
+      VELORA_ENV: development
+      LOG_LEVEL: info
+      DATABASE_URL: postgres://velora:velora@postgres:5432/velora?sslmode=disable
+      CASDOOR_ISSUER: http://casdoor:8000
+      CASDOOR_CLIENT_ID: ${CASDOOR_CLIENT_ID:-velora}
+      CASDOOR_CLIENT_SECRET: ${CASDOOR_CLIENT_SECRET:-change-me}
+      CASDOOR_REDIRECT_URI: http://localhost:8080/api/v1/auth/oidc/callback
+      SESSION_SECRET: ${SESSION_SECRET:-docker-compose-dev-secret-change-me}
+      COOKIE_SECURE: "false"
+      CORS_ALLOWED_ORIGINS: http://localhost:5173
+    ports:
+      - "8080:8080"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8080/healthz >/dev/null 2>&1 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  web:
+    build:
+      context: .
+      dockerfile: deployments/docker/Dockerfile.web
+      args:
+        DOCKER_REGISTRY: ${DOCKER_REGISTRY:-docker.m.daocloud.io}
+    container_name: velora-web
+    depends_on:
+      - server
+    ports:
+      - "5173:80"
+    environment:
+      VELORA_API_PROXY_PASS: http://server:8080
+
+volumes:
+  velora-pgdata:
+  velora-redisdata:

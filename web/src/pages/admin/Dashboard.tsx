@@ -15,9 +15,9 @@ import QueryErrorState from '../../components/QueryErrorState'
 import { usePageTitle } from '../../hooks/usePageTitle'
 
 const QUICK_STEPS = [
-  '在「应用管理」创建应用，配置名称、图标、分类、地址与接入类型',
-  '在「访问策略」控制哪些组织、角色、用户组可以看到并访问该应用',
-  '在「分类 / 标签管理」维护门户的分类与标签体系',
+  '在「应用管理」创建应用，配置图标、分类与接入地址',
+  '在「访问策略」配置应用的可见与访问范围',
+  '在「分类 / 标签管理」维护分类与标签体系',
 ]
 
 export default function AdminDashboard() {
@@ -37,7 +37,7 @@ export default function AdminDashboard() {
 
   return (
     <div>
-      <AdminPageHead title="门户概览" desc="应用、分类、收藏与启动数据一览。" />
+      <AdminPageHead title="门户概览" />
 
       {isError ? (
         <QueryErrorState refetch={refetch} />

@@ -65,7 +65,7 @@ export default function AdminSettings() {
 
   return (
     <div className="velora-admin-settings">
-      <AdminPageHead title="门户设置" desc="门户名称、欢迎语、公告等基础展示配置。" />
+      <AdminPageHead title="门户设置" />
 
       {isLoading ? (
         <div className="velora-admin-card velora-settings-loading">

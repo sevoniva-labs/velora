@@ -42,10 +42,7 @@ export default function AdminAudit() {
 
   return (
     <div>
-      <AdminPageHead
-        title="审计日志"
-        desc="记录登录、应用操作、收藏、启动等关键行为，满足合规追溯需求。"
-      />
+      <AdminPageHead title="审计日志" />
 
       <Space style={{ marginBottom: 16 }}>
         <Select

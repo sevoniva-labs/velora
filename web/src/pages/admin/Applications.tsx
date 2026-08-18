@@ -131,10 +131,9 @@ export default function AdminApplications() {
     <div>
       <AdminPageHead
         title="应用管理"
-        desc="维护门户中的应用目录、接入类型与展示信息。"
         extra={
           <>
-            <Tooltip title="把 Casdoor 中接入统一登录的应用（含图标/名称）同步为门户应用，门户只展示这些应用">
+            <Tooltip title="将 Casdoor 中已接入统一登录的应用同步到门户（含图标与名称）">
               <Button icon={<CloudSyncOutlined />} loading={syncMutation.isPending} onClick={() => syncMutation.mutate()}>
                 从 Casdoor 同步
               </Button>
@@ -148,7 +147,7 @@ export default function AdminApplications() {
 
       <Input.Search
         allowClear
-        placeholder="搜索应用：名称 / 编码 / 描述"
+        placeholder="搜索名称 / 编码 / 描述"
         style={{ maxWidth: 360, marginBottom: 16 }}
         onSearch={(value) => {
           setKeyword(value.trim())
@@ -275,42 +274,41 @@ export default function AdminApplications() {
         width={640}
         destroyOnHidden
       >
-        <Form form={form} layout="vertical" requiredMark={false} style={{ marginTop: 16 }}>
-          <Space.Compact block>
-            <Form.Item label="应用编码" name="code" style={{ flex: 1 }} rules={[{ required: true, message: '请输入应用编码' }]}>
+        <Form form={form} layout="vertical" requiredMark={false} style={{ marginTop: 4 }}>
+          <div className="velora-form-grid">
+            <Form.Item label="应用编码" name="code" rules={[{ required: true, message: '请输入应用编码' }]}>
               <Input placeholder="如 devops" />
             </Form.Item>
-            <Form.Item label="应用名称" name="name" style={{ flex: 1.4, marginLeft: 12 }} rules={[{ required: true, message: '请输入应用名称' }]}>
+            <Form.Item label="应用名称" name="name" rules={[{ required: true, message: '请输入应用名称' }]}>
               <Input placeholder="如 DevOps 平台" />
             </Form.Item>
-          </Space.Compact>
+          </div>
 
           <Form.Item label="描述" name="description">
             <Input.TextArea rows={2} placeholder="应用用途说明" />
           </Form.Item>
 
-          <Form.Item label="关键词（搜索用，逗号分隔）" name="keywords">
-            <Input placeholder="如 流水线,发布,ci" />
+          <Form.Item label="关键词" name="keywords">
+            <Input placeholder="搜索用，多个用逗号分隔" />
           </Form.Item>
 
-          <Space.Compact block>
-            <Form.Item label="图标（URL 或 Emoji）" name="icon" style={{ flex: 1 }}>
-              <Input placeholder="https://.../icon.png 或 🚀" />
+          <div className="velora-form-grid">
+            <Form.Item label="图标" name="icon">
+              <Input placeholder="图片 URL 或 Emoji" />
             </Form.Item>
-            <Form.Item label="分类" name="categoryId" style={{ flex: 1, marginLeft: 12 }}>
+            <Form.Item label="分类" name="categoryId">
               <Select
                 allowClear
                 placeholder="选择分类"
                 options={(categories ?? []).map((c) => ({ value: c.id, label: c.name }))}
               />
             </Form.Item>
-          </Space.Compact>
+          </div>
 
-          <Space.Compact block>
+          <div className="velora-form-grid">
             <Form.Item
               label="主页地址"
               name="homeUrl"
-              style={{ flex: 1 }}
               rules={[
                 { required: true, message: '请输入主页地址' },
                 {
@@ -326,7 +324,6 @@ export default function AdminApplications() {
             <Form.Item
               label="启动地址"
               name="launchUrl"
-              style={{ flex: 1, marginLeft: 12 }}
               rules={[
                 {
                   validator: (_, value: string) => {
@@ -338,10 +335,10 @@ export default function AdminApplications() {
             >
               <Input placeholder="留空则使用主页地址" />
             </Form.Item>
-          </Space.Compact>
+          </div>
 
-          <Space.Compact block>
-            <Form.Item label="接入类型" name="ssoType" style={{ flex: 1 }} rules={[{ required: true }]}>
+          <div className="velora-form-grid">
+            <Form.Item label="接入类型" name="ssoType" rules={[{ required: true }]}>
               <Select options={SSO_OPTIONS.map((v) => ({ value: v, label: SSO_TYPE_LABEL[v as Application['ssoType']] }))} />
             </Form.Item>
             <Form.Item
@@ -350,31 +347,30 @@ export default function AdminApplications() {
             >
               {({ getFieldValue }) =>
                 getFieldValue('ssoType') === 'OIDC' ? (
-                  <Form.Item label="Casdoor Client ID" name="casdoorClientId" style={{ flex: 1.4, marginLeft: 12 }} rules={[{ required: true, message: 'OIDC 应用需配置 Client ID' }]}>
+                  <Form.Item label="Casdoor Client ID" name="casdoorClientId" rules={[{ required: true, message: 'OIDC 应用需配置 Client ID' }]}>
                     <Input placeholder="Casdoor 中该应用的 Client ID" />
                   </Form.Item>
                 ) : null
               }
             </Form.Item>
-          </Space.Compact>
+            {watchSsoType === 'OIDC' ? (
+              <Form.Item label="Casdoor 应用名" name="casdoorApplicationName">
+                <Input placeholder="可选" />
+              </Form.Item>
+            ) : null}
+          </div>
 
-          {watchSsoType === 'OIDC' ? (
-            <Form.Item label="Casdoor 应用名（可选）" name="casdoorApplicationName">
-              <Input placeholder="Casdoor 中注册的应用名称" />
-            </Form.Item>
-          ) : null}
-
-          <Space.Compact block>
-            <Form.Item label="负责人" name="owner" style={{ flex: 1 }}>
+          <div className="velora-form-grid">
+            <Form.Item label="负责人" name="owner">
               <Input />
             </Form.Item>
-            <Form.Item label="所属部门" name="department" style={{ flex: 1, marginLeft: 12 }}>
+            <Form.Item label="所属部门" name="department">
               <Input />
             </Form.Item>
-          </Space.Compact>
+          </div>
 
-          <Space.Compact block>
-            <Form.Item label="标签" name="tagIds" style={{ flex: 1 }}>
+          <div className="velora-form-grid">
+            <Form.Item label="标签" name="tagIds">
               <Select
                 mode="multiple"
                 allowClear
@@ -382,10 +378,10 @@ export default function AdminApplications() {
                 options={(tags ?? []).map((t) => ({ value: t.id, label: t.name }))}
               />
             </Form.Item>
-            <Form.Item label="排序（越小越靠前）" name="sort" style={{ flex: 0.6, marginLeft: 12 }}>
-              <InputNumber min={0} style={{ width: '100%' }} />
+            <Form.Item label="排序" name="sort">
+              <InputNumber min={0} placeholder="越小越靠前" style={{ width: '100%' }} />
             </Form.Item>
-          </Space.Compact>
+          </div>
 
           <Space size={24} wrap>
             <Form.Item

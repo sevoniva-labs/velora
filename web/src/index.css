@@ -2532,3 +2532,37 @@ button {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+
+/* ---------- 弹窗精修（全局，后台与门户共用） ---------- */
+.ant-modal .ant-modal-content {
+  border-radius: 14px;
+  padding: 22px 24px 18px;
+  box-shadow: 0 24px 64px -20px rgba(6, 20, 55, 0.35);
+}
+.ant-modal .ant-modal-header {
+  margin-bottom: 18px;
+}
+.ant-modal .ant-modal-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--velora-title);
+}
+.ant-modal .ant-modal-footer {
+  margin-top: 22px;
+}
+.ant-modal .ant-form-item {
+  margin-bottom: 14px;
+}
+.ant-modal .ant-form-item-label > label {
+  font-weight: 500;
+  color: var(--velora-text);
+  font-size: 13px;
+}
+
+/* 弹窗表单两列栅格 */
+.velora-form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  column-gap: 12px;
+}

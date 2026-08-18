@@ -60,7 +60,6 @@ export default function AdminCategories() {
     <div>
       <AdminPageHead
         title="分类管理"
-        desc="维护应用中心的分类体系。"
         extra={
           <Button type="primary" icon={<PlusOutlined />} onClick={() => openModal()}>
             新建分类
@@ -132,8 +131,8 @@ export default function AdminCategories() {
           <Form.Item label="描述" name="description">
             <Input.TextArea rows={2} />
           </Form.Item>
-          <Form.Item label="排序（越小越靠前）" name="sort">
-            <InputNumber min={0} style={{ width: '100%' }} />
+          <Form.Item label="排序" name="sort">
+            <InputNumber min={0} placeholder="越小越靠前" style={{ width: '100%' }} />
           </Form.Item>
         </Form>
       </Modal>

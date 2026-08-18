@@ -53,7 +53,6 @@ export default function AdminTags() {
     <div>
       <AdminPageHead
         title="标签管理"
-        desc="维护应用的标签体系，标签可跨分类组合筛选。"
         extra={
           <Button type="primary" icon={<PlusOutlined />} onClick={() => openModal()}>
             新建标签
@@ -121,8 +120,8 @@ export default function AdminTags() {
           <Form.Item label="标签名称" name="name" rules={[{ required: true, message: '请输入名称' }]}>
             <Input placeholder="如 CI/CD" />
           </Form.Item>
-          <Form.Item label="排序（越小越靠前）" name="sort">
-            <InputNumber min={0} style={{ width: '100%' }} />
+          <Form.Item label="排序" name="sort">
+            <InputNumber min={0} placeholder="越小越靠前" style={{ width: '100%' }} />
           </Form.Item>
         </Form>
       </Modal>

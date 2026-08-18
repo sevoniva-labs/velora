@@ -87,7 +87,7 @@ export default function AdminPolicies() {
     <div>
       <AdminPageHead
         title="访问策略"
-        desc="控制哪些用户可以看到并访问某个应用。策略为 OR 语义：命中任一规则即放行；空策略默认所有登录用户可见。"
+        desc="命中任一规则即放行（OR 语义）；空策略对所有登录用户可见。"
       />
 
       <Card>
@@ -143,7 +143,7 @@ export default function AdminPolicies() {
               dataSource={rows}
               pagination={false}
               size="small"
-              locale={{ emptyText: '暂无策略规则（默认所有登录用户可见）' }}
+              locale={{ emptyText: '暂无规则，所有登录用户可见' }}
               columns={[
                 {
                   title: '策略类型',

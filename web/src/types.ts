@@ -93,6 +93,95 @@ export interface LaunchResult {
   target: '_self' | '_blank'
 }
 
+/** 待办事项（待办中心）：支持外部系统通过 API 集成，sourceSystem+sourceId 为幂等键。 */
+export type TodoPriority = 'urgent' | 'high' | 'mid' | 'low'
+
+/** 待办类型（Tab 维度） */
+export type TodoKind = 'mail' | 'approval' | 'devops' | 'ops' | 'project' | 'hr' | 'other'
+
+export interface TodoItem {
+  id: number
+  userId: string
+  title: string
+  kind: TodoKind
+  sourceSystem: string
+  sourceLabel: string
+  sourceId: string
+  priority: TodoPriority
+  url: string
+  dueAt?: string | null
+  status: 'open' | 'done'
+  createdAt: string
+  updatedAt: string
+}
+
+export interface TodoListResult {
+  items: TodoItem[]
+  openCount: number
+}
+
+/** 邮件账号（credential 为密文，后端永不返回明文）。 */
+export interface MailAccount {
+  id: number
+  userId: string
+  provider: string
+  email: string
+  displayName: string
+  authType: string
+  imapHost: string
+  imapPort: number
+  smtpHost: string
+  smtpPort: number
+  status: 'active' | 'error' | 'disabled'
+  syncEnabled: boolean
+  unreadCount: number
+  lastSyncAt?: string | null
+  lastError: string
+  createdAt: string
+  updatedAt: string
+}
+
+export interface MailMessage {
+  id: number
+  accountId: number
+  userId: string
+  folder: string
+  uid: number
+  messageId: string
+  subject: string
+  fromAddress: string
+  fromName: string
+  toAddresses: string
+  receivedAt?: string | null
+  isRead: boolean
+  isStarred: boolean
+  hasAttachment: boolean
+  snippet: string
+  bodyText?: string
+  bodyHtml?: string
+  size: number
+  createdAt: string
+  updatedAt: string
+}
+
+export interface MailProviderProfile {
+  provider: string
+  label: string
+  imapHost: string
+  imapPort: number
+  smtpHost: string
+  smtpPort: number
+}
+
+export interface MailCapabilities {
+  idle: boolean
+  send: boolean
+  reply: boolean
+  folders: boolean
+  star: boolean
+  markRead: boolean
+}
+
 export interface AuditLog {
   id: number
   operator: string

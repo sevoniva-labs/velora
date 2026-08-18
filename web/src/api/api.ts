@@ -12,6 +12,14 @@ import type {
   Page,
   RecentItem,
   Tag,
+  TodoListResult,
+  MailAccount,
+  MailCapabilities,
+  MailMessage,
+  MailProviderProfile,
+  TodoItem,
+  TodoKind,
+  TodoPriority,
 } from '../types'
 
 // --- 认证 ---
@@ -96,6 +104,96 @@ export function addFavorite(applicationId: number | string): Promise<{ favorited
 
 export function removeFavorite(applicationId: number | string): Promise<{ favorited: boolean }> {
   return apiFetch(`/favorites/${applicationId}`, { method: 'DELETE' })
+}
+
+// --- 待办中心 ---
+
+export function listTodos(params: { status?: 'open' | 'done' | 'all'; limit?: number } = {}): Promise<TodoListResult> {
+  return apiFetch(`/todos${buildQuery({ status: params.status ?? 'open', limit: params.limit ?? 50 })}`)
+}
+
+export function markTodoDone(id: number): Promise<{ done: boolean }> {
+  return apiFetch(`/todos/${id}/done`, { method: 'PATCH' })
+}
+
+// --- 邮件（企业邮箱） ---
+
+export interface BindMailAccountInput {
+  provider: string
+  email: string
+  password: string
+  displayName?: string
+  imapHost?: string
+  imapPort?: number
+  smtpHost?: string
+  smtpPort?: number
+}
+
+export interface ListMailMessagesParams {
+  accountId?: number
+  unread?: boolean
+  starred?: boolean
+  keyword?: string
+  page?: number
+  pageSize?: number
+}
+
+export function listMailProviders(): Promise<{ profiles: MailProviderProfile[]; capabilities: MailCapabilities }> {
+  return apiFetch('/mail/providers')
+}
+
+export function listMailAccounts(): Promise<MailAccount[]> {
+  return apiFetch('/mail/accounts')
+}
+
+export function bindMailAccount(input: BindMailAccountInput): Promise<MailAccount> {
+  return apiFetch('/mail/accounts', { method: 'POST', body: input })
+}
+
+export function unbindMailAccount(id: number): Promise<{ deleted: boolean }> {
+  return apiFetch(`/mail/accounts/${id}`, { method: 'DELETE' })
+}
+
+export function testMailAccount(id: number): Promise<{ ok: boolean; error?: string }> {
+  return apiFetch(`/mail/accounts/${id}/test`, { method: 'POST' })
+}
+
+export function syncMailAccount(id: number): Promise<MailAccount> {
+  return apiFetch(`/mail/accounts/${id}/sync`, { method: 'POST' })
+}
+
+export function listMailMessages(params: ListMailMessagesParams = {}): Promise<Page<MailMessage>> {
+  return apiFetch(`/mail/messages${buildQuery({
+    accountId: params.accountId,
+    unread: params.unread,
+    starred: params.starred,
+    keyword: params.keyword,
+    page: params.page ?? 1,
+    pageSize: params.pageSize ?? 20,
+  })}`)
+}
+
+export function getMailMessage(id: number): Promise<{ message: MailMessage; bodyError?: string }> {
+  return apiFetch(`/mail/messages/${id}`)
+}
+
+export function setMailRead(id: number, read: boolean): Promise<{ read: boolean }> {
+  return apiFetch(`/mail/messages/${id}/read`, { method: 'POST', body: { read } })
+}
+
+export function setMailStar(id: number, starred: boolean): Promise<{ starred: boolean }> {
+  return apiFetch(`/mail/messages/${id}/star`, { method: 'POST', body: { starred } })
+}
+
+export interface ConvertMailToTodoInput {
+  title?: string
+  priority?: TodoPriority
+  kind?: TodoKind
+  dueAt?: string | null
+}
+
+export function convertMailToTodo(id: number, input: ConvertMailToTodoInput): Promise<TodoItem> {
+  return apiFetch(`/mail/messages/${id}/todo`, { method: 'POST', body: input })
 }
 
 // --- 管理端 ---
@@ -213,6 +311,11 @@ export const queryKeys = {
   categories: ['categories'] as const,
   tags: ['tags'] as const,
   favorites: ['favorites'] as const,
+  todos: ['todos'] as const,
+  mailAccounts: ['mail', 'accounts'] as const,
+  mailProviders: ['mail', 'providers'] as const,
+  mailMessages: (params?: unknown) => ['mail', 'messages', params] as const,
+  mailMessage: (id: number) => ['mail', 'messages', 'detail', id] as const,
   adminApplications: (params?: unknown) => ['admin', 'applications', params] as const,
   auditLogs: (params?: unknown) => ['admin', 'audit-logs', params] as const,
   dashboard: ['admin', 'dashboard'] as const,

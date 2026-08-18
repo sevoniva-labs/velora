@@ -1,19 +1,22 @@
-import { useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { App as AntdApp, Empty, Skeleton } from 'antd'
+import { App as AntdApp, Button, Empty, Skeleton } from 'antd'
 import {
   AppstoreOutlined,
   ArrowRightOutlined,
   FireOutlined,
   FolderOpenOutlined,
+  HeartOutlined,
   PlusOutlined,
   SoundOutlined,
 } from '@ant-design/icons'
 import { useNavigate } from 'react-router-dom'
 import { ProCard } from '@ant-design/pro-components'
-import { launchApplication, listApplications, listCategories, listPopular, listRecent, getPortalSettings, queryKeys } from '../api/api'
+import dayjs from 'dayjs'
+import { launchApplication, listApplications, listCategories, listRecent, getPortalSettings, queryKeys } from '../api/api'
 import { AppIcon } from '../components/AppCard'
 import QueryErrorState from '../components/QueryErrorState'
+import TodoCenter from '../components/TodoCenter'
 import { formatRelativeTime } from '../utils/format'
 import { usePageTitle } from '../hooks/usePageTitle'
 import type { Application } from '../types'
@@ -28,7 +31,12 @@ function categoryIcon(code: string) {
   return <Icon />
 }
 
-type Section = 'featured' | 'favorites' | 'all'
+/** 7 天内上架的应用视为"新" */
+function isNewApp(app: Application) {
+  return app.createdAt ? dayjs().diff(dayjs(app.createdAt), 'day') <= 7 : false
+}
+
+type Section = 'favorites' | 'all'
 
 export default function Home() {
   const navigate = useNavigate()
@@ -45,10 +53,20 @@ export default function Home() {
       message.error(err instanceof Error ? err.message : '启动失败')
     }
   }
-  // 我的应用 tab 内容：宫格应用（高度固定两行，超出滚动）
+  // 我的应用 tab 内容：宫格应用（高度固定两行，超出滚动；加载/空状态同高，切换不跳动）
   const renderMyApps = () => {
-    if (loadingApps) return <Skeleton active paragraph={{ rows: 3 }} />
-    if (errorApps) return <QueryErrorState compact refetch={refetchApps} />
+    if (loadingApps)
+      return (
+        <div className="velora-myapps-state">
+          <Skeleton active paragraph={{ rows: 2 }} style={{ width: '100%' }} />
+        </div>
+      )
+    if (errorApps)
+      return (
+        <div className="velora-myapps-state">
+          <QueryErrorState compact refetch={refetchApps} />
+        </div>
+      )
     if (myApps && myApps.items.length > 0) {
       return (
         <div className="velora-app-tile-grid">
@@ -66,6 +84,7 @@ export default function Home() {
                 }
               }}
             >
+              {isNewApp(app) && <span className="velora-app-new">新</span>}
               <AppIcon app={app} size={38} />
               <span className="velora-app-tile-name">{app.name}</span>
             </div>
@@ -87,12 +106,24 @@ export default function Home() {
         </div>
       )
     }
+    // 收藏为空：引导去应用中心，而不是冷冰冰的空状态
+    if (section === 'favorites') {
+      return (
+        <div className="velora-myapps-state">
+          <div className="velora-myapps-guide">
+            <HeartOutlined className="velora-myapps-guide-icon" />
+            <span className="velora-myapps-guide-text">把常用应用钉在这里，一键直达</span>
+            <Button size="small" type="primary" onClick={() => navigate('/applications')}>
+              去应用中心
+            </Button>
+          </div>
+        </div>
+      )
+    }
     return (
-      <Empty
-        image={Empty.PRESENTED_IMAGE_SIMPLE}
-        description={section === 'favorites' ? '还没有收藏应用' : '暂无可用应用'}
-        style={{ padding: '28px 0' }}
-      />
+      <div className="velora-myapps-state">
+        <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="暂无可用应用" />
+      </div>
     )
   }
 
@@ -105,10 +136,15 @@ export default function Home() {
 
   usePageTitle('工作台')
 
-  const [section, setSection] = useState<Section>('featured')
+  const [section, setSection] = useState<Section>('favorites')
+  // 智能默认：首次数据到达后，无收藏则默认"全部"；用户手动切换后不再干预
+  const sectionTouched = useRef(false)
+  const switchSection = (key: Section) => {
+    sectionTouched.current = true
+    setSection(key)
+  }
 
   const appsQuery = {
-    featured: { featured: true, pageSize: 14 },
     favorites: { favorites: true, pageSize: 14 },
     all: { pageSize: 14 },
   }[section]
@@ -125,15 +161,40 @@ export default function Home() {
 
   const { data: categories } = useQuery({ queryKey: queryKeys.categories, queryFn: listCategories })
 
-  const { data: popular, isLoading: loadingPopular, isError: errorPopular, refetch: refetchPopular } = useQuery({
-    queryKey: queryKeys.popular,
-    queryFn: () => listPopular(6),
-  })
-
-  const { data: favApps, isLoading: loadingFav, isError: errorFav, refetch: refetchFav } = useQuery({
+  const { data: favApps } = useQuery({
     queryKey: queryKeys.favorites,
     queryFn: () => listApplications({ favorites: true, pageSize: 100 }),
   })
+
+  // 全量列表（一次拉取）：分段控件计数 + 分类计数共用
+  const { data: allAppsList } = useQuery({
+    queryKey: queryKeys.applications({ pageSize: 500 }),
+    queryFn: () => listApplications({ pageSize: 500 }),
+  })
+
+  const favTotal = favApps?.total ?? 0
+  const allTotal = allAppsList?.total ?? 0
+
+  useEffect(() => {
+    if (!sectionTouched.current && favApps) {
+      setSection((favApps.total ?? 0) > 0 ? 'favorites' : 'all')
+    }
+  }, [favApps])
+
+  // 分类计数（前端统计）；有计数的分类优先展示，全未分类时回退展示全部
+  const catCounts = useMemo(() => {
+    const m = new Map<number, number>()
+    allAppsList?.items.forEach((a) => {
+      if (a.categoryId != null) m.set(a.categoryId, (m.get(a.categoryId) ?? 0) + 1)
+    })
+    return m
+  }, [allAppsList])
+  const visibleCategories = useMemo(() => {
+    const all = categories ?? []
+    if (!allAppsList) return all.slice(0, 8) // 计数未加载完，先全量展示避免闪空
+    const withApps = all.filter((c) => (catCounts.get(c.id) ?? 0) > 0).slice(0, 8)
+    return withApps.length > 0 ? withApps : all.slice(0, 8)
+  }, [categories, allAppsList, catCounts])
 
   return (
     <div>
@@ -153,28 +214,46 @@ export default function Home() {
         <span className="velora-notice-more">全部 ›</span>
       </div>
 
-      {/* 我的应用（ProCard tabs：精选 / 收藏 / 全部） */}
+      {/* 我的应用（胶囊分段控件：收藏 / 全部，带计数，智能默认） */}
       <ProCard
         className="velora-panel velora-myapps"
-        title="我的应用"
+        title={
+          <div className="velora-myapps-headline">
+            <span className="velora-myapps-title">我的应用</span>
+            <div className="velora-segment" role="tablist" aria-label="应用筛选">
+              {(
+                [
+                  { key: 'favorites', label: '收藏', count: favTotal },
+                  { key: 'all', label: '全部', count: allTotal },
+                ] as const
+              ).map((item) => (
+                <button
+                  key={item.key}
+                  type="button"
+                  role="tab"
+                  aria-selected={section === item.key}
+                  className={
+                    section === item.key ? 'velora-segment-item is-active' : 'velora-segment-item'
+                  }
+                  onClick={() => switchSection(item.key)}
+                >
+                  {item.label}
+                  <span className="velora-segment-count">{item.count}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        }
         extra={
-          <a onClick={() => navigate('/applications')}>
+          <a className="velora-myapps-more" onClick={() => navigate('/applications')}>
             应用中心 <ArrowRightOutlined />
           </a>
         }
-        tabs={{
-          size: 'small',
-          activeKey: section,
-          onChange: (key) => setSection(key as Section),
-          items: [
-            { key: 'featured', label: '精选', children: renderMyApps() },
-            { key: 'favorites', label: '收藏', children: renderMyApps() },
-            { key: 'all', label: '全部', children: renderMyApps() },
-          ],
-        }}
-      />
+      >
+        {renderMyApps()}
+      </ProCard>
 
-      {/* 33 / 67 双栏 */}
+      {/* 三栏工作台：最近使用 / 待办中心 / 应用分类 */}
       <div className="velora-workbench">
         {/* 最近使用 */}
         <section className="velora-panel">
@@ -221,7 +300,10 @@ export default function Home() {
           )}
         </section>
 
-        {/* 应用分类 */}
+        {/* 待办中心：多 Tab（全部 / 邮件 / 按类型），见 components/TodoCenter */}
+        <TodoCenter />
+
+        {/* 应用分类（带计数，空分类不展示） */}
         <section className="velora-panel">
           <div className="velora-panel-head">
             <h2 className="velora-panel-title">应用分类</h2>
@@ -231,9 +313,9 @@ export default function Home() {
               </a>
             </div>
           </div>
-          {categories && categories.length > 0 ? (
+          {visibleCategories.length > 0 ? (
             <div className="velora-cat-grid">
-              {categories.slice(0, 6).map((cat) => (
+              {visibleCategories.map((cat) => (
                 <div
                   key={cat.id}
                   className="velora-cat-card"
@@ -252,91 +334,14 @@ export default function Home() {
                     <span className="velora-cat-card-name">{cat.name}</span>
                     <span className="velora-cat-card-desc">{cat.description || '浏览该分类应用'}</span>
                   </span>
+                  {(catCounts.get(cat.id) ?? 0) > 0 && (
+                    <span className="velora-cat-count">{catCounts.get(cat.id)}</span>
+                  )}
                 </div>
               ))}
             </div>
           ) : (
             <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="暂无分类" style={{ padding: '24px 0' }} />
-          )}
-        </section>
-
-        {/* 热门应用 */}
-        <section className="velora-panel">
-          <div className="velora-panel-head">
-            <h2 className="velora-panel-title">热门应用</h2>
-            <div className="velora-panel-more">
-              <a onClick={() => navigate('/applications')}>
-                更多 <ArrowRightOutlined />
-              </a>
-            </div>
-          </div>
-          {loadingPopular ? (
-            <Skeleton active paragraph={{ rows: 3 }} style={{ padding: '4px 18px 16px' }} />
-          ) : errorPopular ? (
-            <QueryErrorState compact refetch={refetchPopular} />
-          ) : popular && popular.length > 0 ? (
-            <div className="velora-popular-row">
-              {popular.map((app) => (
-                <div
-                  key={app.id}
-                  className="velora-popular-item"
-                  role="button"
-                  tabIndex={0}
-                  onClick={() => launchApp(app.id)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                      e.preventDefault()
-                      launchApp(app.id)
-                    }
-                  }}
-                >
-                  <AppIcon app={app} size={30} />
-                  <span className="velora-popular-name">{app.name}</span>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="暂无热门应用" style={{ padding: '24px 0' }} />
-          )}
-        </section>
-
-        {/* 我的收藏 */}
-        <section className="velora-panel">
-          <div className="velora-panel-head">
-            <h2 className="velora-panel-title">我的收藏</h2>
-            <div className="velora-panel-more">
-              <a onClick={() => navigate('/favorites')}>
-                全部 <ArrowRightOutlined />
-              </a>
-            </div>
-          </div>
-          {loadingFav ? (
-            <Skeleton active paragraph={{ rows: 3 }} style={{ padding: '4px 18px 16px' }} />
-          ) : errorFav ? (
-            <QueryErrorState compact refetch={refetchFav} />
-          ) : favApps && favApps.items.length > 0 ? (
-            <div className="velora-popular-row">
-              {favApps.items.slice(0, 6).map((app: Application) => (
-                <div
-                  key={app.id}
-                  className="velora-popular-item"
-                  role="button"
-                  tabIndex={0}
-                  onClick={() => launchApp(app.id)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                      e.preventDefault()
-                      launchApp(app.id)
-                    }
-                  }}
-                >
-                  <AppIcon app={app} size={30} />
-                  <span className="velora-popular-name">{app.name}</span>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="暂无收藏，点击应用卡片上的爱心收藏" style={{ padding: '24px 0' }} />
           )}
         </section>
       </div>

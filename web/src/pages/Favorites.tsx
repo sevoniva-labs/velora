@@ -1,6 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { Empty, Skeleton, Typography } from 'antd'
-import { HeartOutlined } from '@ant-design/icons'
+import { Empty, Skeleton } from 'antd'
 import { listApplications, queryKeys } from '../api/api'
 import { AppCard } from '../components/AppCard'
 import QueryErrorState from '../components/QueryErrorState'
@@ -17,23 +16,12 @@ export default function Favorites() {
 
   return (
     <div>
-      <div className="velora-page-head">
-        <div>
-          <Typography.Title level={3} className="velora-page-head-title">
-            <HeartOutlined style={{ color: '#FA541C' }} /> 我的收藏
-          </Typography.Title>
-          <Typography.Paragraph className="velora-page-head-desc">
-            已收藏 {data?.total ?? 0} 个应用，随时一键直达。
-          </Typography.Paragraph>
-        </div>
-      </div>
-
       {isLoading ? (
         <Skeleton active paragraph={{ rows: 6 }} />
       ) : isError ? (
         <QueryErrorState refetch={refetch} />
       ) : data && data.items.length > 0 ? (
-        <div className="velora-app-grid" style={{ marginTop: 16 }}>
+        <div className="velora-app-grid">
           {data.items.map((app) => (
             <div key={app.id} className="velora-app-grid-item">
               <AppCard app={app} />

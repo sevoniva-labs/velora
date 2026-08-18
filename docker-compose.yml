@@ -90,6 +90,9 @@ services:
       SESSION_SECRET: ${SESSION_SECRET:-docker-compose-dev-secret-change-me}
       COOKIE_SECURE: "false"
       CORS_ALLOWED_ORIGINS: http://localhost:5173
+      # 邮件模块：定时补偿同步间隔（分钟，0 禁用）。
+      # 生产环境必须显式配置 MAIL_CREDENTIAL_KEY（base64 编码的 32 字节密钥），开发缺省时由 SESSION_SECRET 派生。
+      MAIL_SYNC_INTERVAL_MINUTES: "10"
       # 信任 compose 内部网段（nginx 反代），保留真实客户端 IP（限流/审计）
       TRUSTED_PROXIES: "172.16.0.0/12"
     ports:

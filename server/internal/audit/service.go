@@ -30,6 +30,11 @@ const (
 	ActionTagUpdate        = "TAG_UPDATE"
 	ActionTagDelete        = "TAG_DELETE"
 	ActionSettingUpdate    = "SETTING_UPDATE"
+	ActionTodoUpsert       = "TODO_UPSERT"
+	ActionTodoDone         = "TODO_DONE"
+	ActionMailBind         = "MAIL_ACCOUNT_BIND"
+	ActionMailUnbind       = "MAIL_ACCOUNT_UNBIND"
+	ActionMailToTodo       = "MAIL_TO_TODO"
 )
 
 // AuditLog 为审计日志实体（表 audit_logs）。

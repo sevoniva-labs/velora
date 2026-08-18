@@ -42,6 +42,11 @@ type Config struct {
 	TrustedProxies     []string
 
 	HealthCheckTimeout time.Duration
+
+	// 邮件模块：凭证加密密钥（base64 32 字节；开发环境缺省时由 SESSION_SECRET 派生）
+	// 与定时补偿同步间隔（分钟，0 禁用；IDLE 实时推送属 Phase 2）。
+	MailCredentialKey string
+	MailSyncInterval  time.Duration
 }
 
 // Load 读取 .env（若存在）与环境变量，返回配置。
@@ -75,6 +80,9 @@ func Load() (*Config, error) {
 		AdminRole: getEnv("VELORA_ADMIN_ROLE", "velora_admin"),
 
 		HealthCheckTimeout: time.Duration(getEnvInt("HEALTH_CHECK_TIMEOUT_SECONDS", 5)) * time.Second,
+
+		MailCredentialKey: getEnv("MAIL_CREDENTIAL_KEY", ""),
+		MailSyncInterval:  time.Duration(getEnvInt("MAIL_SYNC_INTERVAL_MINUTES", 10)) * time.Minute,
 	}
 
 	if origins := getEnv("CORS_ALLOWED_ORIGINS", ""); origins != "" {

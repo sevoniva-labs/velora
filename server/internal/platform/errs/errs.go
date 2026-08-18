@@ -41,12 +41,17 @@ const (
 	CodePermissionDenied Code = "A03002"
 
 	// A04xxx 门户
-	CodeCategoryNotFound   Code = "A04001"
-	CodeTagNotFound        Code = "A04002"
-	CodeFavoriteNotFound   Code = "A04003"
-	CodeCategoryCodeExists Code = "A04004"
-	CodeTagCodeExists      Code = "A04005"
-	CodeSettingInvalid     Code = "A04006"
+	CodeCategoryNotFound    Code = "A04001"
+	CodeTagNotFound         Code = "A04002"
+	CodeFavoriteNotFound    Code = "A04003"
+	CodeCategoryCodeExists  Code = "A04004"
+	CodeTagCodeExists       Code = "A04005"
+	CodeSettingInvalid      Code = "A04006"
+	CodeTodoNotFound        Code = "A04007"
+	CodeMailAccountNotFound Code = "A04008"
+	CodeMailMessageNotFound Code = "A04009"
+	CodeMailSyncFailed      Code = "A04010"
+	CodeMailAccountExists   Code = "A04011"
 
 	// A05xxx 系统
 	CodeInternal     Code = "A05001"

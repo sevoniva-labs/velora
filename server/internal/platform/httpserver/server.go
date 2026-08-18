@@ -17,10 +17,12 @@ import (
 	"github.com/sevoniva-labs/velora/server/internal/category"
 	"github.com/sevoniva-labs/velora/server/internal/config"
 	"github.com/sevoniva-labs/velora/server/internal/favorite"
+	"github.com/sevoniva-labs/velora/server/internal/mail"
 	"github.com/sevoniva-labs/velora/server/internal/platform/errs"
 	"github.com/sevoniva-labs/velora/server/internal/platform/response"
 	"github.com/sevoniva-labs/velora/server/internal/portal"
 	"github.com/sevoniva-labs/velora/server/internal/tag"
+	"github.com/sevoniva-labs/velora/server/internal/todo"
 	"github.com/sevoniva-labs/velora/server/internal/visit"
 )
 
@@ -32,6 +34,7 @@ type Deps struct {
 	OIDC      *auth.OIDCManager
 	Audit     *audit.Service
 	AdminRole string
+	Mail      *mail.Service // 邮件服务（nil 时不注册邮件路由）
 }
 
 // New 组装 Gin Engine 与全部路由。
@@ -95,6 +98,14 @@ func New(deps Deps) (*gin.Engine, error) {
 
 	favService := favorite.NewService(deps.DB)
 	favorite.NewHandler(favService, appService, appRepo, deps.Audit).Register(secured)
+
+	todoService := todo.NewService(deps.DB)
+	todo.NewHandler(todoService, deps.Audit, deps.AdminRole).Register(secured)
+
+	// 邮件模块：独立领域，与 Todo 通过引用关联（source_system='mail'）。
+	if deps.Mail != nil {
+		mail.NewHandler(deps.Mail, deps.Audit).Register(secured)
+	}
 
 	portalService := portal.NewService(deps.DB)
 	portalHandler := portal.NewHandler(portalService, deps.Audit, deps.AdminRole)

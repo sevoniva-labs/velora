@@ -21,8 +21,10 @@ import (
 	"github.com/sevoniva-labs/velora/server/internal/audit"
 	"github.com/sevoniva-labs/velora/server/internal/auth"
 	"github.com/sevoniva-labs/velora/server/internal/config"
+	"github.com/sevoniva-labs/velora/server/internal/mail"
 	"github.com/sevoniva-labs/velora/server/internal/platform/db"
 	"github.com/sevoniva-labs/velora/server/internal/platform/httpserver"
+	"github.com/sevoniva-labs/velora/server/internal/todo"
 )
 
 func main() {
@@ -83,6 +85,14 @@ func serve(cfg *config.Config) error {
 	oidcMgr := auth.NewOIDCManager(cfg.CasdoorIssuer, cfg.CasdoorClientID, cfg.CasdoorClientSecret, cfg.CasdoorRedirectURI, 10*time.Minute)
 
 	auditSvc := audit.NewService(gormDB)
+
+	// 邮件模块：凭证加密器（MAIL_CREDENTIAL_KEY；开发环境缺省时由 SESSION_SECRET 派生）。
+	mailCipher, err := mail.NewCredentialCipher(cfg.MailCredentialKey, cfg.SessionSecret)
+	if err != nil {
+		return fmt.Errorf("邮件凭证密钥配置错误: %w", err)
+	}
+	mailSvc := mail.NewService(gormDB, mailCipher, todo.NewService(gormDB))
+
 	engine, err := httpserver.New(httpserver.Deps{
 		Cfg:       cfg,
 		DB:        gormDB,
@@ -90,10 +100,16 @@ func serve(cfg *config.Config) error {
 		OIDC:      oidcMgr,
 		Audit:     auditSvc,
 		AdminRole: cfg.AdminRole,
+		Mail:      mailSvc,
 	})
 	if err != nil {
 		return err
 	}
+
+	// 邮件定时补偿同步（周期 reconciliation；IMAP IDLE 实时推送属 Phase 2）。
+	syncCtx, stopSync := context.WithCancel(ctx)
+	defer stopSync()
+	go mail.NewScheduler(mailSvc, cfg.MailSyncInterval).Run(syncCtx)
 
 	srv := &http.Server{
 		Addr:              ":" + cfg.Port,

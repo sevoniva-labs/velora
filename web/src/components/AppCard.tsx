@@ -1,12 +1,21 @@
-// 应用卡片：标准企业组件 —— 图标 / 名称 / 描述 / 分类标签 / 收藏 / 启动。
-// 使用 AntD 标准品质：浅灰图标底、标准 Tag 与 Button，hover 仅阴影变化。
+// 应用卡片：紧凑横式 —— 图标 + 名称 + 一行描述，点击整卡直达启动。
+// 收藏爱心常驻右上角；健康状态以小圆点呈现（仅开启健康检查的应用）。
 import { useState } from 'react'
-import { App as AntdApp, Badge, Button, Tag, Tooltip, Typography } from 'antd'
-import { HeartFilled, HeartOutlined, RocketOutlined } from '@ant-design/icons'
+import { App as AntdApp, Badge, Button, Tooltip } from 'antd'
+import { HeartFilled, HeartOutlined } from '@ant-design/icons'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
+import dayjs from 'dayjs'
 import { addFavorite, launchApplication, queryKeys, removeFavorite } from '../api/api'
 import type { Application } from '../types'
-import { APP_STATUS_LABEL, HEALTH_COLOR, HEALTH_LABEL } from '../labels'
+import { HEALTH_COLOR, HEALTH_LABEL } from '../labels'
+
+/** 蓝族渐变图标变体：按应用 id 稳定映射到 6 种蓝色系渐变，增加视觉层次 */
+function iconVariant(id: number | string): string {
+  const s = String(id)
+  let h = 0
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0
+  return `velora-app-icon--v${h % 6}`
+}
 
 function AppIcon({ app, size = 40, className }: { app: Application; size?: number; className?: string }) {
   const icon = app.icon?.trim()
@@ -29,7 +38,7 @@ function AppIcon({ app, size = 40, className }: { app: Application; size?: numbe
     )
   }
   return (
-    <span className={`velora-app-icon ${className ?? ''}`} style={style} aria-hidden="true">
+    <span className={`velora-app-icon ${iconVariant(app.id)} ${className ?? ''}`} style={style} aria-hidden="true">
       {isEmoji ? icon : app.name.slice(0, 1)}
     </span>
   )
@@ -96,63 +105,45 @@ export function AppCard({ app, onLaunch }: AppCardProps) {
         }
       }}
     >
-      <div className="velora-app-card-head">
-        <AppIcon app={app} />
-        <div className="velora-app-card-actions">
-          {app.healthCheckEnabled && (
-            <Tooltip title={`健康状态：${HEALTH_LABEL[app.healthStatus ?? 'UNKNOWN']}`}>
-              <Badge
-                status={(HEALTH_COLOR[app.healthStatus ?? 'UNKNOWN'] as 'success' | 'error' | 'default') ?? 'default'}
-                data-testid="health-badge"
-              />
-            </Tooltip>
+      <AppIcon app={app} size={44} />
+      <div className="velora-app-card-main">
+        <div className="velora-app-card-name">
+          {app.name}
+          {app.createdAt && dayjs().diff(dayjs(app.createdAt), 'day') <= 7 && (
+            <span className="velora-app-new velora-app-new--inline">新</span>
           )}
-          <Button
-            type="text"
-            size="small"
-            aria-label={favorited ? '取消收藏' : '收藏'}
-            icon={favorited ? <HeartFilled style={{ color: '#FA541C' }} /> : <HeartOutlined />}
-            onClick={(e) => {
-              e.stopPropagation()
-              favMutation.mutate()
-            }}
-          />
         </div>
+        <div className="velora-app-card-desc">{app.description || app.category?.name || '点击直达应用'}</div>
+        {(app.category || (app.tags ?? []).length > 0) && (
+          <div className="velora-app-card-meta">
+            {app.category && <span className="velora-app-card-cat">{app.category.name}</span>}
+            {(app.tags ?? []).slice(0, 2).map((t) => (
+              <span key={t.id} className="velora-app-card-tag">
+                {t.name}
+              </span>
+            ))}
+          </div>
+        )}
       </div>
-
-      <Typography.Title level={5} className="velora-app-card-title" ellipsis={{ rows: 1 }}>
-        {app.name}
-      </Typography.Title>
-      <Typography.Paragraph className="velora-app-card-desc" ellipsis={{ rows: 2 }}>
-        {app.description || '暂无描述'}
-      </Typography.Paragraph>
-
-      <div className="velora-app-card-meta">
-        {app.category && <Tag className="velora-app-card-cat">{app.category.name}</Tag>}
-        {(app.tags ?? []).slice(0, 3).map((t) => (
-          <Tag key={t.id} className="velora-app-card-tag">
-            {t.name}
-          </Tag>
-        ))}
-      </div>
-
-      <div className="velora-app-card-foot">
-        <Tag color={app.status === 'ENABLED' ? 'success' : 'default'}>
-          {APP_STATUS_LABEL[app.status]}
-        </Tag>
+      <div className="velora-app-card-side">
+        {app.healthCheckEnabled && (
+          <Tooltip title={`健康状态：${HEALTH_LABEL[app.healthStatus ?? 'UNKNOWN']}`}>
+            <Badge
+              status={(HEALTH_COLOR[app.healthStatus ?? 'UNKNOWN'] as 'success' | 'error' | 'default') ?? 'default'}
+              data-testid="health-badge"
+            />
+          </Tooltip>
+        )}
         <Button
-          type="primary"
+          type="text"
           size="small"
-          icon={<RocketOutlined />}
-          loading={launchMutation.isPending}
-          disabled={app.status !== 'ENABLED'}
+          aria-label={favorited ? '取消收藏' : '收藏'}
+          icon={favorited ? <HeartFilled style={{ color: '#FA541C' }} /> : <HeartOutlined />}
           onClick={(e) => {
             e.stopPropagation()
-            launchMutation.mutate()
+            favMutation.mutate()
           }}
-        >
-          启动
-        </Button>
+        />
       </div>
     </div>
   )

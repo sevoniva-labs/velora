@@ -101,3 +101,28 @@ internal/platform     config / db / errs / response / httpserver
 - Go：`GOPROXY=https://goproxy.cn,direct`（`scripts/bootstrap-cn.sh` 提供，不修改全局配置）。
 - pnpm：`web/.npmrc` 项目级 `registry=https://registry.npmmirror.com`。
 - Docker：`DOCKER_REGISTRY` ARG 支持 `docker.m.daocloud.io` ↔ `docker.io` 切换；镜像锁定稳定版本。
+
+## 11. 待办中心（外部系统集成 API）
+
+待办中心面向"统一待办"场景：其他业务系统（OA / 审批 / 运维工单等）通过 API 把待办推送到门户，用户在首页统一查看处理、点击跳回来源系统单据页。
+
+- 表 `todos`（`0002_todos.sql`）：`(source_system, source_id, user_id)` 唯一索引作为幂等键；`priority` 取 `urgent|high|mid|low`；`status` 取 `open|done`。
+- `GET /api/v1/todos?status=open|done|all&limit=N`：当前用户待办（按到期时间升序、无到期排后），返回 `{ items, openCount }`。
+- `POST /api/v1/todos`：**管理员限定**（供对接方使用）。按幂等键 upsert——同一来源单据重复推送只更新 `title/sourceLabel/priority/url/dueAt`，不产生重复待办，且不会把已完成待办重置回 open。请求体：`{ userId, title, sourceSystem, sourceLabel, sourceId, priority, url, dueAt }`，其中 `userId / title / sourceSystem / sourceId` 必填。
+- `PATCH /api/v1/todos/:id/done`：本人标记完成（不存在或已完成返回 404 `A04007`）。
+- 写操作均记审计（`TODO_UPSERT` / `TODO_DONE`）。
+- 对接方当前复用门户管理员会话（Cookie + CSRF）调用；独立的 service account / API token 认证属 Phase 2。
+
+## 12. 邮件模块（企业邮箱，独立 Mail 领域）
+
+定位：待办中心的一个独立 Tab，与 Todo 平级解耦——**邮件默认不进入待办**，仅用户手动"转为待办"时建立引用关联（`todos.source_system='mail'` + `source_id=mail_messages.id`，复用既有幂等机制，不改 Todo 主表、不建桥接表）。
+
+**Provider 抽象**：业务层只面向 `mail.Provider` 接口（TestConnection / FetchInbox / FetchBody / SetFlags / Capabilities），不感知厂商。当前统一为 Generic IMAP 实现，阿里/腾讯等厂商差异收敛在 `Profile` 默认主机配置（`imap.qiye.aliyun.com:993` 等）；未来 Microsoft Graph / Exchange API 以新 Provider 实现接入，业务与前端零改动。API 不暴露 Provider 细节（无 `/api/aliyun/...` 式端点）。
+
+**表结构**（`0003_mail.sql`）：`mail_accounts`（凭证 AES-256-GCM 密文，密钥来自 `MAIL_CREDENTIAL_KEY`，开发缺省由 `SESSION_SECRET` 派生；密钥与密文不同库）、`mail_messages`（按 `(account_id, folder, uid)` 幂等；正文按需拉取后缓存，附件只留 `has_attachment` 元数据）、`mail_sync_state`（UIDVALIDITY / last_uid 游标）。
+
+**同步**：手动"同步"按钮 + 服务端定时补偿（`MAIL_SYNC_INTERVAL_MINUTES`，默认 10 分钟，0 禁用）。只同步最近 50 封元数据；正文 PEEK 按需拉取（不触发服务端已读）。IMAP IDLE 实时推送、断线指数退避重连、多实例 Lease（DB lease，不为此引入 Redis）属 Phase 2；SMTP 回复/转发、附件下载属 Phase 3。
+
+**API**：`GET /mail/providers`（Profile + capabilities）、`GET/POST/DELETE /mail/accounts`（绑定前实测连接，通过才落库）、`POST /mail/accounts/:id/test|sync`、`GET /mail/messages`（unread/starred/keyword/分页）、`GET /mail/messages/:id`（打开即已读）、`POST /mail/messages/:id/read|star|todo`。
+
+**安全**：邮件 HTML 前端 DOMPurify 消毒（禁 script/iframe/object/embed/form 等），远程图片默认拦截（防追踪像素），用户手动"显示图片"；日志不输出凭证/正文。

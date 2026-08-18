@@ -425,9 +425,10 @@ button {
 }
 .velora-home-page-content,
 .velora-page-content {
-  width: min(1240px, 100%);
+  /* 对齐参考工作台（易点）的宽布局：1680px，减少大屏两侧空白 */
+  width: min(1680px, 100%);
   margin: 0 auto;
-  padding: 18px 24px 48px;
+  padding: 18px 26px 48px;
 }
 @media (max-width: 640px) {
   .velora-home-page-content,

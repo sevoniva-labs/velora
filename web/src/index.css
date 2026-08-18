@@ -549,6 +549,61 @@ button {
 
 /* ---------- 我的应用（紧凑宫格） ---------- */
 
+
+/* 我的应用 ProCard：融合玻璃面板 + tab 头 */
+.velora-myapps.ant-pro-card {
+  position: relative;
+  overflow: hidden;
+  border-radius: 14px;
+  border: 1px solid var(--velora-glass-line);
+  box-shadow: var(--velora-shadow), var(--velora-inset);
+  background: linear-gradient(158deg, var(--velora-glass) 0%, var(--velora-glass-2) 100%);
+  backdrop-filter: blur(20px) saturate(160%);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
+}
+.velora-myapps.ant-pro-card::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.95), transparent);
+  z-index: 1;
+  pointer-events: none;
+}
+.velora-myapps .ant-pro-card-header {
+  padding: 14px 17px 4px;
+}
+.velora-myapps .ant-pro-card-header .ant-pro-card-title {
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--velora-title);
+}
+.velora-myapps .ant-pro-card-header .ant-pro-card-extra {
+  font-size: 13px;
+  color: var(--velora-secondary);
+}
+.velora-myapps .ant-pro-card-tabs {
+  margin: 0;
+  padding: 0 17px;
+}
+.velora-myapps .ant-pro-card-tabs .ant-tabs-nav {
+  margin-bottom: 8px;
+}
+.velora-myapps .ant-pro-card-tabs .ant-tabs-nav::before {
+  border-bottom: 1px solid rgba(20, 32, 58, 0.08);
+}
+.velora-myapps .ant-pro-card-body {
+  background: transparent;
+  padding: 2px 17px 16px;
+}
+/* 我的应用宫格：固定两行高度（56px/行 + 8px 间距 + 4px 顶部），超出滚动 */
+.velora-myapps .velora-app-tile-grid {
+  grid-template-columns: repeat(auto-fill, minmax(158px, 1fr));
+  height: 124px;
+  overflow-y: auto;
+  padding-top: 4px;
+}
+
 .velora-app-tile-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(158px, 1fr));

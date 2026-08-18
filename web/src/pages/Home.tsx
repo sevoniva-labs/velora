@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { App as AntdApp, Empty, Segmented, Skeleton } from 'antd'
+import { App as AntdApp, Empty, Skeleton } from 'antd'
 import {
   AppstoreOutlined,
   ArrowRightOutlined,
@@ -10,6 +10,7 @@ import {
   SoundOutlined,
 } from '@ant-design/icons'
 import { useNavigate } from 'react-router-dom'
+import { ProCard } from '@ant-design/pro-components'
 import { launchApplication, listApplications, listCategories, listPopular, listRecent, getPortalSettings, queryKeys } from '../api/api'
 import { AppIcon } from '../components/AppCard'
 import QueryErrorState from '../components/QueryErrorState'
@@ -44,6 +45,57 @@ export default function Home() {
       message.error(err instanceof Error ? err.message : '启动失败')
     }
   }
+  // 我的应用 tab 内容：宫格应用（高度固定两行，超出滚动）
+  const renderMyApps = () => {
+    if (loadingApps) return <Skeleton active paragraph={{ rows: 3 }} />
+    if (errorApps) return <QueryErrorState compact refetch={refetchApps} />
+    if (myApps && myApps.items.length > 0) {
+      return (
+        <div className="velora-app-tile-grid">
+          {myApps.items.map((app) => (
+            <div
+              key={app.id}
+              className="velora-app-tile"
+              role="button"
+              tabIndex={0}
+              onClick={() => launchApp(app.id)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault()
+                  launchApp(app.id)
+                }
+              }}
+            >
+              <AppIcon app={app} size={38} />
+              <span className="velora-app-tile-name">{app.name}</span>
+            </div>
+          ))}
+          <div
+            className="velora-app-tile velora-app-tile-add"
+            role="button"
+            tabIndex={0}
+            onClick={() => navigate('/applications')}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault()
+                navigate('/applications')
+              }
+            }}
+          >
+            <PlusOutlined /> 添加应用
+          </div>
+        </div>
+      )
+    }
+    return (
+      <Empty
+        image={Empty.PRESENTED_IMAGE_SIMPLE}
+        description={section === 'favorites' ? '还没有收藏应用' : '暂无可用应用'}
+        style={{ padding: '28px 0' }}
+      />
+    )
+  }
+
   // 公告：优先取门户设置中的 announcement（多行以 | 分隔），否则默认模板。
   const { data: settings } = useQuery({ queryKey: queryKeys.portalSettings, queryFn: getPortalSettings })
   const noticeText = settings?.find((s) => s.key === 'announcement')?.value
@@ -101,78 +153,26 @@ export default function Home() {
         <span className="velora-notice-more">全部 ›</span>
       </div>
 
-      {/* 我的应用 */}
-      <section className="velora-panel">
-        <div className="velora-panel-head">
-          <h2 className="velora-panel-title">
-            我的应用
-            <Segmented
-              size="small"
-              value={section}
-              onChange={(v) => setSection(v as Section)}
-              options={[
-                { label: '精选', value: 'featured' },
-                { label: '收藏', value: 'favorites' },
-                { label: '全部', value: 'all' },
-              ]}
-              style={{ marginLeft: 10 }}
-            />
-          </h2>
-          <div className="velora-panel-more">
-            <a onClick={() => navigate('/applications')}>
-              应用中心 <ArrowRightOutlined />
-            </a>
-          </div>
-        </div>
-        <div className="velora-panel-body">
-          {loadingApps ? (
-            <Skeleton active paragraph={{ rows: 3 }} />
-          ) : errorApps ? (
-            <QueryErrorState compact refetch={refetchApps} />
-          ) : myApps && myApps.items.length > 0 ? (
-            <div className="velora-app-tile-grid">
-              {myApps.items.map((app) => (
-                <div
-                  key={app.id}
-                  className="velora-app-tile"
-                  role="button"
-                  tabIndex={0}
-                  onClick={() => launchApp(app.id)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                      e.preventDefault()
-                      launchApp(app.id)
-                    }
-                  }}
-                >
-                  <AppIcon app={app} size={38} />
-                  <span className="velora-app-tile-name">{app.name}</span>
-                </div>
-              ))}
-              <div
-                className="velora-app-tile velora-app-tile-add"
-                role="button"
-                tabIndex={0}
-                onClick={() => navigate('/applications')}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault()
-                    navigate('/applications')
-                  }
-                }}
-              >
-                <PlusOutlined /> 添加应用
-              </div>
-            </div>
-          ) : (
-            <Empty
-              image={Empty.PRESENTED_IMAGE_SIMPLE}
-              description={section === 'favorites' ? '还没有收藏应用' : '暂无可用应用'}
-              style={{ padding: '28px 0' }}
-            />
-          )}
-        </div>
-      </section>
+      {/* 我的应用（ProCard tabs：精选 / 收藏 / 全部） */}
+      <ProCard
+        className="velora-panel velora-myapps"
+        title="我的应用"
+        extra={
+          <a onClick={() => navigate('/applications')}>
+            应用中心 <ArrowRightOutlined />
+          </a>
+        }
+        tabs={{
+          size: 'small',
+          activeKey: section,
+          onChange: (key) => setSection(key as Section),
+          items: [
+            { key: 'featured', label: '精选', children: renderMyApps() },
+            { key: 'favorites', label: '收藏', children: renderMyApps() },
+            { key: 'all', label: '全部', children: renderMyApps() },
+          ],
+        }}
+      />
 
       {/* 33 / 67 双栏 */}
       <div className="velora-workbench">

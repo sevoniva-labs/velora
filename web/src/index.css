@@ -228,6 +228,20 @@ button {
 .velora-header-search {
   width: 240px;
 }
+/* antd 6 中搜索按钮被 group-addon 包裹，需一并去除默认浅灰背景/边框，让按钮融入输入框 */
+.velora-header-search .ant-input-group-wrapper,
+.velora-header-search .ant-input-wrapper,
+.velora-header-search .ant-input-group,
+.velora-header-search .ant-input-group-addon {
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+}
+.velora-header-search .ant-input-group-addon:last-child {
+  border-radius: 0 9px 9px 0 !important;
+  overflow: hidden;
+}
 .velora-header-search .ant-input-affix-wrapper {
   height: 34px;
   border-radius: 9px;

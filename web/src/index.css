@@ -1315,7 +1315,8 @@ button {
   margin-top: 0;
 }
 .velora-side-menu .ant-menu-item .anticon {
-  font-size: 15px;
+  font-size: 16px;
+  margin-inline-end: 14px;
 }
 .velora-side-menu .ant-menu-title-content,
 .velora-side-menu .ant-menu-title-content > a,
@@ -1414,17 +1415,15 @@ button {
     var(--velora-inset);
 }
 
-/* 表格：玻璃容器 + 浅蓝表头 + 品牌蓝行 hover */
+/* 表格：干净白底容器 + 浅灰蓝表头 + 品牌蓝行 hover（浅色，不发灰发深） */
 .velora-admin-content .ant-table-wrapper {
   overflow: hidden;
   border-radius: 14px;
-  border: 1px solid var(--velora-glass-line);
-  background: linear-gradient(158deg, var(--velora-glass) 0%, var(--velora-glass-2) 100%);
-  box-shadow:
-    0 12px 30px -18px rgba(6, 20, 55, 0.22),
-    var(--velora-inset);
+  border: 1px solid var(--velora-border-light);
+  background: #fff;
+  box-shadow: 0 8px 24px -16px rgba(6, 20, 55, 0.1);
 }
-/* 卡片内嵌表格不再重复玻璃壳 */
+/* 卡片内嵌表格不再重复外壳 */
 .velora-admin-content .ant-card .ant-table-wrapper {
   border: 0;
   border-radius: 0;
@@ -1439,9 +1438,10 @@ button {
   background: transparent !important;
 }
 .velora-admin-content .ant-table-thead > tr > th {
-  background: rgba(22, 119, 255, 0.05) !important;
-  color: var(--velora-text);
+  background: #fbfcfe !important;
+  color: var(--velora-title);
   font-weight: 600;
+  padding: 13px 16px !important;
   border-bottom: 1px solid var(--velora-border) !important;
 }
 .velora-admin-content .ant-table-thead > tr > th::before {
@@ -1449,6 +1449,7 @@ button {
 }
 .velora-admin-content .ant-table-tbody > tr > td {
   background: transparent !important;
+  padding: 14px 16px;
   border-bottom: 1px solid var(--velora-border-light);
 }
 .velora-admin-content .ant-table-tbody > tr:hover > td {
@@ -1558,44 +1559,90 @@ button {
   font-weight: 700;
 }
 
-/* 设置页 */
+/* 设置页：分区卡片 + 左文右控件 */
 .velora-admin-settings {
-  max-width: 720px;
+  max-width: 800px;
 }
-.velora-admin-setting-row {
+.velora-admin-card {
+  border-radius: 14px;
+  border: 1px solid var(--velora-glass-line);
+  background: linear-gradient(158deg, var(--velora-glass) 0%, var(--velora-glass-2) 100%);
+  box-shadow:
+    0 12px 30px -18px rgba(6, 20, 55, 0.22),
+    var(--velora-inset);
+}
+.velora-settings-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 240px;
+}
+.velora-settings-section {
+  margin-bottom: 16px;
+  padding: 8px 22px 10px;
+}
+.velora-settings-section-head {
+  padding: 12px 0 14px;
+  border-bottom: 1px solid var(--velora-border-light);
+}
+.velora-settings-section-title {
+  margin: 0;
+  color: var(--velora-title);
+  font-size: 15px;
+  font-weight: 700;
+}
+.velora-settings-section-desc {
+  margin: 4px 0 0;
+  color: var(--velora-secondary);
+  font-size: 12.5px;
+}
+.velora-settings-row {
+  display: grid;
+  grid-template-columns: minmax(170px, 220px) minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
   padding: 16px 0;
   border-bottom: 1px solid var(--velora-border-light);
 }
-.velora-admin-setting-row:last-child {
+.velora-settings-row:last-child {
   border-bottom: 0;
 }
-.velora-admin-setting-label {
-  margin-bottom: 8px;
+.velora-settings-row-label {
+  margin-top: 5px;
   color: var(--velora-title);
   font-size: 13px;
   font-weight: 600;
 }
-.velora-admin-setting-control {
+.velora-settings-row-help {
+  margin-top: 4px;
+  color: var(--velora-secondary);
+  font-size: 12px;
+  line-height: 1.6;
+}
+.velora-settings-row-control {
   display: flex;
   align-items: flex-start;
   gap: 10px;
 }
 /* noStyle 的 Form.Item 直接输出控件本体：首个子元素拉伸占满 */
-.velora-admin-setting-control > *:first-child {
+.velora-settings-row-control > *:first-child {
   flex: 1 1 auto;
   min-width: 0;
 }
-.velora-admin-setting-control--fixed > *:first-child {
+.velora-settings-row-control--fixed > *:first-child {
   flex: 0 0 auto;
 }
-.velora-admin-setting-control .ant-input {
+.velora-settings-row-control .ant-input {
   width: 100%;
 }
-.velora-admin-setting-help {
-  margin: 8px 0 0;
-  color: var(--velora-secondary);
-  font-size: 12px;
-  line-height: 1.7;
+@media (max-width: 640px) {
+  .velora-settings-row {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 8px;
+  }
+  .velora-settings-row-label {
+    margin-top: 0;
+  }
 }
 
 /* 状态徽章：圆点 + 柔色胶囊 */

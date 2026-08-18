@@ -1,10 +1,12 @@
 /* oxlint-disable react/only-export-components -- 路由配置非组件文件，页面级 lazy 不影响 fast refresh */
 import { lazy } from 'react'
 import { createBrowserRouter, Navigate } from 'react-router-dom'
+import { RouteErrorFallback } from './components/AppErrorBoundary'
 import App from './App'
 import AdminApp from './AdminApp'
 import RequireAuth from './auth/RequireAuth'
 import Login from './pages/Login'
+import NotFound from './pages/NotFound'
 
 // 页面级代码分割。
 const Home = lazy(() => import('./pages/Home'))
@@ -24,9 +26,11 @@ export const router = createBrowserRouter([
   {
     path: '/login',
     element: <Login />,
+    errorElement: <RouteErrorFallback />,
   },
   {
     path: '/',
+    errorElement: <RouteErrorFallback />,
     element: (
       <RequireAuth>
         <App />
@@ -38,11 +42,12 @@ export const router = createBrowserRouter([
       { path: 'applications', element: <Applications /> },
       { path: 'applications/:id', element: <ApplicationDetail /> },
       { path: 'favorites', element: <Favorites /> },
-      { path: '*', element: <Navigate to="/home" replace /> },
+      { path: '*', element: <NotFound /> },
     ],
   },
   {
     path: '/admin',
+    errorElement: <RouteErrorFallback />,
     element: (
       <RequireAuth>
         <AdminApp />
@@ -56,6 +61,9 @@ export const router = createBrowserRouter([
       { path: 'policies', element: <AdminPolicies /> },
       { path: 'audit', element: <AdminAudit /> },
       { path: 'settings', element: <AdminSettings /> },
+      { path: '*', element: <NotFound /> },
     ],
   },
+  // 登录后未知路径兜底（不含外壳时也展示 404）。
+  { path: '*', element: <NotFound /> },
 ])

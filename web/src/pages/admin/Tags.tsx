@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { usePageTitle } from '../../hooks/usePageTitle'
 import { App as AntdApp, Button, Form, Input, InputNumber, Modal, Popconfirm, Space, Table, Typography } from 'antd'
 import { PlusOutlined } from '@ant-design/icons'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
@@ -6,6 +7,8 @@ import { adminCreateTag, adminDeleteTag, adminUpdateTag, listTags, queryKeys } f
 import type { Tag } from '../../types'
 
 export default function AdminTags() {
+  usePageTitle('标签管理')
+
   const { message } = AntdApp.useApp()
   const queryClient = useQueryClient()
   const [modalOpen, setModalOpen] = useState(false)

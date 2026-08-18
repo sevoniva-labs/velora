@@ -12,7 +12,9 @@ import {
 import { useNavigate } from 'react-router-dom'
 import { listApplications, listCategories, listPopular, listRecent, getPortalSettings, queryKeys } from '../api/api'
 import { AppIcon } from '../components/AppCard'
+import QueryErrorState from '../components/QueryErrorState'
 import { formatRelativeTime } from '../utils/format'
+import { usePageTitle } from '../hooks/usePageTitle'
 
 /** 应用图标（分类占位）：按 code 稳定映射到一套线性图标 */
 const CATEGORY_ICONS = [AppstoreOutlined, FolderOpenOutlined, FireOutlined, SoundOutlined]
@@ -35,6 +37,8 @@ export default function Home() {
     ? noticeText.split('|').map((s) => s.trim()).filter(Boolean)
     : ['欢迎使用 Velora 企业应用门户：统一身份认证（Casdoor）已就绪，一次登录即可访问全部授权应用。', '系统公告：请妥善保管企业账号，勿在公共设备上勾选“记住登录”。']
 
+  usePageTitle('工作台')
+
   const [section, setSection] = useState<Section>('featured')
 
   const appsQuery = {
@@ -43,19 +47,19 @@ export default function Home() {
     all: { pageSize: 14 },
   }[section]
 
-  const { data: myApps, isLoading: loadingApps } = useQuery({
+  const { data: myApps, isLoading: loadingApps, isError: errorApps, refetch: refetchApps } = useQuery({
     queryKey: queryKeys.applications(appsQuery),
     queryFn: () => listApplications(appsQuery),
   })
 
-  const { data: recent, isLoading: loadingRecent } = useQuery({
+  const { data: recent, isLoading: loadingRecent, isError: errorRecent, refetch: refetchRecent } = useQuery({
     queryKey: queryKeys.recent,
     queryFn: () => listRecent(6),
   })
 
   const { data: categories } = useQuery({ queryKey: queryKeys.categories, queryFn: listCategories })
 
-  const { data: popular, isLoading: loadingPopular } = useQuery({
+  const { data: popular, isLoading: loadingPopular, isError: errorPopular, refetch: refetchPopular } = useQuery({
     queryKey: queryKeys.popular,
     queryFn: () => listPopular(6),
   })
@@ -104,6 +108,8 @@ export default function Home() {
         <div className="velora-panel-body">
           {loadingApps ? (
             <Skeleton active paragraph={{ rows: 3 }} />
+          ) : errorApps ? (
+            <QueryErrorState compact refetch={refetchApps} />
           ) : myApps && myApps.items.length > 0 ? (
             <div className="velora-app-tile-grid">
               {myApps.items.map((app) => (
@@ -164,6 +170,8 @@ export default function Home() {
             </div>
             {loadingRecent ? (
               <Skeleton active paragraph={{ rows: 4 }} style={{ padding: '4px 18px 16px' }} />
+            ) : errorRecent ? (
+              <QueryErrorState compact refetch={refetchRecent} />
             ) : recent && recent.length > 0 ? (
               <div className="velora-recent-list">
                 {recent.map((item) => (
@@ -219,11 +227,11 @@ export default function Home() {
                     className="velora-cat-card"
                     role="button"
                     tabIndex={0}
-                    onClick={() => navigate(`/applications?category=${encodeURIComponent(cat.code)}`)}
+                    onClick={() => navigate(`/applications?categoryId=${cat.id}`)}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' || e.key === ' ') {
                         e.preventDefault()
-                        navigate(`/applications?category=${encodeURIComponent(cat.code)}`)
+                        navigate(`/applications?categoryId=${cat.id}`)
                       }
                     }}
                   >
@@ -255,6 +263,8 @@ export default function Home() {
             </div>
             {loadingPopular ? (
               <Skeleton active paragraph={{ rows: 3 }} style={{ padding: '4px 18px 16px' }} />
+            ) : errorPopular ? (
+              <QueryErrorState compact refetch={refetchPopular} />
             ) : popular && popular.length > 0 ? (
               <div className="velora-popular-row">
                 {popular.map((app) => (

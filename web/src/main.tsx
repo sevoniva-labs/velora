@@ -9,6 +9,8 @@ import { RouterProvider } from 'react-router-dom'
 import './index.css'
 import { veloraTheme } from './theme/tokens'
 import { router } from './router'
+import UiScale from './components/UiScale'
+import { AppErrorBoundary } from './components/AppErrorBoundary'
 
 dayjs.locale('zh-cn')
 
@@ -25,12 +27,15 @@ const queryClient = new QueryClient({
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <ConfigProvider locale={zhCN} theme={veloraTheme} card={{ variant: 'outlined' }}>
-      <AntApp>
-        <QueryClientProvider client={queryClient}>
-          <RouterProvider router={router} />
-        </QueryClientProvider>
-      </AntApp>
-    </ConfigProvider>
+    <AppErrorBoundary>
+      <ConfigProvider locale={zhCN} theme={veloraTheme} card={{ variant: 'outlined' }}>
+        <AntApp>
+          <QueryClientProvider client={queryClient}>
+            <UiScale />
+            <RouterProvider router={router} />
+          </QueryClientProvider>
+        </AntApp>
+      </ConfigProvider>
+    </AppErrorBoundary>
   </StrictMode>,
 )

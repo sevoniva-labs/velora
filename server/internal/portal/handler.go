@@ -22,22 +22,21 @@ func NewHandler(service *Service, auditSvc *audit.Service, adminRole string) *Ha
 	return &Handler{service: service, audit: auditSvc, adminRole: adminRole}
 }
 
-// Register 注册路由。
-func (h *Handler) Register(r gin.IRouter) {
+// RegisterPublic 注册公开路由：门户展示配置（名称/公告等），登录页等无需登录即可读取。
+func (h *Handler) RegisterPublic(r gin.IRouter) {
 	r.GET("/portal/settings", h.all)
+}
 
+// Register 注册受保护路由。
+func (h *Handler) Register(r gin.IRouter) {
 	admin := r.Group("/admin")
 	admin.Use(h.adminRequired())
 	admin.GET("/dashboard", h.dashboard)
 	admin.PUT("/portal/settings", h.updateSettings)
 }
 
-// all 返回门户公开设置（需登录）。
+// all 返回门户公开设置（名称/公告/缩放等展示配置，公开只读）。
 func (h *Handler) all(c *gin.Context) {
-	if _, err := auth.RequireUser(c); err != nil {
-		response.Error(c, errs.Unauthorized(""))
-		return
-	}
 	list, err := h.service.All(c.Request.Context())
 	if err != nil {
 		response.Error(c, err)

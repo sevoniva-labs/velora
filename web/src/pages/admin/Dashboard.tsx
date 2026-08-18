@@ -9,8 +9,11 @@ import {
 } from '@ant-design/icons'
 import { adminDashboard, queryKeys } from '../../api/api'
 import { useMe } from '../../auth/useMe'
+import { usePageTitle } from '../../hooks/usePageTitle'
 
 export default function AdminDashboard() {
+  usePageTitle('门户概览')
+
   const { data } = useQuery({ queryKey: queryKeys.dashboard, queryFn: adminDashboard })
   const me = useMe()
 

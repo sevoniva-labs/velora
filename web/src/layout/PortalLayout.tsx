@@ -4,8 +4,8 @@ import { App as AntdApp, Avatar, Dropdown, Input, Layout } from 'antd'
 import { LogoutOutlined, SettingOutlined, UserOutlined } from '@ant-design/icons'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useMe } from '../auth/useMe'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { logout } from '../api/api'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { logout, getPortalSettings, queryKeys } from '../api/api'
 
 export interface PortalLayoutProps {
   children: ReactNode
@@ -23,6 +23,12 @@ export function PortalLayout({ children }: PortalLayoutProps) {
   const queryClient = useQueryClient()
   const { message } = AntdApp.useApp()
   const me = useMe()
+
+  // 门户展示配置：名称 / 欢迎语（未配置时用默认值）。
+  const { data: settings } = useQuery({ queryKey: queryKeys.portalSettings, queryFn: getPortalSettings })
+  const valueOf = (key: string) => settings?.find((s) => s.key === key)?.value ?? ''
+  const portalName = valueOf('portal_name') || 'Velora'
+  const portalWelcome = valueOf('portal_welcome') || '企业应用门户'
 
   const isAdmin = me.data?.admin === true
   const displayName = me.data?.displayName || me.data?.username || '用户'
@@ -44,6 +50,7 @@ export function PortalLayout({ children }: PortalLayoutProps) {
 
   return (
     <Layout className="velora-layout">
+      <a className="velora-skip-link" href="#main">跳到主内容</a>
       <Layout.Header className="velora-header">
         <div className="velora-header-brand">
           <Link className="velora-brand" to="/home" aria-label="首页">
@@ -51,8 +58,8 @@ export function PortalLayout({ children }: PortalLayoutProps) {
               <img src="/logo-mark.svg" alt="" width={19} height={19} style={{ display: 'block' }} />
             </span>
             <span className="velora-brand-text">
-              <span className="velora-brand-name">Velora</span>
-              <span className="velora-brand-sub">企业应用门户</span>
+              <span className="velora-brand-name">{portalName}</span>
+              <span className="velora-brand-sub">{portalWelcome}</span>
             </span>
           </Link>
         </div>
@@ -124,7 +131,7 @@ export function PortalLayout({ children }: PortalLayoutProps) {
         </div>
       </Layout.Header>
 
-      <Layout.Content className="velora-main-content velora-home-main">
+      <Layout.Content id="main" className="velora-main-content velora-home-main">
         <div className="velora-home-page-content">{children}</div>
       </Layout.Content>
     </Layout>

@@ -4,7 +4,8 @@ import { useState, type ReactNode } from 'react'
 import { App as AntdApp, Avatar, Button, Drawer, Dropdown, Layout, Menu } from 'antd'
 import { LogoutOutlined, MenuFoldOutlined, MenuOutlined, MenuUnfoldOutlined, UserOutlined } from '@ant-design/icons'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { getPortalSettings, queryKeys } from '../api/api'
 import { useMe } from '../auth/useMe'
 import { logout } from '../api/api'
 import { adminActiveKey, adminNavGroups } from './menu'
@@ -21,6 +22,10 @@ export function AdminLayout({ children }: AdminLayoutProps) {
   const navigate = useNavigate()
   const me = useMe()
   const queryClient = useQueryClient()
+
+  const { data: settings } = useQuery({ queryKey: queryKeys.portalSettings, queryFn: getPortalSettings })
+  const portalName = settings?.find((s) => s.key === 'portal_name')?.value || 'Velora'
+  const portalWelcome = settings?.find((s) => s.key === 'portal_welcome')?.value || '企业应用门户'
 
   const displayName = me.data?.displayName || me.data?.username || '用户'
   const activeKey = adminActiveKey(location.pathname)
@@ -66,8 +71,8 @@ export function AdminLayout({ children }: AdminLayoutProps) {
               <img src="/logo-mark.svg" alt="" width={19} height={19} style={{ display: 'block' }} />
             </span>
             <span className="velora-brand-text">
-              <span className="velora-brand-name">Velora</span>
-              <span className="velora-brand-sub">管理后台</span>
+              <span className="velora-brand-name">{portalName}</span>
+              <span className="velora-brand-sub">{portalWelcome} · 管理后台</span>
             </span>
           </Link>
         </div>
@@ -151,7 +156,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
             />
           </div>
         </Layout.Sider>
-        <Layout.Content className="velora-main-content">
+        <Layout.Content id="main" className="velora-main-content">
           <div className="velora-page-content">{children}</div>
         </Layout.Content>
       </Layout>

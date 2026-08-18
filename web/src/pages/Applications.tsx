@@ -4,11 +4,15 @@ import { Empty, Input, Pagination, Skeleton, Tag, Typography } from 'antd'
 import { useSearchParams } from 'react-router-dom'
 import { listApplications, listCategories, listTags, queryKeys } from '../api/api'
 import { AppCard } from '../components/AppCard'
+import QueryErrorState from '../components/QueryErrorState'
+import { usePageTitle } from '../hooks/usePageTitle'
 
 const PAGE_SIZE = 24
 
 /** 应用中心：关键词搜索 + 分类筛选 + 标签筛选 + 分页网格。 */
 export default function Applications() {
+  usePageTitle('应用中心')
+
   const [searchParams, setSearchParams] = useSearchParams()
   const keyword = searchParams.get('keyword') ?? ''
   const categoryId = searchParams.get('categoryId') ?? ''
@@ -20,7 +24,7 @@ export default function Applications() {
   const { data: categories } = useQuery({ queryKey: queryKeys.categories, queryFn: listCategories })
   const { data: tags } = useQuery({ queryKey: queryKeys.tags, queryFn: listTags })
 
-  const { data: pageData, isLoading } = useQuery({
+  const { data: pageData, isLoading, isError, refetch } = useQuery({
     queryKey: queryKeys.applications({ keyword, categoryId, tagId, page }),
     queryFn: () =>
       listApplications({
@@ -140,6 +144,8 @@ export default function Applications() {
           {/* 应用网格 */}
           {isLoading ? (
             <Skeleton active paragraph={{ rows: 6 }} />
+          ) : isError ? (
+            <QueryErrorState refetch={refetch} />
           ) : pageData && pageData.items.length > 0 ? (
             <>
               <div className="velora-app-grid" style={{ marginTop: 8 }}>

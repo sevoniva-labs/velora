@@ -1,4 +1,6 @@
 import { useState } from 'react'
+import { usePageTitle } from '../../hooks/usePageTitle'
+import { isSafeHttpUrl } from '../../utils/format'
 import { App as AntdApp, Button, Form, Input, InputNumber, Modal, Popconfirm, Select, Space, Switch, Table, Tag, Typography } from 'antd'
 import { PlusOutlined } from '@ant-design/icons'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
@@ -19,6 +21,8 @@ import { AppIcon } from '../../components/AppCard'
 const SSO_OPTIONS = ['URL', 'OIDC', 'SAML', 'CAS', 'FORWARD_AUTH']
 
 export default function AdminApplications() {
+  usePageTitle('应用管理')
+
   const { message } = AntdApp.useApp()
   const queryClient = useQueryClient()
   const [page, setPage] = useState(1)
@@ -26,6 +30,7 @@ export default function AdminApplications() {
   const [modalOpen, setModalOpen] = useState(false)
   const [editing, setEditing] = useState<Application | null>(null)
   const [form] = Form.useForm<AdminApplicationInput>()
+  const watchSsoType = Form.useWatch('ssoType', form)
 
   const { data: categories } = useQuery({ queryKey: queryKeys.categories, queryFn: listCategories })
   const { data: tags } = useQuery({ queryKey: queryKeys.tags, queryFn: listTags })
@@ -280,10 +285,35 @@ export default function AdminApplications() {
           </Space.Compact>
 
           <Space.Compact block>
-            <Form.Item label="主页地址" name="homeUrl" style={{ flex: 1 }} rules={[{ type: 'url', message: '请输入合法 URL' }]}>
+            <Form.Item
+              label="主页地址"
+              name="homeUrl"
+              style={{ flex: 1 }}
+              rules={[
+                { required: true, message: '请输入主页地址' },
+                {
+                  validator: (_, value: string) => {
+                    if (value && !isSafeHttpUrl(value)) return Promise.reject(new Error('仅支持 http/https 地址'))
+                    return Promise.resolve()
+                  },
+                },
+              ]}
+            >
               <Input placeholder="https://app.example.internal" />
             </Form.Item>
-            <Form.Item label="启动地址" name="launchUrl" style={{ flex: 1, marginLeft: 12 }}>
+            <Form.Item
+              label="启动地址"
+              name="launchUrl"
+              style={{ flex: 1, marginLeft: 12 }}
+              rules={[
+                {
+                  validator: (_, value: string) => {
+                    if (!value || isSafeHttpUrl(value)) return Promise.resolve()
+                    return Promise.reject(new Error('仅支持 http/https 地址'))
+                  },
+                },
+              ]}
+            >
               <Input placeholder="留空则使用主页地址" />
             </Form.Item>
           </Space.Compact>
@@ -306,7 +336,7 @@ export default function AdminApplications() {
             </Form.Item>
           </Space.Compact>
 
-          {form.getFieldValue('ssoType') === 'OIDC' ? (
+          {watchSsoType === 'OIDC' ? (
             <Form.Item label="Casdoor 应用名（可选）" name="casdoorApplicationName">
               <Input placeholder="Casdoor 中注册的应用名称" />
             </Form.Item>

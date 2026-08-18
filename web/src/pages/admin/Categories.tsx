@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { usePageTitle } from '../../hooks/usePageTitle'
 import { App as AntdApp, Button, Form, Input, InputNumber, Modal, Popconfirm, Space, Table, Typography } from 'antd'
 import { PlusOutlined } from '@ant-design/icons'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
@@ -12,6 +13,8 @@ import {
 import type { Category } from '../../types'
 
 export default function AdminCategories() {
+  usePageTitle('分类管理')
+
   const { message } = AntdApp.useApp()
   const queryClient = useQueryClient()
   const [modalOpen, setModalOpen] = useState(false)

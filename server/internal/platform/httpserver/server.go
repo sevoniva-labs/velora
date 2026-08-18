@@ -92,7 +92,10 @@ func New(deps Deps) (*gin.Engine, error) {
 	favorite.NewHandler(favService, appService, appRepo, deps.Audit).Register(secured)
 
 	portalService := portal.NewService(deps.DB)
-	portal.NewHandler(portalService, deps.Audit, deps.AdminRole).Register(secured)
+	portalHandler := portal.NewHandler(portalService, deps.Audit, deps.AdminRole)
+	// 门户展示配置（名称/公告/缩放）公开只读：登录页无需登录即可显示门户名称与公告。
+	portalHandler.RegisterPublic(api)
+	portalHandler.Register(secured)
 
 	audit.NewHandler(deps.Audit, deps.AdminRole).Register(secured)
 

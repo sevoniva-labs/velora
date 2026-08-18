@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { usePageTitle } from '../../hooks/usePageTitle'
 import { Select, Space, Table, Tag, Typography } from 'antd'
 import { useQuery } from '@tanstack/react-query'
 import { adminListAuditLogs, queryKeys } from '../../api/api'
@@ -26,6 +27,8 @@ const ACTION_OPTIONS = [
 ]
 
 export default function AdminAudit() {
+  usePageTitle('审计日志')
+
   const [page, setPage] = useState(1)
   const [action, setAction] = useState<string>()
   const [operator, setOperator] = useState<string>()

@@ -5,8 +5,10 @@ import { ArrowLeftOutlined, HeartFilled, HeartOutlined, RocketOutlined } from '@
 import { useState } from 'react'
 import { getApplication, launchApplication, queryKeys } from '../api/api'
 import { AppIcon } from '../components/AppCard'
+import QueryErrorState from '../components/QueryErrorState'
 import { HEALTH_COLOR, HEALTH_LABEL, SSO_TYPE_COLOR, SSO_TYPE_LABEL } from '../labels'
 import { formatDateTime } from '../utils/format'
+import { usePageTitle } from '../hooks/usePageTitle'
 
 export default function ApplicationDetail() {
   const { id } = useParams<{ id: string }>()
@@ -14,11 +16,12 @@ export default function ApplicationDetail() {
   const { message } = AntdApp.useApp()
   const [launching, setLaunching] = useState(false)
 
-  const { data: app, isLoading } = useQuery({
+  const { data: app, isLoading, isError, refetch } = useQuery({
     queryKey: queryKeys.application(id!),
     queryFn: () => getApplication(id!),
     enabled: !!id,
   })
+  usePageTitle(app?.name ? `应用详情 · ${app.name}` : '应用详情')
 
   const handleLaunch = async () => {
     if (!id) return
@@ -37,6 +40,9 @@ export default function ApplicationDetail() {
 
   if (isLoading) {
     return <Skeleton active paragraph={{ rows: 8 }} />
+  }
+  if (isError) {
+    return <QueryErrorState refetch={refetch} description="应用数据加载失败，请重试。" />
   }
   if (!app) {
     return (

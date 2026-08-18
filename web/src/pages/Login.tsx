@@ -2,7 +2,10 @@ import { useEffect, useState } from 'react'
 import { App as AntdApp, Button, Form, Input, Select } from 'antd'
 import { LockOutlined, UserOutlined } from '@ant-design/icons'
 import { useSearchParams } from 'react-router-dom'
-import { getSystemVersion, loginWithPassword } from '../api/api'
+import { useQuery } from '@tanstack/react-query'
+import { Navigate } from 'react-router-dom'
+import { useMe } from '../auth/useMe'
+import { getPortalSettings, getSystemVersion, loginWithPassword, queryKeys } from '../api/api'
 
 /**
  * Velora 登录页：复用 Spectra Web 的视觉体系（技术蓝分栏版式）。
@@ -10,6 +13,11 @@ import { getSystemVersion, loginWithPassword } from '../api/api'
  * （Velora 不实现密码认证，密码仅经 HTTPS 提交给 Casdoor，不落库）。
  */
 export default function Login() {
+  const me = useMe()
+  // 已登录用户直接进入工作台。
+  if (me.data) {
+    return <Navigate to="/home" replace />
+  }
   const [searchParams] = useSearchParams()
   const { message } = AntdApp.useApp()
   const [serverVersion, setServerVersion] = useState('')
@@ -21,6 +29,13 @@ export default function Login() {
       .then((v) => setServerVersion(v.version || v.application))
       .catch(() => setServerVersion(''))
   }, [])
+
+  // 门户展示配置：名称 / 欢迎语 / 页脚（未登录也可读，后端为公开只读接口）。
+  const { data: settings } = useQuery({ queryKey: queryKeys.portalSettings, queryFn: getPortalSettings, retry: false })
+  const valueOf = (key: string) => settings?.find((s) => s.key === key)?.value ?? ''
+  const portalName = valueOf('portal_name') || 'Velora'
+  const portalWelcome = valueOf('portal_welcome') || '企业应用门户'
+  const portalFooter = valueOf('portal_footer') || ''
 
   // 未登录访问受保护页面时，携带 redirect 以便登录后跳回。
   const redirect = searchParams.get('redirect')
@@ -52,7 +67,7 @@ export default function Login() {
           <span className="velora-brand-mark" aria-hidden="true">
             <img src="/logo-mark.svg" alt="" width={28} height={28} />
           </span>
-          Velora 企业应用门户
+          {portalName} {portalWelcome}
         </span>
         <Select
           aria-label="语言"
@@ -81,7 +96,7 @@ export default function Login() {
           <section className="velora-login-intro">
             <p className="velora-login-eyebrow">Enterprise Application Portal</p>
             <h1 className="velora-login-intro-title">
-              企业应用门户
+              {portalWelcome}
               <br />
               统一工作台
             </h1>
@@ -103,7 +118,7 @@ export default function Login() {
           <section className="velora-login-form">
             <div className="velora-login-form-inner">
               <h2 className="velora-login-form-title">欢迎回来</h2>
-              <p className="velora-login-form-desc">使用企业统一账号（Casdoor）登录 Velora</p>
+              <p className="velora-login-form-desc">使用企业统一账号（Casdoor）登录 {portalName}</p>
 
               <Form<{ username: string; password: string }>
                 name="login"
@@ -149,7 +164,8 @@ export default function Login() {
       </main>
 
       <footer className="velora-login-footer">
-        Velora · 企业应用门户{serverVersion ? ` · v${serverVersion}` : ''}
+        {portalFooter || `${portalName} · ${portalWelcome}`}
+        {serverVersion ? ` · v${serverVersion}` : ''}
       </footer>
     </div>
   )

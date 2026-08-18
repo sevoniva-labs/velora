@@ -3,10 +3,14 @@ import { Empty, Skeleton, Typography } from 'antd'
 import { HeartOutlined } from '@ant-design/icons'
 import { listApplications, queryKeys } from '../api/api'
 import { AppCard } from '../components/AppCard'
+import QueryErrorState from '../components/QueryErrorState'
+import { usePageTitle } from '../hooks/usePageTitle'
 
 /** 我的收藏：刷新后仍存在（数据落库，服务端持久化）。 */
 export default function Favorites() {
-  const { data, isLoading } = useQuery({
+  usePageTitle('我的收藏')
+
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: queryKeys.favorites,
     queryFn: () => listApplications({ favorites: true, pageSize: 100 }),
   })
@@ -26,6 +30,8 @@ export default function Favorites() {
 
       {isLoading ? (
         <Skeleton active paragraph={{ rows: 6 }} />
+      ) : isError ? (
+        <QueryErrorState refetch={refetch} />
       ) : data && data.items.length > 0 ? (
         <div className="velora-app-grid" style={{ marginTop: 16 }}>
           {data.items.map((app) => (

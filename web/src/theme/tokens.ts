@@ -24,7 +24,7 @@ export const functionalColors = {
 export const neutralColors = {
   title: '#1F2937',
   text: '#4B5563',
-  secondary: '#9CA3AF',
+  secondary: '#667085',
   disabled: '#D1D5DB',
   border: '#E5E7EB',
   borderLight: '#F3F4F6',

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { usePageTitle } from '../../hooks/usePageTitle'
 import { App as AntdApp, Button, Card, Empty, Form, Input, Select, Table, Tag, Typography } from 'antd'
 import { PlusOutlined } from '@ant-design/icons'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
@@ -26,6 +27,8 @@ interface PolicyRow {
 }
 
 export default function AdminPolicies() {
+  usePageTitle('访问策略')
+
   const { message } = AntdApp.useApp()
   const queryClient = useQueryClient()
   const [selectedAppId, setSelectedAppId] = useState<number>()

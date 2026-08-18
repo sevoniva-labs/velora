@@ -114,7 +114,7 @@ make dev-web                # Vite :5173（/api 代理到 :8080）
 
 ```bash
 ./scripts/bootstrap-cn.sh            # 查看配置建议
-./scripts/bootstrap-cn.sh --apply    # 当前终端临时应用（不修改全局配置）
+source ./scripts/bootstrap-cn.sh --apply  # 当前终端临时应用（不修改全局配置）
 ```
 
 - **Go Modules**：`GOPROXY=https://goproxy.cn,direct`（脚本提供，可随时切回官方源）。

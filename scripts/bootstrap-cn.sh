@@ -9,7 +9,7 @@
 #
 # 用法：
 #   ./scripts/bootstrap-cn.sh            # 仅打印配置建议
-#   ./scripts/bootstrap-cn.sh --apply    # 在当前 shell 子进程内临时应用
+#   source ./scripts/bootstrap-cn.sh --apply  # 在当前 shell 中临时应用（export 需 source 才生效）
 # ============================================================================
 set -euo pipefail
 
@@ -28,7 +28,8 @@ if [ "${apply}" = "--apply" ]; then
   echo "  => 已在本终端临时设置 GOPROXY=${GOPROXY_CN}"
   echo "     （仅当前进程生效，不影响 ~/.zshrc / ~/.bashrc）"
 else
-  echo "  提示: 如需临时应用，执行: source ./scripts/bootstrap-cn.sh --apply"
+  echo "  提示: 如需临时应用，请使用 source 方式执行（export 只在当前 shell 生效）:"
+  echo "        source ./scripts/bootstrap-cn.sh --apply"
 fi
 echo ""
 

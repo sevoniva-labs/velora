@@ -127,12 +127,10 @@ export default function Home() {
     )
   }
 
-  // 公告：优先取门户设置中的 announcement（多行以 | 分隔），否则默认模板。
+  // 公告：取门户设置中的 announcement（多条以 | 分隔），未配置则不展示公告条。
   const { data: settings } = useQuery({ queryKey: queryKeys.portalSettings, queryFn: getPortalSettings })
   const noticeText = settings?.find((s) => s.key === 'announcement')?.value
-  const notices = noticeText
-    ? noticeText.split('|').map((s) => s.trim()).filter(Boolean)
-    : ['欢迎使用 Velora 企业应用门户：统一身份认证（Casdoor）已就绪，一次登录即可访问全部授权应用。', '系统公告：请妥善保管企业账号，勿在公共设备上勾选“记住登录”。']
+  const notices = noticeText ? noticeText.split('|').map((s) => s.trim()).filter(Boolean) : []
 
   usePageTitle('工作台')
 
@@ -198,21 +196,23 @@ export default function Home() {
 
   return (
     <div>
-      {/* 通知公告条（玻璃跑马灯） */}
-      <div className="velora-panel velora-notice">
-        <span className="velora-notice-label">
-          <SoundOutlined /> 通知公告
-        </span>
-        <span className="velora-notice-sep" />
-        <div className="velora-notice-marquee">
-          <span>
-            {notices.join('　　　　')}
-            {'　　　　'}
-            {notices.join('　　　　')}
+      {/* 通知公告条（玻璃跑马灯），有公告时才渲染 */}
+      {notices.length > 0 ? (
+        <div className="velora-panel velora-notice">
+          <span className="velora-notice-label">
+            <SoundOutlined /> 通知公告
           </span>
+          <span className="velora-notice-sep" />
+          <div className="velora-notice-marquee">
+            <span>
+              {notices.join('　　　　')}
+              {'　　　　'}
+              {notices.join('　　　　')}
+            </span>
+          </div>
+          <span className="velora-notice-more">全部 ›</span>
         </div>
-        <span className="velora-notice-more">全部 ›</span>
-      </div>
+      ) : null}
 
       {/* 我的应用（胶囊分段控件：收藏 / 全部，带计数，智能默认） */}
       <ProCard

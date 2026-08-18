@@ -14,12 +14,6 @@ import { adminDashboard, queryKeys } from '../../api/api'
 import QueryErrorState from '../../components/QueryErrorState'
 import { usePageTitle } from '../../hooks/usePageTitle'
 
-const QUICK_STEPS = [
-  '在「应用管理」创建应用，配置图标、分类与接入地址',
-  '在「访问策略」配置应用的可见与访问范围',
-  '在「分类 / 标签管理」维护分类与标签体系',
-]
-
 export default function AdminDashboard() {
   usePageTitle('门户概览')
 
@@ -61,15 +55,6 @@ export default function AdminDashboard() {
           ))}
         </Row>
       )}
-
-      <div className="velora-admin-quick">
-        <h3 className="velora-admin-quick-title">快速开始</h3>
-        <ol className="velora-admin-quick-steps">
-          {QUICK_STEPS.map((step) => (
-            <li key={step}>{step}</li>
-          ))}
-        </ol>
-      </div>
     </div>
   )
 }

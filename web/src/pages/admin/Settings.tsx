@@ -12,11 +12,10 @@ interface SettingField {
   textarea?: boolean
 }
 
-const SETTING_SECTIONS: { key: string; title: string; desc: string; fields: SettingField[] }[] = [
+const SETTING_SECTIONS: { key: string; title: string; fields: SettingField[] }[] = [
   {
     key: 'base',
     title: '基础信息',
-    desc: '顶栏、登录页与浏览器标题使用的名称与文案。',
     fields: [
       { key: 'portal_name', label: '门户名称', help: '顶栏、登录页与浏览器标签页标题。', placeholder: '如 Velora' },
       { key: 'portal_welcome', label: '欢迎语', help: '顶栏品牌名下方，以及登录页品牌区。', placeholder: '如 企业应用门户' },
@@ -26,7 +25,6 @@ const SETTING_SECTIONS: { key: string; title: string; desc: string; fields: Sett
   {
     key: 'notice',
     title: '公告',
-    desc: '面向全部登录用户的滚动通知。',
     fields: [
       {
         key: 'announcement',
@@ -77,7 +75,6 @@ export default function AdminSettings() {
             <section key={section.key} className="velora-admin-card velora-settings-section">
               <header className="velora-settings-section-head">
                 <h3 className="velora-settings-section-title">{section.title}</h3>
-                <p className="velora-settings-section-desc">{section.desc}</p>
               </header>
               {section.fields.map((field) => (
                 <SettingRow
@@ -97,7 +94,6 @@ export default function AdminSettings() {
           <section className="velora-admin-card velora-settings-section">
             <header className="velora-settings-section-head">
               <h3 className="velora-settings-section-title">界面显示</h3>
-              <p className="velora-settings-section-desc">部署后不同设备的显示比例校准。</p>
             </header>
             <Form
               key={`ui_scale:${uiScalePercent}`}

@@ -1508,57 +1508,6 @@ button {
   font-size: 12.5px;
 }
 
-/* 快速开始 */
-.velora-admin-quick {
-  margin-top: 16px;
-  padding: 20px 22px;
-  border-radius: 14px;
-  border: 1px solid var(--velora-glass-line);
-  background: linear-gradient(158deg, var(--velora-glass) 0%, var(--velora-glass-2) 100%);
-  box-shadow:
-    0 12px 30px -18px rgba(6, 20, 55, 0.22),
-    var(--velora-inset);
-}
-.velora-admin-quick-title {
-  margin: 0 0 12px;
-  color: var(--velora-title);
-  font-size: 15px;
-  font-weight: 700;
-}
-.velora-admin-quick-steps {
-  margin: 0;
-  padding: 0;
-  counter-reset: velora-step;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-.velora-admin-quick-steps li {
-  list-style: none;
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  color: var(--velora-text);
-  font-size: 13px;
-  line-height: 1.7;
-}
-.velora-admin-quick-steps li::before {
-  counter-increment: velora-step;
-  content: counter(velora-step);
-  flex: 0 0 20px;
-  width: 20px;
-  height: 20px;
-  margin-top: 1px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 7px;
-  background: var(--velora-primary-soft);
-  color: var(--velora-primary);
-  font-size: 12px;
-  font-weight: 700;
-}
-
 /* 设置页：分区卡片 + 左文右控件 */
 .velora-admin-settings {
   max-width: 800px;
@@ -1590,11 +1539,6 @@ button {
   color: var(--velora-title);
   font-size: 15px;
   font-weight: 700;
-}
-.velora-settings-section-desc {
-  margin: 4px 0 0;
-  color: var(--velora-secondary);
-  font-size: 12.5px;
 }
 .velora-settings-row {
   display: grid;

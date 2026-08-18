@@ -85,10 +85,7 @@ export default function AdminPolicies() {
 
   return (
     <div>
-      <AdminPageHead
-        title="访问策略"
-        desc="命中任一规则即放行（OR 语义）；空策略对所有登录用户可见。"
-      />
+      <AdminPageHead title="访问策略" />
 
       <Card>
         <Select

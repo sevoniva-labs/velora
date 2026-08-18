@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 
@@ -342,8 +343,10 @@ func parsePositive(s string, def int) int {
 func parseUintList(values []string) []uint64 {
 	var out []uint64
 	for _, v := range values {
-		if n, err := strconv.ParseUint(v, 10, 64); err == nil && n > 0 {
-			out = append(out, n)
+		for _, part := range strings.Split(v, ",") {
+			if n, err := strconv.ParseUint(strings.TrimSpace(part), 10, 64); err == nil && n > 0 {
+				out = append(out, n)
+			}
 		}
 	}
 	return out

@@ -1,0 +1,741 @@
+/* Spectra 控制台样式：与 velora-registry 参考工程逐项对齐（技术蓝设计系统）。 */
+
+:root {
+  --velora-primary: #1677ff;
+  --velora-primary-hover: #4096ff;
+  --velora-primary-active: #0958d9;
+  --velora-primary-soft: #e6f4ff;
+  --velora-primary-softer: #f0f7ff;
+  --velora-header-from: #1d4ed8;
+  --velora-header-mid: #2563eb;
+  --velora-header-to: #3b82f6;
+  --velora-on-header: #ffffff;
+  --velora-title: #1f2937;
+  --velora-text: #475467;
+  --velora-secondary: #98a2b3;
+  --velora-border: #e8eef7;
+  --velora-border-light: #f2f4f7;
+  --velora-bg-layout: #f5f7fa;
+  --velora-bg-sider: #edf1f8;
+  --velora-bg-container: #ffffff;
+  color: var(--velora-title, var(--ant-color-text));
+  background: var(--velora-bg-layout, var(--ant-color-bg-layout));
+  font-family:
+    Inter,
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    sans-serif;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+}
+
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+  min-width: 320px;
+}
+button,
+a {
+  font: inherit;
+}
+button {
+  cursor: pointer;
+}
+
+/* ---------- 外壳（对齐参考工程） ---------- */
+
+.velora-layout.ant-layout {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background: var(--velora-bg-layout, var(--ant-color-bg-layout));
+}
+.velora-body.ant-layout {
+  flex: 1 1 auto;
+  min-height: 0;
+  min-width: 0;
+}
+.velora-header.ant-layout-header {
+  position: sticky;
+  z-index: 100;
+  top: 0;
+  display: flex;
+  align-items: center;
+  height: 56px !important;
+  line-height: normal !important;
+  padding: 0 16px 0 0 !important;
+  color: var(--velora-on-header);
+  background:
+    radial-gradient(
+      720px 180px at 10% -60%,
+      color-mix(in srgb, var(--velora-on-header) 18%, transparent),
+      transparent 70%
+    ),
+    linear-gradient(
+      118deg,
+      var(--velora-header-from, var(--ant-color-primary-active)) 0%,
+      var(--velora-header-mid, var(--ant-color-primary)) 48%,
+      var(--velora-header-to, var(--ant-color-primary-hover)) 100%
+    ) !important;
+  box-shadow: 0 2px 10px
+    color-mix(
+      in srgb,
+      var(--velora-header-from, var(--ant-color-primary)) 26%,
+      transparent
+    );
+}
+.velora-header-brand {
+  display: flex;
+  align-items: center;
+  flex: 0 0 219px;
+  width: 219px;
+  height: 56px;
+  padding: 0 12px;
+  overflow: hidden;
+}
+.velora-layout.is-collapsed .velora-header-brand {
+  flex-basis: 63px;
+  width: 63px;
+  padding: 0;
+  justify-content: center;
+}
+.velora-layout.is-collapsed .velora-brand-name {
+  display: none;
+}
+
+/* 顶栏导航切换：首页 / 应用中心 / 我的收藏（普通用户） */
+.velora-module-nav {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 12px;
+  height: 56px;
+}
+.velora-module-tab {
+  appearance: none;
+  border: none;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.78);
+  font-size: 14px;
+  font-weight: 500;
+  font-family: inherit;
+  line-height: 32px;
+  padding: 0 14px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+  white-space: nowrap;
+}
+.velora-module-tab:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+}
+.velora-module-tab.is-active {
+  background: rgba(255, 255, 255, 0.2);
+  color: #fff;
+  font-weight: 600;
+}
+@media (max-width: 860px) {
+  .velora-module-nav {
+    display: none;
+  }
+}
+
+.velora-header-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex: 1;
+  min-width: 0;
+  height: 56px;
+  gap: 8px;
+}
+
+/* 主页：无侧栏的特殊宽版居中布局 */
+.velora-home-main {
+  background: var(--velora-bg-layout);
+}
+.velora-home-page-content {
+  max-width: 1160px;
+  margin: 0 auto;
+  padding: 32px 32px 48px;
+}
+@media (max-width: 640px) {
+  .velora-home-page-content {
+    padding: 20px 16px 32px;
+  }
+}
+.velora-header-trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: 0;
+  border-radius: 8px;
+  color: var(--velora-on-header);
+  background: transparent;
+  font-size: 16px;
+}
+.velora-header-trigger:hover {
+  background: color-mix(in srgb, var(--velora-on-header) 14%, transparent);
+}
+.velora-sider-trigger {
+  margin-left: 8px;
+}
+.velora-mobile-menu-trigger {
+  display: none;
+  margin: 0 4px 0 8px;
+}
+@media (max-width: 900px) {
+  .velora-mobile-menu-trigger {
+    display: inline-flex;
+  }
+  .velora-sider-trigger {
+    display: none;
+  }
+}
+.velora-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  height: 56px;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.velora-brand-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  flex: 0 0 30px;
+  border-radius: 9px;
+  color: var(--velora-primary, var(--ant-color-primary));
+  background: var(--velora-on-header);
+  font-size: 17px;
+  box-shadow: 0 2px 6px color-mix(in srgb, black 18%, transparent);
+}
+.velora-brand-name {
+  overflow: hidden;
+  color: var(--velora-on-header);
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-overflow: ellipsis;
+}
+.velora-nav-search {
+  width: 240px;
+}
+.velora-nav-search .ant-input-affix-wrapper {
+  height: 34px;
+  border: 0;
+  border-radius: 8px 0 0 8px;
+  color: var(--velora-on-header);
+  background: color-mix(in srgb, var(--velora-on-header) 14%, transparent);
+  box-shadow: none;
+}
+.velora-nav-search .ant-input-search-btn {
+  width: 34px;
+  height: 34px !important;
+  border: 0 !important;
+  border-radius: 0 8px 8px 0;
+  padding-inline: 0;
+  color: color-mix(in srgb, var(--velora-on-header) 82%, transparent) !important;
+  background: color-mix(in srgb, var(--velora-on-header) 14%, transparent) !important;
+  box-shadow: none !important;
+}
+.velora-nav-search:hover .ant-input-affix-wrapper,
+.velora-nav-search:hover .ant-input-search-btn,
+.velora-nav-search:focus-within .ant-input-affix-wrapper,
+.velora-nav-search:focus-within .ant-input-search-btn {
+  background: color-mix(in srgb, var(--velora-on-header) 24%, transparent) !important;
+}
+.velora-nav-search input {
+  color: var(--velora-on-header);
+}
+.velora-nav-search input::placeholder {
+  color: color-mix(in srgb, var(--velora-on-header) 68%, transparent);
+}
+.velora-locale-select {
+  width: 72px;
+  color: var(--velora-on-header);
+}
+.velora-locale-select .ant-select-selector,
+.velora-locale-select .ant-select-selection-item,
+.velora-locale-select .ant-select-arrow {
+  color: var(--velora-on-header) !important;
+  background: transparent !important;
+}
+.velora-user-actions {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border: 0;
+  border-radius: 999px;
+  padding: 0;
+  color: var(--velora-on-header);
+  background: transparent;
+}
+.velora-user-actions:hover {
+  background: color-mix(in srgb, var(--velora-on-header) 14%, transparent);
+}
+.velora-user-actions .ant-avatar {
+  color: var(--velora-primary, var(--ant-color-primary));
+  background: var(--velora-on-header);
+}
+
+/* ---------- 侧栏（对齐参考工程） ---------- */
+
+.velora-sider.ant-layout-sider {
+  position: sticky;
+  top: 56px;
+  align-self: flex-start;
+  flex: 0 0 220px;
+  width: 220px !important;
+  max-width: 220px !important;
+  min-width: 220px !important;
+  height: calc(100vh - 56px);
+  transition: none !important;
+  background: var(--velora-bg-sider, var(--ant-color-bg-layout)) !important;
+}
+.velora-sider .ant-layout-sider-children {
+  height: 100%;
+}
+.velora-layout.is-collapsed .velora-sider.ant-layout-sider {
+  flex-basis: 64px;
+  width: 64px !important;
+  max-width: 64px !important;
+  min-width: 64px !important;
+}
+.velora-sider-inner {
+  display: flex;
+  height: 100%;
+  flex-direction: column;
+  overflow: hidden;
+}
+.velora-side-menu {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  border-inline-end: 0 !important;
+  padding: 12px 8px;
+  background: transparent !important;
+}
+.velora-side-menu.ant-menu-inline .ant-menu-item,
+.velora-side-menu.ant-menu-inline .ant-menu-submenu-title {
+  display: flex !important;
+  align-items: center !important;
+  height: 38px !important;
+  line-height: 38px !important;
+  margin-block: 2px !important;
+  margin-inline: 0 !important;
+  padding-inline: 12px !important;
+  border-radius: 10px;
+  width: 100% !important;
+  color: var(--velora-text, var(--ant-color-text-secondary));
+  font-size: 14px;
+}
+.velora-side-menu.ant-menu-inline-collapsed {
+  width: 100% !important;
+  min-width: 0 !important;
+}
+.velora-side-menu.ant-menu-inline-collapsed .ant-menu-item {
+  justify-content: center !important;
+  padding-inline: 0 !important;
+}
+.velora-side-menu.ant-menu-inline-collapsed .ant-menu-item-group-title {
+  display: none;
+}
+.velora-side-menu.ant-menu-inline-collapsed .ant-menu-title-content {
+  display: none !important;
+}
+.velora-side-menu.ant-menu-inline-collapsed .ant-menu-item .anticon {
+  margin-inline-end: 0 !important;
+}
+.velora-side-menu.ant-menu-inline:not(.ant-menu-inline-collapsed)
+  .ant-menu-item
+  .anticon,
+.velora-side-menu.ant-menu-inline:not(.ant-menu-inline-collapsed)
+  .ant-menu-submenu-title
+  .anticon {
+  margin-inline-end: 12px !important;
+  font-size: 16px;
+}
+.velora-side-menu .ant-menu-title-content,
+.velora-side-menu .ant-menu-title-content > a,
+.velora-side-link {
+  display: flex !important;
+  align-items: center !important;
+  height: 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  color: inherit !important;
+  line-height: inherit !important;
+}
+.velora-side-menu .ant-menu-item:hover {
+  background: color-mix(
+    in srgb,
+    var(--velora-bg-container, var(--ant-color-bg-container)) 64%,
+    transparent
+  ) !important;
+  color: var(--velora-title, var(--ant-color-text));
+}
+.velora-side-menu .ant-menu-item-selected {
+  border: 1px solid
+    var(--velora-border-light, var(--ant-color-border-secondary)) !important;
+  background: var(
+    --velora-bg-container,
+    var(--ant-color-bg-container)
+  ) !important;
+  box-shadow: 0 1px 3px
+    color-mix(in srgb, var(--velora-title, var(--ant-color-text)) 10%, transparent);
+  color: var(--velora-primary, var(--ant-color-primary)) !important;
+  font-weight: 600;
+}
+.velora-side-menu .ant-menu-item-selected:hover {
+  background: var(
+    --velora-bg-container,
+    var(--ant-color-bg-container)
+  ) !important;
+  color: var(--velora-primary, var(--ant-color-primary)) !important;
+}
+.velora-side-menu .ant-menu-item-group-title {
+  height: auto;
+  margin-top: 10px;
+  padding: 6px 12px;
+  color: var(--velora-secondary, var(--ant-color-text-tertiary));
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  line-height: 16px;
+  text-transform: uppercase;
+}
+.velora-side-menu
+  .ant-menu-item-group:first-child
+  .ant-menu-item-group-title {
+  margin-top: 0;
+}
+.velora-main-content {
+  min-width: 0;
+  background: var(--ant-color-bg-layout);
+}
+.velora-page-content {
+  width: min(1440px, 100%);
+  margin: 0 auto;
+  padding: 20px 24px 32px;
+}
+
+/* ---------- 登录页（对齐参考工程） ---------- */
+
+.velora-login {
+  min-height: 100dvh;
+  color: var(--velora-text, var(--ant-color-text-secondary));
+  background: var(--velora-bg-layout, var(--ant-color-bg-layout));
+}
+.velora-login-header {
+  min-height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 40px;
+  color: var(--velora-on-header);
+  background: linear-gradient(
+    90deg,
+    var(--velora-header-from, var(--ant-color-primary)),
+    var(--velora-header-to, var(--ant-color-primary-hover))
+  );
+}
+.velora-login-lockup {
+  color: var(--velora-on-header);
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+.velora-login-main {
+  min-height: calc(100dvh - 56px - 64px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 40px;
+}
+.velora-login-card {
+  width: min(100%, 960px);
+  display: grid;
+  grid-template-columns: 1.05fr 0.95fr;
+  overflow: hidden;
+  background: var(--velora-bg-container, var(--ant-color-bg-container));
+  border: 1px solid var(--velora-border, var(--ant-color-border));
+  border-radius: 8px;
+  box-shadow: var(--velora-shadow, var(--ant-box-shadow-tertiary));
+}
+.velora-login-intro {
+  display: flex;
+  flex-direction: column;
+  padding: 44px;
+  background: var(--velora-bg-layout, var(--ant-color-bg-layout));
+  border-right: 1px solid var(--velora-border, var(--ant-color-border));
+}
+.velora-login-eyebrow {
+  margin: 0;
+  color: var(--velora-primary, var(--ant-color-primary));
+  font-family: var(--ant-font-family-code);
+  font-size: 11px;
+  font-weight: 600;
+}
+.velora-login-intro-title {
+  margin: 16px 0 0;
+  color: var(--velora-title, var(--ant-color-text));
+  font-size: 24px;
+  font-weight: 500;
+  line-height: 1.55;
+}
+.velora-login-intro-copy {
+  max-width: 24em;
+  margin: 12px 0 0;
+  color: var(--velora-text, var(--ant-color-text-secondary));
+  font-size: 13px;
+  line-height: 1.8;
+}
+.velora-login-workflow {
+  margin: 30px 0 0;
+  padding: 0;
+  border-top: 1px solid var(--velora-border, var(--ant-color-border));
+}
+.velora-login-workflow-item {
+  min-height: 47px;
+  display: grid;
+  grid-template-columns: 8px 124px minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  list-style: none;
+  border-bottom: 1px solid var(--velora-border, var(--ant-color-border));
+}
+.velora-login-workflow-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+.velora-login-workflow-name {
+  color: var(--velora-title, var(--ant-color-text));
+  font-size: 13px;
+  font-weight: 500;
+}
+.velora-login-workflow-desc {
+  min-width: 0;
+  color: var(--velora-secondary, var(--ant-color-text-tertiary));
+  font-size: 12px;
+}
+.velora-login-form {
+  display: flex;
+  align-items: center;
+  padding: 44px;
+  background: var(--velora-bg-container, var(--ant-color-bg-container));
+}
+.velora-login-form-inner {
+  width: 100%;
+  max-width: 320px;
+  margin: 0 auto;
+}
+.velora-login-form-title {
+  margin: 0;
+  color: var(--velora-title, var(--ant-color-text));
+  font-size: 20px;
+  font-weight: 500;
+}
+.velora-login-form-desc {
+  margin: 4px 0 20px;
+  color: var(--velora-secondary, var(--ant-color-text-tertiary));
+  font-size: 13px;
+}
+.velora-login-footer {
+  min-height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px 40px;
+  color: var(--velora-secondary, var(--ant-color-text-tertiary));
+  font-size: 12px;
+  background: var(--velora-bg-container, var(--ant-color-bg-container));
+  border-top: 1px solid var(--velora-border, var(--ant-color-border));
+}
+@media (max-width: 760px) {
+  .velora-login-header {
+    padding: 0 20px;
+  }
+  .velora-login-main {
+    align-items: flex-start;
+    padding: 24px 16px 32px;
+  }
+  .velora-login-card {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .velora-login-form {
+    order: 1;
+    padding: 32px 24px 36px;
+  }
+  .velora-login-intro {
+    order: 2;
+    padding: 28px 24px 32px;
+  }
+}
+
+/* ---------- Velora 应用卡片与门户组件 ---------- */
+
+.velora-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.velora-app-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(248px, 1fr));
+  gap: 16px;
+}
+
+.velora-app-grid-item {
+  display: flex;
+  flex-direction: column;
+}
+
+.velora-app-card {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 196px;
+  padding: 18px;
+  background: var(--velora-bg-container, var(--ant-color-bg-container));
+  border: 1px solid var(--velora-border, var(--ant-color-border));
+  border-radius: 12px;
+  cursor: pointer;
+  outline: none;
+  transition:
+    transform 0.18s ease,
+    border-color 0.18s ease,
+    box-shadow 0.18s ease;
+}
+
+.velora-app-card:hover,
+.velora-app-card:focus-visible {
+  transform: translateY(-2px);
+  border-color: var(--velora-primary, var(--ant-color-primary));
+  box-shadow: 0 4px 14px color-mix(in srgb, var(--velora-primary, #1677ff) 12%, transparent);
+}
+
+.velora-app-card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.velora-app-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.velora-app-card-title {
+  margin-bottom: 4px !important;
+  color: var(--velora-title, var(--ant-color-text)) !important;
+}
+
+.velora-app-card-desc {
+  margin-bottom: 12px !important;
+  color: var(--velora-text, var(--ant-color-text-secondary)) !important;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.velora-app-card-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: 12px;
+}
+
+.velora-app-card-cat.ant-tag {
+  margin-inline-end: 0;
+  color: var(--velora-primary, var(--ant-color-primary));
+  background: var(--velora-primary-soft, var(--ant-color-primary-bg));
+  border-color: transparent;
+}
+
+.velora-app-card-tag.ant-tag {
+  margin-inline-end: 0;
+}
+
+.velora-app-card-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: auto;
+}
+
+.velora-recent-time {
+  padding: 6px 4px 0;
+  color: var(--velora-secondary, var(--ant-color-text-tertiary));
+  font-size: 12px;
+}
+
+/* 筛选 chips */
+.velora-filter-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.velora-filter-label {
+  color: var(--velora-secondary, var(--ant-color-text-tertiary));
+  font-size: 13px;
+  margin-right: 2px;
+}
+
+.velora-filter-chip {
+  appearance: none;
+  border: 1px solid var(--velora-border, var(--ant-color-border));
+  background: var(--velora-bg-container, var(--ant-color-bg-container));
+  color: var(--velora-text, var(--ant-color-text-secondary));
+  font-size: 13px;
+  font-family: inherit;
+  line-height: 26px;
+  padding: 0 12px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.velora-filter-chip:hover {
+  border-color: var(--velora-primary, var(--ant-color-primary));
+  color: var(--velora-primary, var(--ant-color-primary));
+}
+
+.velora-filter-chip.is-active {
+  border-color: var(--velora-primary, var(--ant-color-primary));
+  color: var(--velora-on-primary, #fff);
+  background: var(--velora-primary, var(--ant-color-primary));
+  font-weight: 500;
+}
+
+/* 响应式：小屏应用网格降为双列 */
+@media (max-width: 640px) {
+  .velora-app-grid {
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 12px;
+  }
+  .velora-app-card {
+    padding: 14px;
+  }
+}

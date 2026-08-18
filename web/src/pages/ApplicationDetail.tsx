@@ -112,7 +112,7 @@ export default function ApplicationDetail() {
           <Descriptions.Item label="收藏">
             {app.isFavorite ? (
               <>
-                <HeartFilled style={{ color: '#E5484D' }} /> 已收藏
+                <HeartFilled style={{ color: '#FA541C' }} /> 已收藏
               </>
             ) : (
               <>

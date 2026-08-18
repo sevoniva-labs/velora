@@ -15,13 +15,13 @@ export default function AdminDashboard() {
   const me = useMe()
 
   const stats = [
-    { title: '应用总数', value: data?.applicationCount ?? '-', icon: <AppstoreOutlined />, color: '#2563EB' },
-    { title: '启用应用', value: data?.enabledAppCount ?? '-', icon: <FireOutlined />, color: '#2F9E63' },
-    { title: '停用应用', value: data?.disabledAppCount ?? '-', icon: <FireOutlined />, color: '#A9B5C5' },
-    { title: '应用分类', value: data?.categoryCount ?? '-', icon: <UnorderedListOutlined />, color: '#7C3AED' },
-    { title: '应用标签', value: data?.tagCount ?? '-', icon: <TagsOutlined />, color: '#F5A524' },
-    { title: '收藏总数', value: data?.favoriteCount ?? '-', icon: <HeartOutlined />, color: '#E5484D' },
-    { title: '累计启动', value: data?.totalLaunches ?? '-', icon: <FireOutlined />, color: '#0891B2' },
+    { title: '应用总数', value: data?.applicationCount ?? '-', icon: <AppstoreOutlined />, color: '#1677FF' },
+    { title: '启用应用', value: data?.enabledAppCount ?? '-', icon: <FireOutlined />, color: '#52C41A' },
+    { title: '停用应用', value: data?.disabledAppCount ?? '-', icon: <FireOutlined />, color: '#D0D5DD' },
+    { title: '应用分类', value: data?.categoryCount ?? '-', icon: <UnorderedListOutlined />, color: '#722ED1' },
+    { title: '应用标签', value: data?.tagCount ?? '-', icon: <TagsOutlined />, color: '#FA8C16' },
+    { title: '收藏总数', value: data?.favoriteCount ?? '-', icon: <HeartOutlined />, color: '#FA541C' },
+    { title: '累计启动', value: data?.totalLaunches ?? '-', icon: <FireOutlined />, color: '#13C2C2' },
   ]
 
   return (

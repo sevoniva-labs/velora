@@ -16,7 +16,7 @@ export default function Favorites() {
       <div className="velora-page-head">
         <div>
           <Typography.Title level={3} className="velora-page-head-title">
-            <HeartOutlined style={{ color: '#E5484D' }} /> 我的收藏
+            <HeartOutlined style={{ color: '#FA541C' }} /> 我的收藏
           </Typography.Title>
           <Typography.Paragraph className="velora-page-head-desc">
             已收藏 {data?.total ?? 0} 个应用，随时一键直达。

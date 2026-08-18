@@ -113,7 +113,7 @@ export function AppCard({ app, onLaunch }: AppCardProps) {
             type="text"
             size="small"
             aria-label={favorited ? '取消收藏' : '收藏'}
-            icon={favorited ? <HeartFilled style={{ color: '#E5484D' }} /> : <HeartOutlined />}
+            icon={favorited ? <HeartFilled style={{ color: '#FA541C' }} /> : <HeartOutlined />}
             onClick={(e) => {
               e.stopPropagation()
               favMutation.mutate()

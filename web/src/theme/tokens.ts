@@ -1,45 +1,42 @@
-// Velora 设计令牌：企业门户视觉系统（沉稳企业蓝 + 深海军蓝深色面）。
+// Velora 设计令牌：企业门户视觉系统（浅色技术蓝，与原版一致；仅保留布局/质感层次改进）。
 import type { ThemeConfig } from 'antd'
 
 export const brandColors = {
-  primary: '#2563EB',
-  primaryHover: '#3B82F6',
-  primaryActive: '#1D4ED8',
-  primarySoft: '#EAF1FE',
-  primarySofter: '#F4F8FF',
-  /** 深色面（顶栏 / Hero）：深海军蓝黑 */
-  inkDeep: '#0B1626',
-  inkMid: '#10253F',
-  inkLight: '#163A66',
-  inkGlow: '#1F5BB5',
+  primary: '#1677FF',
+  primaryHover: '#4096FF',
+  primaryActive: '#0958D9',
+  primarySoft: '#E6F4FF',
+  primarySofter: '#F0F7FF',
+  /** 顶栏 / Hero 品牌渐变（浅色体系） */
+  headerFrom: '#1D4ED8',
+  headerMid: '#2563EB',
+  headerTo: '#3B82F6',
 } as const
 
 export const functionalColors = {
-  error: '#E5484D',
-  warning: '#F5A524',
-  success: '#2F9E63',
-  info: '#2563EB',
+  error: '#FF4D4F',
+  warning: '#FA8C16',
+  success: '#52C41A',
+  info: '#1677FF',
 } as const
 
 export const neutralColors = {
-  title: '#0F172A',
-  text: '#3E4C5F',
-  secondary: '#8494A7',
-  faint: '#A9B5C5',
-  disabled: '#CBD5E1',
-  border: '#E3EAF4',
-  borderLight: '#EEF3FA',
-  bgLayout: '#F3F6FB',
-  bgSider: '#F6F8FC',
+  title: '#1F2937',
+  text: '#475467',
+  secondary: '#98A2B3',
+  disabled: '#D0D5DD',
+  border: '#E8EEF7',
+  borderLight: '#F2F4F7',
+  bgLayout: '#F5F7FA',
+  bgSider: '#EDF1F8',
   bgContainer: '#FFFFFF',
-  bgElevated: '#F7F9FD',
-  menuItem: '#5C6B80',
-  onInk: '#FFFFFF',
-  onInkMuted: 'rgba(255, 255, 255, 0.72)',
+  bgElevated: '#F5F7FA',
+  menuItem: '#667085',
+  onPrimary: '#FFFFFF',
 } as const
 
 export const fontSize = {
-  display: 30,
+  display: 28,
   hero: 22,
   largeTitle: 18,
   h1: 16,
@@ -64,7 +61,7 @@ export const controlHeight = {
   small: 28,
 } as const
 
-/** Velora 主题：企业门户风格（沉稳蓝、深海军顶栏、克制动效）。 */
+/** Velora 主题：浅色技术蓝企业门户（克制动效）。 */
 export const veloraTheme: ThemeConfig = {
   cssVar: { prefix: 'ant' },
   token: {
@@ -106,14 +103,14 @@ export const veloraTheme: ThemeConfig = {
     borderRadius: 10,
     borderRadiusLG: 16,
     borderRadiusSM: 8,
-    boxShadowTertiary: '0 1px 2px rgba(15, 23, 42, 0.04), 0 8px 24px -12px rgba(15, 23, 42, 0.08)',
+    boxShadowTertiary: '0 1px 2px rgba(31, 41, 55, 0.04), 0 8px 24px -12px rgba(31, 41, 55, 0.08)',
     motion: false,
     motionDurationMid: '180ms',
   },
   components: {
     Layout: {
       headerHeight: layoutSize.headerHeight,
-      headerBg: brandColors.inkDeep,
+      headerBg: brandColors.primary,
       siderBg: neutralColors.bgSider,
       bodyBg: neutralColors.bgLayout,
     },
@@ -164,7 +161,7 @@ export const veloraTheme: ThemeConfig = {
       controlHeightSM: controlHeight.small,
       activeBorderColor: brandColors.primary,
       hoverBorderColor: brandColors.primary,
-      activeShadow: '0 0 0 3px rgba(37, 99, 235, 0.12)',
+      activeShadow: '0 0 0 3px rgba(22, 119, 255, 0.12)',
     },
     Tabs: {
       itemSelectedColor: brandColors.primary,

@@ -1,8 +1,9 @@
 import { useState } from 'react'
 import { usePageTitle } from '../../hooks/usePageTitle'
 import QueryErrorState from '../../components/QueryErrorState'
+import AdminPageHead from '../../components/AdminPageHead'
 import { isSafeHttpUrl } from '../../utils/format'
-import { App as AntdApp, Button, Form, Input, InputNumber, Modal, Popconfirm, Select, Space, Switch, Table, Tag, Tooltip, Typography } from 'antd'
+import { App as AntdApp, Button, Form, Input, InputNumber, Modal, Popconfirm, Select, Space, Switch, Table, Tag, Tooltip } from 'antd'
 import { CloudSyncOutlined } from '@ant-design/icons'
 import { PlusOutlined } from '@ant-design/icons'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
@@ -128,26 +129,22 @@ export default function AdminApplications() {
 
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
-        <div>
-          <Typography.Title level={3} style={{ marginBottom: 4 }}>
-            应用管理
-          </Typography.Title>
-          <Typography.Paragraph style={{ color: 'var(--velora-text)', marginBottom: 0 }}>
-            维护门户中的应用目录、接入类型与展示信息。
-          </Typography.Paragraph>
-        </div>
-        <div style={{ display: 'flex', gap: 8 }}>
-          <Tooltip title="把 Casdoor 中接入统一登录的应用（含图标/名称）同步为门户应用，门户只展示这些应用">
-            <Button icon={<CloudSyncOutlined />} loading={syncMutation.isPending} onClick={() => syncMutation.mutate()}>
-              从 Casdoor 同步
+      <AdminPageHead
+        title="应用管理"
+        desc="维护门户中的应用目录、接入类型与展示信息。"
+        extra={
+          <>
+            <Tooltip title="把 Casdoor 中接入统一登录的应用（含图标/名称）同步为门户应用，门户只展示这些应用">
+              <Button icon={<CloudSyncOutlined />} loading={syncMutation.isPending} onClick={() => syncMutation.mutate()}>
+                从 Casdoor 同步
+              </Button>
+            </Tooltip>
+            <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>
+              新建应用
             </Button>
-          </Tooltip>
-          <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>
-            新建应用
-          </Button>
-        </div>
-      </div>
+          </>
+        }
+      />
 
       <Input.Search
         allowClear
@@ -223,7 +220,9 @@ export default function AdminApplications() {
             dataIndex: 'status',
             width: 90,
             render: (v: Application['status']) => (
-              <Tag color={v === 'ENABLED' ? 'success' : 'default'}>{APP_STATUS_LABEL[v]}</Tag>
+              <span className={`velora-status-pill ${v === 'ENABLED' ? 'is-enabled' : 'is-disabled'}`}>
+                {APP_STATUS_LABEL[v]}
+              </span>
             ),
           },
           {

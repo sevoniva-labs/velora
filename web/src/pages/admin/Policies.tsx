@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { usePageTitle } from '../../hooks/usePageTitle'
-import { App as AntdApp, Button, Card, Empty, Form, Input, Select, Table, Tag, Typography } from 'antd'
+import AdminPageHead from '../../components/AdminPageHead'
+import { App as AntdApp, Button, Card, Empty, Form, Input, Select, Table, Tag } from 'antd'
 import { PlusOutlined } from '@ant-design/icons'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
@@ -84,14 +85,10 @@ export default function AdminPolicies() {
 
   return (
     <div>
-      <div style={{ marginBottom: 16 }}>
-        <Typography.Title level={3} style={{ marginBottom: 4 }}>
-          访问策略
-        </Typography.Title>
-        <Typography.Paragraph style={{ color: 'var(--velora-text)', marginBottom: 0 }}>
-          控制哪些用户可以看到并访问某个应用。策略为 OR 语义：命中任一规则即放行；空策略默认所有登录用户可见。
-        </Typography.Paragraph>
-      </div>
+      <AdminPageHead
+        title="访问策略"
+        desc="控制哪些用户可以看到并访问某个应用。策略为 OR 语义：命中任一规则即放行；空策略默认所有登录用户可见。"
+      />
 
       <Card>
         <Select

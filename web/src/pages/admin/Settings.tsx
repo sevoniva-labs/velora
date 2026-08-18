@@ -1,6 +1,7 @@
-import { App as AntdApp, Button, Card, Form, Input, InputNumber, Typography } from 'antd'
+import { App as AntdApp, Button, Card, Form, Input, InputNumber } from 'antd'
 import { usePageTitle } from '../../hooks/usePageTitle'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import AdminPageHead from '../../components/AdminPageHead'
 import { getPortalSettings, queryKeys, updatePortalSetting } from '../../api/api'
 
 const SETTING_FIELDS = [
@@ -39,20 +40,13 @@ export default function AdminSettings() {
   const uiScalePercent = valueOf('ui_scale') ? Math.round(Number.parseFloat(valueOf('ui_scale')) * 100) : 100
 
   return (
-    <div style={{ maxWidth: 640 }}>
-      <div style={{ marginBottom: 16 }}>
-        <Typography.Title level={3} style={{ marginBottom: 4 }}>
-          门户设置
-        </Typography.Title>
-        <Typography.Paragraph style={{ color: 'var(--velora-text)', marginBottom: 0 }}>
-          门户的基础展示信息（第一阶段的轻量配置入口）。
-        </Typography.Paragraph>
-      </div>
+    <div className="velora-admin-settings">
+      <AdminPageHead title="门户设置" desc="门户名称、欢迎语、公告等基础展示配置。" />
 
       <Card loading={isLoading}>
         {SETTING_FIELDS.map((field) => (
           <SettingRow
-            key={field.key}
+            key={`${field.key}:${valueOf(field.key)}`}
             label={field.label}
             placeholder={field.placeholder}
             textarea={field.textarea}
@@ -64,20 +58,24 @@ export default function AdminSettings() {
 
         <Form
           layout="vertical"
-          style={{ marginTop: 8, paddingTop: 16, borderTop: '1px solid var(--velora-border)' }}
+          className="velora-admin-setting-row"
+          key={`ui_scale:${uiScalePercent}`}
           initialValues={{ scale: uiScalePercent }}
           onFinish={(v) => saveMutation.mutate({ key: 'ui_scale', value: String(v.scale / 100) })}
         >
-          <Form.Item label="界面缩放（%）" name="scale" style={{ marginBottom: 8 }}>
-            <InputNumber min={80} max={140} step={5} addonAfter="%" style={{ width: 160 }} />
-          </Form.Item>
-          <Typography.Paragraph type="secondary" style={{ fontSize: 12, marginBottom: 10 }}>
-            部署到服务器后，若访问端的显示大小与本地不一致（不同分辨率 / 浏览器缩放），可在此整体调整界面大小，
-            效果等同浏览器 Ctrl + / -，对布局、文字、组件统一生效。默认 100%。
-          </Typography.Paragraph>
-          <Button type="primary" htmlType="submit" size="small" loading={saveMutation.isPending}>
-            保存
-          </Button>
+          <div className="velora-admin-setting-label">界面缩放（%）</div>
+          <div className="velora-admin-setting-control velora-admin-setting-control--fixed">
+            <Form.Item name="scale" noStyle>
+              <InputNumber min={80} max={140} step={5} addonAfter="%" style={{ width: 160 }} />
+            </Form.Item>
+            <Button type="primary" htmlType="submit" loading={saveMutation.isPending}>
+              保存
+            </Button>
+          </div>
+          <p className="velora-admin-setting-help">
+            部署到服务器后，若访问端的显示大小与本地不一致（不同分辨率 / 浏览器缩放），可整体调整界面大小，
+            效果等同浏览器 Ctrl + / -。默认 100%。
+          </p>
         </Form>
       </Card>
     </div>
@@ -103,21 +101,23 @@ function SettingRow({
   return (
     <Form
       form={form}
-      layout="vertical"
-      style={{ marginBottom: 20 }}
+      className="velora-admin-setting-row"
       initialValues={{ value: defaultValue }}
       onFinish={(v) => onSave(v.value)}
     >
-      <Form.Item label={label} name="value" style={{ marginBottom: 8 }}>
-        {textarea ? (
-          <Input.TextArea placeholder={placeholder} maxLength={500} autoSize={{ minRows: 2, maxRows: 4 }} />
-        ) : (
-          <Input placeholder={placeholder} maxLength={120} />
-        )}
-      </Form.Item>
-      <Button type="primary" htmlType="submit" size="small" loading={saving}>
-        保存
-      </Button>
+      <div className="velora-admin-setting-label">{label}</div>
+      <div className="velora-admin-setting-control">
+        <Form.Item name="value" noStyle>
+          {textarea ? (
+            <Input.TextArea placeholder={placeholder} maxLength={500} autoSize={{ minRows: 2, maxRows: 4 }} />
+          ) : (
+            <Input placeholder={placeholder} maxLength={120} />
+          )}
+        </Form.Item>
+        <Button type="primary" htmlType="submit" loading={saving}>
+          保存
+        </Button>
+      </div>
     </Form>
   )
 }

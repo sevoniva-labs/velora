@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { usePageTitle } from '../../hooks/usePageTitle'
 import QueryErrorState from '../../components/QueryErrorState'
-import { App as AntdApp, Button, Form, Input, InputNumber, Modal, Popconfirm, Space, Table, Typography } from 'antd'
+import AdminPageHead from '../../components/AdminPageHead'
+import { App as AntdApp, Button, Form, Input, InputNumber, Modal, Popconfirm, Space, Table } from 'antd'
 import { PlusOutlined } from '@ant-design/icons'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
@@ -57,19 +58,15 @@ export default function AdminCategories() {
 
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
-        <div>
-          <Typography.Title level={3} style={{ marginBottom: 4 }}>
-            分类管理
-          </Typography.Title>
-          <Typography.Paragraph style={{ color: 'var(--velora-text)', marginBottom: 0 }}>
-            维护应用中心的分类体系。
-          </Typography.Paragraph>
-        </div>
-        <Button type="primary" icon={<PlusOutlined />} onClick={() => openModal()}>
-          新建分类
-        </Button>
-      </div>
+      <AdminPageHead
+        title="分类管理"
+        desc="维护应用中心的分类体系。"
+        extra={
+          <Button type="primary" icon={<PlusOutlined />} onClick={() => openModal()}>
+            新建分类
+          </Button>
+        }
+      />
 
       {isError ? (
         <QueryErrorState refetch={refetch} />

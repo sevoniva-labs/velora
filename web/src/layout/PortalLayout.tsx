@@ -37,10 +37,13 @@ export function PortalLayout({ children }: PortalLayoutProps) {
 
   const logoutMutation = useMutation({
     mutationFn: logout,
-    onSettled: () => {
+    onSuccess: () => {
       queryClient.clear()
-      message.success('已退出登录')
-      navigate('/login', { replace: true })
+      // 整页跳转：让浏览器应用服务端下发的清除 Cookie，并彻底重置前端状态。
+      window.location.assign('/login')
+    },
+    onError: (err) => {
+      message.error(err instanceof Error ? err.message : '退出失败，请稍后再试')
     },
   })
 

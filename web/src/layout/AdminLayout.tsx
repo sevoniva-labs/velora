@@ -2,7 +2,7 @@
 // 与普通门户保持同一套品牌语言。
 import { useState, type ReactNode } from 'react'
 import { App as AntdApp, Avatar, Button, Drawer, Dropdown, Layout, Menu } from 'antd'
-import { LogoutOutlined, MenuFoldOutlined, MenuOutlined, MenuUnfoldOutlined, UserOutlined } from '@ant-design/icons'
+import { HomeOutlined, LogoutOutlined, MenuFoldOutlined, MenuOutlined, MenuUnfoldOutlined, UserOutlined } from '@ant-design/icons'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { getPortalSettings, queryKeys } from '../api/api'
@@ -32,10 +32,13 @@ export function AdminLayout({ children }: AdminLayoutProps) {
 
   const logoutMutation = useMutation({
     mutationFn: logout,
-    onSettled: () => {
+    onSuccess: () => {
       queryClient.clear()
-      message.success('已退出登录')
-      navigate('/login', { replace: true })
+      // 整页跳转：让浏览器应用服务端下发的清除 Cookie，并彻底重置前端状态。
+      window.location.assign('/login')
+    },
+    onError: (err) => {
+      message.error(err instanceof Error ? err.message : '退出失败，请稍后再试')
     },
   })
 
@@ -84,14 +87,13 @@ export function AdminLayout({ children }: AdminLayoutProps) {
           onClick={() => setCollapsed((v) => !v)}
         />
         <div className="velora-header-toolbar">
-          <Button type="text" className="velora-header-trigger" onClick={() => navigate('/home')}>
+          <Button className="velora-back-portal" icon={<HomeOutlined />} onClick={() => navigate('/home')}>
             返回门户
           </Button>
+          <span className="velora-header-divider" aria-hidden="true" />
           <Dropdown
             menu={{
               items: [
-                { key: 'portal', label: '返回门户', onClick: () => navigate('/home') },
-                { type: 'divider' },
                 {
                   key: 'sign-out',
                   icon: <LogoutOutlined />,
@@ -157,7 +159,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
           </div>
         </Layout.Sider>
         <Layout.Content id="main" className="velora-main-content">
-          <div className="velora-page-content">{children}</div>
+          <div className="velora-page-content velora-admin-content">{children}</div>
         </Layout.Content>
       </Layout>
     </Layout>

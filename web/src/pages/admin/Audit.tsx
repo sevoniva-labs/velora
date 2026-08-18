@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { usePageTitle } from '../../hooks/usePageTitle'
 import QueryErrorState from '../../components/QueryErrorState'
+import AdminPageHead from '../../components/AdminPageHead'
 import { Select, Space, Table, Tag, Typography } from 'antd'
 import { useQuery } from '@tanstack/react-query'
 import { adminListAuditLogs, queryKeys } from '../../api/api'
@@ -41,14 +42,10 @@ export default function AdminAudit() {
 
   return (
     <div>
-      <div style={{ marginBottom: 16 }}>
-        <Typography.Title level={3} style={{ marginBottom: 4 }}>
-          审计日志
-        </Typography.Title>
-        <Typography.Paragraph style={{ color: 'var(--velora-text)', marginBottom: 0 }}>
-          记录登录、应用操作、收藏、启动等关键行为，满足合规追溯需求。
-        </Typography.Paragraph>
-      </div>
+      <AdminPageHead
+        title="审计日志"
+        desc="记录登录、应用操作、收藏、启动等关键行为，满足合规追溯需求。"
+      />
 
       <Space style={{ marginBottom: 16 }}>
         <Select

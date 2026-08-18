@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { usePageTitle } from '../../hooks/usePageTitle'
+import QueryErrorState from '../../components/QueryErrorState'
 import { isSafeHttpUrl } from '../../utils/format'
 import { App as AntdApp, Button, Form, Input, InputNumber, Modal, Popconfirm, Select, Space, Switch, Table, Tag, Typography } from 'antd'
 import { PlusOutlined } from '@ant-design/icons'
@@ -35,7 +36,7 @@ export default function AdminApplications() {
   const { data: categories } = useQuery({ queryKey: queryKeys.categories, queryFn: listCategories })
   const { data: tags } = useQuery({ queryKey: queryKeys.tags, queryFn: listTags })
 
-  const { data: pageData, isLoading } = useQuery({
+  const { data: pageData, isLoading, isError, refetch } = useQuery({
     queryKey: queryKeys.adminApplications({ page, keyword }),
     queryFn: () => adminListApplications({ page, pageSize: 20, keyword: keyword || undefined }),
   })
@@ -140,22 +141,25 @@ export default function AdminApplications() {
         }}
       />
 
-      <Table<Application>
-        rowKey="id"
-        loading={isLoading}
-        dataSource={pageData?.items ?? []}
-        pagination={{
-          current: page,
-          total: pageData?.total ?? 0,
-          pageSize: 20,
-          showSizeChanger: false,
-          onChange: setPage,
-        }}
-        onChange={(_, __, sort) => {
-          void sort
-        }}
-        columns={[
-          {
+      {isError ? (
+        <QueryErrorState refetch={refetch} />
+      ) : (
+        <Table<Application>
+          rowKey="id"
+          loading={isLoading}
+          dataSource={pageData?.items ?? []}
+          pagination={{
+            current: page,
+            total: pageData?.total ?? 0,
+            pageSize: 20,
+            showSizeChanger: false,
+            onChange: setPage,
+          }}
+          onChange={(_, __, sort) => {
+            void sort
+          }}
+          columns={[
+            {
             title: '应用',
             key: 'app',
             width: 260,
@@ -239,7 +243,8 @@ export default function AdminApplications() {
             ),
           },
         ]}
-      />
+        />
+      )}
 
       <Modal
         title={editing ? `编辑应用：${editing.name}` : '新建应用'}

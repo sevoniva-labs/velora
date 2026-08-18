@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { usePageTitle } from '../../hooks/usePageTitle'
+import QueryErrorState from '../../components/QueryErrorState'
 import { Select, Space, Table, Tag, Typography } from 'antd'
 import { useQuery } from '@tanstack/react-query'
 import { adminListAuditLogs, queryKeys } from '../../api/api'
@@ -33,7 +34,7 @@ export default function AdminAudit() {
   const [action, setAction] = useState<string>()
   const [operator, setOperator] = useState<string>()
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: queryKeys.auditLogs({ page, action, operator }),
     queryFn: () => adminListAuditLogs({ page, pageSize: 20, action, operator }),
   })
@@ -78,7 +79,10 @@ export default function AdminAudit() {
         />
       </Space>
 
-      <Table<AuditLog>
+      {isError ? (
+        <QueryErrorState refetch={refetch} />
+      ) : (
+        <Table<AuditLog>
         rowKey="id"
         loading={isLoading}
         dataSource={data?.items ?? []}
@@ -105,6 +109,7 @@ export default function AdminAudit() {
           { title: 'Request ID', dataIndex: 'requestId', width: 130, render: (v: string) => (v ? <Typography.Text code>{v.slice(0, 8)}</Typography.Text> : '-') },
         ]}
       />
+      )}
     </div>
   )
 }

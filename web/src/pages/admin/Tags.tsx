@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { usePageTitle } from '../../hooks/usePageTitle'
+import QueryErrorState from '../../components/QueryErrorState'
 import { App as AntdApp, Button, Form, Input, InputNumber, Modal, Popconfirm, Space, Table, Typography } from 'antd'
 import { PlusOutlined } from '@ant-design/icons'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
@@ -15,7 +16,7 @@ export default function AdminTags() {
   const [editing, setEditing] = useState<Tag | null>(null)
   const [form] = Form.useForm<Partial<Tag>>()
 
-  const { data: tags, isLoading } = useQuery({ queryKey: queryKeys.tags, queryFn: listTags })
+  const { data: tags, isLoading, isError, refetch } = useQuery({ queryKey: queryKeys.tags, queryFn: listTags })
 
   const invalidate = () => void queryClient.invalidateQueries({ queryKey: queryKeys.tags })
 
@@ -63,7 +64,10 @@ export default function AdminTags() {
         </Button>
       </div>
 
-      <Table<Tag>
+      {isError ? (
+        <QueryErrorState refetch={refetch} />
+      ) : (
+        <Table<Tag>
         rowKey="id"
         loading={isLoading}
         dataSource={tags ?? []}
@@ -97,6 +101,7 @@ export default function AdminTags() {
           },
         ]}
       />
+      )}
 
       <Modal
         title={editing ? '编辑标签' : '新建标签'}

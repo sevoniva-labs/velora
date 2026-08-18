@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { usePageTitle } from '../../hooks/usePageTitle'
+import QueryErrorState from '../../components/QueryErrorState'
 import { App as AntdApp, Button, Form, Input, InputNumber, Modal, Popconfirm, Space, Table, Typography } from 'antd'
 import { PlusOutlined } from '@ant-design/icons'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
@@ -21,7 +22,7 @@ export default function AdminCategories() {
   const [editing, setEditing] = useState<Category | null>(null)
   const [form] = Form.useForm<Partial<Category>>()
 
-  const { data: categories, isLoading } = useQuery({ queryKey: queryKeys.categories, queryFn: listCategories })
+  const { data: categories, isLoading, isError, refetch } = useQuery({ queryKey: queryKeys.categories, queryFn: listCategories })
 
   const invalidate = () => void queryClient.invalidateQueries({ queryKey: queryKeys.categories })
 
@@ -70,7 +71,10 @@ export default function AdminCategories() {
         </Button>
       </div>
 
-      <Table<Category>
+      {isError ? (
+        <QueryErrorState refetch={refetch} />
+      ) : (
+        <Table<Category>
         rowKey="id"
         loading={isLoading}
         dataSource={categories ?? []}
@@ -105,6 +109,7 @@ export default function AdminCategories() {
           },
         ]}
       />
+      )}
 
       <Modal
         title={editing ? '编辑分类' : '新建分类'}

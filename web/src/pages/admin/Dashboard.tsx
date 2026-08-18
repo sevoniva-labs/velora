@@ -9,12 +9,13 @@ import {
 } from '@ant-design/icons'
 import { adminDashboard, queryKeys } from '../../api/api'
 import { useMe } from '../../auth/useMe'
+import QueryErrorState from '../../components/QueryErrorState'
 import { usePageTitle } from '../../hooks/usePageTitle'
 
 export default function AdminDashboard() {
   usePageTitle('门户概览')
 
-  const { data } = useQuery({ queryKey: queryKeys.dashboard, queryFn: adminDashboard })
+  const { data, isError, refetch } = useQuery({ queryKey: queryKeys.dashboard, queryFn: adminDashboard })
   const me = useMe()
 
   const stats = [
@@ -40,7 +41,10 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      <Row gutter={[16, 16]}>
+      {isError ? (
+        <QueryErrorState refetch={refetch} />
+      ) : (
+        <Row gutter={[16, 16]}>
         {stats.map((s) => (
           <Col xs={12} md={8} lg={6} key={s.title}>
             <Card className="velora-stat-card">
@@ -62,6 +66,7 @@ export default function AdminDashboard() {
           </Col>
         ))}
       </Row>
+      )}
 
       <Card className="velora-detail-section">
         <Typography.Paragraph style={{ marginBottom: 10, color: 'var(--velora-text)' }}>

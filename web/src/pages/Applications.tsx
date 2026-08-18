@@ -63,17 +63,19 @@ export default function Applications() {
 
   return (
     <div>
-      <div style={{ padding: '20px 0 8px' }}>
-        <Typography.Title level={3} style={{ marginBottom: 4 }}>
-          应用中心
-        </Typography.Title>
-        <Typography.Paragraph style={{ color: 'var(--velora-text)', marginBottom: 0 }}>
-          企业全部数字化应用的统一入口，共 {pageData?.total ?? 0} 个可用应用。
-        </Typography.Paragraph>
+      <div className="velora-page-head">
+        <div>
+          <Typography.Title level={3} className="velora-page-head-title">
+            应用中心
+          </Typography.Title>
+          <Typography.Paragraph className="velora-page-head-desc">
+            企业全部数字化应用的统一入口，共 {pageData?.total ?? 0} 个可用应用。
+          </Typography.Paragraph>
+        </div>
       </div>
 
       {/* 搜索 */}
-      <div style={{ margin: '16px 0' }}>
+      <div style={{ margin: '0 0 18px' }}>
         <Input.Search
           size="large"
           allowClear

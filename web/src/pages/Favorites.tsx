@@ -13,14 +13,15 @@ export default function Favorites() {
 
   return (
     <div>
-      <div style={{ padding: '20px 0 8px' }}>
-        <Typography.Title level={3} style={{ marginBottom: 4, display: 'flex', alignItems: 'center', gap: 10 }}>
-          <HeartOutlined style={{ color: '#FA541C' }} />
-          我的收藏
-        </Typography.Title>
-        <Typography.Paragraph style={{ color: 'var(--velora-text)', marginBottom: 0 }}>
-          已收藏 {data?.total ?? 0} 个应用，随时一键直达。
-        </Typography.Paragraph>
+      <div className="velora-page-head">
+        <div>
+          <Typography.Title level={3} className="velora-page-head-title">
+            <HeartOutlined style={{ color: '#E5484D' }} /> 我的收藏
+          </Typography.Title>
+          <Typography.Paragraph className="velora-page-head-desc">
+            已收藏 {data?.total ?? 0} 个应用，随时一键直达。
+          </Typography.Paragraph>
+        </div>
       </div>
 
       {isLoading ? (

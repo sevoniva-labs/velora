@@ -15,34 +15,41 @@ export default function AdminDashboard() {
   const me = useMe()
 
   const stats = [
-    { title: '应用总数', value: data?.applicationCount ?? '-', icon: <AppstoreOutlined />, color: '#1677FF' },
-    { title: '启用应用', value: data?.enabledAppCount ?? '-', icon: <FireOutlined />, color: '#52C41A' },
-    { title: '停用应用', value: data?.disabledAppCount ?? '-', icon: <FireOutlined />, color: '#D0D5DD' },
-    { title: '应用分类', value: data?.categoryCount ?? '-', icon: <UnorderedListOutlined />, color: '#722ED1' },
-    { title: '应用标签', value: data?.tagCount ?? '-', icon: <TagsOutlined />, color: '#FA8C16' },
-    { title: '收藏总数', value: data?.favoriteCount ?? '-', icon: <HeartOutlined />, color: '#FA541C' },
-    { title: '累计启动', value: data?.totalLaunches ?? '-', icon: <FireOutlined />, color: '#13C2C2' },
+    { title: '应用总数', value: data?.applicationCount ?? '-', icon: <AppstoreOutlined />, color: '#2563EB' },
+    { title: '启用应用', value: data?.enabledAppCount ?? '-', icon: <FireOutlined />, color: '#2F9E63' },
+    { title: '停用应用', value: data?.disabledAppCount ?? '-', icon: <FireOutlined />, color: '#A9B5C5' },
+    { title: '应用分类', value: data?.categoryCount ?? '-', icon: <UnorderedListOutlined />, color: '#7C3AED' },
+    { title: '应用标签', value: data?.tagCount ?? '-', icon: <TagsOutlined />, color: '#F5A524' },
+    { title: '收藏总数', value: data?.favoriteCount ?? '-', icon: <HeartOutlined />, color: '#E5484D' },
+    { title: '累计启动', value: data?.totalLaunches ?? '-', icon: <FireOutlined />, color: '#0891B2' },
   ]
 
   return (
     <div>
-      <div style={{ padding: '8px 0 16px' }}>
-        <Typography.Title level={3} style={{ marginBottom: 4 }}>
-          门户概览
-        </Typography.Title>
-        <Typography.Paragraph style={{ color: 'var(--velora-text)', marginBottom: 0 }}>
-          管理员：{me.data?.displayName || me.data?.username}
-        </Typography.Paragraph>
+      <div className="velora-page-head">
+        <div>
+          <Typography.Title level={3} className="velora-page-head-title">
+            门户概览
+          </Typography.Title>
+          <Typography.Paragraph className="velora-page-head-desc">
+            管理员：{me.data?.displayName || me.data?.username}
+          </Typography.Paragraph>
+        </div>
       </div>
 
       <Row gutter={[16, 16]}>
         {stats.map((s) => (
           <Col xs={12} md={8} lg={6} key={s.title}>
-            <Card>
+            <Card className="velora-stat-card">
               <Statistic
                 title={
-                  <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <span style={{ color: s.color }}>{s.icon}</span>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <span
+                      className="velora-stat-icon"
+                      style={{ background: `color-mix(in srgb, ${s.color} 12%, white)` }}
+                    >
+                      <span style={{ color: s.color }}>{s.icon}</span>
+                    </span>
                     {s.title}
                   </span>
                 }
@@ -53,14 +60,14 @@ export default function AdminDashboard() {
         ))}
       </Row>
 
-      <Card style={{ marginTop: 16 }}>
-        <Typography.Paragraph style={{ marginBottom: 8, color: 'var(--velora-text)' }}>
+      <Card className="velora-detail-section">
+        <Typography.Paragraph style={{ marginBottom: 10, color: 'var(--velora-text)' }}>
           <strong>快速开始：</strong>
         </Typography.Paragraph>
-        <Typography.Paragraph style={{ color: 'var(--velora-text)', marginBottom: 4 }}>
+        <Typography.Paragraph style={{ color: 'var(--velora-text)', marginBottom: 6 }}>
           1. 在「应用管理」中创建应用，配置名称 / 图标 / 分类 / 地址 / 接入类型；
         </Typography.Paragraph>
-        <Typography.Paragraph style={{ color: 'var(--velora-text)', marginBottom: 4 }}>
+        <Typography.Paragraph style={{ color: 'var(--velora-text)', marginBottom: 6 }}>
           2. 在「访问策略」中控制哪些组织 / 角色 / 用户组 / 用户可以看到并访问该应用；
         </Typography.Paragraph>
         <Typography.Paragraph style={{ color: 'var(--velora-text)', marginBottom: 0 }}>

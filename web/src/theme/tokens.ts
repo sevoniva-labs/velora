@@ -1,64 +1,70 @@
-// 设计令牌（与 artifact-registry 控制台统一的技术蓝风格，数值对齐其 theme/tokens.ts）。
+// Velora 设计令牌：企业门户视觉系统（沉稳企业蓝 + 深海军蓝深色面）。
 import type { ThemeConfig } from 'antd'
 
 export const brandColors = {
-  primary: '#1677FF',
-  primaryHover: '#4096FF',
-  primaryActive: '#0958D9',
-  primarySoft: '#E6F4FF',
-  primarySofter: '#F0F7FF',
-  headerFrom: '#1D4ED8',
-  headerMid: '#2563EB',
-  headerTo: '#3B82F6',
+  primary: '#2563EB',
+  primaryHover: '#3B82F6',
+  primaryActive: '#1D4ED8',
+  primarySoft: '#EAF1FE',
+  primarySofter: '#F4F8FF',
+  /** 深色面（顶栏 / Hero）：深海军蓝黑 */
+  inkDeep: '#0B1626',
+  inkMid: '#10253F',
+  inkLight: '#163A66',
+  inkGlow: '#1F5BB5',
 } as const
 
 export const functionalColors = {
-  error: '#FF4D4F',
-  warning: '#FA8C16',
-  success: '#52C41A',
-  info: '#1677FF',
+  error: '#E5484D',
+  warning: '#F5A524',
+  success: '#2F9E63',
+  info: '#2563EB',
 } as const
 
 export const neutralColors = {
-  title: '#1F2937',
-  text: '#475467',
-  secondary: '#98A2B3',
-  disabled: '#D0D5DD',
-  border: '#E8EEF7',
-  borderLight: '#F2F4F7',
-  bgLayout: '#F5F7FA',
-  bgSider: '#EDF1F8',
+  title: '#0F172A',
+  text: '#3E4C5F',
+  secondary: '#8494A7',
+  faint: '#A9B5C5',
+  disabled: '#CBD5E1',
+  border: '#E3EAF4',
+  borderLight: '#EEF3FA',
+  bgLayout: '#F3F6FB',
+  bgSider: '#F6F8FC',
   bgContainer: '#FFFFFF',
-  bgElevated: '#F5F7FA',
-  menuItem: '#667085',
+  bgElevated: '#F7F9FD',
+  menuItem: '#5C6B80',
+  onInk: '#FFFFFF',
+  onInkMuted: 'rgba(255, 255, 255, 0.72)',
 } as const
 
 export const fontSize = {
-  hero: 24,
-  largeTitle: 20,
-  h1: 18,
-  list: 16,
+  display: 30,
+  hero: 22,
+  largeTitle: 18,
+  h1: 16,
+  list: 15,
   body: 14,
-  secondary: 12,
+  secondary: 12.5,
   caption: 11,
 } as const
 
 export const layoutSize = {
-  headerHeight: 56,
-  siderWidth: 220,
+  headerHeight: 64,
+  siderWidth: 232,
   siderCollapsedWidth: 64,
   contentSafePadding: 24,
-  pagePaddingBlock: 20,
+  pagePaddingBlock: 24,
   gutter: 24,
 } as const
 
 export const controlHeight = {
-  large: 48,
-  middle: 36,
+  large: 44,
+  middle: 34,
   small: 28,
 } as const
 
-/** 与参考控制台一致的 antd 主题配置（技术蓝、浅色、克制动效）。 */
+/** Velora 主题：企业门户风格（沉稳蓝、深海军顶栏、克制动效）。 */
 export const veloraTheme: ThemeConfig = {
   cssVar: { prefix: 'ant' },
   token: {
@@ -84,36 +90,37 @@ export const veloraTheme: ThemeConfig = {
     colorPrimaryBg: brandColors.primarySoft,
     colorPrimaryBgHover: brandColors.primarySofter,
     fontFamily:
-      '"PingFang SC", "Microsoft YaHei", "Source Han Sans SC", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+      'Inter, "PingFang SC", "Microsoft YaHei", "Source Han Sans SC", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
     fontFamilyCode: 'ui-monospace, "SF Mono", Menlo, Monaco, Consolas, monospace',
     fontSize: fontSize.body,
-    fontSizeHeading1: fontSize.hero,
-    fontSizeHeading2: fontSize.largeTitle,
-    fontSizeHeading3: fontSize.h1,
+    fontSizeHeading1: fontSize.display,
+    fontSizeHeading2: fontSize.hero,
+    fontSizeHeading3: fontSize.largeTitle,
+    fontSizeHeading4: fontSize.h1,
     fontSizeSM: fontSize.secondary,
     fontSizeLG: fontSize.list,
     lineHeight: 22 / 14,
     controlHeight: controlHeight.middle,
     controlHeightLG: controlHeight.large,
     controlHeightSM: controlHeight.small,
-    borderRadius: 8,
-    borderRadiusLG: 12,
-    borderRadiusSM: 6,
-    boxShadowTertiary: '0 2px 8px rgba(31, 35, 41, 0.04)',
+    borderRadius: 10,
+    borderRadiusLG: 16,
+    borderRadiusSM: 8,
+    boxShadowTertiary: '0 1px 2px rgba(15, 23, 42, 0.04), 0 8px 24px -12px rgba(15, 23, 42, 0.08)',
     motion: false,
-    motionDurationMid: '150ms',
+    motionDurationMid: '180ms',
   },
   components: {
     Layout: {
       headerHeight: layoutSize.headerHeight,
-      headerBg: brandColors.primary,
-      siderBg: neutralColors.bgContainer,
+      headerBg: brandColors.inkDeep,
+      siderBg: neutralColors.bgSider,
       bodyBg: neutralColors.bgLayout,
     },
     Menu: {
       itemHeight: 40,
-      itemBorderRadius: 8,
-      itemMarginBlock: 2,
+      itemBorderRadius: 10,
+      itemMarginBlock: 3,
       itemSelectedBg: brandColors.primarySoft,
       itemSelectedColor: brandColors.primary,
       itemHoverBg: brandColors.primarySofter,
@@ -126,7 +133,7 @@ export const veloraTheme: ThemeConfig = {
       controlHeightLG: controlHeight.large,
       controlHeightSM: controlHeight.small,
       paddingInline: 16,
-      paddingInlineLG: 20,
+      paddingInlineLG: 22,
       paddingInlineSM: 12,
       primaryShadow: 'none',
       defaultShadow: 'none',
@@ -137,15 +144,15 @@ export const veloraTheme: ThemeConfig = {
       headerBg: neutralColors.bgContainer,
       borderColor: neutralColors.borderLight,
       rowHoverBg: brandColors.primarySofter,
-      cellPaddingBlock: 12,
+      cellPaddingBlock: 13,
       cellPaddingInline: 16,
       headerColor: neutralColors.secondary,
     },
     Card: {
-      paddingLG: 20,
+      paddingLG: 22,
       headerBg: 'transparent',
       colorBorderSecondary: neutralColors.border,
-      borderRadiusLG: 12,
+      borderRadiusLG: 16,
     },
     Form: {
       labelFontSize: fontSize.body,
@@ -157,7 +164,7 @@ export const veloraTheme: ThemeConfig = {
       controlHeightSM: controlHeight.small,
       activeBorderColor: brandColors.primary,
       hoverBorderColor: brandColors.primary,
-      activeShadow: '0 0 0 2px rgba(22, 119, 255, 0.12)',
+      activeShadow: '0 0 0 3px rgba(37, 99, 235, 0.12)',
     },
     Tabs: {
       itemSelectedColor: brandColors.primary,

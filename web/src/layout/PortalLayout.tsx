@@ -1,7 +1,6 @@
-// 普通用户门户外壳：技术蓝顶栏（品牌 + 导航 + 搜索 + 头像）+ 居中内容区。
-// 复用 Spectra Web 的视觉体系（velora-* 样式类）。
+// 普通用户门户外壳：深海军蓝顶栏（品牌 + 导航 + 搜索 + 用户）+ 居中内容区。
 import type { ReactNode } from 'react'
-import { App as AntdApp, Avatar, Button, Dropdown, Layout, Space, Tag } from 'antd'
+import { App as AntdApp, Avatar, Dropdown, Input, Layout } from 'antd'
 import { LogoutOutlined, SettingOutlined, UserOutlined } from '@ant-design/icons'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useMe } from '../auth/useMe'
@@ -38,15 +37,23 @@ export function PortalLayout({ children }: PortalLayoutProps) {
     },
   })
 
+  const onHeaderSearch = (value: string) => {
+    const q = value.trim()
+    navigate(q ? `/applications?keyword=${encodeURIComponent(q)}` : '/applications')
+  }
+
   return (
     <Layout className="velora-layout">
       <Layout.Header className="velora-header">
         <div className="velora-header-brand">
           <Link className="velora-brand" to="/home" aria-label="首页">
             <span className="velora-brand-mark" aria-hidden="true">
-              <img src="/logo-mark.svg" alt="" width={18} height={18} style={{ display: 'block' }} />
+              <img src="/logo-mark.svg" alt="" width={19} height={19} style={{ display: 'block' }} />
             </span>
-            <span className="velora-brand-name">Velora</span>
+            <span className="velora-brand-text">
+              <span className="velora-brand-name">Velora</span>
+              <span className="velora-brand-sub">企业应用门户</span>
+            </span>
           </Link>
         </div>
 
@@ -73,24 +80,29 @@ export function PortalLayout({ children }: PortalLayoutProps) {
         </nav>
 
         <div className="velora-header-toolbar">
-          <Space size={6}>
-            {isAdmin && (
-              <Link to="/admin" aria-label="管理后台">
-                <Tag color="blue" style={{ marginInlineEnd: 0 }}>管理员</Tag>
-              </Link>
-            )}
-          </Space>
+          <div className="velora-header-search">
+            <Input.Search
+              size="middle"
+              allowClear
+              placeholder="搜索应用…"
+              onSearch={onHeaderSearch}
+              aria-label="搜索应用"
+            />
+          </div>
           <Dropdown
             menu={{
               items: [
-                {
-                  key: 'admin',
-                  icon: <SettingOutlined />,
-                  label: '管理后台',
-                  disabled: !isAdmin,
-                  onClick: () => navigate('/admin'),
-                },
-                { type: 'divider' },
+                ...(isAdmin
+                  ? [
+                      {
+                        key: 'admin',
+                        icon: <SettingOutlined />,
+                        label: '管理后台',
+                        onClick: () => navigate('/admin'),
+                      },
+                      { type: 'divider' as const },
+                    ]
+                  : []),
                 {
                   key: 'sign-out',
                   icon: <LogoutOutlined />,
@@ -101,12 +113,10 @@ export function PortalLayout({ children }: PortalLayoutProps) {
             }}
             trigger={['click']}
           >
-            <Button
-              type="text"
-              className="velora-user-actions"
-              aria-label={displayName}
-              icon={<Avatar size={28} icon={<UserOutlined />} />}
-            />
+            <button type="button" className="velora-user-chip" aria-label={`当前用户：${displayName}`}>
+              <Avatar size={26} icon={<UserOutlined />} />
+              <span className="velora-user-chip-name">{displayName}</span>
+            </button>
           </Dropdown>
         </div>
       </Layout.Header>

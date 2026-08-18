@@ -7,61 +7,31 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import { addFavorite, launchApplication, queryKeys, removeFavorite } from '../api/api'
 import type { Application } from '../types'
-import { APP_STATUS_LABEL, HEALTH_COLOR, HEALTH_LABEL } from '../labels'
+import { HEALTH_COLOR, HEALTH_LABEL } from '../labels'
 
-function AppIcon({ app, size = 44 }: { app: Application; size?: number }) {
+function AppIcon({ app, size = 44, className }: { app: Application; size?: number; className?: string }) {
   const icon = app.icon?.trim()
   // 图标 URL 或 emoji / 文本。
   const isUrl = icon ? /^https?:\/\//i.test(icon) : false
   const isEmoji = icon ? /[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/u.test(icon) : false
+  const style = { width: size, height: size, fontSize: size * 0.48 }
   if (isUrl) {
     return (
-      <img
-        src={icon}
-        alt={app.name}
-        width={size}
-        height={size}
-        style={{ borderRadius: 10, objectFit: 'contain' }}
-        loading="lazy"
-      />
-    )
-  }
-  if (isEmoji) {
-    return (
-      <span
-        style={{
-          width: size,
-          height: size,
-          display: 'inline-flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          fontSize: size * 0.52,
-          borderRadius: 10,
-          background: 'var(--velora-primary-softer, var(--ant-color-primary-bg-hover))',
-        }}
-        aria-hidden="true"
-      >
-        {icon}
+      <span className={`velora-app-icon ${className ?? ''}`} style={{ ...style, overflow: 'hidden' }}>
+        <img
+          src={icon}
+          alt={app.name}
+          width={size * 0.62}
+          height={size * 0.62}
+          style={{ objectFit: 'contain', display: 'block' }}
+          loading="lazy"
+        />
       </span>
     )
   }
   return (
-    <span
-      style={{
-        width: size,
-        height: size,
-        display: 'inline-flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        fontSize: size * 0.5,
-        fontWeight: 600,
-        color: 'var(--velora-primary, var(--ant-color-primary))',
-        background: 'var(--velora-primary-softer, var(--ant-color-primary-bg-hover))',
-        borderRadius: 10,
-      }}
-      aria-hidden="true"
-    >
-      {app.name.slice(0, 1)}
+    <span className={`velora-app-icon ${className ?? ''}`} style={style} aria-hidden="true">
+      {isEmoji ? icon : app.name.slice(0, 1)}
     </span>
   )
 }
@@ -143,7 +113,7 @@ export function AppCard({ app, onLaunch }: AppCardProps) {
             type="text"
             size="small"
             aria-label={favorited ? '取消收藏' : '收藏'}
-            icon={favorited ? <HeartFilled style={{ color: '#FA541C' }} /> : <HeartOutlined />}
+            icon={favorited ? <HeartFilled style={{ color: '#E5484D' }} /> : <HeartOutlined />}
             onClick={(e) => {
               e.stopPropagation()
               favMutation.mutate()
@@ -169,10 +139,16 @@ export function AppCard({ app, onLaunch }: AppCardProps) {
       </div>
 
       <div className="velora-app-card-foot">
-        {app.status === 'DISABLED' ? (
-          <Tag color="default">{APP_STATUS_LABEL.DISABLED}</Tag>
+        {app.status === 'ENABLED' ? (
+          <span className="velora-app-card-status">
+            <span className="velora-status-dot is-up" aria-hidden="true" />
+            可用
+          </span>
         ) : (
-          <Tag color="success">{APP_STATUS_LABEL.ENABLED}</Tag>
+          <span className="velora-app-card-status">
+            <span className="velora-status-dot" aria-hidden="true" />
+            停用
+          </span>
         )}
         <Button
           type="primary"

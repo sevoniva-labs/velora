@@ -63,9 +63,12 @@ export function AdminLayout({ children }: AdminLayoutProps) {
         <div className="velora-header-brand">
           <Link className="velora-brand" to="/admin" aria-label="管理后台">
             <span className="velora-brand-mark" aria-hidden="true">
-              <img src="/logo-mark.svg" alt="" width={18} height={18} style={{ display: 'block' }} />
+              <img src="/logo-mark.svg" alt="" width={19} height={19} style={{ display: 'block' }} />
             </span>
-            <span className="velora-brand-name">Velora 管理后台</span>
+            <span className="velora-brand-text">
+              <span className="velora-brand-name">Velora</span>
+              <span className="velora-brand-sub">管理后台</span>
+            </span>
           </Link>
         </div>
         <Button
@@ -94,12 +97,10 @@ export function AdminLayout({ children }: AdminLayoutProps) {
             }}
             trigger={['click']}
           >
-            <Button
-              type="text"
-              className="velora-user-actions"
-              aria-label={displayName}
-              icon={<Avatar size={28} icon={<UserOutlined />} />}
-            />
+            <button type="button" className="velora-user-chip" aria-label={`当前用户：${displayName}`}>
+              <Avatar size={26} icon={<UserOutlined />} />
+              <span className="velora-user-chip-name">{displayName}</span>
+            </button>
           </Dropdown>
         </div>
       </Layout.Header>

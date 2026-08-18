@@ -1329,166 +1329,271 @@ button {
   line-height: inherit !important;
 }
 
-/* ---------- 登录页 ---------- */
+/* ---------- 登录页：全屏分栏（品牌叙事 / 表单），无顶栏 ---------- */
 
 .velora-login {
   min-height: 100dvh;
-  color: var(--velora-text, var(--ant-color-text-secondary));
-  background:
-    radial-gradient(1100px 520px at 82% -12%, rgba(90, 150, 255, 0.1), transparent 60%),
-    radial-gradient(820px 460px at 4% 0%, rgba(45, 124, 240, 0.08), transparent 55%),
-    var(--velora-bg-layout, var(--ant-color-bg-layout));
-}
-.velora-login-header {
-  min-height: 64px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 32px;
-  color: var(--velora-on-header);
-  background:
-    radial-gradient(720px 200px at 10% -80%, rgba(255, 255, 255, 0.14), transparent 65%),
-    linear-gradient(100deg, var(--velora-header-from) 0%, var(--velora-header-mid) 55%, var(--velora-header-to) 100%);
-}
-.velora-login-lockup {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  color: var(--velora-on-header);
-  font-size: 15px;
-  font-weight: 600;
-}
-.velora-login-lockup .velora-brand-mark {
-  background: var(--velora-on-header);
-  box-shadow: 0 2px 8px rgba(2, 8, 20, 0.2);
-}
-.velora-login-note {
-  margin-top: 20px;
-  font-size: 12.5px;
-  color: var(--velora-secondary, var(--ant-color-text-tertiary));
-  line-height: 1.7;
-}
-.velora-login-main {
-  min-height: calc(100dvh - 64px - 56px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 40px 24px;
-}
-.velora-login-card {
-  width: min(100%, 880px);
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  overflow: hidden;
-  border-radius: 16px;
-  border: 1px solid var(--velora-glass-line);
-  box-shadow: var(--velora-shadow), var(--velora-inset);
-  background: linear-gradient(158deg, var(--velora-glass) 0%, var(--velora-glass-2) 100%);
-  backdrop-filter: blur(24px) saturate(160%);
-  -webkit-backdrop-filter: blur(24px) saturate(160%);
+  grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
+  background: #fff;
 }
-.velora-login-intro {
+
+/* 左：品牌叙事区 —— 浅蓝渐变 + 细点网格 + 色晕 + 浮动应用磁贴 */
+.velora-login-brand {
+  position: relative;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
-  padding: 40px;
-  background: rgba(255, 255, 255, 0.4);
-  border-right: 1px solid rgba(20, 32, 58, 0.07);
+  justify-content: space-between;
+  gap: 32px;
+  padding: 36px 48px 28px;
+  background:
+    radial-gradient(900px 480px at 88% -10%, rgba(22, 119, 255, 0.1), transparent 62%),
+    radial-gradient(680px 420px at -8% 108%, rgba(19, 194, 194, 0.08), transparent 58%),
+    linear-gradient(160deg, #f7faff 0%, #eef4fe 52%, #f6faff 100%);
 }
-.velora-login-eyebrow {
-  margin: 0;
-  color: var(--velora-primary, var(--ant-color-primary));
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: 0.06em;
+/* 细点网格肌理（径向衰减，避免满屏噪点） */
+.velora-login-brand::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(rgba(22, 119, 255, 0.14) 1px, transparent 1px);
+  background-size: 26px 26px;
+  -webkit-mask-image: radial-gradient(120% 95% at 30% 18%, #000 32%, transparent 78%);
+  mask-image: radial-gradient(120% 95% at 30% 18%, #000 32%, transparent 78%);
 }
-.velora-login-intro-title {
-  margin: 14px 0 0;
-  color: var(--velora-title, var(--ant-color-text));
-  font-size: 24px;
-  font-weight: 700;
-  line-height: 1.5;
+.velora-login-deco {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
 }
-.velora-login-intro-copy {
-  margin: 10px 0 0;
-  color: var(--velora-text, var(--ant-color-text-secondary));
-  font-size: 13px;
-  line-height: 1.8;
-}
-.velora-login-workflow {
-  margin: 24px 0 0;
-  padding: 0;
-}
-.velora-login-workflow-item {
-  min-height: 44px;
-  display: grid;
-  grid-template-columns: 8px 110px minmax(0, 1fr);
-  align-items: center;
-  gap: 10px;
-  list-style: none;
-  border-bottom: 1px solid rgba(20, 32, 58, 0.07);
-}
-.velora-login-workflow-item:last-child {
-  border-bottom: 0;
-}
-.velora-login-workflow-dot {
-  width: 7px;
-  height: 7px;
+.velora-login-orb {
+  position: absolute;
   border-radius: 50%;
+  filter: blur(70px);
 }
-.velora-login-workflow-name {
-  color: var(--velora-title, var(--ant-color-text));
-  font-size: 13px;
-  font-weight: 600;
+.velora-login-orb--1 {
+  width: 420px;
+  height: 420px;
+  top: -150px;
+  right: -90px;
+  background: rgba(22, 119, 255, 0.16);
 }
-.velora-login-workflow-desc {
-  min-width: 0;
-  color: var(--velora-secondary, var(--ant-color-text-tertiary));
-  font-size: 12px;
+.velora-login-orb--2 {
+  width: 340px;
+  height: 340px;
+  bottom: -130px;
+  left: -110px;
+  background: rgba(19, 194, 194, 0.14);
 }
-.velora-login-form {
-  display: flex;
-  align-items: center;
-  padding: 40px;
-  background: rgba(255, 255, 255, 0.35);
+.velora-login-orb--3 {
+  width: 260px;
+  height: 260px;
+  top: 38%;
+  left: 42%;
+  background: rgba(114, 46, 209, 0.08);
 }
-.velora-login-form-inner {
-  width: 100%;
-  max-width: 300px;
-  margin: 0 auto;
-}
-.velora-login-form-title {
-  margin: 0;
-  color: var(--velora-title, var(--ant-color-text));
-  font-size: 20px;
-  font-weight: 700;
-}
-.velora-login-form-desc {
-  margin: 6px 0 20px;
-  color: var(--velora-secondary, var(--ant-color-text-tertiary));
-  font-size: 13px;
-}
-.velora-login-footer {
-  min-height: 56px;
+/* 玻璃磁贴：呼应门户应用宫格，缓慢上下漂浮 */
+.velora-login-tile {
+  position: absolute;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 10px 32px;
-  color: var(--velora-secondary, var(--ant-color-text-tertiary));
+  border-radius: 16px;
+  background: linear-gradient(160deg, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0.55));
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  box-shadow:
+    0 16px 32px -14px rgba(6, 20, 55, 0.25),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  animation: velora-login-float 8s ease-in-out infinite alternate;
+}
+@keyframes velora-login-float {
+  from {
+    transform: translateY(-5px);
+  }
+  to {
+    transform: translateY(5px);
+  }
+}
+
+.velora-login-brand-head,
+.velora-login-brand-body,
+.velora-login-brand-foot {
+  position: relative;
+  z-index: 1;
+}
+.velora-login-brand-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+/* 登录页底色浅，logo 自带蓝色圆角底，去掉白底嵌套更干净 */
+.velora-login .velora-brand-mark {
+  background: transparent;
+  box-shadow: none;
+}
+.velora-login-brand-name {
+  color: var(--velora-title);
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+.velora-login-brand-sep {
+  width: 1px;
+  height: 16px;
+  background: rgba(20, 32, 58, 0.16);
+}
+.velora-login-brand-sub {
+  color: var(--velora-secondary);
+  font-size: 13px;
+}
+
+.velora-login-brand-body {
+  max-width: 520px;
+}
+.velora-login-eyebrow {
+  margin: 0 0 18px;
+  color: var(--velora-primary);
   font-size: 12px;
-  background: rgba(255, 255, 255, 0.5);
+  font-weight: 700;
+  letter-spacing: 0.22em;
+}
+.velora-login-headline {
+  margin: 0;
+  color: var(--velora-title);
+  font-size: 32px;
+  font-weight: 700;
+  line-height: 1.45;
+  letter-spacing: 0.01em;
+}
+.velora-login-sub {
+  margin: 16px 0 0;
+  max-width: 460px;
+  color: var(--velora-text);
+  font-size: 14px;
+  line-height: 1.9;
+}
+.velora-login-features {
+  margin: 36px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+.velora-login-feature {
+  list-style: none;
+  display: grid;
+  grid-template-columns: 36px 96px minmax(0, 1fr);
+  align-items: center;
+  column-gap: 14px;
+  padding: 14px 0;
   border-top: 1px solid rgba(20, 32, 58, 0.07);
 }
-@media (max-width: 720px) {
-  .velora-login-card {
+.velora-login-feature-icon {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  color: var(--velora-primary);
+  font-size: 16px;
+  background: linear-gradient(160deg, #fff, #f2f7ff);
+  border: 1px solid rgba(22, 119, 255, 0.14);
+  box-shadow: 0 4px 10px -4px rgba(22, 119, 255, 0.25);
+}
+.velora-login-feature-name {
+  color: var(--velora-title);
+  font-size: 13.5px;
+  font-weight: 600;
+}
+.velora-login-feature-desc {
+  min-width: 0;
+  color: var(--velora-secondary);
+  font-size: 12.5px;
+}
+.velora-login-brand-foot {
+  color: var(--velora-secondary);
+  font-size: 12px;
+  opacity: 0.85;
+}
+
+/* 右：表单区 —— 纯白、居中、克制 */
+.velora-login-panel {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 40px;
+  background: #fff;
+}
+.velora-login-panel-inner {
+  width: 100%;
+  max-width: 352px;
+}
+.velora-login-title {
+  margin: 0;
+  color: var(--velora-title);
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+.velora-login-desc {
+  margin: 10px 0 30px;
+  color: var(--velora-secondary);
+  font-size: 13.5px;
+  line-height: 1.7;
+}
+.velora-login-submit.ant-btn {
+  height: 46px;
+  border: none;
+  border-radius: 10px;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  background: linear-gradient(135deg, var(--velora-primary) 0%, #4c9aff 100%);
+  box-shadow: 0 8px 18px -8px rgba(22, 119, 255, 0.55);
+  transition:
+    filter 0.18s ease,
+    box-shadow 0.18s ease;
+}
+.velora-login-submit.ant-btn:hover,
+.velora-login-submit.ant-btn:focus-visible {
+  filter: brightness(1.07);
+  box-shadow: 0 10px 22px -8px rgba(22, 119, 255, 0.6);
+}
+.velora-login-note {
+  margin: 26px 0 0;
+  color: var(--velora-secondary);
+  font-size: 12px;
+  line-height: 1.9;
+  text-align: center;
+  opacity: 0.9;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .velora-login-tile {
+    animation: none;
+  }
+}
+/* 移动端：品牌区压缩为顶部条，表单全宽 */
+@media (max-width: 880px) {
+  .velora-login {
     grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto 1fr;
   }
-  .velora-login-form {
-    order: 1;
-    padding: 28px 24px 32px;
+  .velora-login-brand {
+    display: block;
+    padding: 16px 24px;
   }
-  .velora-login-intro {
-    order: 2;
-    padding: 24px;
+  .velora-login-deco,
+  .velora-login-brand-body,
+  .velora-login-brand-foot {
+    display: none;
+  }
+  .velora-login-panel {
+    align-items: flex-start;
+    padding: 44px 24px 48px;
   }
 }
 

@@ -1,27 +1,44 @@
 import { useEffect, useState } from 'react'
-import { App as AntdApp, Button, Form, Input, Select } from 'antd'
-import { LockOutlined, UserOutlined } from '@ant-design/icons'
-import { useSearchParams } from 'react-router-dom'
+import { App as AntdApp, Button, Form, Input } from 'antd'
+import {
+  AppstoreOutlined,
+  CheckSquareOutlined,
+  LockOutlined,
+  MailOutlined,
+  SafetyCertificateOutlined,
+  UserOutlined,
+} from '@ant-design/icons'
+import { useSearchParams, Navigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { Navigate } from 'react-router-dom'
 import { useMe } from '../auth/useMe'
 import { getPortalSettings, getSystemVersion, loginWithPassword, queryKeys } from '../api/api'
 
+/** 品牌区三大能力点（与门户真实能力对应，不写空话） */
+const FEATURES = [
+  { icon: <SafetyCertificateOutlined />, name: '统一身份认证', desc: '一次登录，访问全部授权应用' },
+  { icon: <AppstoreOutlined />, name: '应用汇聚', desc: '分类、收藏与最近使用，秒级直达' },
+  { icon: <CheckSquareOutlined />, name: '待办与邮件', desc: '审批工单、企业邮箱一体处理' },
+]
+
+/** 品牌区装饰磁贴：呼应门户应用宫格，纯视觉（色调同应用图标体系） */
+const DECO_TILES = [
+  { icon: <AppstoreOutlined />, x: '60%', y: '14%', s: 56, tone: '#1677FF', d: '0s', dur: '7.5s', o: 0.9 },
+  { icon: <MailOutlined />, x: '76%', y: '24%', s: 68, tone: '#13C2C2', d: '1.2s', dur: '8.5s', o: 0.95 },
+  { icon: <CheckSquareOutlined />, x: '63%', y: '40%', s: 48, tone: '#FA8C16', d: '0.6s', dur: '7s', o: 0.85 },
+  { icon: <SafetyCertificateOutlined />, x: '82%', y: '48%', s: 52, tone: '#722ED1', d: '1.8s', dur: '9s', o: 0.8 },
+  { icon: <UserOutlined />, x: '70%', y: '64%', s: 44, tone: '#2d7cf0', d: '2.4s', dur: '8s', o: 0.7 },
+]
+
 /**
- * Velora 登录页：复用 Spectra Web 的视觉体系（技术蓝分栏版式）。
+ * Velora 登录页：全屏分栏（品牌叙事 / 登录表单），无顶栏。
  * 登录即 SSO：账号密码由 Velora 后端代理 Casdoor OAuth2 password 模式认证
  * （Velora 不实现密码认证，密码仅经 HTTPS 提交给 Casdoor，不落库）。
  */
 export default function Login() {
   const me = useMe()
-  // 已登录用户直接进入工作台。
-  if (me.data) {
-    return <Navigate to="/home" replace />
-  }
   const [searchParams] = useSearchParams()
   const { message } = AntdApp.useApp()
   const [serverVersion, setServerVersion] = useState('')
-  const [locale, setLocale] = useState('zh-CN')
   const [submitting, setSubmitting] = useState(false)
 
   useEffect(() => {
@@ -53,120 +70,123 @@ export default function Login() {
     }
   }
 
-  const highlights = [
-    { name: '统一入口', desc: '一个门户，汇聚企业全部数字化应用', tone: '#1677FF' },
-    { name: '一次登录', desc: 'Casdoor 统一身份认证（OIDC + PKCE）', tone: '#13C2C2' },
-    { name: '智能分类', desc: '搜索 / 分类 / 收藏 / 最近使用', tone: '#FA8C16' },
-    { name: '安全可控', desc: '应用级访问策略，前端隐藏 + 后端强制校验', tone: '#722ED1' },
-  ]
+  // 已登录用户直接进入工作台（置于所有 hooks 之后）。
+  if (me.data) {
+    return <Navigate to="/home" replace />
+  }
 
   return (
     <div className="velora-login">
-      <header className="velora-login-header">
-        <span className="velora-login-lockup">
-          <span className="velora-brand-mark" aria-hidden="true">
-            <img src="/logo-mark.svg" alt="" width={28} height={28} />
-          </span>
-          {portalName} {portalWelcome}
-        </span>
-        <Select
-          aria-label="语言"
-          size="small"
-          variant="borderless"
-          className="velora-locale-select"
-          value={locale}
-          popupMatchSelectWidth={false}
-          onChange={(value) => {
-            if (value === 'zh-CN') setLocale('zh-CN')
-            else {
-              message.info('英文界面暂未提供，已保持中文')
-              setLocale('zh-CN')
-            }
-          }}
-          options={[
-            { value: 'zh-CN', label: '中文' },
-            { value: 'en-US', label: 'EN' },
-          ]}
-        />
-      </header>
-
-      <main className="velora-login-main">
-        <div className="velora-login-card">
-          {/* 左：产品介绍 */}
-          <section className="velora-login-intro">
-            <p className="velora-login-eyebrow">Enterprise Application Portal</p>
-            <h1 className="velora-login-intro-title">
-              {portalWelcome}
-              <br />
-              统一工作台
-            </h1>
-            <p className="velora-login-intro-copy">
-              一个门户，一次登录，访问您有权使用的全部企业应用。Casdoor 统一身份认证，应用级访问控制。
-            </p>
-            <ol className="velora-login-workflow">
-              {highlights.map((item) => (
-                <li key={item.name} className="velora-login-workflow-item">
-                  <span className="velora-login-workflow-dot" style={{ background: item.tone }} aria-hidden="true" />
-                  <span className="velora-login-workflow-name">{item.name}</span>
-                  <span className="velora-login-workflow-desc">{item.desc}</span>
-                </li>
-              ))}
-            </ol>
-          </section>
-
-          {/* 右：账号密码登录 */}
-          <section className="velora-login-form">
-            <div className="velora-login-form-inner">
-              <h2 className="velora-login-form-title">欢迎回来</h2>
-              <p className="velora-login-form-desc">使用企业统一账号（Casdoor）登录 {portalName}</p>
-
-              <Form<{ username: string; password: string }>
-                name="login"
-                size="large"
-                onFinish={onFinish}
-                requiredMark={false}
-              >
-                <Form.Item
-                  name="username"
-                  rules={[{ required: true, message: '请输入账号' }]}
-                >
-                  <Input
-                    prefix={<UserOutlined style={{ color: '#98a2b3' }} />}
-                    placeholder="账号 / 邮箱"
-                    autoComplete="username"
-                    maxLength={64}
-                  />
-                </Form.Item>
-                <Form.Item
-                  name="password"
-                  rules={[{ required: true, message: '请输入密码' }]}
-                >
-                  <Input.Password
-                    prefix={<LockOutlined style={{ color: '#98a2b3' }} />}
-                    placeholder="密码"
-                    autoComplete="current-password"
-                    maxLength={128}
-                  />
-                </Form.Item>
-                <Form.Item style={{ marginBottom: 12 }}>
-                  <Button type="primary" htmlType="submit" block loading={submitting}>
-                    登 录
-                  </Button>
-                </Form.Item>
-              </Form>
-
-              <div className="velora-login-note">
-                登录即代表您同意企业的应用访问规范。遇到问题请联系系统管理员。
-              </div>
-            </div>
-          </section>
+      {/* 左：品牌叙事区 */}
+      <div className="velora-login-brand">
+        {/* 装饰层：色晕 + 浮动应用磁贴 */}
+        <div className="velora-login-deco" aria-hidden="true">
+          <span className="velora-login-orb velora-login-orb--1" />
+          <span className="velora-login-orb velora-login-orb--2" />
+          <span className="velora-login-orb velora-login-orb--3" />
+          {DECO_TILES.map((t, i) => (
+            <span
+              key={i}
+              className="velora-login-tile"
+              style={{
+                left: t.x,
+                top: t.y,
+                width: t.s,
+                height: t.s,
+                color: t.tone,
+                opacity: t.o,
+                fontSize: Math.round(t.s * 0.42),
+                animationDelay: t.d,
+                animationDuration: t.dur,
+              }}
+            >
+              {t.icon}
+            </span>
+          ))}
         </div>
-      </main>
 
-      <footer className="velora-login-footer">
-        {portalFooter || `${portalName} · ${portalWelcome}`}
-        {serverVersion ? ` · v${serverVersion}` : ''}
-      </footer>
+        <header className="velora-login-brand-head">
+          <span className="velora-brand-mark" aria-hidden="true">
+            <img src="/logo-mark.svg" alt="" width={30} height={30} />
+          </span>
+          <span className="velora-login-brand-name">{portalName}</span>
+          <span className="velora-login-brand-sep" />
+          <span className="velora-login-brand-sub">{portalWelcome}</span>
+        </header>
+
+        <div className="velora-login-brand-body">
+          <p className="velora-login-eyebrow">ENTERPRISE APPLICATION PORTAL</p>
+          <h1 className="velora-login-headline">
+            一个门户
+            <br />
+            接入企业的全部数字化应用
+          </h1>
+          <p className="velora-login-sub">统一认证、应用汇聚、待办与邮件——日常工作，从一个入口开始。</p>
+          <ul className="velora-login-features">
+            {FEATURES.map((f) => (
+              <li key={f.name} className="velora-login-feature">
+                <span className="velora-login-feature-icon">{f.icon}</span>
+                <span className="velora-login-feature-name">{f.name}</span>
+                <span className="velora-login-feature-desc">{f.desc}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        <footer className="velora-login-brand-foot">
+          {portalFooter || `© ${new Date().getFullYear()} ${portalName} · ${portalWelcome}`}
+          {serverVersion ? ` · v${serverVersion}` : ''}
+        </footer>
+      </div>
+
+      {/* 右：登录表单区 */}
+      <div className="velora-login-panel">
+        <div className="velora-login-panel-inner">
+          <h2 className="velora-login-title">登录</h2>
+          <p className="velora-login-desc">使用企业统一账号登录，进入您的工作台</p>
+
+          <Form<{ username: string; password: string }>
+            name="login"
+            size="large"
+            onFinish={onFinish}
+            requiredMark={false}
+          >
+            <Form.Item name="username" rules={[{ required: true, message: '请输入账号' }]}>
+              <Input
+                prefix={<UserOutlined style={{ color: '#98a2b3' }} />}
+                placeholder="账号 / 邮箱"
+                autoComplete="username"
+                maxLength={64}
+              />
+            </Form.Item>
+            <Form.Item name="password" rules={[{ required: true, message: '请输入密码' }]}>
+              <Input.Password
+                prefix={<LockOutlined style={{ color: '#98a2b3' }} />}
+                placeholder="密码"
+                autoComplete="current-password"
+                maxLength={128}
+              />
+            </Form.Item>
+            <Form.Item style={{ marginBottom: 0, marginTop: 8 }}>
+              <Button
+                type="primary"
+                htmlType="submit"
+                block
+                loading={submitting}
+                className="velora-login-submit"
+              >
+                登录
+              </Button>
+            </Form.Item>
+          </Form>
+
+          <p className="velora-login-note">
+            登录即代表您同意企业的应用访问与安全规范。
+            <br />
+            忘记密码或无法登录？请联系系统管理员。
+          </p>
+        </div>
+      </div>
     </div>
   )
 }

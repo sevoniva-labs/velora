@@ -1331,6 +1331,22 @@ button {
 
 /* ---------- 登录页：全屏分栏（品牌叙事 / 表单），无顶栏 ---------- */
 
+/* 阿里妈妈数黑体：登录页标题字体（免费商用授权，LICENSE 见 public/fonts） */
+@font-face {
+  font-family: 'AlimamaShuHeiTi';
+  src: url('/fonts/AlimamaShuHeiTi-Bold.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+.velora-login-brand-name,
+.velora-login-eyebrow,
+.velora-login-headline,
+.velora-login-title,
+.velora-login-submit.ant-btn {
+  font-family: 'AlimamaShuHeiTi', 'PingFang SC', 'Microsoft YaHei', ui-sans-serif, sans-serif;
+}
+
 .velora-login {
   min-height: 100dvh;
   display: grid;

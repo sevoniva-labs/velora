@@ -16,8 +16,8 @@ import { getPortalSettings, getSystemVersion, loginWithPassword, queryKeys } fro
 /** 品牌区三大能力点（与门户真实能力对应，不写空话） */
 const FEATURES = [
   { icon: <SafetyCertificateOutlined />, name: '统一身份认证', desc: '一次登录，访问全部授权应用' },
-  { icon: <AppstoreOutlined />, name: '应用汇聚', desc: '分类、收藏与最近使用，秒级直达' },
-  { icon: <CheckSquareOutlined />, name: '待办与邮件', desc: '审批工单、企业邮箱一体处理' },
+  { icon: <AppstoreOutlined />, name: '应用汇聚', desc: '分类、收藏与最近使用' },
+  { icon: <CheckSquareOutlined />, name: '待办与邮件', desc: '审批、工单与企业邮件' },
 ]
 
 /** 品牌区装饰磁贴：呼应门户应用宫格，纯视觉（色调同应用图标体系） */
@@ -119,9 +119,9 @@ export default function Login() {
           <h1 className="velora-login-headline">
             一个门户
             <br />
-            接入企业的全部数字化应用
+            接入企业全部应用
           </h1>
-          <p className="velora-login-sub">统一认证、应用汇聚、待办与邮件——日常工作，从一个入口开始。</p>
+          <p className="velora-login-sub">统一认证，直达应用、待办与企业邮件。</p>
           <ul className="velora-login-features">
             {FEATURES.map((f) => (
               <li key={f.name} className="velora-login-feature">
@@ -143,7 +143,7 @@ export default function Login() {
       <div className="velora-login-panel">
         <div className="velora-login-panel-inner">
           <h2 className="velora-login-title">登录</h2>
-          <p className="velora-login-desc">使用企业统一账号登录，进入您的工作台</p>
+          <p className="velora-login-desc">使用企业统一账号登录</p>
 
           <Form<{ username: string; password: string }>
             name="login"
@@ -180,11 +180,7 @@ export default function Login() {
             </Form.Item>
           </Form>
 
-          <p className="velora-login-note">
-            登录即代表您同意企业的应用访问与安全规范。
-            <br />
-            忘记密码或无法登录？请联系系统管理员。
-          </p>
+          <p className="velora-login-note">无法登录？请联系系统管理员。</p>
         </div>
       </div>
     </div>

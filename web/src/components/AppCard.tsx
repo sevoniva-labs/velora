@@ -4,7 +4,6 @@ import { useState } from 'react'
 import { App as AntdApp, Badge, Button, Tag, Tooltip, Typography } from 'antd'
 import { HeartFilled, HeartOutlined, RocketOutlined } from '@ant-design/icons'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { useNavigate } from 'react-router-dom'
 import { addFavorite, launchApplication, queryKeys, removeFavorite } from '../api/api'
 import type { Application } from '../types'
 import { APP_STATUS_LABEL, HEALTH_COLOR, HEALTH_LABEL } from '../labels'
@@ -43,7 +42,6 @@ export interface AppCardProps {
 
 export function AppCard({ app, onLaunch }: AppCardProps) {
   const { message } = AntdApp.useApp()
-  const navigate = useNavigate()
   const queryClient = useQueryClient()
   const [favorited, setFavorited] = useState(!!app.isFavorite)
 
@@ -89,12 +87,12 @@ export function AppCard({ app, onLaunch }: AppCardProps) {
       className="velora-app-card"
       role="button"
       tabIndex={0}
-      aria-label={`${app.name}，点击查看详情`}
-      onClick={() => navigate(`/applications/${app.id}`)}
+      aria-label={`${app.name}，点击启动`}
+      onClick={() => launchMutation.mutate()}
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault()
-          navigate(`/applications/${app.id}`)
+          launchMutation.mutate()
         }
       }}
     >

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { Empty, Segmented, Skeleton } from 'antd'
+import { App as AntdApp, Empty, Segmented, Skeleton } from 'antd'
 import {
   AppstoreOutlined,
   ArrowRightOutlined,
@@ -10,7 +10,7 @@ import {
   SoundOutlined,
 } from '@ant-design/icons'
 import { useNavigate } from 'react-router-dom'
-import { listApplications, listCategories, listPopular, listRecent, getPortalSettings, queryKeys } from '../api/api'
+import { launchApplication, listApplications, listCategories, listPopular, listRecent, getPortalSettings, queryKeys } from '../api/api'
 import { AppIcon } from '../components/AppCard'
 import QueryErrorState from '../components/QueryErrorState'
 import { formatRelativeTime } from '../utils/format'
@@ -30,6 +30,19 @@ type Section = 'featured' | 'favorites' | 'all'
 
 export default function Home() {
   const navigate = useNavigate()
+  const { message } = AntdApp.useApp()
+
+  // SSO 门户模型：点击应用 = 直接启动（OIDC 应用跳转 Casdoor 登录，URL 应用直接打开）。
+  const launchApp = async (appId: number | string) => {
+    try {
+      const result = await launchApplication(appId)
+      if (result.url) {
+        window.open(result.url, result.target === '_self' ? '_self' : '_blank', 'noopener,noreferrer')
+      }
+    } catch (err) {
+      message.error(err instanceof Error ? err.message : '启动失败')
+    }
+  }
   // 公告：优先取门户设置中的 announcement（多行以 | 分隔），否则默认模板。
   const { data: settings } = useQuery({ queryKey: queryKeys.portalSettings, queryFn: getPortalSettings })
   const noticeText = settings?.find((s) => s.key === 'announcement')?.value
@@ -118,11 +131,11 @@ export default function Home() {
                   className="velora-app-tile"
                   role="button"
                   tabIndex={0}
-                  onClick={() => navigate(`/applications/${app.id}`)}
+                  onClick={() => launchApp(app.id)}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' || e.key === ' ') {
                       e.preventDefault()
-                      navigate(`/applications/${app.id}`)
+                      launchApp(app.id)
                     }
                   }}
                 >
@@ -180,11 +193,11 @@ export default function Home() {
                     className="velora-recent-item"
                     role="button"
                     tabIndex={0}
-                    onClick={() => navigate(`/applications/${item.application.id}`)}
+                    onClick={() => launchApp(item.application.id)}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' || e.key === ' ') {
                         e.preventDefault()
-                        navigate(`/applications/${item.application.id}`)
+                        launchApp(item.application.id)
                       }
                     }}
                   >
@@ -273,11 +286,11 @@ export default function Home() {
                     className="velora-popular-item"
                     role="button"
                     tabIndex={0}
-                    onClick={() => navigate(`/applications/${app.id}`)}
+                    onClick={() => launchApp(app.id)}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' || e.key === ' ') {
                         e.preventDefault()
-                        navigate(`/applications/${app.id}`)
+                        launchApp(app.id)
                       }
                     }}
                   >

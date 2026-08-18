@@ -74,98 +74,97 @@ export default function Applications() {
         </div>
       </div>
 
-      {/* 搜索 */}
-      <div style={{ margin: '0 0 18px' }}>
-        <Input.Search
-          size="large"
-          allowClear
-          placeholder="搜索应用：名称 / 编码 / 描述 / 标签 / 关键词"
-          enterButton="搜索"
-          defaultValue={keyword}
-          value={searchInput}
-          onChange={(e) => setSearchInput(e.target.value)}
-          onSearch={(value) => updateParam({ keyword: value.trim() })}
-          style={{ maxWidth: 560 }}
-        />
-      </div>
+      <section className="velora-panel">
+        <div className="velora-panel-body" style={{ paddingTop: 16 }}>
+          {/* 搜索 */}
+          <Input.Search
+            size="large"
+            allowClear
+            placeholder="搜索应用：名称 / 编码 / 描述 / 标签 / 关键词"
+            enterButton="搜索"
+            defaultValue={keyword}
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
+            onSearch={(value) => updateParam({ keyword: value.trim() })}
+            style={{ maxWidth: 560, marginBottom: 16 }}
+          />
 
-      {/* 分类筛选 */}
-      <div className="velora-filter-row">
-        <span className="velora-filter-label">全部 /</span>
-        <button
-          type="button"
-          className={!categoryId ? 'velora-filter-chip is-active' : 'velora-filter-chip'}
-          onClick={() => updateParam({ categoryId: '' })}
-        >
-          全部
-        </button>
-        {(categories ?? []).map((c) => (
-          <button
-            key={c.id}
-            type="button"
-            className={String(c.id) === categoryId ? 'velora-filter-chip is-active' : 'velora-filter-chip'}
-            onClick={() => updateParam({ categoryId: String(c.id) })}
-          >
-            {c.name}
-          </button>
-        ))}
-      </div>
-
-      {/* 标签筛选 */}
-      <div className="velora-filter-row">
-        <span className="velora-filter-label">标签 /</span>
-        {(tags ?? []).map((t) => (
-          <button
-            key={t.id}
-            type="button"
-            className={String(t.id) === tagId ? 'velora-filter-chip is-active' : 'velora-filter-chip'}
-            onClick={() => updateParam({ tagId: String(t.id) })}
-          >
-            {t.name}
-          </button>
-        ))}
-      </div>
-
-      {/* 已选筛选条件 */}
-      {activeFilters.length > 0 && (
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', margin: '12px 0' }}>
-          {activeFilters.map((f) => (
-            <Tag key={f.key} closable onClose={f.onClose} style={{ padding: '2px 10px' }}>
-              {f.label}
-            </Tag>
-          ))}
-        </div>
-      )}
-
-      {/* 应用网格 */}
-      {isLoading ? (
-        <Skeleton active paragraph={{ rows: 6 }} />
-      ) : pageData && pageData.items.length > 0 ? (
-        <>
-          <div className="velora-app-grid" style={{ marginTop: 8 }}>
-            {pageData.items.map((app) => (
-              <div key={app.id} className="velora-app-grid-item">
-                <AppCard app={app} />
-              </div>
+          {/* 分类筛选 */}
+          <div className="velora-filter-row">
+            <span className="velora-filter-label">全部 /</span>
+            <button
+              type="button"
+              className={!categoryId ? 'velora-filter-chip is-active' : 'velora-filter-chip'}
+              onClick={() => updateParam({ categoryId: '' })}
+            >
+              全部
+            </button>
+            {(categories ?? []).map((c) => (
+              <button
+                key={c.id}
+                type="button"
+                className={String(c.id) === categoryId ? 'velora-filter-chip is-active' : 'velora-filter-chip'}
+                onClick={() => updateParam({ categoryId: String(c.id) })}
+              >
+                {c.name}
+              </button>
             ))}
           </div>
-          <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 24 }}>
-            <Pagination
-              current={page}
-              total={pageData.total}
-              pageSize={PAGE_SIZE}
-              showSizeChanger={false}
-              showTotal={(t) => `共 ${t} 个应用`}
-              onChange={(p) => updateParam({ page: String(p) })}
-            />
+
+          {/* 标签筛选 */}
+          <div className="velora-filter-row">
+            <span className="velora-filter-label">标签 /</span>
+            {(tags ?? []).map((t) => (
+              <button
+                key={t.id}
+                type="button"
+                className={String(t.id) === tagId ? 'velora-filter-chip is-active' : 'velora-filter-chip'}
+                onClick={() => updateParam({ tagId: String(t.id) })}
+              >
+                {t.name}
+              </button>
+            ))}
           </div>
-        </>
-      ) : (
-        <Empty
-          description="没有找到匹配的应用，试试更换关键词或清除筛选条件"
-          style={{ background: 'var(--velora-bg-container)', borderRadius: 12, padding: '64px 0' }}
-        />
-      )}
+
+          {/* 已选筛选条件 */}
+          {activeFilters.length > 0 && (
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', margin: '12px 0' }}>
+              {activeFilters.map((f) => (
+                <Tag key={f.key} closable onClose={f.onClose} style={{ padding: '2px 10px' }}>
+                  {f.label}
+                </Tag>
+              ))}
+            </div>
+          )}
+
+          {/* 应用网格 */}
+          {isLoading ? (
+            <Skeleton active paragraph={{ rows: 6 }} />
+          ) : pageData && pageData.items.length > 0 ? (
+            <>
+              <div className="velora-app-grid" style={{ marginTop: 8 }}>
+                {pageData.items.map((app) => (
+                  <div key={app.id} className="velora-app-grid-item">
+                    <AppCard app={app} />
+                  </div>
+                ))}
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 24 }}>
+                <Pagination
+                  current={page}
+                  total={pageData.total}
+                  pageSize={PAGE_SIZE}
+                  showSizeChanger={false}
+                  showTotal={(t) => `共 ${t} 个应用`}
+                  onChange={(p) => updateParam({ page: String(p) })}
+                />
+              </div>
+            </>
+          ) : (
+            <Empty description="没有找到匹配的应用，试试更换关键词或清除筛选条件" style={{ padding: '48px 0' }} />
+          )}
+        </div>
+      </section>
     </div>
   )
 }

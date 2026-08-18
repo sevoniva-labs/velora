@@ -1,5 +1,6 @@
-/* Velora 门户样式：企业门户 —— 蓝色品牌顶栏 + 浅色内容区、标准组件、克制。
-   顶栏为品牌蓝色渐变（浅色体系），内容区浅灰底，组件使用 AntD 标准品质。 */
+/* Velora 门户样式：企业门户 —— 精细玻璃质感工作台。
+   颜色体系保持不变（品牌蓝 #1677FF + 蓝渐变顶栏 + 浅灰底）；
+   质感参考"易点办公"工作台：磨砂玻璃面板、顶部高光线、内高光、蓝调阴影、紧凑信息密度。 */
 
 :root {
   --velora-primary: #1677ff;
@@ -10,14 +11,20 @@
   --velora-header-from: #1d4ed8;
   --velora-header-mid: #2563eb;
   --velora-header-to: #3b82f6;
-  --velora-title: #1f2937;
-  --velora-text: #4b5563;
-  --velora-secondary: #9ca3af;
-  --velora-border: #e5e7eb;
-  --velora-border-light: #f3f4f6;
+  --velora-title: #14203a;
+  --velora-text: #4f5f7a;
+  --velora-secondary: #8995ab;
+  --velora-border: #e5e9f2;
+  --velora-border-light: #f0f2f7;
   --velora-bg-layout: #f5f6f8;
   --velora-bg-container: #ffffff;
   --velora-on-header: #ffffff;
+  /* 玻璃质感 */
+  --velora-glass: rgba(255, 255, 255, 0.88);
+  --velora-glass-2: rgba(255, 255, 255, 0.64);
+  --velora-glass-line: rgba(255, 255, 255, 0.85);
+  --velora-shadow: 0 18px 44px -18px rgba(6, 20, 55, 0.28);
+  --velora-inset: inset 0 1px 0 rgba(255, 255, 255, 0.9);
   color: var(--velora-title, var(--ant-color-text));
   background: var(--velora-bg-layout, var(--ant-color-bg-layout));
   font-family:
@@ -55,7 +62,10 @@ button {
   display: flex;
   flex-direction: column;
   min-height: 100vh;
-  background: var(--velora-bg-layout, var(--ant-color-bg-layout));
+  background:
+    radial-gradient(1100px 520px at 82% -12%, rgba(90, 150, 255, 0.1), transparent 60%),
+    radial-gradient(820px 460px at 4% 0%, rgba(45, 124, 240, 0.08), transparent 55%),
+    var(--velora-bg-layout, var(--ant-color-bg-layout));
 }
 .velora-body.ant-layout {
   flex: 1 1 auto;
@@ -117,9 +127,9 @@ button {
   width: 30px;
   height: 30px;
   flex: 0 0 30px;
-  border-radius: 8px;
+  border-radius: 9px;
   background: var(--velora-on-header);
-  box-shadow: 0 2px 8px rgba(2, 8, 20, 0.2);
+  box-shadow: 0 3px 10px rgba(2, 8, 20, 0.22);
 }
 .velora-brand-mark img {
   display: block;
@@ -133,20 +143,22 @@ button {
 .velora-brand-name {
   overflow: hidden;
   color: var(--velora-on-header);
-  font-size: 15px;
-  font-weight: 600;
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
   text-overflow: ellipsis;
 }
 .velora-brand-sub {
   color: rgba(255, 255, 255, 0.78);
   font-size: 11px;
+  letter-spacing: 0.04em;
 }
 
 /* 顶栏导航（白色系） */
 .velora-module-nav {
   display: flex;
   align-items: center;
-  gap: 2px;
+  gap: 4px;
   margin-left: 8px;
   height: 64px;
 }
@@ -160,20 +172,20 @@ button {
   font-family: inherit;
   line-height: 32px;
   padding: 0 14px;
-  border-radius: 6px;
+  border-radius: 9px;
   cursor: pointer;
   transition:
-    background 0.15s ease,
-    color 0.15s ease;
+    background 0.18s ease,
+    color 0.18s ease;
   white-space: nowrap;
 }
 .velora-module-tab:hover {
-  background: rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.14);
   color: #fff;
 }
 .velora-module-tab.is-active {
   color: #fff;
-  background: rgba(255, 255, 255, 0.24);
+  background: rgba(255, 255, 255, 0.2);
   font-weight: 600;
 }
 @media (max-width: 860px) {
@@ -194,19 +206,19 @@ button {
 
 /* 顶栏紧凑搜索（桌面端） */
 .velora-header-search {
-  width: 220px;
+  width: 240px;
 }
 .velora-header-search .ant-input-affix-wrapper {
-  height: 32px;
-  border-radius: 6px;
+  height: 34px;
+  border-radius: 9px;
   border: 1px solid rgba(255, 255, 255, 0.22);
   color: var(--velora-on-header);
   background: rgba(255, 255, 255, 0.12);
 }
 .velora-header-search .ant-input-search-btn {
-  height: 32px !important;
+  height: 34px !important;
   border: 0 !important;
-  padding-inline: 8px;
+  padding-inline: 10px;
   color: rgba(255, 255, 255, 0.82) !important;
   background: transparent !important;
   box-shadow: none !important;
@@ -228,18 +240,18 @@ button {
   }
 }
 
-/* 用户区（白色系） */
+/* 用户区（白色系，双行信息） */
 .velora-user-chip {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  height: 34px;
-  padding: 0 10px 0 4px;
+  gap: 9px;
+  height: 38px;
+  padding: 0 10px 0 5px;
   border: 1px solid rgba(255, 255, 255, 0.22);
-  border-radius: 8px;
+  border-radius: 10px;
   background: rgba(255, 255, 255, 0.12);
   cursor: pointer;
-  transition: background 0.15s ease;
+  transition: background 0.18s ease;
 }
 .velora-user-chip:hover {
   background: rgba(255, 255, 255, 0.2);
@@ -248,15 +260,26 @@ button {
   color: var(--velora-primary);
   background: var(--velora-on-header);
   font-weight: 600;
+  box-shadow: 0 3px 9px rgba(2, 8, 20, 0.24);
+}
+.velora-user-chip-info {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.25;
+  text-align: left;
 }
 .velora-user-chip-name {
-  max-width: 120px;
+  max-width: 130px;
   overflow: hidden;
   color: var(--velora-on-header);
   font-size: 13px;
-  font-weight: 500;
+  font-weight: 600;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+.velora-user-chip-role {
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 10.5px;
 }
 .velora-header-trigger {
   display: inline-flex;
@@ -265,7 +288,7 @@ button {
   width: 32px;
   height: 32px;
   border: 0;
-  border-radius: 6px;
+  border-radius: 9px;
   color: var(--velora-on-header);
   background: transparent;
   font-size: 15px;
@@ -293,17 +316,83 @@ button {
   width: 72px;
 }
 
+/* ---------- 玻璃面板系统 ---------- */
+
+.velora-panel {
+  position: relative;
+  overflow: hidden;
+  border-radius: 14px;
+  border: 1px solid var(--velora-glass-line);
+  box-shadow: var(--velora-shadow), var(--velora-inset);
+  background: linear-gradient(158deg, var(--velora-glass) 0%, var(--velora-glass-2) 100%);
+  backdrop-filter: blur(20px) saturate(160%);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
+}
+.velora-panel::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.95), transparent);
+}
+.velora-panel-head {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 13px 18px 8px;
+}
+.velora-panel-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--velora-title);
+}
+.velora-panel-title::before {
+  content: "";
+  width: 4px;
+  height: 15px;
+  border-radius: 3px;
+  background: var(--velora-primary, var(--ant-color-primary));
+}
+.velora-panel-title .velora-panel-tag {
+  font-size: 10.5px;
+  font-weight: 600;
+  color: #fff;
+  background: var(--velora-primary);
+  padding: 1px 7px;
+  border-radius: 5px;
+}
+.velora-panel-more {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 12px;
+  color: var(--velora-secondary);
+}
+.velora-panel-more a,
+.velora-panel-more .ant-btn-link {
+  font-size: 12px;
+}
+.velora-panel-body {
+  position: relative;
+  padding: 4px 18px 16px;
+}
+
 /* ---------- 内容区 ---------- */
 
 .velora-main-content {
   min-width: 0;
-  background: var(--velora-bg-layout, var(--ant-color-bg-layout));
+  background: transparent;
 }
 .velora-home-page-content,
 .velora-page-content {
   width: min(1240px, 100%);
   margin: 0 auto;
-  padding: 20px 24px 48px;
+  padding: 18px 24px 48px;
 }
 @media (max-width: 640px) {
   .velora-home-page-content,
@@ -312,7 +401,7 @@ button {
   }
 }
 
-/* 首页 / 列表页头部 */
+/* 页面头部（应用中心 / 收藏 / 详情） */
 .velora-page-head {
   display: flex;
   align-items: flex-end;
@@ -322,7 +411,7 @@ button {
 }
 .velora-page-head-title {
   margin: 0 !important;
-  font-weight: 600;
+  font-weight: 700;
 }
 .velora-page-head-desc {
   margin: 4px 0 0 !important;
@@ -333,7 +422,7 @@ button {
   color: var(--velora-primary);
 }
 
-/* 区块标题 */
+/* 区块标题（非面板场景） */
 .velora-section-panel {
   margin-top: 24px;
 }
@@ -349,7 +438,7 @@ button {
   gap: 8px;
   margin: 0 !important;
   font-size: 15px !important;
-  font-weight: 600;
+  font-weight: 700;
 }
 .velora-section-title .anticon {
   color: var(--velora-primary);
@@ -358,11 +447,308 @@ button {
   font-size: 13px;
 }
 
-/* ---------- 应用卡片（标准、紧凑） ---------- */
+/* ---------- 通知公告条 ---------- */
+
+.velora-notice {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
+  padding: 9px 16px;
+  border-radius: 13px;
+}
+.velora-notice-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--velora-primary);
+}
+.velora-notice-label .anticon {
+  font-size: 15px;
+}
+.velora-notice-sep {
+  width: 1px;
+  height: 15px;
+  flex-shrink: 0;
+  background: var(--velora-border, var(--ant-color-border));
+}
+.velora-notice-marquee {
+  flex: 1;
+  overflow: hidden;
+  white-space: nowrap;
+  -webkit-mask: linear-gradient(90deg, transparent, #000 4%, #000 92%, transparent);
+  mask: linear-gradient(90deg, transparent, #000 4%, #000 92%, transparent);
+}
+.velora-notice-marquee span {
+  display: inline-block;
+  color: var(--velora-text);
+  font-size: 13px;
+  animation: velora-marquee 30s linear infinite;
+}
+@keyframes velora-marquee {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+.velora-notice-more {
+  flex-shrink: 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--velora-primary);
+  cursor: pointer;
+}
+
+/* ---------- 我的应用（紧凑宫格） ---------- */
+
+.velora-app-tile-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(158px, 1fr));
+  gap: 8px;
+  padding-top: 4px;
+}
+.velora-app-tile {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 11px;
+  border-radius: 12px;
+  cursor: pointer;
+  background: rgba(255, 255, 255, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.65);
+  transition:
+    background 0.16s ease,
+    transform 0.16s ease,
+    box-shadow 0.16s ease;
+}
+.velora-app-tile:hover {
+  background: rgba(255, 255, 255, 0.9);
+  transform: translateY(-2px);
+  box-shadow: 0 9px 20px -10px rgba(6, 20, 55, 0.3);
+}
+.velora-app-tile .velora-app-icon {
+  width: 38px;
+  height: 38px;
+  flex: 0 0 38px;
+  font-size: 18px;
+  border-radius: 11px;
+  background: linear-gradient(145deg, #eef5ff 0%, #e2edff 100%);
+  border: 1px solid rgba(22, 119, 255, 0.14);
+  box-shadow: 0 5px 12px -5px rgba(22, 119, 255, 0.4);
+  color: var(--velora-primary);
+}
+.velora-app-tile-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--velora-title);
+  line-height: 1.25;
+}
+.velora-app-tile-add {
+  justify-content: center;
+  border: 1.5px dashed rgba(22, 119, 255, 0.35);
+  background: rgba(255, 255, 255, 0.35);
+  color: var(--velora-primary);
+  font-weight: 600;
+  font-size: 12.5px;
+  gap: 4px;
+}
+.velora-app-tile-add:hover {
+  background: var(--velora-primary-softer, var(--ant-color-primary-bg-hover));
+  transform: none;
+}
+
+/* ---------- 工作台双栏 ---------- */
+
+.velora-workbench {
+  display: grid;
+  grid-template-columns: 33% 1fr;
+  gap: 14px;
+  margin-top: 14px;
+  align-items: stretch;
+}
+.velora-workbench .velora-col {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+}
+@media (max-width: 900px) {
+  .velora-workbench {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* 最近使用列表 */
+.velora-recent-list {
+  padding: 4px 18px 12px;
+  display: flex;
+  flex-direction: column;
+}
+.velora-recent-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 8px;
+  border-radius: 10px;
+  cursor: pointer;
+  border-bottom: 1px solid rgba(20, 32, 58, 0.07);
+  transition: background 0.15s ease;
+}
+.velora-recent-item:last-child {
+  border-bottom: none;
+}
+.velora-recent-item:hover {
+  background: rgba(255, 255, 255, 0.75);
+}
+.velora-recent-item .velora-app-icon {
+  width: 32px;
+  height: 32px;
+  flex: 0 0 32px;
+  font-size: 15px;
+  border-radius: 9px;
+  background: linear-gradient(145deg, #eef5ff 0%, #e2edff 100%);
+  border: 1px solid rgba(22, 119, 255, 0.12);
+  color: var(--velora-primary);
+}
+.velora-recent-item-main {
+  flex: 1;
+  min-width: 0;
+}
+.velora-recent-item-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--velora-title);
+}
+.velora-recent-item-meta {
+  margin-top: 1px;
+  font-size: 11px;
+  color: var(--velora-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+/* 分类卡片 */
+.velora-cat-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+  padding: 4px 18px 16px;
+}
+.velora-cat-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 12px;
+  border-radius: 11px;
+  cursor: pointer;
+  background: rgba(255, 255, 255, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.65);
+  transition:
+    background 0.16s ease,
+    transform 0.16s ease,
+    box-shadow 0.16s ease;
+}
+.velora-cat-card:hover {
+  background: rgba(255, 255, 255, 0.9);
+  transform: translateY(-2px);
+  box-shadow: 0 9px 20px -10px rgba(6, 20, 55, 0.3);
+}
+.velora-cat-card-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  flex: 0 0 34px;
+  border-radius: 10px;
+  font-size: 16px;
+  color: var(--velora-primary);
+  background: linear-gradient(145deg, #eef5ff 0%, #e2edff 100%);
+  border: 1px solid rgba(22, 119, 255, 0.14);
+  box-shadow: 0 5px 12px -5px rgba(22, 119, 255, 0.4);
+}
+.velora-cat-card-main {
+  min-width: 0;
+}
+.velora-cat-card-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--velora-title);
+}
+.velora-cat-card-desc {
+  margin-top: 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 11px;
+  color: var(--velora-secondary);
+}
+
+/* 热门应用（横向） */
+.velora-popular-row {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+  padding: 4px 18px 16px;
+}
+.velora-popular-item {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  cursor: pointer;
+  background: rgba(255, 255, 255, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.65);
+  transition:
+    background 0.16s ease,
+    box-shadow 0.16s ease;
+}
+.velora-popular-item:hover {
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 9px 20px -10px rgba(6, 20, 55, 0.28);
+}
+.velora-popular-item .velora-app-icon {
+  width: 30px;
+  height: 30px;
+  flex: 0 0 30px;
+  font-size: 14px;
+  border-radius: 9px;
+  background: linear-gradient(145deg, #eef5ff 0%, #e2edff 100%);
+  border: 1px solid rgba(22, 119, 255, 0.12);
+  color: var(--velora-primary);
+}
+.velora-popular-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--velora-title);
+}
+
+/* ---------- 应用卡片（大卡：应用中心 / 收藏） ---------- */
 
 .velora-app-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
   gap: 14px;
 }
 
@@ -376,19 +762,26 @@ button {
   flex-direction: column;
   height: 100%;
   padding: 16px;
-  background: var(--velora-bg-container, var(--ant-color-bg-container));
-  border: 1px solid var(--velora-border, var(--ant-color-border));
-  border-radius: 10px;
+  border-radius: 13px;
   cursor: pointer;
   outline: none;
+  background: var(--velora-glass, rgba(255, 255, 255, 0.8));
+  border: 1px solid var(--velora-glass-line);
+  box-shadow: var(--velora-inset);
+  backdrop-filter: blur(16px) saturate(150%);
+  -webkit-backdrop-filter: blur(16px) saturate(150%);
   transition:
-    box-shadow 0.15s ease,
-    border-color 0.15s ease;
+    box-shadow 0.16s ease,
+    border-color 0.16s ease,
+    transform 0.16s ease;
 }
 .velora-app-card:hover,
 .velora-app-card:focus-visible {
-  border-color: var(--velora-primary-hover, var(--ant-color-primary-hover));
-  box-shadow: 0 4px 12px rgba(31, 41, 55, 0.08);
+  border-color: color-mix(in srgb, var(--velora-primary-hover) 45%, transparent);
+  transform: translateY(-2px);
+  box-shadow:
+    0 14px 30px -14px rgba(6, 20, 55, 0.32),
+    var(--velora-inset);
 }
 
 .velora-app-card-head {
@@ -403,15 +796,19 @@ button {
   gap: 4px;
 }
 
-/* 图标容器：浅灰底，无渐变无装饰 */
+/* 图标容器：浅蓝渐变 + 内高光 */
 .velora-app-icon {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   flex: 0 0 auto;
-  border-radius: 8px;
+  border-radius: 11px;
   color: var(--velora-primary, var(--ant-color-primary));
-  background: var(--velora-border-light, var(--ant-color-fill-alter));
+  background: linear-gradient(145deg, #eef5ff 0%, #e2edff 100%);
+  border: 1px solid rgba(22, 119, 255, 0.14);
+  box-shadow:
+    0 6px 14px -6px rgba(22, 119, 255, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
   font-weight: 600;
 }
 
@@ -452,13 +849,14 @@ button {
   justify-content: space-between;
   margin-top: auto;
   padding-top: 10px;
-  border-top: 1px solid var(--velora-border-light, var(--ant-color-border-secondary));
+  border-top: 1px solid rgba(20, 32, 58, 0.07);
 }
 
 .velora-recent-time {
   padding: 6px 2px 0;
   color: var(--velora-secondary, var(--ant-color-text-tertiary));
   font-size: 12px;
+  font-variant-numeric: tabular-nums;
 }
 
 /* 筛选 chips */
@@ -486,7 +884,7 @@ button {
   font-family: inherit;
   line-height: 26px;
   padding: 0 12px;
-  border-radius: 6px;
+  border-radius: 7px;
   cursor: pointer;
   transition: all 0.15s ease;
 }
@@ -535,8 +933,10 @@ button {
   min-width: 216px !important;
   height: calc(100vh - 64px);
   transition: none !important;
-  background: var(--velora-bg-sider, var(--ant-color-bg-layout)) !important;
+  background: rgba(245, 246, 248, 0.7) !important;
   border-right: 1px solid var(--velora-border-light, var(--ant-color-border-secondary));
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
 }
 .velora-layout.is-collapsed .velora-sider.ant-layout-sider {
   flex-basis: 64px;
@@ -577,9 +977,9 @@ button {
 }
 .velora-side-menu .ant-menu-item-group-title {
   height: auto;
+  color: var(--velora-secondary, var(--ant-color-text-tertiary));
   margin-top: 10px;
   padding: 6px 12px;
-  color: var(--velora-secondary, var(--ant-color-text-tertiary));
   font-size: 11px;
   font-weight: 500;
   line-height: 16px;
@@ -607,7 +1007,10 @@ button {
 .velora-login {
   min-height: 100dvh;
   color: var(--velora-text, var(--ant-color-text-secondary));
-  background: var(--velora-bg-layout, var(--ant-color-bg-layout));
+  background:
+    radial-gradient(1100px 520px at 82% -12%, rgba(90, 150, 255, 0.1), transparent 60%),
+    radial-gradient(820px 460px at 4% 0%, rgba(45, 124, 240, 0.08), transparent 55%),
+    var(--velora-bg-layout, var(--ant-color-bg-layout));
 }
 .velora-login-header {
   min-height: 64px;
@@ -650,16 +1053,19 @@ button {
   display: grid;
   grid-template-columns: 1fr 1fr;
   overflow: hidden;
-  background: var(--velora-bg-container, var(--ant-color-bg-container));
-  border: 1px solid var(--velora-border, var(--ant-color-border));
-  border-radius: 12px;
+  border-radius: 16px;
+  border: 1px solid var(--velora-glass-line);
+  box-shadow: var(--velora-shadow), var(--velora-inset);
+  background: linear-gradient(158deg, var(--velora-glass) 0%, var(--velora-glass-2) 100%);
+  backdrop-filter: blur(24px) saturate(160%);
+  -webkit-backdrop-filter: blur(24px) saturate(160%);
 }
 .velora-login-intro {
   display: flex;
   flex-direction: column;
   padding: 40px;
-  background: var(--velora-bg-layout, var(--ant-color-bg-layout));
-  border-right: 1px solid var(--velora-border, var(--ant-color-border));
+  background: rgba(255, 255, 255, 0.4);
+  border-right: 1px solid rgba(20, 32, 58, 0.07);
 }
 .velora-login-eyebrow {
   margin: 0;
@@ -672,7 +1078,7 @@ button {
   margin: 14px 0 0;
   color: var(--velora-title, var(--ant-color-text));
   font-size: 24px;
-  font-weight: 600;
+  font-weight: 700;
   line-height: 1.5;
 }
 .velora-login-intro-copy {
@@ -692,7 +1098,7 @@ button {
   align-items: center;
   gap: 10px;
   list-style: none;
-  border-bottom: 1px solid var(--velora-border, var(--ant-color-border));
+  border-bottom: 1px solid rgba(20, 32, 58, 0.07);
 }
 .velora-login-workflow-item:last-child {
   border-bottom: 0;
@@ -716,6 +1122,7 @@ button {
   display: flex;
   align-items: center;
   padding: 40px;
+  background: rgba(255, 255, 255, 0.35);
 }
 .velora-login-form-inner {
   width: 100%;
@@ -726,7 +1133,7 @@ button {
   margin: 0;
   color: var(--velora-title, var(--ant-color-text));
   font-size: 20px;
-  font-weight: 600;
+  font-weight: 700;
 }
 .velora-login-form-desc {
   margin: 6px 0 20px;
@@ -741,9 +1148,10 @@ button {
   padding: 10px 32px;
   color: var(--velora-secondary, var(--ant-color-text-tertiary));
   font-size: 12px;
-  background: var(--velora-bg-container, var(--ant-color-bg-container));
-  border-top: 1px solid var(--velora-border, var(--ant-color-border));
-}@media (max-width: 720px) {
+  background: rgba(255, 255, 255, 0.5);
+  border-top: 1px solid rgba(20, 32, 58, 0.07);
+}
+@media (max-width: 720px) {
   .velora-login-card {
     grid-template-columns: minmax(0, 1fr);
   }
@@ -765,5 +1173,8 @@ button {
   }
   .velora-app-card {
     padding: 12px;
+  }
+  .velora-app-tile-grid {
+    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
   }
 }

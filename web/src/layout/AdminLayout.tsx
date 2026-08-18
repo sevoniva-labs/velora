@@ -98,8 +98,11 @@ export function AdminLayout({ children }: AdminLayoutProps) {
             trigger={['click']}
           >
             <button type="button" className="velora-user-chip" aria-label={`当前用户：${displayName}`}>
-              <Avatar size={26} icon={<UserOutlined />} />
-              <span className="velora-user-chip-name">{displayName}</span>
+              <Avatar size={28} icon={<UserOutlined />} />
+              <span className="velora-user-chip-info">
+                <span className="velora-user-chip-name">{displayName}</span>
+                <span className="velora-user-chip-role">管理员</span>
+              </span>
             </button>
           </Dropdown>
         </div>

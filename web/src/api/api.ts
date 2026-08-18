@@ -71,11 +71,11 @@ export function launchApplication(id: number | string): Promise<LaunchResult> {
 }
 
 export function listRecent(limit = 8): Promise<RecentItem[]> {
-  return apiFetch(`/recent${buildQuery({ limit })}`)
+  return apiFetch(`/applications/recent${buildQuery({ limit })}`)
 }
 
 export function listPopular(limit = 8): Promise<Application[]> {
-  return apiFetch(`/popular${buildQuery({ limit })}`)
+  return apiFetch(`/applications/popular${buildQuery({ limit })}`)
 }
 
 // --- 分类 / 标签 ---

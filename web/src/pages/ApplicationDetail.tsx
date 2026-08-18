@@ -109,7 +109,7 @@ export default function ApplicationDetail() {
             <div style={{ marginTop: 6, display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
               <Tag color={SSO_TYPE_COLOR[app.ssoType]}>{SSO_TYPE_LABEL[app.ssoType]}</Tag>
               {app.category && <Tag>{app.category.name}</Tag>}
-              {app.tags.map((t) => (
+              {(app.tags ?? []).map((t) => (
                 <Tag key={t.id}>{t.name}</Tag>
               ))}
               {app.healthCheckEnabled && (

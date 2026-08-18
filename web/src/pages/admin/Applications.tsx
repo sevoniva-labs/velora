@@ -113,7 +113,7 @@ export default function AdminApplications() {
       isFeatured: app.isFeatured,
       healthCheckEnabled: app.healthCheckEnabled,
       healthCheckUrl: app.healthCheckUrl,
-      tagIds: app.tags.map((t) => t.id),
+      tagIds: (app.tags ?? []).map((t) => t.id),
     })
     setModalOpen(true)
   }

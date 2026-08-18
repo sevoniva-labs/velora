@@ -131,7 +131,7 @@ export function AppCard({ app, onLaunch }: AppCardProps) {
 
       <div className="velora-app-card-meta">
         {app.category && <Tag className="velora-app-card-cat">{app.category.name}</Tag>}
-        {app.tags.slice(0, 3).map((t) => (
+        {(app.tags ?? []).slice(0, 3).map((t) => (
           <Tag key={t.id} className="velora-app-card-tag">
             {t.name}
           </Tag>

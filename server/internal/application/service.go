@@ -454,6 +454,8 @@ func (s *Service) toDTO(app *Application, isAdmin bool) *DTO {
 	if app.Category != nil {
 		dto.Category = &CategoryDTO{ID: app.Category.ID, Code: app.Category.Code, Name: app.Category.Name}
 	}
+	// 保证 JSON 输出空数组而非 null（前端 .map() 直接消费）。
+	dto.Tags = make([]TagDTO, 0, len(app.Tags))
 	for _, t := range app.Tags {
 		dto.Tags = append(dto.Tags, TagDTO{ID: t.ID, Code: t.Code, Name: t.Name})
 	}

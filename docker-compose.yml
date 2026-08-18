@@ -16,7 +16,8 @@ services:
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: postgres
     ports:
-      - "5432:5432"
+      # 避免与本机已运行的 PostgreSQL（常见 5432）冲突，host 侧使用 5433。
+      - "5433:5432"
     volumes:
       - velora-pgdata:/var/lib/postgresql/data
       # 首次初始化创建两个独立 database：velora / casdoor（数据严格隔离）

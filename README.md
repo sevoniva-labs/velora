@@ -168,7 +168,7 @@ make docker-down  # 停止
 
 | 服务 | 端口 | 说明 |
 | --- | --- | --- |
-| postgres | 5432 | PostgreSQL 16，初始化 velora / casdoor 两个独立 database |
+| postgres | 5433 | PostgreSQL 16，初始化 velora / casdoor 两个独立 database（host 侧 5433，避免与本机 PG 冲突） |
 | redis（可选） | 6379 | Phase 1 未强制使用 |
 | casdoor | 8443 | Casdoor v1.762，身份 / IAM |
 | server | 8080 | Velora Go API |

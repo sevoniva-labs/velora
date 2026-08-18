@@ -38,11 +38,11 @@ func NewHandler(service *Service, repo *Repository, visits VisitRecorder, auditS
 func (h *Handler) Register(r gin.IRouter) {
 	g := r.Group("/applications")
 	g.GET("", h.list)
+	// 静态子路径必须先于 /:id 注册，避免被参数路由吞掉。
+	g.GET("/recent", h.recent)
+	g.GET("/popular", h.popular)
 	g.GET("/:id", h.get)
 	g.POST("/:id/launch", h.launch)
-
-	r.GET("/recent", h.recent)
-	r.GET("/popular", h.popular)
 
 	admin := r.Group("/admin/applications")
 	admin.Use(h.adminRequired())

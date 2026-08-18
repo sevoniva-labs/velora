@@ -149,6 +149,10 @@ func (s *Service) ListPublic(ctx context.Context, user *auth.CurrentUser, f List
 	if f.FeaturedOnly {
 		q = q.Where("is_featured = ?", true)
 	}
+	if f.FavoritesOnly {
+		// 仅当前用户的收藏（应用收藏表）。
+		q = q.Where("id IN (SELECT application_id FROM application_favorites WHERE user_id = ?)", user.ID)
+	}
 	if f.CategoryID > 0 {
 		q = q.Where("category_id = ?", f.CategoryID)
 	}

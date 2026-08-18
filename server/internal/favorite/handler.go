@@ -124,7 +124,6 @@ func parseAppID(c *gin.Context) (uint64, bool) {
 	return id, true
 }
 
-
 // getIntParam 解析正整数查询参数，非法或缺失时返回默认值。
 func getIntParam(c *gin.Context, key string, def int) int {
 	v := c.Query(key)

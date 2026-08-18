@@ -35,12 +35,9 @@ func NewHandler(oidc *OIDCManager, sessions *SessionStore, adminRole, defaultRed
 	}
 }
 
-// Register 注册路由。
+// Register 注册受保护路由（login/callback 为公开端点，由 httpserver 组装时注册）。
 func (h *Handler) Register(r gin.IRouter) {
-	g := r.Group("/auth")
-	g.GET("/oidc/login", h.Login)
-	g.GET("/oidc/callback", h.Callback)
-	g.POST("/logout", h.logout)
+	r.POST("/auth/logout", h.logout)
 	r.GET("/me", h.me)
 }
 

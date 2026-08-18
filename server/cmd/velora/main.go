@@ -80,17 +80,14 @@ func serve(cfg *config.Config) error {
 	if err != nil {
 		return err
 	}
-	oidc, err := auth.NewOIDCManager(ctx, cfg.CasdoorIssuer, cfg.CasdoorClientID, cfg.CasdoorClientSecret, cfg.CasdoorRedirectURI, 10*time.Minute)
-	if err != nil {
-		return err
-	}
+	oidcMgr := auth.NewOIDCManager(cfg.CasdoorIssuer, cfg.CasdoorClientID, cfg.CasdoorClientSecret, cfg.CasdoorRedirectURI, 10*time.Minute)
 
 	auditSvc := audit.NewService(gormDB)
 	engine, err := httpserver.New(httpserver.Deps{
 		Cfg:       cfg,
 		DB:        gormDB,
 		Sessions:  sessions,
-		OIDC:      oidc,
+		OIDC:      oidcMgr,
 		Audit:     auditSvc,
 		AdminRole: cfg.AdminRole,
 	})

@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/coreos/go-oidc/v3/oidc"
@@ -16,34 +17,54 @@ import (
 )
 
 // OIDCManager 封装与 Casdoor 的 OIDC Authorization Code + PKCE 交互。
+// Provider Discovery 惰性初始化：服务启动不依赖 Casdoor 在线，首次登录时建立连接。
 type OIDCManager struct {
+	issuer       string
+	clientID     string
+	clientSecret string
+	redirectURI  string
+	secret       []byte
+	stateTTL     time.Duration
+
+	mu       sync.Mutex
 	provider *oidc.Provider
 	verifier *oidc.IDTokenVerifier
 	config   oauth2.Config
-	secret   []byte
-	stateTTL time.Duration
 }
 
-// NewOIDCManager 基于 Casdoor Issuer 构建 OIDC 客户端。
-func NewOIDCManager(ctx context.Context, issuer, clientID, clientSecret, redirectURI string, stateTTL time.Duration) (*OIDCManager, error) {
-	provider, err := oidc.NewProvider(ctx, issuer)
-	if err != nil {
-		return nil, fmt.Errorf("连接 Casdoor OIDC Provider 失败: %w", err)
+// NewOIDCManager 创建 OIDC 客户端（不发起网络请求）。
+func NewOIDCManager(issuer, clientID, clientSecret, redirectURI string, stateTTL time.Duration) *OIDCManager {
+	return &OIDCManager{
+		issuer:       issuer,
+		clientID:     clientID,
+		clientSecret: clientSecret,
+		redirectURI:  redirectURI,
+		secret:       []byte(clientSecret),
+		stateTTL:     stateTTL,
 	}
-	config := oauth2.Config{
-		ClientID:     clientID,
-		ClientSecret: clientSecret,
-		RedirectURL:  redirectURI,
+}
+
+// ensure 惰性加载 OIDC Provider（幂等，并发安全）。
+func (m *OIDCManager) ensure(ctx context.Context) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if m.provider != nil {
+		return nil
+	}
+	provider, err := oidc.NewProvider(ctx, m.issuer)
+	if err != nil {
+		return fmt.Errorf("连接 Casdoor OIDC Provider 失败: %w", err)
+	}
+	m.provider = provider
+	m.config = oauth2.Config{
+		ClientID:     m.clientID,
+		ClientSecret: m.clientSecret,
+		RedirectURL:  m.redirectURI,
 		Endpoint:     provider.Endpoint(),
 		Scopes:       []string{oidc.ScopeOpenID, "profile", "email"},
 	}
-	return &OIDCManager{
-		provider: provider,
-		verifier: provider.Verifier(&oidc.Config{ClientID: clientID}),
-		config:   config,
-		secret:   []byte(clientSecret),
-		stateTTL: stateTTL,
-	}, nil
+	m.verifier = provider.Verifier(&oidc.Config{ClientID: m.clientID})
+	return nil
 }
 
 // oidcState 为无状态回调状态（HMAC 签名），携带回调落点与 PKCE/Nonce 材料。
@@ -57,6 +78,9 @@ type oidcState struct {
 // LoginURL 生成 Casdoor 登录跳转地址。
 // redirect 为登录成功后回到 Velora 的路径（仅允许站内相对路径）。
 func (m *OIDCManager) LoginURL(redirect string) (string, error) {
+	if err := m.ensure(context.Background()); err != nil {
+		return "", err
+	}
 	verifier := oauth2.GenerateVerifier()
 	nonce, err := RandomToken(16)
 	if err != nil {
@@ -80,6 +104,9 @@ func (m *OIDCManager) LoginURL(redirect string) (string, error) {
 
 // Exchange 用回调 code 交换 token，校验 id_token（含 nonce）并获取用户信息。
 func (m *OIDCManager) Exchange(ctx context.Context, code, stateToken string) (*CurrentUser, error) {
+	if err := m.ensure(ctx); err != nil {
+		return nil, err
+	}
 	state, err := m.decodeState(stateToken)
 	if err != nil {
 		return nil, err

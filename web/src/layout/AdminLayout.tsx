@@ -68,7 +68,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
         <div className="velora-header-brand">
           <Link className="velora-brand" to="/admin" aria-label="管理后台">
             <span className="velora-brand-mark" aria-hidden="true">
-              <img src="/logo-mark.svg" alt="" width={19} height={19} style={{ display: 'block' }} />
+              <img src="/sevoniva-mark.svg" alt="" width={19} height={19} style={{ display: 'block' }} />
             </span>
             <span className="velora-brand-text">
               <span className="velora-brand-name">{portalName}</span>

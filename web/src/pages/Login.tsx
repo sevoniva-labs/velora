@@ -107,7 +107,7 @@ export default function Login() {
 
         <header className="velora-login-brand-head">
           <span className="velora-brand-mark" aria-hidden="true">
-            <img src="/logo-mark.svg" alt="" width={30} height={30} />
+            <img src="/sevoniva-mark.svg" alt="" width={30} height={30} />
           </span>
           <span className="velora-login-brand-name">{portalName}</span>
           <span className="velora-login-brand-sep" />

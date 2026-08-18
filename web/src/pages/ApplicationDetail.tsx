@@ -47,45 +47,22 @@ export default function ApplicationDetail() {
   }
 
   return (
-    <div style={{ maxWidth: 960, margin: '0 auto', paddingTop: 12 }}>
-      <Button
-        type="text"
-        icon={<ArrowLeftOutlined />}
-        onClick={() => navigate(-1)}
-        style={{ marginBottom: 14, color: 'var(--velora-text)' }}
-      >
-        返回
-      </Button>
-
-      {/* 深色品牌 Hero */}
-      <section className="velora-detail-hero">
-        <AppIcon app={app} size={64} />
-        <div className="velora-detail-hero-main">
-          <Typography.Title level={2} className="velora-detail-hero-title">
+    <div style={{ maxWidth: 960, margin: '0 auto' }}>
+      <div className="velora-page-head" style={{ marginTop: 0 }}>
+        <div>
+          <Typography.Title level={3} className="velora-page-head-title">
             {app.name}
           </Typography.Title>
-          <Typography.Paragraph className="velora-detail-hero-desc">
+          <Typography.Paragraph className="velora-page-head-desc">
             {app.description || '暂无描述'}
           </Typography.Paragraph>
-          <div className="velora-detail-hero-meta">
-            <Tag color={SSO_TYPE_COLOR[app.ssoType]}>{SSO_TYPE_LABEL[app.ssoType]}</Tag>
-            {app.isFeatured && <Tag color="gold">精选</Tag>}
-            {app.category && <Tag>{app.category.name}</Tag>}
-            {app.tags.map((t) => (
-              <Tag key={t.id}>{t.name}</Tag>
-            ))}
-            {app.healthCheckEnabled && (
-              <Badge
-                status={(HEALTH_COLOR[app.healthStatus ?? 'UNKNOWN'] as 'success' | 'error' | 'default') ?? 'default'}
-                text={`健康：${HEALTH_LABEL[app.healthStatus ?? 'UNKNOWN']}`}
-              />
-            )}
-          </div>
         </div>
-        <div className="velora-detail-hero-action">
+        <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+          <Button icon={<ArrowLeftOutlined />} onClick={() => navigate(-1)}>
+            返回
+          </Button>
           <Button
             type="primary"
-            size="large"
             icon={<RocketOutlined />}
             loading={launching}
             disabled={app.status !== 'ENABLED'}
@@ -94,9 +71,31 @@ export default function ApplicationDetail() {
             启动应用
           </Button>
         </div>
-      </section>
+      </div>
 
-      <Card title="应用信息" className="velora-detail-section">
+      <Card className="velora-detail-section" style={{ marginTop: 0 }}>
+        <div style={{ display: 'flex', gap: 16, alignItems: 'center', marginBottom: 20 }}>
+          <AppIcon app={app} size={48} />
+          <div style={{ minWidth: 0 }}>
+            <Typography.Text strong style={{ fontSize: 15 }}>
+              {app.name}
+            </Typography.Text>
+            <div style={{ marginTop: 6, display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
+              <Tag color={SSO_TYPE_COLOR[app.ssoType]}>{SSO_TYPE_LABEL[app.ssoType]}</Tag>
+              {app.category && <Tag>{app.category.name}</Tag>}
+              {app.tags.map((t) => (
+                <Tag key={t.id}>{t.name}</Tag>
+              ))}
+              {app.healthCheckEnabled && (
+                <Badge
+                  status={(HEALTH_COLOR[app.healthStatus ?? 'UNKNOWN'] as 'success' | 'error' | 'default') ?? 'default'}
+                  text={`健康：${HEALTH_LABEL[app.healthStatus ?? 'UNKNOWN']}`}
+                />
+              )}
+            </div>
+          </div>
+        </div>
+
         <Descriptions column={{ xs: 1, sm: 2 }} size="middle">
           <Descriptions.Item label="应用编码">{app.code}</Descriptions.Item>
           <Descriptions.Item label="分类">{app.category?.name ?? '-'}</Descriptions.Item>

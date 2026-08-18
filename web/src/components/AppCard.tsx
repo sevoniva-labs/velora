@@ -1,5 +1,5 @@
-// 应用卡片：Icon / Name / Description / Category / Tags / Favorite / Health / Launch。
-// Hover 轻微上浮 2px + 边框变化 + 非常轻的阴影（克制，不夸张）。
+// 应用卡片：标准企业组件 —— 图标 / 名称 / 描述 / 分类标签 / 收藏 / 启动。
+// 使用 AntD 标准品质：浅灰图标底、标准 Tag 与 Button，hover 仅阴影变化。
 import { useState } from 'react'
 import { App as AntdApp, Badge, Button, Tag, Tooltip, Typography } from 'antd'
 import { HeartFilled, HeartOutlined, RocketOutlined } from '@ant-design/icons'
@@ -7,9 +7,9 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import { addFavorite, launchApplication, queryKeys, removeFavorite } from '../api/api'
 import type { Application } from '../types'
-import { HEALTH_COLOR, HEALTH_LABEL } from '../labels'
+import { APP_STATUS_LABEL, HEALTH_COLOR, HEALTH_LABEL } from '../labels'
 
-function AppIcon({ app, size = 44, className }: { app: Application; size?: number; className?: string }) {
+function AppIcon({ app, size = 40, className }: { app: Application; size?: number; className?: string }) {
   const icon = app.icon?.trim()
   // 图标 URL 或 emoji / 文本。
   const isUrl = icon ? /^https?:\/\//i.test(icon) : false
@@ -21,8 +21,8 @@ function AppIcon({ app, size = 44, className }: { app: Application; size?: numbe
         <img
           src={icon}
           alt={app.name}
-          width={size * 0.62}
-          height={size * 0.62}
+          width={size * 0.6}
+          height={size * 0.6}
           style={{ objectFit: 'contain', display: 'block' }}
           loading="lazy"
         />
@@ -139,17 +139,9 @@ export function AppCard({ app, onLaunch }: AppCardProps) {
       </div>
 
       <div className="velora-app-card-foot">
-        {app.status === 'ENABLED' ? (
-          <span className="velora-app-card-status">
-            <span className="velora-status-dot is-up" aria-hidden="true" />
-            可用
-          </span>
-        ) : (
-          <span className="velora-app-card-status">
-            <span className="velora-status-dot" aria-hidden="true" />
-            停用
-          </span>
-        )}
+        <Tag color={app.status === 'ENABLED' ? 'success' : 'default'}>
+          {APP_STATUS_LABEL[app.status]}
+        </Tag>
         <Button
           type="primary"
           size="small"

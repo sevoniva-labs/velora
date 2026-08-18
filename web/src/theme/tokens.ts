@@ -1,4 +1,5 @@
-// Velora 设计令牌：企业门户视觉系统（浅色技术蓝，与原版一致；仅保留布局/质感层次改进）。
+// Velora 设计令牌：企业门户 —— 克制、标准、信息优先。
+// 基于 AntD 默认设计语言，仅做最小必要调整（白底顶栏、标准组件品质）。
 import type { ThemeConfig } from 'antd'
 
 export const brandColors = {
@@ -7,10 +8,6 @@ export const brandColors = {
   primaryActive: '#0958D9',
   primarySoft: '#E6F4FF',
   primarySofter: '#F0F7FF',
-  /** 顶栏 / Hero 品牌渐变（浅色体系） */
-  headerFrom: '#1D4ED8',
-  headerMid: '#2563EB',
-  headerTo: '#3B82F6',
 } as const
 
 export const functionalColors = {
@@ -22,24 +19,20 @@ export const functionalColors = {
 
 export const neutralColors = {
   title: '#1F2937',
-  text: '#475467',
-  secondary: '#98A2B3',
-  disabled: '#D0D5DD',
-  border: '#E8EEF7',
-  borderLight: '#F2F4F7',
-  bgLayout: '#F5F7FA',
-  bgSider: '#EDF1F8',
+  text: '#4B5563',
+  secondary: '#9CA3AF',
+  disabled: '#D1D5DB',
+  border: '#E5E7EB',
+  borderLight: '#F3F4F6',
+  bgLayout: '#F5F6F8',
   bgContainer: '#FFFFFF',
-  bgElevated: '#F5F7FA',
-  menuItem: '#667085',
-  onPrimary: '#FFFFFF',
+  bgSider: '#F9FAFB',
+  menuItem: '#6B7280',
 } as const
 
 export const fontSize = {
-  display: 28,
-  hero: 22,
-  largeTitle: 18,
-  h1: 16,
+  pageTitle: 20,
+  sectionTitle: 16,
   list: 15,
   body: 14,
   secondary: 12.5,
@@ -47,21 +40,21 @@ export const fontSize = {
 } as const
 
 export const layoutSize = {
-  headerHeight: 64,
-  siderWidth: 232,
+  headerHeight: 56,
+  siderWidth: 216,
   siderCollapsedWidth: 64,
   contentSafePadding: 24,
-  pagePaddingBlock: 24,
+  pagePaddingBlock: 20,
   gutter: 24,
 } as const
 
 export const controlHeight = {
-  large: 44,
-  middle: 34,
-  small: 28,
+  large: 40,
+  middle: 32,
+  small: 24,
 } as const
 
-/** Velora 主题：浅色技术蓝企业门户（克制动效）。 */
+/** Velora 主题：接近 AntD 默认，仅统一品牌色与少量布局。 */
 export const veloraTheme: ThemeConfig = {
   cssVar: { prefix: 'ant' },
   token: {
@@ -81,57 +74,54 @@ export const veloraTheme: ThemeConfig = {
     colorBgLayout: neutralColors.bgLayout,
     colorBgContainer: neutralColors.bgContainer,
     colorBgElevated: neutralColors.bgContainer,
-    colorFillAlter: neutralColors.bgElevated,
+    colorFillAlter: '#F7F8FA',
     colorLink: brandColors.primary,
     colorLinkHover: brandColors.primaryHover,
     colorPrimaryBg: brandColors.primarySoft,
     colorPrimaryBgHover: brandColors.primarySofter,
     fontFamily:
-      'Inter, "PingFang SC", "Microsoft YaHei", "Source Han Sans SC", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+      '"PingFang SC", "Microsoft YaHei", "Source Han Sans SC", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
     fontFamilyCode: 'ui-monospace, "SF Mono", Menlo, Monaco, Consolas, monospace',
     fontSize: fontSize.body,
-    fontSizeHeading1: fontSize.display,
-    fontSizeHeading2: fontSize.hero,
-    fontSizeHeading3: fontSize.largeTitle,
-    fontSizeHeading4: fontSize.h1,
+    fontSizeHeading1: fontSize.pageTitle,
+    fontSizeHeading2: fontSize.pageTitle,
+    fontSizeHeading3: fontSize.sectionTitle,
+    fontSizeHeading4: fontSize.list,
     fontSizeSM: fontSize.secondary,
     fontSizeLG: fontSize.list,
     lineHeight: 22 / 14,
     controlHeight: controlHeight.middle,
     controlHeightLG: controlHeight.large,
     controlHeightSM: controlHeight.small,
-    borderRadius: 10,
-    borderRadiusLG: 16,
-    borderRadiusSM: 8,
-    boxShadowTertiary: '0 1px 2px rgba(31, 41, 55, 0.04), 0 8px 24px -12px rgba(31, 41, 55, 0.08)',
+    borderRadius: 8,
+    borderRadiusLG: 10,
+    borderRadiusSM: 6,
     motion: false,
-    motionDurationMid: '180ms',
   },
   components: {
     Layout: {
       headerHeight: layoutSize.headerHeight,
-      headerBg: brandColors.primary,
+      headerBg: neutralColors.bgContainer,
       siderBg: neutralColors.bgSider,
       bodyBg: neutralColors.bgLayout,
     },
     Menu: {
-      itemHeight: 40,
-      itemBorderRadius: 10,
-      itemMarginBlock: 3,
+      itemHeight: 38,
+      itemBorderRadius: 8,
+      itemMarginBlock: 2,
       itemSelectedBg: brandColors.primarySoft,
       itemSelectedColor: brandColors.primary,
       itemHoverBg: brandColors.primarySofter,
       itemColor: neutralColors.menuItem,
       itemActiveBg: brandColors.primarySoft,
-      subMenuItemBg: 'transparent',
     },
     Button: {
       controlHeight: controlHeight.middle,
       controlHeightLG: controlHeight.large,
       controlHeightSM: controlHeight.small,
-      paddingInline: 16,
-      paddingInlineLG: 22,
-      paddingInlineSM: 12,
+      paddingInline: 15,
+      paddingInlineLG: 20,
+      paddingInlineSM: 10,
       primaryShadow: 'none',
       defaultShadow: 'none',
       dangerShadow: 'none',
@@ -140,16 +130,16 @@ export const veloraTheme: ThemeConfig = {
     Table: {
       headerBg: neutralColors.bgContainer,
       borderColor: neutralColors.borderLight,
-      rowHoverBg: brandColors.primarySofter,
-      cellPaddingBlock: 13,
-      cellPaddingInline: 16,
-      headerColor: neutralColors.secondary,
+      rowHoverBg: '#F7F9FC',
+      cellPaddingBlock: 12,
+      cellPaddingInline: 14,
+      headerColor: neutralColors.text,
     },
     Card: {
-      paddingLG: 22,
+      paddingLG: 20,
       headerBg: 'transparent',
       colorBorderSecondary: neutralColors.border,
-      borderRadiusLG: 16,
+      borderRadiusLG: 10,
     },
     Form: {
       labelFontSize: fontSize.body,
@@ -161,7 +151,7 @@ export const veloraTheme: ThemeConfig = {
       controlHeightSM: controlHeight.small,
       activeBorderColor: brandColors.primary,
       hoverBorderColor: brandColors.primary,
-      activeShadow: '0 0 0 3px rgba(22, 119, 255, 0.12)',
+      activeShadow: '0 0 0 2px rgba(22, 119, 255, 0.1)',
     },
     Tabs: {
       itemSelectedColor: brandColors.primary,
@@ -169,7 +159,7 @@ export const veloraTheme: ThemeConfig = {
       itemHoverColor: brandColors.primaryHover,
     },
     Tag: {
-      defaultBg: neutralColors.bgElevated,
+      defaultBg: '#F5F6F8',
       defaultColor: neutralColors.text,
     },
   },

@@ -46,9 +46,14 @@ export default function Login() {
   ]
 
   return (
-    <div className="velora-login" style={{ minHeight: '100dvh', background: '#f5f7fa' }}>
+    <div className="velora-login">
       <header className="velora-login-header">
-        <span className="velora-login-lockup">Velora</span>
+        <span className="velora-login-lockup">
+          <span className="velora-brand-mark" aria-hidden="true">
+            <img src="/logo-mark.svg" alt="" width={28} height={28} />
+          </span>
+          Velora 企业应用门户
+        </span>
         <Select
           aria-label="语言"
           size="small"
@@ -70,16 +75,8 @@ export default function Login() {
         />
       </header>
 
-      <main
-        style={{
-          minHeight: 'calc(100dvh - 56px)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          padding: '40px 24px',
-        }}
-      >
-        <div className="velora-login-card" style={{ width: 'min(100%, 960px)' }}>
+      <main className="velora-login-main">
+        <div className="velora-login-card">
           {/* 左：产品介绍 */}
           <section className="velora-login-intro">
             <p className="velora-login-eyebrow">Enterprise Application Portal</p>
@@ -143,7 +140,7 @@ export default function Login() {
                 </Form.Item>
               </Form>
 
-              <div style={{ marginTop: 20, fontSize: 12.5, color: '#98a2b3' }}>
+              <div className="velora-login-note">
                 登录即代表您同意企业的应用访问规范。遇到问题请联系系统管理员。
               </div>
             </div>

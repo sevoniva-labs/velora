@@ -1,5 +1,5 @@
-/* Velora 门户样式：企业门户视觉系统。
-   设计语言：浅色技术蓝（颜色体系与原版一致）+ 精致留白与层次（布局/质感改进）。 */
+/* Velora 门户样式：企业门户 —— 克制、标准、信息优先。
+   白底简洁顶栏 + 浅灰内容底；组件使用 AntD 标准品质，仅保留必要布局骨架。 */
 
 :root {
   --velora-primary: #1677ff;
@@ -7,23 +7,16 @@
   --velora-primary-active: #0958d9;
   --velora-primary-soft: #e6f4ff;
   --velora-primary-softer: #f0f7ff;
-  --velora-header-from: #1d4ed8;
-  --velora-header-mid: #2563eb;
-  --velora-header-to: #3b82f6;
   --velora-title: #1f2937;
-  --velora-text: #475467;
-  --velora-secondary: #98a2b3;
-  --velora-faint: #b3bdcb;
-  --velora-border: #e8eef7;
-  --velora-border-light: #f2f4f7;
-  --velora-bg-layout: #f5f7fa;
-  --velora-bg-sider: #edf1f8;
+  --velora-text: #4b5563;
+  --velora-secondary: #9ca3af;
+  --velora-border: #e5e7eb;
+  --velora-border-light: #f3f4f6;
+  --velora-bg-layout: #f5f6f8;
   --velora-bg-container: #ffffff;
-  --velora-on-header: #ffffff;
   color: var(--velora-title, var(--ant-color-text));
   background: var(--velora-bg-layout, var(--ant-color-bg-layout));
   font-family:
-    Inter,
     "PingFang SC",
     "Microsoft YaHei",
     ui-sans-serif,
@@ -66,7 +59,7 @@ button {
   min-width: 0;
 }
 
-/* ---------- 顶栏（浅色技术蓝渐变 + 光泽） ---------- */
+/* ---------- 顶栏（白底 + 细分隔线） ---------- */
 
 .velora-header.ant-layout-header {
   position: sticky;
@@ -74,22 +67,19 @@ button {
   top: 0;
   display: flex;
   align-items: center;
-  height: 64px !important;
+  height: 56px !important;
   line-height: normal !important;
   padding: 0 20px 0 0 !important;
-  color: var(--velora-on-header);
-  background:
-    linear-gradient(rgba(255, 255, 255, 0.14), rgba(255, 255, 255, 0)) 0 0 / 100% 1px no-repeat,
-    radial-gradient(900px 200px at 12% -80%, rgba(255, 255, 255, 0.16), transparent 62%),
-    linear-gradient(100deg, var(--velora-header-from) 0%, var(--velora-header-mid) 52%, var(--velora-header-to) 100%) !important;
-  box-shadow: 0 3px 14px color-mix(in srgb, var(--velora-header-from) 26%, transparent);
+  color: var(--velora-title);
+  background: var(--velora-bg-container, var(--ant-color-bg-container)) !important;
+  border-bottom: 1px solid var(--velora-border, var(--ant-color-border));
 }
 .velora-header-brand {
   display: flex;
   align-items: center;
-  flex: 0 0 232px;
-  width: 232px;
-  height: 64px;
+  flex: 0 0 216px;
+  width: 216px;
+  height: 56px;
   padding: 0 16px;
   overflow: hidden;
 }
@@ -107,9 +97,9 @@ button {
 .velora-brand {
   display: inline-flex;
   align-items: center;
-  gap: 11px;
+  gap: 10px;
   min-width: 0;
-  height: 64px;
+  height: 56px;
   text-decoration: none;
   white-space: nowrap;
 }
@@ -117,74 +107,66 @@ button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 34px;
-  height: 34px;
-  flex: 0 0 34px;
-  border-radius: 10px;
-  color: var(--velora-primary, var(--ant-color-primary));
-  background: var(--velora-on-header);
-  font-size: 18px;
-  box-shadow:
-    0 2px 10px rgba(2, 8, 20, 0.18),
-    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  width: 30px;
+  height: 30px;
+  flex: 0 0 30px;
+  border-radius: 8px;
+  background: transparent;
+}
+.velora-brand-mark img {
+  display: block;
 }
 .velora-brand-text {
   display: flex;
   flex-direction: column;
   min-width: 0;
-  line-height: 1.2;
+  line-height: 1.25;
 }
 .velora-brand-name {
   overflow: hidden;
-  color: var(--velora-on-header);
-  font-size: 16px;
-  font-weight: 650;
-  letter-spacing: 0.03em;
+  color: var(--velora-title);
+  font-size: 15px;
+  font-weight: 600;
   text-overflow: ellipsis;
 }
 .velora-brand-sub {
-  margin-top: 2px;
-  color: rgba(255, 255, 255, 0.82);
+  color: var(--velora-secondary);
   font-size: 11px;
-  font-weight: 500;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
 }
 
-/* 顶栏导航 */
+/* 顶栏导航（浅色） */
 .velora-module-nav {
   display: flex;
   align-items: center;
-  gap: 4px;
-  margin-left: 14px;
-  height: 64px;
+  gap: 2px;
+  margin-left: 8px;
+  height: 56px;
 }
 .velora-module-tab {
   appearance: none;
   border: none;
   background: transparent;
-  color: rgba(255, 255, 255, 0.82);
+  color: var(--velora-text);
   font-size: 14px;
   font-weight: 500;
   font-family: inherit;
-  line-height: 34px;
-  padding: 0 15px;
-  border-radius: 9px;
+  line-height: 32px;
+  padding: 0 14px;
+  border-radius: 6px;
   cursor: pointer;
   transition:
-    background 0.18s ease,
-    color 0.18s ease;
+    background 0.15s ease,
+    color 0.15s ease;
   white-space: nowrap;
 }
 .velora-module-tab:hover {
-  background: rgba(255, 255, 255, 0.16);
-  color: #fff;
+  background: var(--velora-border-light, var(--ant-color-fill-alter));
+  color: var(--velora-title);
 }
 .velora-module-tab.is-active {
-  background: rgba(255, 255, 255, 0.24);
-  color: #fff;
+  color: var(--velora-primary, var(--ant-color-primary));
+  background: var(--velora-primary-soft, var(--ant-color-primary-bg));
   font-weight: 600;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18);
 }
 @media (max-width: 860px) {
   .velora-module-nav {
@@ -198,40 +180,27 @@ button {
   justify-content: flex-end;
   flex: 1;
   min-width: 0;
-  height: 64px;
+  height: 56px;
   gap: 10px;
 }
 
 /* 顶栏紧凑搜索（桌面端） */
 .velora-header-search {
-  width: 240px;
+  width: 220px;
 }
 .velora-header-search .ant-input-affix-wrapper {
-  height: 34px;
-  border: 1px solid rgba(255, 255, 255, 0.24);
-  border-radius: 9px;
-  color: var(--velora-on-header);
-  background: rgba(255, 255, 255, 0.14);
-  box-shadow: none;
+  height: 32px;
+  border-radius: 6px;
+  background: var(--velora-bg-layout, var(--ant-color-bg-layout));
+  border-color: var(--velora-border, var(--ant-color-border));
 }
 .velora-header-search .ant-input-search-btn {
-  height: 34px !important;
+  height: 32px !important;
   border: 0 !important;
-  padding-inline: 10px;
-  color: rgba(255, 255, 255, 0.85) !important;
+  padding-inline: 8px;
+  color: var(--velora-secondary) !important;
   background: transparent !important;
   box-shadow: none !important;
-}
-.velora-header-search .ant-input-affix-wrapper:hover,
-.velora-header-search .ant-input-affix-wrapper:focus-within {
-  border-color: rgba(255, 255, 255, 0.4);
-  background: rgba(255, 255, 255, 0.22);
-}
-.velora-header-search input {
-  color: var(--velora-on-header);
-}
-.velora-header-search input::placeholder {
-  color: rgba(255, 255, 255, 0.72);
 }
 @media (max-width: 1080px) {
   .velora-header-search {
@@ -244,26 +213,26 @@ button {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  height: 36px;
-  padding: 0 10px 0 6px;
-  border: 1px solid rgba(255, 255, 255, 0.22);
-  border-radius: 10px;
-  background: rgba(255, 255, 255, 0.12);
+  height: 34px;
+  padding: 0 10px 0 4px;
+  border: 1px solid var(--velora-border, var(--ant-color-border));
+  border-radius: 8px;
+  background: var(--velora-bg-container, var(--ant-color-bg-container));
   cursor: pointer;
-  transition: background 0.18s ease;
+  transition: background 0.15s ease;
 }
 .velora-user-chip:hover {
-  background: rgba(255, 255, 255, 0.2);
+  background: var(--velora-border-light, var(--ant-color-fill-alter));
 }
 .velora-user-chip .ant-avatar {
   color: var(--velora-primary);
-  background: var(--velora-on-header);
+  background: var(--velora-primary-soft);
   font-weight: 600;
 }
 .velora-user-chip-name {
   max-width: 120px;
   overflow: hidden;
-  color: var(--velora-on-header);
+  color: var(--velora-title);
   font-size: 13px;
   font-weight: 500;
   text-overflow: ellipsis;
@@ -273,23 +242,23 @@ button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 34px;
-  height: 34px;
+  width: 32px;
+  height: 32px;
   border: 0;
-  border-radius: 9px;
-  color: var(--velora-on-header);
+  border-radius: 6px;
+  color: var(--velora-text);
   background: transparent;
-  font-size: 16px;
+  font-size: 15px;
 }
 .velora-header-trigger:hover {
-  background: rgba(255, 255, 255, 0.18);
+  background: var(--velora-border-light, var(--ant-color-fill-alter));
 }
 .velora-sider-trigger {
-  margin-left: 6px;
+  margin-left: 4px;
 }
 .velora-mobile-menu-trigger {
   display: none;
-  margin: 0 4px 0 6px;
+  margin: 0 4px 0 8px;
 }
 @media (max-width: 900px) {
   .velora-mobile-menu-trigger {
@@ -302,197 +271,79 @@ button {
 
 .velora-locale-select {
   width: 72px;
-  color: var(--velora-on-header);
-}
-.velora-locale-select .ant-select-selector,
-.velora-locale-select .ant-select-selection-item,
-.velora-locale-select .ant-select-arrow {
-  color: var(--velora-on-header) !important;
-  background: transparent !important;
 }
 
-/* ---------- 首页 Hero（浅色面板 + 品牌光晕） ---------- */
+/* ---------- 内容区 ---------- */
 
-.velora-home-main {
-  background:
-    radial-gradient(1100px 420px at 82% -140px, rgba(22, 119, 255, 0.07), transparent 60%),
-    var(--velora-bg-layout);
+.velora-main-content {
+  min-width: 0;
+  background: var(--velora-bg-layout, var(--ant-color-bg-layout));
 }
-.velora-home-page-content {
-  width: min(1200px, 100%);
+.velora-home-page-content,
+.velora-page-content {
+  width: min(1240px, 100%);
   margin: 0 auto;
-  padding: 28px 32px 56px;
+  padding: 20px 24px 48px;
 }
 @media (max-width: 640px) {
-  .velora-home-page-content {
-    padding: 16px 16px 40px;
+  .velora-home-page-content,
+  .velora-page-content {
+    padding: 12px 12px 36px;
   }
 }
 
-.velora-hero {
-  position: relative;
-  overflow: hidden;
-  padding: 38px 44px 32px;
-  border-radius: 20px;
-  color: var(--velora-title);
-  background:
-    radial-gradient(720px 260px at 88% -60%, rgba(64, 150, 255, 0.16), transparent 62%),
-    radial-gradient(520px 200px at 8% 130%, rgba(22, 119, 255, 0.08), transparent 60%),
-    linear-gradient(180deg, #ffffff 0%, #f4f8ff 100%);
-  border: 1px solid var(--velora-border);
-  box-shadow: 0 16px 40px -20px rgba(31, 41, 55, 0.16);
-}
-/* 细腻网格纹理（纯 CSS） */
-.velora-hero::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background-image:
-    linear-gradient(rgba(22, 119, 255, 0.05) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(22, 119, 255, 0.05) 1px, transparent 1px);
-  background-size: 44px 44px;
-  mask-image: radial-gradient(620px 260px at 30% 0%, black, transparent 78%);
-}
-.velora-hero-inner {
-  position: relative;
-  z-index: 1;
-  max-width: 780px;
-}
-.velora-hero-eyebrow {
+/* 首页 / 列表页头部 */
+.velora-page-head {
   display: flex;
-  align-items: center;
-  gap: 10px;
-  margin: 0 0 14px;
-  color: var(--velora-primary);
-  font-size: 12px;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  margin: 4px 0 18px;
+}
+.velora-page-head-title {
+  margin: 0 !important;
   font-weight: 600;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
 }
-.velora-hero-eyebrow::before {
-  content: "";
-  width: 26px;
-  height: 1px;
-  background: color-mix(in srgb, var(--velora-primary) 55%, transparent);
+.velora-page-head-desc {
+  margin: 4px 0 0 !important;
+  color: var(--velora-text, var(--ant-color-text-secondary)) !important;
+  font-size: 13px;
 }
-.velora-hero-title {
-  margin: 0;
-  color: var(--velora-title);
-  font-size: clamp(24px, 3vw, 30px);
-  font-weight: 680;
-  letter-spacing: -0.01em;
-  line-height: 1.35;
-}
-.velora-hero-title .velora-hero-name {
+.velora-page-head .anticon {
   color: var(--velora-primary);
 }
-.velora-hero-desc {
-  margin: 10px 0 0;
-  color: var(--velora-text);
-  font-size: 14px;
-  line-height: 1.7;
-}
-.velora-hero-search {
-  margin-top: 26px;
-  max-width: 620px;
-}
-.velora-hero-search .ant-input-affix-wrapper {
-  height: 48px;
-  border-radius: 12px;
-  border: 1px solid var(--velora-border);
-  background: #fff;
-  box-shadow: 0 8px 24px -10px rgba(31, 41, 55, 0.18);
-  padding-inline: 16px;
-}
-.velora-hero-search .ant-input-search-btn {
-  height: 48px !important;
-  border-radius: 0 11px 11px 0 !important;
-  padding-inline: 18px !important;
-  font-weight: 500;
-}
-.velora-hero-search input {
-  font-size: 14.5px;
-}
-.velora-hero-stats {
-  display: flex;
-  gap: 12px;
-  margin-top: 30px;
-}
-.velora-hero-stat {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 132px;
-  padding: 12px 16px;
-  border: 1px solid var(--velora-border);
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.9);
-}
-.velora-hero-stat-value {
-  color: var(--velora-title);
-  font-size: 22px;
-  font-weight: 650;
-  font-variant-numeric: tabular-nums;
-  letter-spacing: -0.01em;
-}
-.velora-hero-stat-label {
-  color: var(--velora-secondary);
-  font-size: 12px;
-}
-@media (max-width: 720px) {
-  .velora-hero {
-    padding: 28px 22px 24px;
-    border-radius: 16px;
-  }
-  .velora-hero-stats {
-    flex-wrap: wrap;
-  }
-  .velora-hero-stat {
-    min-width: calc(33.33% - 8px);
-    flex: 1;
-    padding: 10px 12px;
-  }
-}
 
-/* 首页分区面板 */
+/* 区块标题 */
 .velora-section-panel {
-  margin-top: 30px;
+  margin-top: 24px;
 }
 .velora-section-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 16px;
+  margin-bottom: 12px;
 }
 .velora-section-title {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   margin: 0 !important;
-  font-weight: 650;
+  font-size: 15px !important;
+  font-weight: 600;
 }
 .velora-section-title .anticon {
   color: var(--velora-primary);
 }
-.velora-section-title::after {
-  content: "";
-  flex: 1;
-  height: 1px;
-  margin-left: 16px;
-  background: var(--velora-border);
-}
 .velora-section-more {
-  margin-left: 14px;
   font-size: 13px;
 }
 
-/* ---------- 应用卡片 ---------- */
+/* ---------- 应用卡片（标准、紧凑） ---------- */
 
 .velora-app-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(252px, 1fr));
-  gap: 18px;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 14px;
 }
 
 .velora-app-grid-item {
@@ -501,91 +352,66 @@ button {
 }
 
 .velora-app-card {
-  position: relative;
   display: flex;
   flex-direction: column;
   height: 100%;
-  min-height: 216px;
-  padding: 20px;
+  padding: 16px;
   background: var(--velora-bg-container, var(--ant-color-bg-container));
   border: 1px solid var(--velora-border, var(--ant-color-border));
-  border-radius: 16px;
+  border-radius: 10px;
   cursor: pointer;
   outline: none;
   transition:
-    transform 0.2s ease,
-    border-color 0.2s ease,
-    box-shadow 0.2s ease;
-}
-.velora-app-card::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  border-radius: 16px;
-  pointer-events: none;
-  opacity: 0;
-  background: linear-gradient(160deg, rgba(22, 119, 255, 0.06), transparent 42%);
-  transition: opacity 0.2s ease;
+    box-shadow 0.15s ease,
+    border-color 0.15s ease;
 }
 .velora-app-card:hover,
 .velora-app-card:focus-visible {
-  transform: translateY(-3px);
-  border-color: color-mix(in srgb, var(--velora-primary, #1677ff) 40%, var(--velora-border));
-  box-shadow: 0 14px 32px -14px rgba(31, 41, 55, 0.16);
-}
-.velora-app-card:hover::before {
-  opacity: 1;
+  border-color: var(--velora-primary-hover, var(--ant-color-primary-hover));
+  box-shadow: 0 4px 12px rgba(31, 41, 55, 0.08);
 }
 
 .velora-app-card-head {
-  position: relative;
-  z-index: 1;
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  margin-bottom: 14px;
+  margin-bottom: 12px;
 }
 .velora-app-card-actions {
   display: flex;
   align-items: center;
-  gap: 2px;
+  gap: 4px;
 }
 
-/* 图标容器：浅蓝底 + 品牌渐变描边 */
+/* 图标容器：浅灰底，无渐变无装饰 */
 .velora-app-icon {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   flex: 0 0 auto;
-  border: 1px solid color-mix(in srgb, var(--velora-primary, #1677ff) 22%, transparent);
-  border-radius: 13px;
+  border-radius: 8px;
   color: var(--velora-primary, var(--ant-color-primary));
-  background: linear-gradient(145deg, #f0f7ff 0%, #e6f4ff 100%);
-  box-shadow: 0 6px 14px -8px rgba(22, 119, 255, 0.35);
+  background: var(--velora-border-light, var(--ant-color-fill-alter));
   font-weight: 600;
-  transition: transform 0.2s ease;
-}
-.velora-app-card:hover .velora-app-icon {
-  transform: scale(1.05);
 }
 
 .velora-app-card-title {
-  margin-bottom: 6px !important;
+  margin-bottom: 4px !important;
   color: var(--velora-title, var(--ant-color-text)) !important;
-  font-weight: 650 !important;
+  font-weight: 600 !important;
 }
 .velora-app-card-desc {
-  margin-bottom: 14px !important;
+  margin-bottom: 12px !important;
   color: var(--velora-text, var(--ant-color-text-secondary)) !important;
-  font-size: 13px;
-  line-height: 1.65;
+  font-size: 12.5px;
+  line-height: 1.6;
 }
 
 .velora-app-card-meta {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
-  margin-bottom: 14px;
+  gap: 4px 6px;
+  margin-bottom: 12px;
 }
 
 .velora-app-card-cat.ant-tag {
@@ -593,53 +419,26 @@ button {
   color: var(--velora-primary, var(--ant-color-primary));
   background: var(--velora-primary-soft, var(--ant-color-primary-bg));
   border-color: transparent;
-  border-radius: 7px;
   font-weight: 500;
 }
 
 .velora-app-card-tag.ant-tag {
   margin-inline-end: 0;
-  border-radius: 7px;
-  color: var(--velora-text);
-  background: var(--velora-bg-elevated, var(--ant-color-fill-alter));
-  border-color: transparent;
 }
 
 .velora-app-card-foot {
-  position: relative;
-  z-index: 1;
   display: flex;
   align-items: center;
   justify-content: space-between;
   margin-top: auto;
-  padding-top: 12px;
+  padding-top: 10px;
   border-top: 1px solid var(--velora-border-light, var(--ant-color-border-secondary));
-}
-.velora-app-card-status {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  color: var(--velora-secondary, var(--ant-color-text-tertiary));
-  font-size: 12.5px;
-  font-weight: 500;
-}
-.velora-status-dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: var(--velora-faint, #b3bdcb);
-  box-shadow: 0 0 0 3px color-mix(in srgb, #b3bdcb 16%, transparent);
-}
-.velora-status-dot.is-up {
-  background: #52c41a;
-  box-shadow: 0 0 0 3px rgba(82, 196, 26, 0.16);
 }
 
 .velora-recent-time {
-  padding: 8px 4px 0;
+  padding: 6px 2px 0;
   color: var(--velora-secondary, var(--ant-color-text-tertiary));
   font-size: 12px;
-  font-variant-numeric: tabular-nums;
 }
 
 /* 筛选 chips */
@@ -655,7 +454,7 @@ button {
   color: var(--velora-secondary, var(--ant-color-text-tertiary));
   font-size: 13px;
   font-weight: 500;
-  margin-right: 4px;
+  margin-right: 2px;
 }
 
 .velora-filter-chip {
@@ -665,14 +464,14 @@ button {
   color: var(--velora-text, var(--ant-color-text-secondary));
   font-size: 13px;
   font-family: inherit;
-  line-height: 28px;
-  padding: 0 14px;
-  border-radius: 999px;
+  line-height: 26px;
+  padding: 0 12px;
+  border-radius: 6px;
   cursor: pointer;
-  transition: all 0.18s ease;
+  transition: all 0.15s ease;
 }
 .velora-filter-chip:hover {
-  border-color: color-mix(in srgb, var(--velora-primary, #1677ff) 55%, var(--velora-border));
+  border-color: var(--velora-primary-hover, var(--ant-color-primary-hover));
   color: var(--velora-primary, var(--ant-color-primary));
 }
 .velora-filter-chip.is-active {
@@ -680,152 +479,44 @@ button {
   color: #fff;
   background: var(--velora-primary, var(--ant-color-primary));
   font-weight: 500;
-  box-shadow: 0 4px 10px -4px rgba(22, 119, 255, 0.5);
 }
 
-/* 页面头部（应用中心 / 收藏 / 详情信息区） */
-.velora-page-head {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 16px;
-  margin: 4px 0 22px;
-}
-.velora-page-head-title {
-  margin: 0 !important;
-  font-weight: 680;
-  letter-spacing: -0.01em;
-}
-.velora-page-head-desc {
-  margin: 6px 0 0 !important;
-  color: var(--velora-text, var(--ant-color-text-secondary)) !important;
-  font-size: 14px;
-}
-.velora-page-head .anticon {
-  color: var(--velora-primary);
-}
-
-/* ---------- 详情页（浅色品牌头） ---------- */
-
-.velora-detail-hero {
-  position: relative;
-  overflow: hidden;
-  display: flex;
-  align-items: flex-start;
-  gap: 22px;
-  padding: 30px 32px;
-  border-radius: 18px;
-  color: var(--velora-title);
-  background:
-    radial-gradient(560px 200px at 92% -40%, rgba(64, 150, 255, 0.14), transparent 62%),
-    linear-gradient(180deg, #ffffff 0%, #f2f7ff 100%);
-  border: 1px solid var(--velora-border);
-  box-shadow: 0 14px 34px -18px rgba(31, 41, 55, 0.16);
-}
-.velora-detail-hero .velora-app-icon {
-  width: 64px;
-  height: 64px;
-  font-size: 30px;
-  border-radius: 16px;
-}
-.velora-detail-hero-main {
-  flex: 1;
-  min-width: 0;
-}
-.velora-detail-hero-title {
-  margin: 0 !important;
-  color: var(--velora-title) !important;
-  font-weight: 680;
-}
-.velora-detail-hero-desc {
-  margin: 8px 0 0 !important;
-  color: var(--velora-text) !important;
-  font-size: 14px;
-  line-height: 1.7;
-}
-.velora-detail-hero-meta {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px;
-  margin-top: 14px;
-}
-.velora-detail-hero-meta .ant-tag {
-  margin-inline-end: 0;
-  border-radius: 7px;
-}
-.velora-detail-hero .ant-badge-status-text {
-  color: var(--velora-text);
-  font-size: 12.5px;
-}
-.velora-detail-hero-action {
-  flex: 0 0 auto;
-}
-@media (max-width: 640px) {
-  .velora-detail-hero {
-    flex-direction: column;
-    padding: 24px 20px;
-  }
-  .velora-detail-hero-action {
-    width: 100%;
-  }
-  .velora-detail-hero-action .ant-btn {
-    width: 100%;
-  }
-}
+/* 详情页（标准卡片布局） */
 .velora-detail-section {
-  margin-top: 18px;
+  margin-top: 14px;
 }
 .velora-detail-section .ant-card-head-title {
   font-weight: 600;
 }
 
 /* 管理概览统计卡片 */
-.velora-stat-card .ant-card-body {
-  padding: 18px 20px;
-}
-.velora-stat-card .ant-statistic-title {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  color: var(--velora-text, var(--ant-color-text-secondary));
-  font-size: 13px;
-  font-weight: 500;
-}
 .velora-stat-card .ant-statistic-content {
-  margin-top: 8px;
-  font-size: 28px;
-  font-weight: 650;
-  font-variant-numeric: tabular-nums;
-  letter-spacing: -0.01em;
+  font-weight: 600;
 }
 .velora-stat-icon {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 30px;
-  height: 30px;
-  border-radius: 9px;
-  font-size: 15px;
+  width: 26px;
+  height: 26px;
+  border-radius: 7px;
+  font-size: 14px;
 }
 
 /* ---------- 侧栏（管理后台） ---------- */
 
 .velora-sider.ant-layout-sider {
   position: sticky;
-  top: 64px;
+  top: 56px;
   align-self: flex-start;
-  flex: 0 0 232px;
-  width: 232px !important;
-  max-width: 232px !important;
-  min-width: 232px !important;
-  height: calc(100vh - 64px);
+  flex: 0 0 216px;
+  width: 216px !important;
+  max-width: 216px !important;
+  min-width: 216px !important;
+  height: calc(100vh - 56px);
   transition: none !important;
   background: var(--velora-bg-sider, var(--ant-color-bg-layout)) !important;
   border-right: 1px solid var(--velora-border-light, var(--ant-color-border-secondary));
-}
-.velora-sider .ant-layout-sider-children {
-  height: 100%;
 }
 .velora-layout.is-collapsed .velora-sider.ant-layout-sider {
   flex-basis: 64px;
@@ -844,22 +535,8 @@ button {
   overflow-y: auto;
   overflow-x: hidden;
   border-inline-end: 0 !important;
-  padding: 14px 10px;
+  padding: 12px 8px;
   background: transparent !important;
-}
-.velora-side-menu.ant-menu-inline .ant-menu-item,
-.velora-side-menu.ant-menu-inline .ant-menu-submenu-title {
-  display: flex !important;
-  align-items: center !important;
-  height: 40px !important;
-  line-height: 40px !important;
-  margin-block: 3px !important;
-  margin-inline: 0 !important;
-  padding-inline: 12px !important;
-  border-radius: 10px;
-  width: 100% !important;
-  color: var(--velora-text, var(--ant-color-text-secondary));
-  font-size: 14px;
 }
 .velora-side-menu.ant-menu-inline-collapsed {
   width: 100% !important;
@@ -878,14 +555,20 @@ button {
 .velora-side-menu.ant-menu-inline-collapsed .ant-menu-item .anticon {
   margin-inline-end: 0 !important;
 }
-.velora-side-menu.ant-menu-inline:not(.ant-menu-inline-collapsed)
-  .ant-menu-item
-  .anticon,
-.velora-side-menu.ant-menu-inline:not(.ant-menu-inline-collapsed)
-  .ant-menu-submenu-title
-  .anticon {
-  margin-inline-end: 12px !important;
-  font-size: 16px;
+.velora-side-menu .ant-menu-item-group-title {
+  height: auto;
+  margin-top: 10px;
+  padding: 6px 12px;
+  color: var(--velora-secondary, var(--ant-color-text-tertiary));
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 16px;
+}
+.velora-side-menu .ant-menu-item-group:first-child .ant-menu-item-group-title {
+  margin-top: 0;
+}
+.velora-side-menu .ant-menu-item .anticon {
+  font-size: 15px;
 }
 .velora-side-menu .ant-menu-title-content,
 .velora-side-menu .ant-menu-title-content > a,
@@ -898,216 +581,165 @@ button {
   color: inherit !important;
   line-height: inherit !important;
 }
-.velora-side-menu .ant-menu-item:hover {
-  background: color-mix(in srgb, var(--velora-bg-container, #fff) 70%, transparent) !important;
-  color: var(--velora-title, var(--ant-color-text));
-}
-.velora-side-menu .ant-menu-item-selected {
-  border: 1px solid var(--velora-border-light, var(--ant-color-border-secondary)) !important;
-  background: var(--velora-bg-container, var(--ant-color-bg-container)) !important;
-  box-shadow: 0 2px 6px rgba(31, 41, 55, 0.06);
-  color: var(--velora-primary, var(--ant-color-primary)) !important;
-  font-weight: 600;
-}
-.velora-side-menu .ant-menu-item-selected:hover {
-  background: var(--velora-bg-container, var(--ant-color-bg-container)) !important;
-  color: var(--velora-primary, var(--ant-color-primary)) !important;
-}
-.velora-side-menu .ant-menu-item-group-title {
-  height: auto;
-  margin-top: 12px;
-  padding: 6px 12px;
-  color: var(--velora-secondary, var(--ant-color-text-tertiary));
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  line-height: 16px;
-  text-transform: uppercase;
-}
-.velora-side-menu .ant-menu-item-group:first-child .ant-menu-item-group-title {
-  margin-top: 0;
-}
-
-.velora-main-content {
-  min-width: 0;
-  background: var(--ant-color-bg-layout);
-}
-.velora-page-content {
-  width: min(1440px, 100%);
-  margin: 0 auto;
-  padding: 24px 28px 44px;
-}
 
 /* ---------- 登录页 ---------- */
 
 .velora-login {
   min-height: 100dvh;
   color: var(--velora-text, var(--ant-color-text-secondary));
-  background:
-    radial-gradient(1000px 420px at 85% -120px, rgba(22, 119, 255, 0.08), transparent 60%),
-    var(--velora-bg-layout, var(--ant-color-bg-layout));
+  background: var(--velora-bg-layout, var(--ant-color-bg-layout));
 }
 .velora-login-header {
-  min-height: 64px;
+  min-height: 56px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 44px;
-  color: var(--velora-on-header);
-  background:
-    radial-gradient(720px 200px at 10% -80%, rgba(255, 255, 255, 0.16), transparent 65%),
-    linear-gradient(100deg, var(--velora-header-from) 0%, var(--velora-header-mid) 55%, var(--velora-header-to) 100%);
+  padding: 0 32px;
+  color: var(--velora-title);
+  background: var(--velora-bg-container, var(--ant-color-bg-container));
+  border-bottom: 1px solid var(--velora-border, var(--ant-color-border));
 }
 .velora-login-lockup {
   display: flex;
   align-items: center;
   gap: 10px;
-  color: var(--velora-on-header);
-  font-size: 16px;
-  font-weight: 650;
-  letter-spacing: 0.03em;
+  color: var(--velora-title);
+  font-size: 15px;
+  font-weight: 600;
+}
+.velora-login-note {
+  margin-top: 20px;
+  font-size: 12.5px;
+  color: var(--velora-secondary, var(--ant-color-text-tertiary));
+  line-height: 1.7;
 }
 .velora-login-main {
-  min-height: calc(100dvh - 64px - 68px);
+  min-height: calc(100dvh - 56px - 56px);
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 48px 40px;
+  padding: 40px 24px;
 }
 .velora-login-card {
-  width: min(100%, 960px);
+  width: min(100%, 880px);
   display: grid;
-  grid-template-columns: 1.05fr 0.95fr;
+  grid-template-columns: 1fr 1fr;
   overflow: hidden;
   background: var(--velora-bg-container, var(--ant-color-bg-container));
   border: 1px solid var(--velora-border, var(--ant-color-border));
-  border-radius: 20px;
-  box-shadow: 0 24px 60px -24px rgba(31, 41, 55, 0.2);
+  border-radius: 12px;
 }
 .velora-login-intro {
   display: flex;
   flex-direction: column;
-  padding: 46px;
-  background:
-    radial-gradient(480px 220px at 90% -20%, rgba(22, 119, 255, 0.08), transparent 62%),
-    var(--velora-bg-layout, var(--ant-color-bg-layout));
+  padding: 40px;
+  background: var(--velora-bg-layout, var(--ant-color-bg-layout));
   border-right: 1px solid var(--velora-border, var(--ant-color-border));
 }
 .velora-login-eyebrow {
   margin: 0;
   color: var(--velora-primary, var(--ant-color-primary));
-  font-family: var(--ant-font-family-code);
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 600;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.06em;
 }
 .velora-login-intro-title {
-  margin: 16px 0 0;
+  margin: 14px 0 0;
   color: var(--velora-title, var(--ant-color-text));
-  font-size: 26px;
-  font-weight: 650;
-  line-height: 1.45;
-  letter-spacing: -0.01em;
+  font-size: 24px;
+  font-weight: 600;
+  line-height: 1.5;
 }
 .velora-login-intro-copy {
-  max-width: 24em;
-  margin: 12px 0 0;
+  margin: 10px 0 0;
   color: var(--velora-text, var(--ant-color-text-secondary));
-  font-size: 13.5px;
+  font-size: 13px;
   line-height: 1.8;
 }
 .velora-login-workflow {
-  margin: 30px 0 0;
+  margin: 24px 0 0;
   padding: 0;
-  border-top: 1px solid var(--velora-border, var(--ant-color-border));
 }
 .velora-login-workflow-item {
-  min-height: 50px;
+  min-height: 44px;
   display: grid;
-  grid-template-columns: 10px 124px minmax(0, 1fr);
+  grid-template-columns: 8px 110px minmax(0, 1fr);
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   list-style: none;
   border-bottom: 1px solid var(--velora-border, var(--ant-color-border));
 }
+.velora-login-workflow-item:last-child {
+  border-bottom: 0;
+}
 .velora-login-workflow-dot {
-  width: 8px;
-  height: 8px;
+  width: 7px;
+  height: 7px;
   border-radius: 50%;
-  box-shadow: 0 0 0 3px color-mix(in srgb, currentColor 14%, transparent);
 }
 .velora-login-workflow-name {
   color: var(--velora-title, var(--ant-color-text));
-  font-size: 13.5px;
+  font-size: 13px;
   font-weight: 600;
 }
 .velora-login-workflow-desc {
   min-width: 0;
   color: var(--velora-secondary, var(--ant-color-text-tertiary));
-  font-size: 12.5px;
+  font-size: 12px;
 }
 .velora-login-form {
   display: flex;
   align-items: center;
-  padding: 46px;
-  background: var(--velora-bg-container, var(--ant-color-bg-container));
+  padding: 40px;
 }
 .velora-login-form-inner {
   width: 100%;
-  max-width: 320px;
+  max-width: 300px;
   margin: 0 auto;
 }
 .velora-login-form-title {
   margin: 0;
   color: var(--velora-title, var(--ant-color-text));
-  font-size: 22px;
-  font-weight: 650;
-  letter-spacing: -0.01em;
+  font-size: 20px;
+  font-weight: 600;
 }
 .velora-login-form-desc {
-  margin: 6px 0 24px;
+  margin: 6px 0 20px;
   color: var(--velora-secondary, var(--ant-color-text-tertiary));
   font-size: 13px;
 }
 .velora-login-footer {
-  min-height: 68px;
+  min-height: 56px;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 12px 40px;
+  padding: 10px 32px;
   color: var(--velora-secondary, var(--ant-color-text-tertiary));
   font-size: 12px;
   background: var(--velora-bg-container, var(--ant-color-bg-container));
   border-top: 1px solid var(--velora-border, var(--ant-color-border));
 }
-@media (max-width: 760px) {
-  .velora-login-header {
-    padding: 0 20px;
-  }
-  .velora-login-main {
-    align-items: flex-start;
-    padding: 24px 16px 32px;
-  }
+@media (max-width: 720px) {
   .velora-login-card {
     grid-template-columns: minmax(0, 1fr);
   }
   .velora-login-form {
     order: 1;
-    padding: 32px 24px 36px;
+    padding: 28px 24px 32px;
   }
   .velora-login-intro {
     order: 2;
-    padding: 28px 24px 32px;
+    padding: 24px;
   }
 }
 
 /* 响应式：小屏应用网格 */
 @media (max-width: 640px) {
   .velora-app-grid {
-    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-    gap: 12px;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 10px;
   }
   .velora-app-card {
-    padding: 16px;
+    padding: 12px;
   }
 }

@@ -1,9 +1,9 @@
-import { useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate, useParams } from 'react-router-dom'
 import { App as AntdApp, Badge, Button, Card, Descriptions, Skeleton, Tag, Typography } from 'antd'
 import { ArrowLeftOutlined, HeartFilled, HeartOutlined, RocketOutlined } from '@ant-design/icons'
 import { useState } from 'react'
-import { getApplication, launchApplication, queryKeys } from '../api/api'
+import { addFavorite, getApplication, launchApplication, queryKeys, removeFavorite } from '../api/api'
 import { AppIcon } from '../components/AppCard'
 import QueryErrorState from '../components/QueryErrorState'
 import { HEALTH_COLOR, HEALTH_LABEL, SSO_TYPE_COLOR, SSO_TYPE_LABEL } from '../labels'
@@ -14,14 +14,34 @@ export default function ApplicationDetail() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const { message } = AntdApp.useApp()
+  const queryClient = useQueryClient()
   const [launching, setLaunching] = useState(false)
+  // 收藏状态：初始取服务端 isFavorite，点击后乐观更新。
+  const [favorited, setFavorited] = useState<boolean | null>(null)
 
   const { data: app, isLoading, isError, refetch } = useQuery({
     queryKey: queryKeys.application(id!),
     queryFn: () => getApplication(id!),
     enabled: !!id,
   })
+  const isFavorite = favorited ?? app?.isFavorite ?? false
   usePageTitle(app?.name ? `应用详情 · ${app.name}` : '应用详情')
+
+  const favMutation = useMutation({
+    mutationFn: () => (isFavorite ? removeFavorite(id!) : addFavorite(id!)),
+    onMutate: () => setFavorited((v) => !(v ?? app?.isFavorite ?? false)),
+    onSuccess: () => {
+      message.success(isFavorite ? '已取消收藏' : '已收藏')
+      setFavorited(null)
+      void queryClient.invalidateQueries({ queryKey: ['applications'] })
+      void queryClient.invalidateQueries({ queryKey: ['favorites'] })
+      void queryClient.invalidateQueries({ queryKey: queryKeys.application(id!) })
+    },
+    onError: (err) => {
+      setFavorited(null)
+      message.error(err instanceof Error ? err.message : '操作失败')
+    },
+  })
 
   const handleLaunch = async () => {
     if (!id) return
@@ -115,15 +135,16 @@ export default function ApplicationDetail() {
           </Descriptions.Item>
           <Descriptions.Item label="更新时间">{formatDateTime(app.updatedAt)}</Descriptions.Item>
           <Descriptions.Item label="收藏">
-            {app.isFavorite ? (
-              <>
-                <HeartFilled style={{ color: '#FA541C' }} /> 已收藏
-              </>
-            ) : (
-              <>
-                <HeartOutlined /> 未收藏
-              </>
-            )}
+            <Button
+              type={isFavorite ? 'default' : 'primary'}
+              ghost={isFavorite}
+              size="small"
+              icon={isFavorite ? <HeartFilled style={{ color: '#FA541C' }} /> : <HeartOutlined />}
+              loading={favMutation.isPending}
+              onClick={() => favMutation.mutate()}
+            >
+              {isFavorite ? '已收藏' : '收藏'}
+            </Button>
           </Descriptions.Item>
         </Descriptions>
       </Card>

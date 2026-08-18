@@ -131,16 +131,29 @@ Casdoor 与 Velora 共用 PostgreSQL Server 但使用**独立 database**（`casd
 ### OIDC Configuration（一次性，2 分钟）
 
 > Velora 只消费 Casdoor 的身份，**不会**自动在你的 Casdoor 里创建应用——身份体系归 Casdoor 管。
-> 下表把 `.env` / `docker-compose.yml` 中的默认值对应到 Casdoor UI 操作：
+> 两种方式任选其一：
 
-1. 启动后打开 Casdoor 控制台 <http://localhost:8443>（默认账号 `admin` / `123`）。
-2. 打开 **应用 → 添加应用**，填写：
-   - 名称：`velora`（对应 `CASDOOR_CLIENT_ID` / compose 环境变量 `CASDOOR_CLIENT_ID=velora`）；
-   - 回调地址（Redirect URI）：`http://localhost:8080/api/v1/auth/oidc/callback`（对应 `CASDOOR_REDIRECT_URI`）；
-   - 授权类型勾选 **Authorization Code**，并在高级选项中启用 **PKCE**；
-   - 保存后复制该应用的 **Client ID / Client Secret** 到 `.env`（compose 环境变量 `CASDOOR_CLIENT_SECRET`）。
-3. 用户授权：在 **用户** 中给门户管理员添加角色 `velora_admin`（对应 `VELORA_ADMIN_ROLE`）；普通用户登录后自动拥有门户访问权。
-4. 打开 Velora Web <http://localhost:5173> → 未登录自动跳 Casdoor → 认证 → 回到门户。
+**方式 A（推荐，一条命令）**：`make docker-up` 启动后执行初始化脚本，自动创建 `velora` 应用（启用 `password` + `authorization_code` 两种授权模式）：
+
+```bash
+./scripts/init-casdoor.sh        # 输出 CASDOOR_CLIENT_ID / CASDOOR_CLIENT_SECRET
+# 将输出写入 .env（或 compose 环境变量），然后重启 server：docker compose up -d server
+```
+
+**方式 B（Casdoor UI 手工配置）**：打开 Casdoor 控制台 <http://localhost:8443>（默认账号 `admin` / `123`），按 **应用 → 添加应用** 填写：
+
+1. 名称：`velora`（对应 `CASDOOR_CLIENT_ID` / compose 环境变量 `CASDOOR_CLIENT_ID=velora`）；
+2. 回调地址（Redirect URI）：`http://localhost:8080/api/v1/auth/oidc/callback`（对应 `CASDOOR_REDIRECT_URI`）；
+3. 授权类型勾选 **Authorization Code**（如需登录页账号密码直登，额外勾选 **Password**），并在高级选项中启用 **PKCE**；
+4. 保存后复制该应用的 **Client ID / Client Secret** 到 `.env`（compose 环境变量 `CASDOOR_CLIENT_SECRET`）。
+
+无论哪种方式，完成后：
+
+- 用户授权：在 **用户** 中给门户管理员添加角色 `velora_admin`（对应 `VELORA_ADMIN_ROLE`）；普通用户登录后自动拥有门户访问权。
+- 打开 Velora Web <http://localhost:5173>，登录页提供两种入口：
+  - **账号密码直登**：输入 Casdoor 账号密码，由 Velora 后端代理 Casdoor OAuth2 `password` 模式认证（无需跳转；Velora 不存储密码）；
+  - **Sign in with SSO**：标准 OIDC 授权码跳转 Casdoor 登录页（备选）。
+  - 两种方式成功后均回到门户；未登录访问受保护页面会自动跳登录页并在登录后回跳。
 
 > 提示：`make docker-up` 启动的 Casdoor 使用 `initData=true`，已内置 `admin` 账号与 `built-in` 示例应用；为 Velora 新建应用即可，无需改动内置数据。
 

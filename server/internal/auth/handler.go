@@ -91,6 +91,55 @@ func (h *Handler) Callback(c *gin.Context) {
 	c.Redirect(http.StatusFound, h.sanitizeRedirect(redirectFromState(state, h.oidc)))
 }
 
+// login 通过账号密码（Casdoor ROPC 代理）登录并建立会话。
+// 公开端点（无需会话/CSRF），由 httpserver 组装时注册并附加限流。
+func (h *Handler) LoginWithPassword(c *gin.Context) {
+	var body struct {
+		Username string `json:"username"`
+		Password string `json:"password"`
+		Redirect string `json:"redirect"`
+	}
+	if err := c.ShouldBindJSON(&body); err != nil {
+		response.Error(c, errs.InvalidParam("请求体格式错误"))
+		return
+	}
+	body.Username = strings.TrimSpace(body.Username)
+	if body.Username == "" || body.Password == "" {
+		response.Error(c, errs.New(errs.CodeLoginFailed, http.StatusBadRequest, "请输入账号和密码"))
+		return
+	}
+
+	user, err := h.oidc.LoginWithPassword(c.Request.Context(), body.Username, body.Password)
+	if err != nil {
+		if errs.Is(err, errs.CodeLoginFailed) {
+			response.Error(c, err)
+			return
+		}
+		response.Error(c, errs.Wrap(errs.CodeOIDCTokenFailed, http.StatusBadGateway, "登录服务暂不可用，请稍后再试", err))
+		return
+	}
+
+	session := h.sessions.NewSession(user)
+	encoded, err := h.sessions.Encode(session)
+	if err != nil {
+		response.Error(c, errs.Internal("会话创建失败", err))
+		return
+	}
+	path, maxAge, secure, domain := h.sessions.CookieOptions()
+	c.SetSameSite(http.SameSiteLaxMode)
+	c.SetCookie(SessionCookieName, encoded, maxAge, path, domain, secure, true)
+
+	if csrf, err := RandomToken(16); err == nil {
+		c.SetCookie(CSRFCookieName, csrf, maxAge, path, domain, secure, false)
+	}
+
+	if h.onLogin != nil {
+		h.onLogin(c, user.ID)
+	}
+
+	response.OK(c, gin.H{"redirect": h.sanitizeRedirect(body.Redirect)})
+}
+
 // redirectFromState 从（已由 Exchange 验证的）state 中取回调落点。
 // 为减少重复解析，这里从签名 state 解码；失败时回退默认路径。
 func redirectFromState(stateToken string, m *OIDCManager) string {

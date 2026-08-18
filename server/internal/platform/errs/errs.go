@@ -28,6 +28,7 @@ const (
 	CodeOIDCTokenFailed    Code = "A01003" // token 交换失败
 	CodeOIDCUserinfoFailed Code = "A01004" // 用户信息获取失败
 	CodeOIDCInvalidParam   Code = "A01005" // 登录参数无效
+	CodeLoginFailed        Code = "A01006" // 账号密码登录失败（凭据错误）
 
 	// A02xxx 应用
 	CodeApplicationNotFound   Code = "A02001"

@@ -30,6 +30,14 @@ export function oidcLoginUrl(redirect?: string): string {
   return `/api/v1/auth/oidc/login${q}`
 }
 
+/** 账号密码登录（后端代理 Casdoor OAuth2 password 模式）。成功后返回站内跳转目标。 */
+export function loginWithPassword(username: string, password: string, redirect?: string): Promise<{ redirect: string }> {
+  return apiFetch<{ redirect: string }>('/auth/login', {
+    method: 'POST',
+    body: { username, password, redirect: redirect && redirect.startsWith('/') ? redirect : undefined },
+  })
+}
+
 // --- 应用 ---
 
 export interface ListApplicationsParams {

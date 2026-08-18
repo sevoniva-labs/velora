@@ -8,12 +8,16 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/http"
+	"net/url"
 	"strings"
 	"sync"
 	"time"
 
 	"github.com/coreos/go-oidc/v3/oidc"
 	"golang.org/x/oauth2"
+
+	"github.com/sevoniva-labs/velora/server/internal/platform/errs"
 )
 
 // OIDCManager 封装与 Casdoor 的 OIDC Authorization Code + PKCE 交互。
@@ -162,6 +166,87 @@ func (m *OIDCManager) Exchange(ctx context.Context, code, stateToken string) (*C
 	return user, nil
 }
 
+// LoginWithPassword 通过 Casdoor OAuth2 Resource Owner Password 模式认证账号密码。
+// Velora 仅做代理：密码只经 HTTPS 提交给 Casdoor token 端点，不落库、不存储；
+// 返回的 id_token 做签名/issuer/audience/过期校验后解析用户信息。
+// （password 模式由 Casdoor 签发的 id_token 不带 nonce，故此处不做 nonce 校验。）
+func (m *OIDCManager) LoginWithPassword(ctx context.Context, username, password string) (*CurrentUser, error) {
+	if err := m.ensure(ctx); err != nil {
+		return nil, err
+	}
+	if strings.TrimSpace(username) == "" || password == "" {
+		return nil, errs.New(errs.CodeLoginFailed, http.StatusUnauthorized, "账号或密码不能为空")
+	}
+
+	form := url.Values{}
+	form.Set("grant_type", "password")
+	form.Set("client_id", m.clientID)
+	form.Set("client_secret", m.clientSecret)
+	form.Set("username", username)
+	form.Set("password", password)
+	form.Set("scope", "openid profile email")
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, m.config.Endpoint.TokenURL, strings.NewReader(form.Encode()))
+	if err != nil {
+		return nil, fmt.Errorf("构造登录请求失败: %w", err)
+	}
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req.Header.Set("Accept", "application/json")
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("请求 Casdoor 登录失败: %w", err)
+	}
+	defer resp.Body.Close()
+
+	// Casdoor 同时可能返回标准 OAuth 错误或 Casdoor 包装错误（status/msg）。
+	var payload struct {
+		Error            string `json:"error"`
+		ErrorDescription string `json:"error_description"`
+		IDToken          string `json:"id_token"`
+		Status           string `json:"status"`
+		Msg              string `json:"msg"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&payload); err != nil {
+		return nil, fmt.Errorf("解析 Casdoor 登录响应失败: %w", err)
+	}
+	if payload.Error != "" || payload.Status == "error" {
+		msg := payload.Msg
+		if msg == "" {
+			msg = payload.ErrorDescription
+		}
+		if msg == "" {
+			msg = payload.Error
+		}
+		return nil, errs.New(errs.CodeLoginFailed, http.StatusUnauthorized, "账号或密码错误")
+	}
+	if payload.IDToken == "" {
+		return nil, errs.New(errs.CodeLoginFailed, http.StatusUnauthorized, "登录服务未返回有效凭证")
+	}
+
+	idToken, err := m.verifier.Verify(ctx, payload.IDToken)
+	if err != nil {
+		return nil, fmt.Errorf("id_token 校验失败: %w", err)
+	}
+
+	var claims map[string]any
+	_ = idToken.Claims(&claims)
+	user := &CurrentUser{
+		ID:       idToken.Subject,
+		Username: firstString(claims, "preferred_username", "name"),
+		Email:    firstString(claims, "email"),
+		Avatar:   firstString(claims, "picture"),
+	}
+	mergeClaims(user, claims)
+	if user.DisplayName == "" {
+		user.DisplayName = user.Username
+	}
+	if user.Username == "" {
+		user.Username = user.ID
+	}
+	return user, nil
+}
+
 // mergeClaims 合并 UserInfo claims 到用户模型（UserInfo 优先级更高）。
 func mergeClaims(u *CurrentUser, claims map[string]any) {
 	if v := firstString(claims, "preferred_username", "name"); v != "" {
@@ -204,8 +289,16 @@ func firstStringSlice(claims map[string]any, keys ...string) []string {
 			case []any:
 				out := make([]string, 0, len(t))
 				for _, item := range t {
-					if s, ok := item.(string); ok && s != "" {
-						out = append(out, s)
+					// 兼容 Casdoor：roles 可能是字符串数组或对象数组（{"owner":...,"name":...}）。
+					switch it := item.(type) {
+					case string:
+						if it != "" {
+							out = append(out, it)
+						}
+					case map[string]any:
+						if name, ok := it["name"].(string); ok && name != "" {
+							out = append(out, name)
+						}
 					}
 				}
 				return out

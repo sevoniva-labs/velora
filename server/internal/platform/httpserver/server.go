@@ -68,6 +68,8 @@ func New(deps Deps) (*gin.Engine, error) {
 	)
 	api.GET("/auth/oidc/login", rateLimit(30, time.Minute), oidcHandler.Login)
 	api.GET("/auth/oidc/callback", rateLimit(60, time.Minute), oidcHandler.Callback)
+	// 账号密码登录（Casdoor ROPC 代理）：更严限流防暴力破解（每 IP 每分钟 10 次）。
+	api.POST("/auth/login", rateLimit(10, time.Minute), oidcHandler.LoginWithPassword)
 
 	// --- 受保护端点（登录 + CSRF） ---
 	secured := api.Group("")

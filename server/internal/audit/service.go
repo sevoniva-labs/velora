@@ -43,6 +43,7 @@ const (
 	ActionOIDCToken        = "OIDC_TOKEN"
 	ActionMailToTodo       = "MAIL_TO_TODO"
 	ActionSessionRevoke    = "SESSION_REVOKE"
+	ActionUserDataExport   = "USER_DATA_EXPORT"
 )
 
 // AuditLog 为审计日志实体（表 audit_logs）。

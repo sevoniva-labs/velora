@@ -27,6 +27,7 @@ import (
 	"github.com/sevoniva-labs/velora/server/internal/platform/ratelimit"
 	"github.com/sevoniva-labs/velora/server/internal/platform/response"
 	"github.com/sevoniva-labs/velora/server/internal/portal"
+	"github.com/sevoniva-labs/velora/server/internal/privacy"
 	"github.com/sevoniva-labs/velora/server/internal/serviceaccount"
 	"github.com/sevoniva-labs/velora/server/internal/tag"
 	"github.com/sevoniva-labs/velora/server/internal/todo"
@@ -203,6 +204,8 @@ func New(deps Deps) (*gin.Engine, error) {
 	todoHandler.RegisterPush(api)
 	// 集成令牌管理（Phase D3，管理员）：创建/列表/吊销
 	serviceaccount.NewHandler(tokenService, deps.AdminRole).Register(secured)
+	// 用户数据导出（Phase D5，GDPR/个保法）：管理员导出指定用户全量数据
+	privacy.NewHandler(privacy.NewService(deps.DB), deps.Audit, deps.AdminRole).Register(secured)
 
 	// 邮件模块：独立领域，与 Todo 通过引用关联（source_system='mail'）。
 	if deps.Mail != nil {

@@ -22,7 +22,7 @@ import type { Application } from '../../types'
 import { APP_STATUS_LABEL, SSO_TYPE_COLOR, SSO_TYPE_LABEL } from '../../labels'
 import { AppIcon } from '../../components/AppCard'
 
-const SSO_OPTIONS = ['URL', 'OIDC', 'SAML', 'CAS', 'FORWARD_AUTH']
+const SSO_OPTIONS = ['URL', 'OIDC', 'VELORA_OIDC', 'SAML', 'CAS', 'FORWARD_AUTH']
 
 export default function AdminApplications() {
   usePageTitle('应用管理')

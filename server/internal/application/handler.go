@@ -11,6 +11,7 @@ import (
 	"github.com/sevoniva-labs/velora/server/internal/audit"
 	"github.com/sevoniva-labs/velora/server/internal/auth"
 	"github.com/sevoniva-labs/velora/server/internal/casdoor"
+	"github.com/sevoniva-labs/velora/server/internal/oidcprovider"
 	"github.com/sevoniva-labs/velora/server/internal/permission"
 	"github.com/sevoniva-labs/velora/server/internal/platform/errs"
 	"github.com/sevoniva-labs/velora/server/internal/platform/metrics"
@@ -30,11 +31,12 @@ type Handler struct {
 	audit     *audit.Service
 	adminRole string
 	sync      *casdoor.Client
+	oidcMgr   *oidcprovider.Service // Velora OIDC Provider 客户端管理（nil 时不注册相关路由）
 }
 
 // NewHandler 创建应用 Handler。
-func NewHandler(service *Service, repo *Repository, visits VisitRecorder, auditSvc *audit.Service, adminRole string, syncClient *casdoor.Client) *Handler {
-	return &Handler{service: service, repo: repo, visits: visits, audit: auditSvc, adminRole: adminRole, sync: syncClient}
+func NewHandler(service *Service, repo *Repository, visits VisitRecorder, auditSvc *audit.Service, adminRole string, syncClient *casdoor.Client, oidcMgr *oidcprovider.Service) *Handler {
+	return &Handler{service: service, repo: repo, visits: visits, audit: auditSvc, adminRole: adminRole, sync: syncClient, oidcMgr: oidcMgr}
 }
 
 // Register 注册路由。
@@ -56,6 +58,12 @@ func (h *Handler) Register(r gin.IRouter) {
 	admin.PUT("/:id/policies", h.setPolicies)
 	if h.sync != nil {
 		admin.POST("/sync", h.syncFromCasdoor)
+	}
+	// Velora OIDC Provider 客户端管理（仅当 Provider 启用时注册）
+	if h.oidcMgr != nil {
+		admin.GET("/:id/oidc-clients", h.listOIDCClients)
+		admin.POST("/:id/oidc-clients", h.createOIDCClient)
+		admin.DELETE("/oidc-clients/:clientID", h.revokeOIDCClient)
 	}
 }
 
@@ -392,4 +400,91 @@ func (h *Handler) syncFromCasdoor(c *gin.Context) {
 	})
 	metrics.Emit("velora_app_sync_total")
 	response.OK(c, gin.H{"total": len(apps), "created": created, "updated": updated})
+}
+
+// listOIDCClients 列出应用的 Velora OIDC 客户端（管理后台）。
+func (h *Handler) listOIDCClients(c *gin.Context) {
+	_, err := auth.RequireUser(c)
+	if err != nil {
+		response.Error(c, err)
+		return
+	}
+	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
+	if err != nil {
+		response.Error(c, errs.InvalidParam("应用 ID 无效"))
+		return
+	}
+	if _, err := h.repo.Get(c.Request.Context(), id); err != nil {
+		response.Error(c, err)
+		return
+	}
+	clients, err := h.oidcMgr.ListClientsByApplication(c.Request.Context(), id)
+	if err != nil {
+		response.Error(c, err)
+		return
+	}
+	response.OK(c, clients)
+}
+
+// createOIDCClient 为应用创建新的 Velora OIDC 客户端（返回明文 secret 仅一次）。
+func (h *Handler) createOIDCClient(c *gin.Context) {
+	user, err := auth.RequireUser(c)
+	if err != nil {
+		response.Error(c, err)
+		return
+	}
+	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
+	if err != nil {
+		response.Error(c, errs.InvalidParam("应用 ID 无效"))
+		return
+	}
+	if _, err := h.repo.Get(c.Request.Context(), id); err != nil {
+		response.Error(c, err)
+		return
+	}
+	var in struct {
+		RedirectURIs []string `json:"redirectUris"`
+	}
+	if err := c.ShouldBindJSON(&in); err != nil {
+		response.Error(c, errs.InvalidParam("请求体无效: "+err.Error()))
+		return
+	}
+	client, secret, err := h.oidcMgr.CreateClient(c.Request.Context(), id, in.RedirectURIs, nil)
+	if err != nil {
+		response.Error(c, err)
+		return
+	}
+	h.audit.Record(c, audit.Entry{
+		Operator: user.ID,
+		Action:   audit.ActionOIDCAuthorize,
+		Resource: "applications/oidc-clients",
+		Detail:   "创建 OIDC 客户端",
+	})
+	// secret 仅此一次返回
+	response.OK(c, gin.H{"clientId": client.ClientID, "clientSecret": secret})
+}
+
+// revokeOIDCClient 吊销（禁用）Velora OIDC 客户端。
+func (h *Handler) revokeOIDCClient(c *gin.Context) {
+	user, err := auth.RequireUser(c)
+	if err != nil {
+		response.Error(c, err)
+		return
+	}
+	clientID := c.Param("clientID")
+	if clientID == "" {
+		response.Error(c, errs.InvalidParam("clientID 无效"))
+		return
+	}
+	if err := h.oidcMgr.RevokeClientByClientID(c.Request.Context(), clientID); err != nil {
+		response.Error(c, err)
+		return
+	}
+	h.audit.Record(c, audit.Entry{
+		Operator: user.ID,
+		Action:   audit.ActionOIDCAuthorize,
+		Resource: "applications/oidc-clients",
+		Detail:   "吊销 OIDC 客户端: " + clientID,
+	})
+	response.OK(c, gin.H{"revoked": clientID})
 }

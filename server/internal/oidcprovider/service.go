@@ -55,17 +55,17 @@ const (
 
 // Client 为 OIDC 客户端（第三方应用）。
 type Client struct {
-	ID                    uint64    `gorm:"column:id;primaryKey" json:"id"`
-	ApplicationID         uint64    `gorm:"column:application_id" json:"applicationId"`
-	ClientID              string    `gorm:"column:client_id" json:"clientId"`
-	ClientSecretHash      string    `gorm:"column:client_secret_hash" json:"-"`
-	RedirectURIsRaw       string    `gorm:"column:redirect_uris" json:"-"`
-	GrantTypesRaw         string    `gorm:"column:grant_types" json:"-"`
-	ScopesRaw             string    `gorm:"column:scopes" json:"-"`
-	TokenEndpointAuthMethod string  `gorm:"column:token_endpoint_auth_method" json:"-"`
-	Enabled               bool      `gorm:"column:enabled" json:"enabled"`
-	CreatedAt             time.Time `gorm:"column:created_at" json:"createdAt"`
-	UpdatedAt             time.Time `gorm:"column:updated_at" json:"updatedAt"`
+	ID                      uint64    `gorm:"column:id;primaryKey" json:"id"`
+	ApplicationID           uint64    `gorm:"column:application_id" json:"applicationId"`
+	ClientID                string    `gorm:"column:client_id" json:"clientId"`
+	ClientSecretHash        string    `gorm:"column:client_secret_hash" json:"-"`
+	RedirectURIsRaw         string    `gorm:"column:redirect_uris" json:"-"`
+	GrantTypesRaw           string    `gorm:"column:grant_types" json:"-"`
+	ScopesRaw               string    `gorm:"column:scopes" json:"-"`
+	TokenEndpointAuthMethod string    `gorm:"column:token_endpoint_auth_method" json:"-"`
+	Enabled                 bool      `gorm:"column:enabled" json:"enabled"`
+	CreatedAt               time.Time `gorm:"column:created_at" json:"createdAt"`
+	UpdatedAt               time.Time `gorm:"column:updated_at" json:"updatedAt"`
 }
 
 // TableName 指定表名。
@@ -76,6 +76,22 @@ func (c *Client) RedirectURIs() []string {
 	var out []string
 	_ = json.Unmarshal([]byte(c.RedirectURIsRaw), &out)
 	return out
+}
+
+// MarshalJSON 定制导出：把 JSON 数组字段展开为可直接使用的结构。
+func (c Client) MarshalJSON() ([]byte, error) {
+	type alias Client
+	return json.Marshal(struct {
+		alias
+		RedirectURIs []string `json:"redirectUris"`
+		GrantTypes   []string `json:"grantTypes"`
+		Scopes       []string `json:"scopes"`
+	}{
+		alias:        alias(c),
+		RedirectURIs: c.RedirectURIs(),
+		GrantTypes:   c.GrantTypes(),
+		Scopes:       c.Scopes(),
+	})
 }
 
 // GrantTypes 解析授权类型。
@@ -242,6 +258,24 @@ func (s *Service) SetClientEnabled(ctx context.Context, id uint64, enabled bool)
 	res := s.db.WithContext(ctx).Model(&Client{}).Where("id = ?", id).Update("enabled", enabled)
 	if res.Error != nil {
 		return errs.DB(res.Error)
+	}
+	return nil
+}
+
+// RevokeClientByClientID 按 client_id 吊销（禁用）客户端，并吊销其全部令牌。
+func (s *Service) RevokeClientByClientID(ctx context.Context, clientID string) error {
+	res := s.db.WithContext(ctx).Model(&Client{}).Where("client_id = ?", clientID).Update("enabled", false)
+	if res.Error != nil {
+		return errs.DB(res.Error)
+	}
+	if res.RowsAffected == 0 {
+		return errs.New(errs.CodeOIDCProviderClientNotFound, 404, "OIDC 客户端不存在")
+	}
+	now := time.Now()
+	if err := s.db.WithContext(ctx).Model(&Token{}).
+		Where("client_id = ? AND revoked_at IS NULL", clientID).
+		Update("revoked_at", now).Error; err != nil {
+		return errs.DB(err)
 	}
 	return nil
 }

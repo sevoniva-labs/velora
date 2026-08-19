@@ -2,6 +2,7 @@ package application
 
 import (
 	"context"
+	"log/slog"
 	"net/http"
 	"sort"
 	"strconv"
@@ -123,20 +124,25 @@ type Service struct {
 	adminRole  string
 	oidcIssuer string
 	settings   SettingsReader
+	// oidcClientFactory 为 VELORA_OIDC 应用创建 OIDC client 的回调（由组装层注入，
+	// 避免 application 包反向依赖 oidcprovider）。返回 clientID + 明文 secret。
+	oidcClientFactory func(ctx context.Context, applicationID uint64, redirectURIs []string) (clientID, clientSecret string, err error)
 }
 
 // NewService 创建应用服务。
 // publicBaseURL 为 Velora 对外地址（VELORA_OIDC issuer）；
-// clientResolver 按应用 ID 解析 Velora OIDC client（由组装层注入，可为 nil）。
-func NewService(db *gorm.DB, adminRole, oidcIssuer, publicBaseURL string, checkTimeout time.Duration, clientResolver func(ctx context.Context, applicationID uint64) (clientID string, redirectURIs []string, ok bool, err error)) *Service {
+// clientResolver 按应用 ID 解析 Velora OIDC client（由组装层注入，可为 nil）；
+// oidcClientFactory 为 VELORA_OIDC 应用自动生成 client（可为 nil，则需管理员手动配置）。
+func NewService(db *gorm.DB, adminRole, oidcIssuer, publicBaseURL string, checkTimeout time.Duration, clientResolver func(ctx context.Context, applicationID uint64) (clientID string, redirectURIs []string, ok bool, err error), oidcClientFactory func(ctx context.Context, applicationID uint64, redirectURIs []string) (clientID, clientSecret string, err error)) *Service {
 	repo := NewRepository(db)
 	return &Service{
-		repo:       repo,
-		db:         db,
-		launch:     NewLaunchRegistry(oidcIssuer, publicBaseURL, clientResolver),
-		health:     NewHealthChecker(checkTimeout),
-		adminRole:  adminRole,
-		oidcIssuer: oidcIssuer,
+		repo:             repo,
+		db:               db,
+		launch:           NewLaunchRegistry(oidcIssuer, publicBaseURL, clientResolver),
+		health:           NewHealthChecker(checkTimeout),
+		adminRole:        adminRole,
+		oidcIssuer:       oidcIssuer,
+		oidcClientFactory: oidcClientFactory,
 	}
 }
 
@@ -346,6 +352,17 @@ func (s *Service) Create(ctx context.Context, operator string, in Input) (*DTO, 
 	}
 	if err := s.repo.Create(ctx, app); err != nil {
 		return nil, err
+	}
+	// VELORA_OIDC 应用：自动生成 OIDC client（回调由组装层注入；生成失败不阻塞应用创建，
+	// 管理员可稍后在管理后台手动生成）。
+	if app.SSOType == SSOTypeVeloraOIDC && s.oidcClientFactory != nil {
+		redirects := []string{}
+		if strings.TrimSpace(app.LaunchURL) != "" {
+			redirects = append(redirects, strings.TrimSpace(app.LaunchURL))
+		}
+		if _, _, err := s.oidcClientFactory(ctx, app.ID, redirects); err != nil {
+			slog.Warn("VELORA_OIDC 应用自动生成 client 失败", "appID", app.ID, "err", err)
+		}
 	}
 	if len(in.TagIDs) > 0 {
 		if err := s.repo.ReplaceTags(ctx, app.ID, in.TagIDs); err != nil {
@@ -562,7 +579,7 @@ func validateInput(in Input) error {
 		in.SSOType = SSOTypeURL
 	}
 	switch in.SSOType {
-	case SSOTypeURL, SSOTypeOIDC, SSOTypeSAML, SSOTypeCAS, SSOTypeForwardAuth:
+	case SSOTypeURL, SSOTypeOIDC, SSOTypeSAML, SSOTypeCAS, SSOTypeForwardAuth, SSOTypeVeloraOIDC:
 	default:
 		return errs.InvalidParam("不支持的 SSO 接入类型: " + in.SSOType)
 	}
@@ -587,6 +604,8 @@ func normalizeSSOType(t string) string {
 	switch strings.ToUpper(strings.TrimSpace(t)) {
 	case SSOTypeOIDC:
 		return SSOTypeOIDC
+	case SSOTypeVeloraOIDC:
+		return SSOTypeVeloraOIDC
 	case SSOTypeSAML:
 		return SSOTypeSAML
 	case SSOTypeCAS:

@@ -136,6 +136,17 @@ func New(deps Deps) (*gin.Engine, error) {
 			}
 			return clients[0].ClientID, clients[0].RedirectURIs(), true, nil
 		},
+		func(ctx context.Context, applicationID uint64, redirectURIs []string) (string, string, error) {
+			// VELORA_OIDC 应用创建时自动生成 client
+			if deps.OIDCProvider == nil {
+				return "", "", nil
+			}
+			client, secret, err := deps.OIDCProvider.CreateClient(ctx, applicationID, redirectURIs, nil)
+			if err != nil {
+				return "", "", err
+			}
+			return client.ClientID, secret, nil
+		},
 	)
 	appRepo := application.NewRepository(deps.DB)
 	visitService := visit.NewService(deps.DB)
@@ -143,7 +154,7 @@ func New(deps Deps) (*gin.Engine, error) {
 	if deps.Cfg.CasdoorAdminUsername != "" && deps.Cfg.CasdoorAdminPassword != "" {
 		syncClient = casdoor.NewClient(deps.Cfg.CasdoorIssuer, deps.Cfg.CasdoorClientID, deps.Cfg.CasdoorClientSecret, deps.Cfg.CasdoorAdminUsername, deps.Cfg.CasdoorAdminPassword)
 	}
-	application.NewHandler(appService, appRepo, visitService, deps.Audit, deps.AdminRole, syncClient).Register(secured)
+	application.NewHandler(appService, appRepo, visitService, deps.Audit, deps.AdminRole, syncClient, deps.OIDCProvider).Register(secured)
 
 	favService := favorite.NewService(deps.DB)
 	favorite.NewHandler(favService, appService, appRepo, deps.Audit).Register(secured)

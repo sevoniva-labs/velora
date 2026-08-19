@@ -117,6 +117,38 @@ services:
     environment:
       VELORA_API_PROXY_PASS: http://server:8080
 
+  # --- 可观测性（可选 profile：docker compose --profile monitoring up -d） ---
+  prometheus:
+    image: ${DOCKER_REGISTRY:-docker.m.daocloud.io}/prom/prometheus:v2.53.3
+    container_name: velora-prometheus
+    profiles: ["monitoring"]
+    volumes:
+      - ./deployments/monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./deployments/monitoring/alerts.yml:/etc/prometheus/alerts.yml:ro
+      - velora-promdata:/prometheus
+    ports:
+      - "9090:9090"
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.retention.time=30d
+
+  grafana:
+    image: ${DOCKER_REGISTRY:-docker.m.daocloud.io}/grafana/grafana:11.1.0
+    container_name: velora-grafana
+    profiles: ["monitoring"]
+    depends_on:
+      - prometheus
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    volumes:
+      - velora-grafanadata:/var/lib/grafana
+    ports:
+      - "3000:3000"
+
 volumes:
   velora-pgdata:
   velora-redisdata:
+  velora-promdata:
+  velora-grafanadata:

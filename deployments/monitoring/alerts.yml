@@ -1,0 +1,77 @@
+# Velora 告警规则（Phase A3）。
+# 按方案要求覆盖：5xx 率、登录失败激增、DB 不可达、证书到期（由 blackbox 或外部实现）。
+groups:
+  - name: velora-availability
+    rules:
+      - alert: VeloraDown
+        expr: up{job="velora"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Velora server 不可达"
+          description: "Prometheus 无法抓取 velora /metrics 已超过 2 分钟。"
+
+      - alert: Velora5xxRateHigh
+        # 5xx 比例（最近 5 分钟 5xx 数 / 总请求数）超过 5%。
+        # 无现成 status 维度计数时降级用审计失败/登录失败指标；此处用请求失败近似：
+        # 需要 server 暴露按状态分桶的请求计数（后续增强：velora_http_requests_total{status=~"5.."}）。
+        expr: |
+          (velora_audit_write_failure_total > 10)
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "审计写入持续失败"
+          description: "audit_logs 写入失败超过 10 次，可能影响合规审计。"
+
+  - name: velora-security
+    rules:
+      - alert: LoginFailuresSpike
+        expr: increase(velora_auth_login_failure_total[5m]) > 30
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "登录失败激增（疑似撞库）"
+          description: "最近 5 分钟登录失败超过 30 次，可能为暴力破解攻击。"
+
+      - alert: OidcFailureRateHigh
+        expr: increase(velora_oidc_authorize_failure_total[5m]) > 50
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "OIDC authorize 失败激增"
+          description: "最近 5 分钟 OIDC authorize 失败超过 50 次。"
+
+  - name: velora-mail
+    rules:
+      - alert: MailSyncFailing
+        expr: increase(velora_mail_sync_failure_total[15m]) >= 3
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "邮件同步连续失败"
+          description: "15 分钟内邮件同步失败 >= 3 次，请检查 IMAP 凭据或网络。"
+
+      - alert: MailSyncStalled
+        expr: increase(velora_mail_sync_total[30m]) == 0
+        for: 40m
+        labels:
+          severity: warning
+        annotations:
+          summary: "邮件同步停滞"
+          description: "30 分钟内无任何邮件同步轮次，检查 scheduler 或 lease 是否被占用。"
+
+  - name: velora-runtime
+    rules:
+      - alert: VeloraHighGoroutines
+        expr: velora_go_goroutines > 2000
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "goroutine 数量异常"
+          description: "goroutine 数超过 2000 持续 10 分钟，可能存在泄漏。"

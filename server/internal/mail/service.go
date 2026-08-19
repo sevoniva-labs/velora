@@ -2,6 +2,8 @@ package mail
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/hex"
 	"regexp"
 	"strconv"
 	"strings"
@@ -500,6 +502,74 @@ func (s *Service) getOwnedMessage(ctx context.Context, userID string, id uint64)
 // isUniqueViolation 判定 PostgreSQL 唯一约束冲突（SQLSTATE 23505）。
 func isUniqueViolation(err error) bool {
 	return err != nil && strings.Contains(err.Error(), "SQLSTATE 23505")
+}
+
+// ---------- 多实例同步互斥（DB lease） ----------
+
+// syncLeaseName 为全局同步 lease 的固定键（mail_sync_lease 表 name 列）。
+const syncLeaseName = "mail-sync-global"
+
+// AcquireSyncLease 尝试获取（或续约）同步 lease。
+// 返回 true 表示当前实例持有 lease 可执行同步。实现：
+//   - 表不存在/首次运行：INSERT，成功即持有；
+//   - 已存在：若 expires_at 已过（旧 lease 过期）则 UPDATE 抢占（行级锁）；
+//     若仍在有效期内且持有者是本实例则续约；否则返回 false（其他实例持有）。
+func (s *Service) AcquireSyncLease(ctx context.Context) (bool, error) {
+	const ttl = time.Hour // lease 有效期固定 1h（远大于单轮同步 5 分钟超时，异常退出后至多 1h 由其他实例接管）
+	instanceID := instanceID()
+
+	// 尝试插入（表在迁移 0004 中创建；若缺失则报错，由迁移保证）。
+	res := s.db.WithContext(ctx).Exec(`
+		INSERT INTO mail_sync_lease (name, instance_id, expires_at, updated_at)
+		VALUES (?, ?, now() + interval '1 hour', now())
+		ON CONFLICT (name) DO NOTHING`, syncLeaseName, instanceID)
+	if res.Error != nil {
+		return false, res.Error
+	}
+	if res.RowsAffected == 1 {
+		return true, nil // 本次插入成功 → 持有
+	}
+
+	// 已存在：尝试续约/抢占。
+	var row struct {
+		InstanceID string
+		ExpiresAt  *time.Time
+	}
+	if err := s.db.WithContext(ctx).Raw(
+		`SELECT instance_id, expires_at FROM mail_sync_lease WHERE name = ?`, syncLeaseName,
+	).Scan(&row).Error; err != nil {
+		return false, err
+	}
+	now := time.Now()
+	expired := row.ExpiresAt == nil || now.After(*row.ExpiresAt)
+	if !expired && row.InstanceID != instanceID {
+		return false, nil // 其他实例持有且未过期
+	}
+
+	// 本实例续约，或抢占过期 lease（UPDATE 带 name 条件，天然串行化）。
+	res = s.db.WithContext(ctx).Exec(`
+		UPDATE mail_sync_lease SET instance_id = ?, expires_at = now() + interval '1 hour', updated_at = now()
+		WHERE name = ? AND (instance_id = ? OR expires_at < now())`,
+		instanceID, syncLeaseName, instanceID)
+	if res.Error != nil {
+		return false, res.Error
+	}
+	return res.RowsAffected == 1, nil
+}
+
+// ReleaseSyncLease 释放 lease（仅本实例持有的情况下）。
+func (s *Service) ReleaseSyncLease(ctx context.Context) error {
+	return s.db.WithContext(ctx).Exec(
+		`UPDATE mail_sync_lease SET expires_at = now() - interval '1 hour', updated_at = now()
+		 WHERE name = ? AND instance_id = ?`, syncLeaseName, instanceID(),
+	).Error
+}
+
+// instanceID 返回当前实例标识（进程级随机，重启变化；用于 lease 归属判断）。
+var instanceID = func() string {
+	buf := make([]byte, 16)
+	_, _ = rand.Read(buf)
+	return hex.EncodeToString(buf)
 }
 
 var (

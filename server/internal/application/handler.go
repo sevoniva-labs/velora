@@ -13,6 +13,7 @@ import (
 	"github.com/sevoniva-labs/velora/server/internal/casdoor"
 	"github.com/sevoniva-labs/velora/server/internal/permission"
 	"github.com/sevoniva-labs/velora/server/internal/platform/errs"
+	"github.com/sevoniva-labs/velora/server/internal/platform/metrics"
 	"github.com/sevoniva-labs/velora/server/internal/platform/response"
 )
 
@@ -180,6 +181,7 @@ func (h *Handler) launch(c *gin.Context) {
 		ResourceID: strconv.FormatUint(app.ID, 10),
 		Detail:     app.Code,
 	})
+	metrics.Emit("velora_app_launch_total")
 	response.OK(c, result)
 }
 
@@ -388,5 +390,6 @@ func (h *Handler) syncFromCasdoor(c *gin.Context) {
 		Resource: "applications/sync",
 		Detail:   "从 Casdoor 同步应用",
 	})
+	metrics.Emit("velora_app_sync_total")
 	response.OK(c, gin.H{"total": len(apps), "created": created, "updated": updated})
 }

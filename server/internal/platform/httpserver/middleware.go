@@ -10,6 +10,7 @@ import (
 
 	"github.com/sevoniva-labs/velora/server/internal/auth"
 	"github.com/sevoniva-labs/velora/server/internal/platform/errs"
+	"github.com/sevoniva-labs/velora/server/internal/platform/metrics"
 	"github.com/sevoniva-labs/velora/server/internal/platform/response"
 )
 
@@ -29,12 +30,12 @@ func RequestID() gin.HandlerFunc {
 	}
 }
 
-// Logger 结构化请求日志。
+// Logger 结构化请求日志 + 请求耗时直方图。
 func Logger() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		start := time.Now()
 		c.Next()
-		observeRequest(c.Request.Method, c.FullPath())
+		metrics.Observe("velora_http_request_duration_milliseconds", float64(time.Since(start).Milliseconds()))
 		attrs := []any{
 			"method", c.Request.Method,
 			"path", c.Request.URL.Path,

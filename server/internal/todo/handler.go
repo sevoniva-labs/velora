@@ -11,6 +11,7 @@ import (
 	"github.com/sevoniva-labs/velora/server/internal/auth"
 	"github.com/sevoniva-labs/velora/server/internal/permission"
 	"github.com/sevoniva-labs/velora/server/internal/platform/errs"
+	"github.com/sevoniva-labs/velora/server/internal/platform/metrics"
 	"github.com/sevoniva-labs/velora/server/internal/platform/response"
 )
 
@@ -130,6 +131,7 @@ func (h *Handler) upsert(c *gin.Context) {
 		Resource:   "todo",
 		ResourceID: strconv.FormatUint(todo.ID, 10),
 	})
+	metrics.Emit("velora_todo_upsert_total")
 	response.OK(c, todo)
 }
 
@@ -155,5 +157,6 @@ func (h *Handler) markDone(c *gin.Context) {
 		Resource:   "todo",
 		ResourceID: strconv.FormatUint(id, 10),
 	})
+	metrics.Emit("velora_todo_done_total")
 	response.OK(c, gin.H{"done": true})
 }

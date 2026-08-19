@@ -8,6 +8,7 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"github.com/sevoniva-labs/velora/server/internal/platform/errs"
+	"github.com/sevoniva-labs/velora/server/internal/platform/metrics"
 	"github.com/sevoniva-labs/velora/server/internal/platform/response"
 )
 
@@ -111,6 +112,7 @@ func (h *Handler) LoginWithPassword(c *gin.Context) {
 
 	user, err := h.oidc.LoginWithPassword(c.Request.Context(), body.Username, body.Password)
 	if err != nil {
+		metrics.Emit("velora_auth_login_failure_total")
 		if errs.Is(err, errs.CodeLoginFailed) {
 			response.Error(c, err)
 			return
@@ -118,6 +120,7 @@ func (h *Handler) LoginWithPassword(c *gin.Context) {
 		response.Error(c, errs.Wrap(errs.CodeOIDCTokenFailed, http.StatusBadGateway, "登录服务暂不可用，请稍后再试", err))
 		return
 	}
+	metrics.Emit("velora_auth_login_success_total")
 
 	session := h.sessions.NewSession(user)
 	encoded, err := h.sessions.Encode(session)

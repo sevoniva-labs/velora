@@ -9,6 +9,7 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/sevoniva-labs/velora/server/internal/platform/errs"
+	"github.com/sevoniva-labs/velora/server/internal/platform/metrics"
 	"github.com/sevoniva-labs/velora/server/internal/platform/response"
 )
 
@@ -99,6 +100,7 @@ func (s *Service) Record(c *gin.Context, e Entry) {
 	defer cancel()
 	if err := s.db.WithContext(ctx).Create(&log).Error; err != nil {
 		// 审计失败不应阻断主流程，仅记录错误日志（由调用方 logger 处理）。
+		metrics.Emit("velora_audit_write_failure_total")
 		_ = err
 	}
 }

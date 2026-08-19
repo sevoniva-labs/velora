@@ -2,9 +2,10 @@ package application
 
 import (
 	"context"
+	"encoding/base64"
+	"fmt"
 	"log/slog"
 	"net/http"
-	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -81,6 +82,9 @@ type ListFilter struct {
 	FavoritesOnly bool
 	Page          int
 	PageSize      int
+	// Cursor keyset 游标（Phase D2）：形如 "featured|sort|nameLower|id" 的 base64 串。
+	// 提供时按复合键继续向后翻页（替代 OFFSET）；为空则使用 Page/PageSize。
+	Cursor string
 }
 
 // Page 为分页结果。
@@ -89,6 +93,8 @@ type Page struct {
 	Total    int64 `json:"total"`
 	Page     int   `json:"page"`
 	PageSize int   `json:"pageSize"`
+	// NextCursor 下一页游标（keyset 分页时返回，供继续翻页）。
+	NextCursor string `json:"nextCursor,omitempty"`
 }
 
 // Input 为应用创建/更新入参。
@@ -171,6 +177,7 @@ func (s *Service) newBadgeCutoff(ctx context.Context) time.Time {
 }
 
 // ListPublic 返回当前用户可见的应用（搜索/分类/标签过滤 + 收藏标记 + 分页）。
+// Phase D2：权限过滤下推 SQL（accessSQL），分页支持 keyset 游标（Cursor）或 OFFSET。
 func (s *Service) ListPublic(ctx context.Context, user *auth.CurrentUser, f ListFilter) (*Page, error) {
 	if f.Page < 1 {
 		f.Page = 1
@@ -203,17 +210,51 @@ func (s *Service) ListPublic(ctx context.Context, user *auth.CurrentUser, f List
 			like, like, like, like, like,
 		)
 	}
+	// 权限过滤下推 SQL（Phase D2）。
+	accessCond, accessArgs := accessSQL(user)
+	q = q.Where(accessCond, accessArgs...)
 
-	apps, err := s.repo.List(ctx, q)
+	// keyset 游标：按 (is_featured, sort, name, id) 复合键续页。
+	cursor, err := decodeListCursor(f.Cursor)
 	if err != nil {
-		return nil, err
+		return nil, errs.InvalidParam("游标无效")
+	}
+	if cursor != nil {
+		q = q.Where(
+			`(is_featured < ?) OR
+			 (is_featured = ? AND (sort > ? OR (sort = ? AND (LOWER(name) > ? OR (LOWER(name) = ? AND id > ?)))))`,
+			cursor.Featured, cursor.Featured, cursor.Sort, cursor.Sort, cursor.NameLower, cursor.NameLower, cursor.ID,
+		)
 	}
 
-	// 权限过滤（内存执行；MVP 规模合理，规模增长后迁移为 SQL 级过滤）。
-	visible := make([]Application, 0, len(apps))
-	for _, app := range apps {
-		if CanAccess(user, app.Policies) {
-			visible = append(visible, app)
+	// 总数（过滤后）。
+	var total int64
+	if err := q.Count(&total).Error; err != nil {
+		return nil, errs.DB(err)
+	}
+
+	// 排序与分页（keyset 时 limit 取 pageSize+1 判断是否还有下一页）。
+	limit := f.PageSize
+	q = q.Order("is_featured DESC").Order("sort ASC").Order("LOWER(name) ASC").Order("id ASC")
+	if cursor == nil {
+		q = q.Offset((f.Page - 1) * f.PageSize)
+	} else {
+		limit++
+	}
+	q = q.Limit(limit)
+
+	var apps []Application
+	if err := q.Find(&apps).Error; err != nil {
+		return nil, errs.DB(err)
+	}
+
+	// keyset：多取一条判定下一页；OFFSET：SQL 已分页，无需再切。
+	nextCursor := ""
+	if cursor != nil {
+		if len(apps) > f.PageSize {
+			apps = apps[:f.PageSize]
+			last := apps[len(apps)-1]
+			nextCursor = encodeListCursor(last.IsFeatured, last.Sort, strings.ToLower(last.Name), last.ID)
 		}
 	}
 
@@ -223,36 +264,15 @@ func (s *Service) ListPublic(ctx context.Context, user *auth.CurrentUser, f List
 		return nil, err
 	}
 
-	// 排序：Featured 优先 → sort → name。
-	sort.SliceStable(visible, func(i, j int) bool {
-		if visible[i].IsFeatured != visible[j].IsFeatured {
-			return visible[i].IsFeatured
-		}
-		if visible[i].Sort != visible[j].Sort {
-			return visible[i].Sort < visible[j].Sort
-		}
-		return strings.ToLower(visible[i].Name) < strings.ToLower(visible[j].Name)
-	})
-
-	total := int64(len(visible))
-	start := (f.Page - 1) * f.PageSize
-	if start > len(visible) {
-		start = len(visible)
-	}
-	end := start + f.PageSize
-	if end > len(visible) {
-		end = len(visible)
-	}
-
 	cutoff := s.newBadgeCutoff(ctx)
-	items := make([]DTO, 0, end-start)
-	for _, app := range visible[start:end] {
+	items := make([]DTO, 0, len(apps))
+	for _, app := range apps {
 		dto := s.toDTO(&app, false)
 		dto.IsFavorite = favSet[app.ID]
 		dto.IsNew = app.CreatedAt.After(cutoff)
 		items = append(items, *dto)
 	}
-	return &Page{Items: items, Total: total, Page: f.Page, PageSize: f.PageSize}, nil
+	return &Page{Items: items, Total: total, Page: f.Page, PageSize: f.PageSize, NextCursor: nextCursor}, nil
 }
 
 // GetPublic 返回单个应用（含可见性校验）。
@@ -525,6 +545,48 @@ func (s *Service) toDTO(app *Application, isAdmin bool) *DTO {
 }
 
 // favoriteSet 返回用户收藏的应用 ID 集合。
+// listCursor keyset 游标内容（Phase D2）。
+type listCursor struct {
+	Featured   bool
+	Sort       int
+	NameLower  string
+	ID         uint64
+}
+
+// encodeListCursor 编码游标：base64("featured|sort|nameLower|id")。
+func encodeListCursor(featured bool, sort int, nameLower string, id uint64) string {
+	raw := fmt.Sprintf("%t|%d|%s|%d", featured, sort, nameLower, id)
+	return base64.RawURLEncoding.EncodeToString([]byte(raw))
+}
+
+// decodeListCursor 解码游标；空串或非法返回 nil（走 OFFSET 分页）。
+func decodeListCursor(cursor string) (*listCursor, error) {
+	if cursor == "" {
+		return nil, nil
+	}
+	raw, err := base64.RawURLEncoding.DecodeString(cursor)
+	if err != nil {
+		return nil, fmt.Errorf("游标解码失败")
+	}
+	parts := strings.Split(string(raw), "|")
+	if len(parts) != 4 {
+		return nil, fmt.Errorf("游标格式错误")
+	}
+	featured, err := strconv.ParseBool(parts[0])
+	if err != nil {
+		return nil, fmt.Errorf("游标 featured 无效")
+	}
+	sortVal, err := strconv.Atoi(parts[1])
+	if err != nil {
+		return nil, fmt.Errorf("游标 sort 无效")
+	}
+	id, err := strconv.ParseUint(parts[3], 10, 64)
+	if err != nil {
+		return nil, fmt.Errorf("游标 id 无效")
+	}
+	return &listCursor{Featured: featured, Sort: sortVal, NameLower: parts[2], ID: id}, nil
+}
+
 func (s *Service) favoriteSet(ctx context.Context, userID string) (map[uint64]bool, error) {
 	rows, err := s.db.WithContext(ctx).Table("application_favorites").
 		Select("application_id").

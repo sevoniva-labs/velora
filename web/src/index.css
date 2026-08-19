@@ -786,6 +786,8 @@ button {
   gap: 14px;
   margin-top: 14px;
   align-items: stretch;
+  /* 固定行高：三个面板始终等高，内容在面板内部滚动，切 Tab / 数据增减均不跳动 */
+  height: 460px;
 }
 /* 三块面板等高：弹性占满所在格子，内部 flex 纵向布局 */
 .velora-workbench > .velora-panel {
@@ -817,6 +819,7 @@ button {
 @media (max-width: 900px) {
   .velora-workbench {
     grid-template-columns: 1fr;
+    height: auto;
     min-height: 0;
   }
   .velora-recent-list,
@@ -2205,6 +2208,7 @@ button {
 
 /* ---------- 待办中心：类型 Tab 栏 ---------- */
 .velora-todo-tabs {
+  flex-shrink: 0;
   display: flex;
   align-items: center;
   gap: 2px;
@@ -2265,9 +2269,14 @@ button {
   color: var(--velora-primary);
 }
 .velora-mail-panel {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
   padding-bottom: 6px;
 }
 .velora-mail-toolbar {
+  flex-shrink: 0;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -2309,6 +2318,9 @@ button {
   gap: 3px;
 }
 .velora-mail-list {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
   padding: 2px 18px 6px;
   display: flex;
   flex-direction: column;

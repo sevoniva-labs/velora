@@ -31,3 +31,6 @@ dist-ssr/
 *.log
 logs/
 tmp/
+
+# 本地备份产物
+backups/

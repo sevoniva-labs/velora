@@ -24,7 +24,7 @@ func newTestService(t *testing.T) *Service {
 
 func newTestServiceWithDB(t *testing.T) *Service {
 	t.Helper()
-	db, err := gorm.Open(sqlite.Open("file::memory:?cache=shared"), &gorm.Config{})
+	db, err := gorm.Open(sqlite.Open("file:"+t.Name()+"?mode=memory&cache=shared"), &gorm.Config{})
 	require.NoError(t, err)
 	// AutoMigrate 建表（与生产迁移 0004 保持同构）
 	require.NoError(t, db.AutoMigrate(&Client{}, &AuthCode{}, &Token{}, &SigningKey{}))

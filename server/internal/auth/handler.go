@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 
@@ -41,6 +42,10 @@ func NewHandler(oidc *OIDCManager, sessions *SessionStore, adminRole, defaultRed
 func (h *Handler) Register(r gin.IRouter) {
 	r.POST("/auth/logout", h.logout)
 	r.GET("/me", h.me)
+	// 会话管理（Phase C1）：设备列表 / 强制下线
+	r.GET("/auth/sessions", h.listSessions)
+	r.DELETE("/auth/sessions/:sid", h.revokeSession)
+	r.DELETE("/auth/sessions", h.revokeAllSessions)
 }
 
 // login 发起 OIDC 登录跳转（Authorization Code + PKCE）。
@@ -70,7 +75,7 @@ func (h *Handler) Callback(c *gin.Context) {
 	}
 
 	session := h.sessions.NewSession(user)
-	encoded, err := h.sessions.Encode(session)
+	encoded, err := h.sessions.EncodeWithMeta(session, c.Request.UserAgent(), c.ClientIP())
 	if err != nil {
 		response.Error(c, errs.Internal("会话创建失败", err))
 		return
@@ -123,7 +128,7 @@ func (h *Handler) LoginWithPassword(c *gin.Context) {
 	metrics.Emit("velora_auth_login_success_total")
 
 	session := h.sessions.NewSession(user)
-	encoded, err := h.sessions.Encode(session)
+	encoded, err := h.sessions.EncodeWithMeta(session, c.Request.UserAgent(), c.ClientIP())
 	if err != nil {
 		response.Error(c, errs.Internal("会话创建失败", err))
 		return
@@ -153,9 +158,15 @@ func redirectFromState(stateToken string, m *OIDCManager) string {
 	return s.Redirect
 }
 
-// logout 注销当前会话。
+// logout 注销当前会话（同时吊销服务端会话记录）。
 func (h *Handler) logout(c *gin.Context) {
 	u := UserIDFrom(c)
+	// 服务端吊销：解析当前 cookie 中的 SID 并吊销
+	if token, err := c.Cookie(SessionCookieName); err == nil && token != "" {
+		if session, err := h.sessions.Decode(token); err == nil && session.SID != "" {
+			_ = h.sessions.Revoke(session.SID)
+		}
+	}
 	if h.onLogout != nil {
 		h.onLogout(c, u)
 	}
@@ -200,4 +211,102 @@ func (h *Handler) sanitizeRedirect(redirect string) string {
 		return h.defaultRedirect
 	}
 	return redirect
+}
+
+// listSessions 列出当前用户全部会话（设备列表）。
+func (h *Handler) listSessions(c *gin.Context) {
+	u, err := RequireUser(c)
+	if err != nil {
+		response.Error(c, errs.Unauthorized(""))
+		return
+	}
+	list, err := h.sessions.ListForUser(u.ID)
+	if err != nil {
+		response.Error(c, errs.DB(err))
+		return
+	}
+	type sessionView struct {
+		SessionID    string     `json:"sessionId"`
+		UserAgent    string     `json:"userAgent"`
+		IP           string     `json:"ip"`
+		LastActiveAt time.Time  `json:"lastActiveAt"`
+		ExpiresAt    time.Time  `json:"expiresAt"`
+		RevokedAt    *time.Time `json:"revokedAt,omitempty"`
+		Current      bool       `json:"current"`
+	}
+	currentSID := ""
+	if token, err := c.Cookie(SessionCookieName); err == nil && token != "" {
+		if session, err := h.sessions.Decode(token); err == nil {
+			currentSID = session.SID
+		}
+	}
+	out := make([]sessionView, 0, len(list))
+	for _, r := range list {
+		out = append(out, sessionView{
+			SessionID:    r.SessionID,
+			UserAgent:    r.UserAgent,
+			IP:           r.IP,
+			LastActiveAt: r.LastActiveAt,
+			ExpiresAt:    r.ExpiresAt,
+			RevokedAt:    r.RevokedAt,
+			Current:      r.SessionID == currentSID,
+		})
+	}
+	response.OK(c, out)
+}
+
+// revokeSession 强制下线指定会话（仅本人会话，管理员可另行扩展）。
+func (h *Handler) revokeSession(c *gin.Context) {
+	u, err := RequireUser(c)
+	if err != nil {
+		response.Error(c, errs.Unauthorized(""))
+		return
+	}
+	sid := strings.TrimSpace(c.Param("sid"))
+	if sid == "" {
+		response.Error(c, errs.InvalidParam("会话 ID 无效"))
+		return
+	}
+	// 仅允许吊销本人会话
+	list, err := h.sessions.ListForUser(u.ID)
+	if err != nil {
+		response.Error(c, errs.DB(err))
+		return
+	}
+	owned := false
+	for _, r := range list {
+		if r.SessionID == sid {
+			owned = true
+			break
+		}
+	}
+	if !owned {
+		response.Error(c, errs.New(errs.CodeForbidden, http.StatusForbidden, "无权吊销该会话"))
+		return
+	}
+	if err := h.sessions.Revoke(sid); err != nil {
+		response.Error(c, errs.DB(err))
+		return
+	}
+	if h.onLogout != nil {
+		h.onLogout(c, u.ID)
+	}
+	response.OK(c, gin.H{"revoked": sid})
+}
+
+// revokeAllSessions 强制下线本人全部会话（改密后全端下线）。
+func (h *Handler) revokeAllSessions(c *gin.Context) {
+	u, err := RequireUser(c)
+	if err != nil {
+		response.Error(c, errs.Unauthorized(""))
+		return
+	}
+	if err := h.sessions.RevokeAllForUser(u.ID); err != nil {
+		response.Error(c, errs.DB(err))
+		return
+	}
+	if h.onLogout != nil {
+		h.onLogout(c, u.ID)
+	}
+	response.OK(c, gin.H{"status": "ok"})
 }

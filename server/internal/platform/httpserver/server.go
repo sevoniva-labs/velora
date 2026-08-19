@@ -63,9 +63,19 @@ func New(deps Deps) (*gin.Engine, error) {
 	if deps.OIDCProvider != nil {
 		deps.OIDCProvider.SetIssuer(deps.Cfg.PublicBaseURL)
 		deps.OIDCProvider.SetUserSnapshot(func(ctx context.Context, userID string) (*auth.CurrentUser, error) {
-			// Phase B6 接入服务端会话表后，从此处读取用户快照；
-			// 当前从会话解码回退（无 session 则返回最小用户）。
-			return &auth.CurrentUser{ID: userID}, nil
+			// 从服务端会话表读取用户最新快照（Phase B6）：
+			// 保证 OIDC access_token 中的 preferred_username / roles 与最近登录一致。
+			if deps.Sessions.DB() == nil {
+				return &auth.CurrentUser{ID: userID}, nil
+			}
+			var rec auth.ServerSession
+			err := deps.Sessions.DB().WithContext(ctx).
+				Where("user_id = ? AND revoked_at IS NULL", userID).
+				Order("last_active_at DESC").First(&rec).Error
+			if err != nil {
+				return &auth.CurrentUser{ID: userID}, nil
+			}
+			return rec.ToCurrentUser(), nil
 		})
 		oidcHandler := oidcprovider.NewHandler(
 			deps.OIDCProvider,

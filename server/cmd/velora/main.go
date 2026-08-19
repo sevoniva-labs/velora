@@ -83,6 +83,8 @@ func serve(cfg *config.Config) error {
 	if err != nil {
 		return err
 	}
+	// Phase B6：启用服务端会话（sessions 表），支持吊销/强制下线。
+	sessions.SetDB(gormDB)
 	oidcMgr := auth.NewOIDCManager(cfg.CasdoorIssuer, cfg.CasdoorClientID, cfg.CasdoorClientSecret, cfg.CasdoorRedirectURI, 10*time.Minute)
 
 	auditSvc := audit.NewService(gormDB)

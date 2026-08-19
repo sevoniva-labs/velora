@@ -151,6 +151,7 @@ func NewLaunchRegistry(oidcIssuer, publicBaseURL string, clientResolver func(ctx
 			SSOTypeURL:        URLLaunchProvider{},
 			SSOTypeOIDC:       OIDCLaunchProvider{issuer: oidcIssuer},
 			SSOTypeVeloraOIDC: VeloraOIDCLaunchProvider{publicBaseURL: publicBaseURL, clientResolver: clientResolver},
+			SSOTypeForwardAuth: ForwardAuthLaunchProvider{publicBaseURL: publicBaseURL},
 		},
 	}
 }

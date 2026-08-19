@@ -19,6 +19,7 @@ import (
 	"github.com/sevoniva-labs/velora/server/internal/category"
 	"github.com/sevoniva-labs/velora/server/internal/config"
 	"github.com/sevoniva-labs/velora/server/internal/favorite"
+	"github.com/sevoniva-labs/velora/server/internal/forwardauth"
 	"github.com/sevoniva-labs/velora/server/internal/mail"
 	"github.com/sevoniva-labs/velora/server/internal/oidcprovider"
 	"github.com/sevoniva-labs/velora/server/internal/platform/errs"
@@ -139,6 +140,8 @@ func New(deps Deps) (*gin.Engine, error) {
 	api.GET("/auth/oidc/callback", limiterMiddleware(globalLimiter, 60, time.Minute), oidcHandler.Callback)
 	// 账号密码登录（Casdoor ROPC 代理）：更严限流防暴力破解（每 IP 每分钟 10 次）。
 	api.POST("/auth/login", limiterMiddleware(globalLimiter, 10, time.Minute), oidcHandler.LoginWithPassword)
+	// Forward Auth 校验端点（Phase D1）：Nginx/APISIX auth_request 调用；GET 只读，无需 CSRF。
+	forwardauth.NewHandler(deps.Sessions, "/login?redirect=").Register(api)
 
 	// --- 受保护端点（登录 + CSRF） ---
 	secured := api.Group("")

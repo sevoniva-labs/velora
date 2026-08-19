@@ -2,6 +2,7 @@ package application
 
 import (
 	"context"
+	"net/url"
 	"strings"
 	"testing"
 
@@ -117,5 +118,25 @@ func TestVeloraOIDCLaunchProvider(t *testing.T) {
 	// 未注册 client → 明确报错
 	if _, err := r.Launch(context.Background(), &Application{ID: 1, SSOType: SSOTypeVeloraOIDC}, user); err == nil {
 		t.Error("无 client 时应报错（引导管理员先配置）")
+	}
+}
+
+func TestForwardAuthLaunchProvider(t *testing.T) {
+	r := NewLaunchRegistry("", "https://velora.example.com", nil)
+	user := &auth.CurrentUser{ID: "u-1", Username: "alice"}
+
+	res, err := r.Launch(context.Background(), &Application{
+		SSOType:   SSOTypeForwardAuth,
+		LaunchURL: "https://legacy-system.example.internal/dashboard",
+	}, user)
+	if err != nil {
+		t.Fatalf("FORWARD_AUTH launch failed: %v", err)
+	}
+	if res.Type != "redirect" {
+		t.Errorf("应同页跳转 redirect：%s", res.Type)
+	}
+	want := "https://velora.example.com/forward-auth?next=" + url.QueryEscape("https://legacy-system.example.internal/dashboard")
+	if res.URL != want {
+		t.Errorf("URL 不符：\n got %s\nwant %s", res.URL, want)
 	}
 }

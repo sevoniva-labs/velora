@@ -60,6 +60,18 @@ docker-up: ## 启动全部服务（PostgreSQL + Casdoor + Server + Web）
 docker-down: ## 停止全部服务
 	docker compose down
 
+docker-up-prod: ## 生产部署（TLS + 密钥校验，见 docs/ops-deploy.md）
+	DOCKER_REGISTRY=$(DOCKER_REGISTRY) docker compose -f docker-compose.yml -f deployments/env/prod/docker-compose.prod.yml up -d --build
+
+docker-up-staging: ## 预发部署（独立端口）
+	DOCKER_REGISTRY=$(DOCKER_REGISTRY) docker compose -f docker-compose.yml -f deployments/env/staging/docker-compose.staging.yml up -d --build
+
+docker-up-monitoring: ## 启动监控栈（Prometheus + Grafana）
+	DOCKER_REGISTRY=$(DOCKER_REGISTRY) docker compose --profile monitoring up -d
+
+backup: ## 数据库全量备份（见 docs/ops-backup.md）
+	./scripts/backup-db.sh
+
 migrate: ## 执行数据库迁移（本地直连 .env 中的 DATABASE_URL）
 	cd server && go run ./cmd/velora migrate
 

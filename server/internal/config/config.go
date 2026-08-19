@@ -3,6 +3,7 @@
 package config
 
 import (
+	"encoding/base64"
 	"fmt"
 	"os"
 	"strconv"
@@ -127,6 +128,18 @@ func (c *Config) validate() error {
 	}
 	if strings.TrimSpace(c.DatabaseURL) == "" {
 		return fmt.Errorf("DATABASE_URL 未设置")
+	}
+	// 生产环境密钥硬性要求：
+	// MAIL_CREDENTIAL_KEY 必须独立配置（禁止从 SESSION_SECRET 派生，
+	// 避免"单密钥泄露导致邮件凭证加密双保险同时失效"）。
+	if c.Env == "production" {
+		if strings.TrimSpace(c.MailCredentialKey) == "" {
+			return fmt.Errorf("生产环境必须配置 MAIL_CREDENTIAL_KEY（base64 编码 32 字节独立密钥，勿用 SESSION_SECRET 派生）")
+		}
+		raw, err := base64.StdEncoding.DecodeString(c.MailCredentialKey)
+		if err != nil || len(raw) != 32 {
+			return fmt.Errorf("MAIL_CREDENTIAL_KEY 必须为 base64 编码的 32 字节密钥")
+		}
 	}
 	return nil
 }

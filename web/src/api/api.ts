@@ -46,6 +46,45 @@ export function loginWithPassword(username: string, password: string, redirect?:
   })
 }
 
+// --- 用户中心（Phase C4 自助） ---
+
+export interface UserProfile extends CurrentUser {
+  admin: boolean
+}
+
+export interface SessionDevice {
+  sessionId: string
+  userAgent: string
+  ip: string
+  lastActiveAt: string
+  expiresAt: string
+  revokedAt?: string
+  current: boolean
+}
+
+export function getUserProfile(): Promise<UserProfile> {
+  return apiFetch<UserProfile>('/user-center/profile')
+}
+
+export function changePassword(oldPassword: string, newPassword: string): Promise<{ status: string; message: string }> {
+  return apiFetch('/user-center/change-password', {
+    method: 'POST',
+    body: { oldPassword, newPassword },
+  })
+}
+
+export function listSessions(): Promise<SessionDevice[]> {
+  return apiFetch<SessionDevice[]>('/auth/sessions')
+}
+
+export function revokeSession(sessionId: string): Promise<{ revoked: string }> {
+  return apiFetch(`/auth/sessions/${encodeURIComponent(sessionId)}`, { method: 'DELETE' })
+}
+
+export function revokeAllSessions(): Promise<{ status: string }> {
+  return apiFetch('/auth/sessions', { method: 'DELETE' })
+}
+
 // --- 应用 ---
 
 export interface ListApplicationsParams {

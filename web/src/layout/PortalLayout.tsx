@@ -113,6 +113,12 @@ export function PortalLayout({ children }: PortalLayoutProps) {
           <Dropdown
             menu={{
               items: [
+                {
+                  key: 'user-center',
+                  icon: <UserOutlined />,
+                  label: '用户中心',
+                  onClick: () => navigate('/user-center'),
+                },
                 ...(isAdmin
                   ? [
                       {

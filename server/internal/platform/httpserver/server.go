@@ -28,6 +28,7 @@ import (
 	"github.com/sevoniva-labs/velora/server/internal/portal"
 	"github.com/sevoniva-labs/velora/server/internal/tag"
 	"github.com/sevoniva-labs/velora/server/internal/todo"
+	"github.com/sevoniva-labs/velora/server/internal/usercenter"
 	"github.com/sevoniva-labs/velora/server/internal/visit"
 )
 
@@ -181,6 +182,11 @@ func New(deps Deps) (*gin.Engine, error) {
 		syncClient = casdoor.NewClient(deps.Cfg.CasdoorIssuer, deps.Cfg.CasdoorClientID, deps.Cfg.CasdoorClientSecret, deps.Cfg.CasdoorAdminUsername, deps.Cfg.CasdoorAdminPassword)
 	}
 	application.NewHandler(appService, appRepo, visitService, deps.Audit, deps.AdminRole, syncClient, deps.OIDCProvider).Register(secured)
+
+	// 自助用户中心（Phase C4）：改密 / 个人资料（设备管理复用 /auth/sessions）
+	if syncClient != nil {
+		usercenter.NewHandler(syncClient, deps.Sessions, deps.AdminRole).Register(secured)
+	}
 
 	favService := favorite.NewService(deps.DB)
 	favorite.NewHandler(favService, appService, appRepo, deps.Audit).Register(secured)

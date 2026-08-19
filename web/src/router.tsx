@@ -39,6 +39,7 @@ const Home = lazyWithReload(() => import('./pages/Home'))
 const Applications = lazyWithReload(() => import('./pages/Applications'))
 const ApplicationDetail = lazyWithReload(() => import('./pages/ApplicationDetail'))
 const Favorites = lazyWithReload(() => import('./pages/Favorites'))
+const UserCenter = lazyWithReload(() => import('./pages/UserCenter'))
 
 const AdminDashboard = lazyWithReload(() => import('./pages/admin/Dashboard'))
 const AdminApplications = lazyWithReload(() => import('./pages/admin/Applications'))
@@ -68,6 +69,7 @@ export const router = createBrowserRouter([
       { path: 'applications', element: <Applications /> },
       { path: 'applications/:id', element: <ApplicationDetail /> },
       { path: 'favorites', element: <Favorites /> },
+      { path: 'user-center', element: <UserCenter /> },
       { path: '*', element: <NotFound /> },
     ],
   },

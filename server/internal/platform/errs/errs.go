@@ -64,6 +64,7 @@ const (
 	CodeInvalidParam Code = "A05003"
 	CodeRateLimited  Code = "A05004"
 	CodeCSRFInvalid  Code = "A05005"
+	CodeNotFound     Code = "A05006" // 资源不存在（通用）
 )
 
 // Error 为携带 HTTP 状态码与业务码的错误。

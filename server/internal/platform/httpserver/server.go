@@ -26,6 +26,7 @@ import (
 	"github.com/sevoniva-labs/velora/server/internal/platform/ratelimit"
 	"github.com/sevoniva-labs/velora/server/internal/platform/response"
 	"github.com/sevoniva-labs/velora/server/internal/portal"
+	"github.com/sevoniva-labs/velora/server/internal/serviceaccount"
 	"github.com/sevoniva-labs/velora/server/internal/tag"
 	"github.com/sevoniva-labs/velora/server/internal/todo"
 	"github.com/sevoniva-labs/velora/server/internal/usercenter"
@@ -192,7 +193,13 @@ func New(deps Deps) (*gin.Engine, error) {
 	favorite.NewHandler(favService, appService, appRepo, deps.Audit).Register(secured)
 
 	todoService := todo.NewService(deps.DB)
-	todo.NewHandler(todoService, deps.Audit, deps.AdminRole).Register(secured)
+	tokenService := serviceaccount.NewService(deps.DB)
+	todoHandler := todo.NewHandler(todoService, deps.Audit, deps.AdminRole, tokenService)
+	todoHandler.Register(secured)
+	// 待办推送为集成端点（Phase D3）：公开组注册，内部双鉴权（Bearer 令牌或管理员会话 + CSRF）。
+	todoHandler.RegisterPush(api)
+	// 集成令牌管理（Phase D3，管理员）：创建/列表/吊销
+	serviceaccount.NewHandler(tokenService, deps.AdminRole).Register(secured)
 
 	// 邮件模块：独立领域，与 Todo 通过引用关联（source_system='mail'）。
 	if deps.Mail != nil {

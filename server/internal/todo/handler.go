@@ -1,6 +1,7 @@
 package todo
 
 import (
+	"net/http"
 	"strconv"
 	"strings"
 	"time"
@@ -9,10 +10,10 @@ import (
 
 	"github.com/sevoniva-labs/velora/server/internal/audit"
 	"github.com/sevoniva-labs/velora/server/internal/auth"
-	"github.com/sevoniva-labs/velora/server/internal/permission"
 	"github.com/sevoniva-labs/velora/server/internal/platform/errs"
 	"github.com/sevoniva-labs/velora/server/internal/platform/metrics"
 	"github.com/sevoniva-labs/velora/server/internal/platform/response"
+	"github.com/sevoniva-labs/velora/server/internal/serviceaccount"
 )
 
 // Handler 提供待办 HTTP 端点。
@@ -20,19 +21,25 @@ type Handler struct {
 	service   *Service
 	audit     *audit.Service
 	adminRole string
+	tokenSvc  *serviceaccount.Service // 集成令牌（Phase D3）；nil 时仅管理员会话可写
 }
 
 // NewHandler 创建待办 Handler。
-func NewHandler(service *Service, auditSvc *audit.Service, adminRole string) *Handler {
-	return &Handler{service: service, audit: auditSvc, adminRole: adminRole}
+func NewHandler(service *Service, auditSvc *audit.Service, adminRole string, tokenSvc *serviceaccount.Service) *Handler {
+	return &Handler{service: service, audit: auditSvc, adminRole: adminRole, tokenSvc: tokenSvc}
 }
 
-// Register 注册路由：用户查询/完成本人待办；写入端点限管理员（供外部系统对接集成）。
+// Register 注册路由（secured 组）：查询/完成本人待办。
+// POST /todos 为集成端点，由 httpserver 注册到公开组（支持 Bearer 令牌或管理员会话 + CSRF）。
 func (h *Handler) Register(r gin.IRouter) {
 	g := r.Group("/todos")
 	g.GET("", h.list)
 	g.PATCH("/:id/done", h.markDone)
-	g.POST("", permission.AdminRequired(h.adminRole), h.upsert)
+}
+
+// RegisterPush 注册待办推送端点（公开组；双鉴权在 Upsert 内完成）。
+func (h *Handler) RegisterPush(r gin.IRouter) {
+	r.POST("/todos", h.upsert)
 }
 
 // list 当前用户待办：?status=open|done|all&limit=N，附带待处理数量。
@@ -70,12 +77,46 @@ type upsertRequest struct {
 	DueAt        *time.Time `json:"dueAt"`
 }
 
-// upsert 创建/更新待办（管理员限定；幂等键 sourceSystem + sourceId + userId）。
+// upsert 创建/更新待办（Phase D3 双鉴权：集成令牌 Bearer 或管理员会话；幂等键 sourceSystem + sourceId + userId）。
 func (h *Handler) upsert(c *gin.Context) {
-	user, err := auth.RequireUser(c)
-	if err != nil {
-		response.Error(c, errs.Unauthorized(""))
-		return
+	// 鉴权：优先 Bearer 集成令牌（todo:write scope），否则要求管理员会话。
+	operator := ""
+	tokenName := ""
+	header := c.GetHeader("Authorization")
+	if strings.HasPrefix(header, "Bearer ") {
+		if h.tokenSvc == nil {
+			response.Error(c, errs.New(errs.CodeForbidden, http.StatusForbidden, "集成令牌未启用"))
+			return
+		}
+		rec, err := h.tokenSvc.Authenticate(c.Request.Context(), strings.TrimPrefix(header, "Bearer "))
+		if err != nil {
+			response.ErrorWith(c, http.StatusUnauthorized, errs.CodeUnauthorized, err.Error())
+			return
+		}
+		if !rec.HasScope(serviceaccount.ScopeTodoWrite) {
+			response.ErrorWith(c, http.StatusForbidden, errs.CodeForbidden, "令牌无权推送待办（缺少 scope: "+serviceaccount.ScopeTodoWrite+"）")
+			return
+		}
+		operator = "service:" + rec.Name
+		tokenName = rec.Name
+	} else {
+		// 会话路径：公开组无 CSRF 中间件，此处手动校验（写请求防跨站）。
+		cookie, cerr := c.Cookie(auth.CSRFCookieName)
+		header := strings.TrimSpace(c.GetHeader("X-CSRF-Token"))
+		if cerr != nil || cookie == "" || header == "" || header != cookie {
+			response.ErrorWith(c, http.StatusForbidden, errs.CodeCSRFInvalid, "CSRF 校验失败")
+			return
+		}
+		user, err := auth.RequireUser(c)
+		if err != nil {
+			response.Error(c, errs.Unauthorized(""))
+			return
+		}
+		if !user.IsAdmin(h.adminRole) {
+			response.ErrorWith(c, http.StatusForbidden, errs.CodeForbidden, "仅管理员或集成令牌可推送待办")
+			return
+		}
+		operator = user.ID
 	}
 	var req upsertRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -126,10 +167,11 @@ func (h *Handler) upsert(c *gin.Context) {
 		return
 	}
 	h.audit.Record(c, audit.Entry{
-		Operator:   user.ID,
+		Operator:   operator,
 		Action:     audit.ActionTodoUpsert,
 		Resource:   "todo",
 		ResourceID: strconv.FormatUint(todo.ID, 10),
+		Detail:     "token=" + tokenName,
 	})
 	metrics.Emit("velora_todo_upsert_total")
 	response.OK(c, todo)

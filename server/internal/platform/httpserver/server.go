@@ -128,6 +128,9 @@ func New(deps Deps) (*gin.Engine, error) {
 		func(c *gin.Context, userID string) {
 			deps.Audit.Record(c, audit.Entry{Operator: userID, Action: audit.ActionLogout, Resource: "session"})
 		},
+		func(c *gin.Context, username string) {
+			deps.Audit.Record(c, audit.Entry{Operator: username, Action: audit.ActionLoginFailed, Resource: "session", Detail: "登录失败"})
+		},
 		deps.LoginLockout,
 	)
 	api.GET("/auth/oidc/login", limiterMiddleware(globalLimiter, 30, time.Minute), oidcHandler.Login)

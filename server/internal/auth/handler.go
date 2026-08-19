@@ -30,6 +30,7 @@ type Handler struct {
 	defaultRedirect string
 	onLogin         AuditCallback
 	onLogout        AuditCallback
+	onLoginFailed   AuditCallback // 登录失败审计（Phase C5：LOGIN_FAILED）
 	lockout         LockoutManager // 账户锁定（nil 时不启用）
 }
 
@@ -41,7 +42,7 @@ type LockoutManager interface {
 }
 
 // NewHandler 创建认证 Handler。
-func NewHandler(oidc *OIDCManager, sessions *SessionStore, adminRole, defaultRedirect string, onLogin, onLogout AuditCallback, lockout LockoutManager) *Handler {
+func NewHandler(oidc *OIDCManager, sessions *SessionStore, adminRole, defaultRedirect string, onLogin, onLogout, onLoginFailed AuditCallback, lockout LockoutManager) *Handler {
 	return &Handler{
 		oidc:            oidc,
 		sessions:        sessions,
@@ -49,6 +50,7 @@ func NewHandler(oidc *OIDCManager, sessions *SessionStore, adminRole, defaultRed
 		defaultRedirect: defaultRedirect,
 		onLogin:         onLogin,
 		onLogout:        onLogout,
+		onLoginFailed:   onLoginFailed,
 		lockout:         lockout,
 	}
 }
@@ -137,6 +139,9 @@ func (h *Handler) LoginWithPassword(c *gin.Context) {
 			slog.Warn("账户锁定状态查询失败", "username", body.Username, "err", err)
 		} else if locked {
 			metrics.Emit("velora_auth_login_failure_total")
+			if h.onLoginFailed != nil {
+				h.onLoginFailed(c, body.Username)
+			}
 			minutes := int(ttl.Minutes()) + 1
 			response.ErrorWith(c, http.StatusTooManyRequests, errs.CodeRateLimited,
 				fmt.Sprintf("登录失败次数过多，账户已锁定，请 %d 分钟后再试", minutes))
@@ -147,6 +152,9 @@ func (h *Handler) LoginWithPassword(c *gin.Context) {
 	user, err := h.oidc.LoginWithPassword(c.Request.Context(), body.Username, body.Password)
 	if err != nil {
 		metrics.Emit("velora_auth_login_failure_total")
+		if h.onLoginFailed != nil {
+			h.onLoginFailed(c, body.Username)
+		}
 		// 记录失败（凭据错误时计数；服务异常不计入账户锁定，避免误锁）
 		if h.lockout != nil && errs.Is(err, errs.CodeLoginFailed) {
 			if locked, lerr := h.lockout.RecordFailure(c.Request.Context(), body.Username); lerr == nil && locked {

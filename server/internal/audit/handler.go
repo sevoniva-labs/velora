@@ -1,11 +1,13 @@
 package audit
 
 import (
+	"net/http"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
 
 	"github.com/sevoniva-labs/velora/server/internal/permission"
+	"github.com/sevoniva-labs/velora/server/internal/platform/errs"
 	"github.com/sevoniva-labs/velora/server/internal/platform/response"
 )
 
@@ -25,6 +27,22 @@ func (h *Handler) Register(r gin.IRouter) {
 	g := r.Group("/admin/audit-logs")
 	g.Use(permission.AdminRequired(h.adminRole))
 	g.GET("", h.list)
+	g.GET("/verify", h.verifyChain)
+}
+
+// verifyChain 校验审计防篡改链完整性（Phase C5）。
+func (h *Handler) verifyChain(c *gin.Context) {
+	startID, _ := strconv.ParseUint(c.Query("startId"), 10, 64)
+	ok, badID, err := h.service.VerifyChain(c.Request.Context(), startID)
+	if err != nil {
+		response.Error(c, err)
+		return
+	}
+	if !ok {
+		response.ErrorWith(c, http.StatusConflict, errs.CodeInternal, "审计链校验失败：记录 #"+strconv.FormatUint(badID, 10)+" 哈希不匹配（可能被篡改）")
+		return
+	}
+	response.OK(c, gin.H{"verified": true})
 }
 
 func (h *Handler) list(c *gin.Context) {

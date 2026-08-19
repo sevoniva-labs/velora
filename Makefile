@@ -72,6 +72,9 @@ docker-up-monitoring: ## 启动监控栈（Prometheus + Grafana）
 backup: ## 数据库全量备份（见 docs/ops-backup.md）
 	./scripts/backup-db.sh
 
+audit-archive: ## 归档 180 天前审计日志（见 docs/ops-audit.md）
+	./scripts/audit-archive.sh
+
 migrate: ## 执行数据库迁移（本地直连 .env 中的 DATABASE_URL）
 	cd server && go run ./cmd/velora migrate
 

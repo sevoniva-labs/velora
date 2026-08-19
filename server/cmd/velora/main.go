@@ -91,6 +91,10 @@ func serve(cfg *config.Config) error {
 	oidcMgr := auth.NewOIDCManager(cfg.CasdoorIssuer, cfg.CasdoorClientID, cfg.CasdoorClientSecret, cfg.CasdoorRedirectURI, 10*time.Minute)
 
 	auditSvc := audit.NewService(gormDB)
+	// 回填历史审计哈希链（Phase C5；幂等，仅处理 hash='' 的存量记录）。
+	if err := auditSvc.BackfillChain(ctx); err != nil {
+		slog.Warn("审计哈希链回填失败（不影响启动）", "err", err)
+	}
 
 	// 邮件模块：凭证加密器（MAIL_CREDENTIAL_KEY；开发环境缺省时由 SESSION_SECRET 派生）。
 	mailCipher, err := mail.NewCredentialCipher(cfg.MailCredentialKey, cfg.SessionSecret)

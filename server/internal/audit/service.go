@@ -35,6 +35,8 @@ const (
 	ActionTodoDone         = "TODO_DONE"
 	ActionMailBind         = "MAIL_ACCOUNT_BIND"
 	ActionMailUnbind       = "MAIL_ACCOUNT_UNBIND"
+	ActionOIDCAuthorize    = "OIDC_AUTHORIZE"
+	ActionOIDCToken        = "OIDC_TOKEN"
 	ActionMailToTodo       = "MAIL_TO_TODO"
 )
 

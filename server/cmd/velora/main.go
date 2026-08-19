@@ -22,6 +22,7 @@ import (
 	"github.com/sevoniva-labs/velora/server/internal/auth"
 	"github.com/sevoniva-labs/velora/server/internal/config"
 	"github.com/sevoniva-labs/velora/server/internal/mail"
+	"github.com/sevoniva-labs/velora/server/internal/oidcprovider"
 	"github.com/sevoniva-labs/velora/server/internal/platform/db"
 	"github.com/sevoniva-labs/velora/server/internal/platform/httpserver"
 	"github.com/sevoniva-labs/velora/server/internal/todo"
@@ -93,14 +94,21 @@ func serve(cfg *config.Config) error {
 	}
 	mailSvc := mail.NewService(gormDB, mailCipher, todo.NewService(gormDB))
 
+	// OIDC Provider（Phase B）：Velora 作为企业 SSO 登录终点。
+	oidcProviderSvc := oidcprovider.NewService(gormDB)
+	if err := oidcProviderSvc.EnsureSigningKey(ctx); err != nil {
+		return fmt.Errorf("初始化 OIDC Provider 签名密钥失败: %w", err)
+	}
+
 	engine, err := httpserver.New(httpserver.Deps{
-		Cfg:       cfg,
-		DB:        gormDB,
-		Sessions:  sessions,
-		OIDC:      oidcMgr,
-		Audit:     auditSvc,
-		AdminRole: cfg.AdminRole,
-		Mail:      mailSvc,
+		Cfg:          cfg,
+		DB:           gormDB,
+		Sessions:     sessions,
+		OIDC:         oidcMgr,
+		Audit:        auditSvc,
+		AdminRole:    cfg.AdminRole,
+		Mail:         mailSvc,
+		OIDCProvider: oidcProviderSvc,
 	})
 	if err != nil {
 		return err

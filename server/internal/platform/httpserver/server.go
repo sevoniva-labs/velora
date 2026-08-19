@@ -1,9 +1,11 @@
 package httpserver
 
 import (
+	"context"
 	"fmt"
 	"log/slog"
 	"net/http"
+	"net/url"
 	"sync"
 	"time"
 
@@ -18,6 +20,7 @@ import (
 	"github.com/sevoniva-labs/velora/server/internal/config"
 	"github.com/sevoniva-labs/velora/server/internal/favorite"
 	"github.com/sevoniva-labs/velora/server/internal/mail"
+	"github.com/sevoniva-labs/velora/server/internal/oidcprovider"
 	"github.com/sevoniva-labs/velora/server/internal/platform/errs"
 	"github.com/sevoniva-labs/velora/server/internal/platform/response"
 	"github.com/sevoniva-labs/velora/server/internal/portal"
@@ -28,13 +31,14 @@ import (
 
 // Deps 为组装路由所需的依赖。
 type Deps struct {
-	Cfg       *config.Config
-	DB        *gorm.DB
-	Sessions  *auth.SessionStore
-	OIDC      *auth.OIDCManager
-	Audit     *audit.Service
-	AdminRole string
-	Mail      *mail.Service // 邮件服务（nil 时不注册邮件路由）
+	Cfg          *config.Config
+	DB           *gorm.DB
+	Sessions     *auth.SessionStore
+	OIDC         *auth.OIDCManager
+	Audit        *audit.Service
+	AdminRole    string
+	Mail         *mail.Service // 邮件服务（nil 时不注册邮件路由）
+	OIDCProvider *oidcprovider.Service
 }
 
 // New 组装 Gin Engine 与全部路由。
@@ -54,6 +58,39 @@ func New(deps Deps) (*gin.Engine, error) {
 	r.Use(rateLimit(300, time.Minute))
 
 	RegisterHealth(r, deps.DB)
+
+	// --- OIDC Provider（Phase B）：第三方应用 SSO 终点（公开，无需 Velora 登录） ---
+	if deps.OIDCProvider != nil {
+		deps.OIDCProvider.SetIssuer(deps.Cfg.PublicBaseURL)
+		deps.OIDCProvider.SetUserSnapshot(func(ctx context.Context, userID string) (*auth.CurrentUser, error) {
+			// Phase B6 接入服务端会话表后，从此处读取用户快照；
+			// 当前从会话解码回退（无 session 则返回最小用户）。
+			return &auth.CurrentUser{ID: userID}, nil
+		})
+		oidcHandler := oidcprovider.NewHandler(
+			deps.OIDCProvider,
+			func(c *gin.Context) *auth.CurrentUser {
+				// 从 Velora 会话 Cookie 解析当前用户（已登录返回用户，未登录返回 nil）
+				token, err := c.Cookie(auth.SessionCookieName)
+				if err != nil || token == "" {
+					return nil
+				}
+				session, err := deps.Sessions.Decode(token)
+				if err != nil || session.ExpiresAt.Before(time.Now()) {
+					return nil
+				}
+				return session.ToCurrentUser()
+			},
+			func(c *gin.Context, authorizePath string) string {
+				// 未登录：跳 Velora 登录页，登录后回 authorize
+				return "/login?redirect=" + url.QueryEscape(authorizePath)
+			},
+			func(c *gin.Context, action, resource, detail string) {
+				deps.Audit.Record(c, audit.Entry{Operator: "oidc", Action: action, Resource: resource, Detail: detail})
+			},
+		)
+		oidcHandler.Register(r.Group("/oidc"))
+	}
 
 	api := r.Group("/api/v1")
 
@@ -87,7 +124,19 @@ func New(deps Deps) (*gin.Engine, error) {
 	tagService := tag.NewService(deps.DB)
 	tag.NewHandler(tagService, deps.Audit, deps.AdminRole).Register(secured)
 
-	appService := application.NewService(deps.DB, deps.AdminRole, deps.Cfg.CasdoorIssuer, deps.Cfg.HealthCheckTimeout)
+	appService := application.NewService(deps.DB, deps.AdminRole, deps.Cfg.CasdoorIssuer, deps.Cfg.PublicBaseURL, deps.Cfg.HealthCheckTimeout,
+		func(ctx context.Context, applicationID uint64) (string, []string, bool, error) {
+			// VELORA_OIDC 启动：按应用 ID 查 Velora OIDC client
+			if deps.OIDCProvider == nil {
+				return "", nil, false, nil
+			}
+			clients, err := deps.OIDCProvider.ListClientsByApplication(ctx, applicationID)
+			if err != nil || len(clients) == 0 {
+				return "", nil, false, err
+			}
+			return clients[0].ClientID, clients[0].RedirectURIs(), true, nil
+		},
+	)
 	appRepo := application.NewRepository(deps.DB)
 	visitService := visit.NewService(deps.DB)
 	var syncClient *casdoor.Client

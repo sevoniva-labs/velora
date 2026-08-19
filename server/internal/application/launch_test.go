@@ -80,12 +80,42 @@ func TestOIDCLaunchProvider(t *testing.T) {
 }
 
 func TestLaunchRegistryUnsupportedType(t *testing.T) {
-	r := NewLaunchRegistry("https://casdoor.example.internal")
+	r := NewLaunchRegistry("https://casdoor.example.internal", "https://velora.example.com", nil)
 	app := &Application{SSOType: SSOTypeSAML, LaunchURL: "https://x.example"}
 	if _, err := r.Launch(context.Background(), app, &auth.CurrentUser{ID: "u"}); err == nil {
 		t.Error("未实现类型应返回错误（不假装实现）")
 	}
-	if r.Provider(SSOTypeURL) == nil || r.Provider(SSOTypeOIDC) == nil {
-		t.Error("URL / OIDC Provider 应已注册")
+	if r.Provider(SSOTypeURL) == nil || r.Provider(SSOTypeOIDC) == nil || r.Provider(SSOTypeVeloraOIDC) == nil {
+		t.Error("URL / OIDC / VELORA_OIDC Provider 应已注册")
+	}
+}
+
+func TestVeloraOIDCLaunchProvider(t *testing.T) {
+	r := NewLaunchRegistry("https://casdoor.example.internal", "https://velora.example.com",
+		func(ctx context.Context, applicationID uint64) (string, []string, bool, error) {
+			if applicationID == 42 {
+				return "velora-client-abc", []string{"https://app.example.com/cb"}, true, nil
+			}
+			return "", nil, false, nil
+		})
+	user := &auth.CurrentUser{ID: "u-1", Username: "alice"}
+
+	// 已注册 client → 生成 Velora /oidc/authorize 跳转
+	res, err := r.Launch(context.Background(), &Application{ID: 42, SSOType: SSOTypeVeloraOIDC}, user)
+	if err != nil {
+		t.Fatalf("VELORA_OIDC launch failed: %v", err)
+	}
+	if !strings.Contains(res.URL, "https://velora.example.com/oidc/authorize?") {
+		t.Errorf("应跳转 Velora authorize：%s", res.URL)
+	}
+	for _, k := range []string{"client_id=velora-client-abc", "response_type=code", "code_challenge_method=S256", "redirect_uri="} {
+		if !strings.Contains(res.URL, k) {
+			t.Errorf("URL 缺少参数 %s：%s", k, res.URL)
+		}
+	}
+
+	// 未注册 client → 明确报错
+	if _, err := r.Launch(context.Background(), &Application{ID: 1, SSOType: SSOTypeVeloraOIDC}, user); err == nil {
+		t.Error("无 client 时应报错（引导管理员先配置）")
 	}
 }

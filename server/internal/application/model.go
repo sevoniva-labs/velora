@@ -17,6 +17,9 @@ const (
 	SSOTypeSAML        = "SAML"
 	SSOTypeCAS         = "CAS"
 	SSOTypeForwardAuth = "FORWARD_AUTH"
+	// SSOTypeVeloraOIDC：应用通过 Velora 自身 OIDC Provider 登录（Phase B 核心）。
+	// 与 SSOTypeOIDC 的区别：OIDC 直连 Casdoor；VELORA_OIDC 走 Velora /oidc/* 终点。
+	SSOTypeVeloraOIDC = "VELORA_OIDC"
 )
 
 // 应用状态。

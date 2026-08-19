@@ -126,12 +126,14 @@ type Service struct {
 }
 
 // NewService 创建应用服务。
-func NewService(db *gorm.DB, adminRole, oidcIssuer string, checkTimeout time.Duration) *Service {
+// publicBaseURL 为 Velora 对外地址（VELORA_OIDC issuer）；
+// clientResolver 按应用 ID 解析 Velora OIDC client（由组装层注入，可为 nil）。
+func NewService(db *gorm.DB, adminRole, oidcIssuer, publicBaseURL string, checkTimeout time.Duration, clientResolver func(ctx context.Context, applicationID uint64) (clientID string, redirectURIs []string, ok bool, err error)) *Service {
 	repo := NewRepository(db)
 	return &Service{
 		repo:       repo,
 		db:         db,
-		launch:     NewLaunchRegistry(oidcIssuer),
+		launch:     NewLaunchRegistry(oidcIssuer, publicBaseURL, clientResolver),
 		health:     NewHealthChecker(checkTimeout),
 		adminRole:  adminRole,
 		oidcIssuer: oidcIssuer,

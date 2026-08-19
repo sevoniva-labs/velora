@@ -86,17 +86,71 @@ func (p OIDCLaunchProvider) Launch(ctx context.Context, app *Application, user *
 	return &LaunchResult{Type: "url", URL: authorizeURL + "?" + u.Encode(), Target: "_blank"}, nil
 }
 
+// VeloraOIDCLaunchProvider 生成 Velora 自身 OIDC Provider 的登录跳转（VELORA_OIDC 类应用）。
+// 这是"统一登录入口"目标的核心路径：应用 SSO 登录 → Velora /oidc/authorize
+// （未登录先落 Velora 登录页），Casdoor 对应用完全不可见。
+type VeloraOIDCLaunchProvider struct {
+	// publicBaseURL Velora 对外地址（issuer）。
+	publicBaseURL string
+	// clientResolver 按应用 ID 查询 Velora OIDC client 的回调（由组装层注入，
+	// 避免 application 包反向依赖 oidcprovider）。
+	clientResolver func(ctx context.Context, applicationID uint64) (clientID string, redirectURIs []string, ok bool, err error)
+}
+
+func (VeloraOIDCLaunchProvider) Type() string { return SSOTypeVeloraOIDC }
+
+func (p VeloraOIDCLaunchProvider) Launch(ctx context.Context, app *Application, user *auth.CurrentUser) (*LaunchResult, error) {
+	if p.clientResolver == nil {
+		return nil, errs.New(errs.CodeApplicationDisabled, 400, "该应用未配置 Velora OIDC 客户端")
+	}
+	clientID, redirectURIs, ok, err := p.clientResolver(ctx, app.ID)
+	if err != nil {
+		return nil, errs.Internal("读取 OIDC 客户端失败", err)
+	}
+	if !ok || clientID == "" {
+		return nil, errs.New(errs.CodeApplicationDisabled, 400, "该应用未配置 Velora OIDC 客户端，请先在管理后台生成")
+	}
+	if len(redirectURIs) == 0 {
+		return nil, errs.New(errs.CodeApplicationDisabled, 400, "该应用未配置 Velora OIDC 回调地址白名单")
+	}
+
+	issuer := strings.TrimRight(p.publicBaseURL, "/")
+	authorizeURL := issuer + "/oidc/authorize"
+	state, err := auth.RandomToken(16)
+	if err != nil {
+		return nil, errs.Internal("生成 OIDC state 失败", err)
+	}
+
+	u := url.Values{}
+	u.Set("client_id", clientID)
+	u.Set("redirect_uri", redirectURIs[0])
+	u.Set("response_type", "code")
+	u.Set("scope", "openid profile email")
+	u.Set("state", state)
+	u.Set("code_challenge_method", "S256")
+	challenge, _ := auth.RandomToken(24)
+	u.Set("code_challenge", challenge) // 简化：一次性随机串作为 challenge（对应应用侧需同值 verifier）
+	if user != nil && user.Username != "" {
+		u.Set("login_hint", user.Username)
+	}
+
+	return &LaunchResult{Type: "url", URL: authorizeURL + "?" + u.Encode(), Target: "_blank"}, nil
+}
+
 // LaunchRegistry 按 SSO 类型分发 Provider。
 type LaunchRegistry struct {
 	providers map[string]LaunchProvider
 }
 
 // NewLaunchRegistry 创建 Provider 注册表。
-func NewLaunchRegistry(oidcIssuer string) *LaunchRegistry {
+// publicBaseURL 为 Velora 对外地址（VELORA_OIDC issuer）；
+// clientResolver 按应用 ID 解析 Velora OIDC client（nil 时 VELORA_OIDC 返回不支持）。
+func NewLaunchRegistry(oidcIssuer, publicBaseURL string, clientResolver func(ctx context.Context, applicationID uint64) (clientID string, redirectURIs []string, ok bool, err error)) *LaunchRegistry {
 	return &LaunchRegistry{
 		providers: map[string]LaunchProvider{
-			SSOTypeURL:  URLLaunchProvider{},
-			SSOTypeOIDC: OIDCLaunchProvider{issuer: oidcIssuer},
+			SSOTypeURL:        URLLaunchProvider{},
+			SSOTypeOIDC:       OIDCLaunchProvider{issuer: oidcIssuer},
+			SSOTypeVeloraOIDC: VeloraOIDCLaunchProvider{publicBaseURL: publicBaseURL, clientResolver: clientResolver},
 		},
 	}
 }

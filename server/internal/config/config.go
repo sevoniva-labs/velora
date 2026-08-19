@@ -39,6 +39,10 @@ type Config struct {
 
 	AdminRole string
 
+	// PublicBaseURL 对外访问地址（如 https://velora.example.com），
+	// 用作 OIDC Provider 的 issuer 与端点拼接；缺省回退到本地开发地址。
+	PublicBaseURL string
+
 	CORSAllowedOrigins []string
 	TrustedProxies     []string
 
@@ -79,6 +83,8 @@ func Load() (*Config, error) {
 		CookieDomain:  getEnv("COOKIE_DOMAIN", ""),
 
 		AdminRole: getEnv("VELORA_ADMIN_ROLE", "velora_admin"),
+
+		PublicBaseURL: getEnv("PUBLIC_BASE_URL", "http://localhost:8080"),
 
 		HealthCheckTimeout: time.Duration(getEnvInt("HEALTH_CHECK_TIMEOUT_SECONDS", 5)) * time.Second,
 

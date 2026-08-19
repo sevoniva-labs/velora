@@ -85,6 +85,35 @@ export function revokeAllSessions(): Promise<{ status: string }> {
   return apiFetch('/auth/sessions', { method: 'DELETE' })
 }
 
+// --- OIDC Provider 客户端管理（Phase B6 管理后台） ---
+
+export interface OIDCClient {
+  clientId: string
+  name: string
+  redirectUris: string[]
+  grantTypes: string[]
+  scopes: string[]
+  createdAt: string
+}
+
+export function listOIDCClients(applicationId: number): Promise<OIDCClient[]> {
+  return apiFetch(`/admin/applications/${applicationId}/oidc-clients`)
+}
+
+export function createOIDCClient(
+  applicationId: number,
+  redirectUris: string[],
+): Promise<{ client: OIDCClient; clientSecret: string }> {
+  return apiFetch(`/admin/applications/${applicationId}/oidc-clients`, {
+    method: 'POST',
+    body: { redirectUris },
+  })
+}
+
+export function revokeOIDCClient(clientId: string): Promise<{ status: string }> {
+  return apiFetch(`/admin/applications/oidc-clients/${encodeURIComponent(clientId)}`, { method: 'DELETE' })
+}
+
 // --- 应用 ---
 
 export interface ListApplicationsParams {

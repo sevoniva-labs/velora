@@ -3,7 +3,8 @@ import { usePageTitle } from '../../hooks/usePageTitle'
 import QueryErrorState from '../../components/QueryErrorState'
 import AdminPageHead from '../../components/AdminPageHead'
 import { isSafeHttpUrl } from '../../utils/format'
-import { App as AntdApp, Button, Form, Input, InputNumber, Modal, Popconfirm, Select, Space, Switch, Table, Tag, Tooltip } from 'antd'
+import { App as AntdApp, Alert, Button, Form, Input, InputNumber, Modal, Popconfirm, Select, Space, Switch, Table, Tag, Tooltip } from 'antd'
+import { ApiOutlined } from '@ant-design/icons'
 import { CloudSyncOutlined } from '@ant-design/icons'
 import { PlusOutlined } from '@ant-design/icons'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
@@ -13,10 +14,14 @@ import {
   adminListApplications,
   adminSyncApplications,
   adminUpdateApplication,
+  createOIDCClient,
   listCategories,
+  listOIDCClients,
   listTags,
   queryKeys,
+  revokeOIDCClient,
   type AdminApplicationInput,
+  type OIDCClient,
 } from '../../api/api'
 import type { Application } from '../../types'
 import { APP_STATUS_LABEL, SSO_TYPE_COLOR, SSO_TYPE_LABEL } from '../../labels'
@@ -33,6 +38,7 @@ export default function AdminApplications() {
   const [keyword, setKeyword] = useState('')
   const [modalOpen, setModalOpen] = useState(false)
   const [editing, setEditing] = useState<Application | null>(null)
+  const [oidcApp, setOidcApp] = useState<Application | null>(null)
   const [form] = Form.useForm<AdminApplicationInput>()
   const watchSsoType = Form.useWatch('ssoType', form)
 
@@ -126,6 +132,8 @@ export default function AdminApplications() {
       categoryId: values.categoryId ?? null,
     })
   }
+
+  const openOIDCClients = (app: Application) => setOidcApp(app)
 
   return (
     <div>
@@ -238,9 +246,14 @@ export default function AdminApplications() {
           {
             title: '操作',
             key: 'actions',
-            width: 150,
+            width: 210,
             render: (_, app) => (
               <Space>
+                {app.ssoType === 'VELORA_OIDC' && (
+                  <Button type="link" size="small" icon={<ApiOutlined />} onClick={() => openOIDCClients(app)}>
+                    OIDC 客户端
+                  </Button>
+                )}
                 <Button type="link" size="small" onClick={() => openEdit(app)}>
                   编辑
                 </Button>
@@ -419,6 +432,178 @@ export default function AdminApplications() {
           </Form.Item>
         </Form>
       </Modal>
+
+      {/* OIDC 客户端管理（Phase B6）：仅 VELORA_OIDC 接入的应用 */}
+      <OIDCClientModal app={oidcApp} onClose={() => setOidcApp(null)} />
     </div>
+  )
+}
+
+/**
+ * OIDC 客户端管理弹窗：查看 / 新建（返回一次 secret）/ 吊销客户端。
+ * 展示对接参数（authorize/token/userinfo/jwks 端点）便于第三方接入。
+ */
+function OIDCClientModal({ app, onClose }: { app: Application | null; onClose: () => void }) {
+  const { message } = AntdApp.useApp()
+  const queryClient = useQueryClient()
+  const [newSecret, setNewSecret] = useState<{ clientId: string; secret: string } | null>(null)
+  const [redirectInput, setRedirectInput] = useState('')
+
+  const { data: clients, isLoading } = useQuery({
+    queryKey: ['admin', 'oidc-clients', app?.id],
+    queryFn: () => listOIDCClients(app!.id),
+    enabled: !!app,
+  })
+
+  const createMutation = useMutation({
+    mutationFn: (redirectUris: string[]) => createOIDCClient(app!.id, redirectUris),
+    onSuccess: (r) => {
+      message.success('客户端已创建（密钥仅显示一次，请立即保存）')
+      setNewSecret({ clientId: r.client.clientId, secret: r.clientSecret })
+      setRedirectInput('')
+      void queryClient.invalidateQueries({ queryKey: ['admin', 'oidc-clients', app?.id] })
+    },
+    onError: (err) => message.error(err instanceof Error ? err.message : '创建失败'),
+  })
+
+  const revokeMutation = useMutation({
+    mutationFn: (clientId: string) => revokeOIDCClient(clientId),
+    onSuccess: () => {
+      message.success('客户端已吊销')
+      void queryClient.invalidateQueries({ queryKey: ['admin', 'oidc-clients', app?.id] })
+    },
+    onError: (err) => message.error(err instanceof Error ? err.message : '吊销失败'),
+  })
+
+  const endpointBase = `${window.location.origin}/oidc`
+
+  return (
+    <Modal
+      title={`OIDC 客户端：${app?.name ?? ''}`}
+      open={!!app}
+      onCancel={onClose}
+      footer={null}
+      width={640}
+      destroyOnHidden
+    >
+      {app && (
+        <>
+          <Alert
+            type="info"
+            showIcon
+            style={{ marginBottom: 12 }}
+            message="第三方应用通过以下 Velora SSO 端点对接（PKCE S256 强制）"
+            description={
+              <div style={{ fontSize: 12 }}>
+                authorize：<code>{endpointBase}/authorize</code>
+                <br />
+                token：<code>{endpointBase}/token</code> · userinfo：
+                <code>{endpointBase}/userinfo</code> · jwks：<code>{endpointBase}/jwks</code>
+                <br />
+                发现文档：<code>{endpointBase}/.well-known/openid-configuration</code>
+              </div>
+            }
+          />
+
+          {newSecret && (
+            <Alert
+              type="success"
+              showIcon
+              style={{ marginBottom: 12 }}
+              message={`客户端 ${newSecret.clientId} 创建成功`}
+              description={
+                <div>
+                  <div>
+                    Client ID：<code>{newSecret.clientId}</code>
+                  </div>
+                  <div>
+                    Client Secret：<code>{newSecret.secret}</code>
+                  </div>
+                  <div style={{ marginTop: 4, color: '#fa8c16' }}>⚠ 密钥仅本次显示，请立即复制保存；遗失需吊销后重建。</div>
+                </div>
+              }
+            />
+          )}
+
+          {/* 新建客户端 */}
+          <Space.Compact style={{ width: '100%', marginBottom: 12 }}>
+            <Input
+              placeholder="回调地址 redirect_uri（多个用逗号分隔）"
+              value={redirectInput}
+              onChange={(e) => setRedirectInput(e.target.value)}
+              onPressEnter={() => {
+                const uris = redirectInput.split(',').map((s) => s.trim()).filter(Boolean)
+                if (uris.length) createMutation.mutate(uris)
+              }}
+            />
+            <Button
+              type="primary"
+              loading={createMutation.isPending}
+              disabled={!redirectInput.trim()}
+              onClick={() => {
+                const uris = redirectInput.split(',').map((s) => s.trim()).filter(Boolean)
+                createMutation.mutate(uris)
+              }}
+            >
+              新建客户端
+            </Button>
+          </Space.Compact>
+
+          <Table<OIDCClient>
+            rowKey="clientId"
+            size="small"
+            loading={isLoading}
+            dataSource={clients ?? []}
+            pagination={false}
+            locale={{ emptyText: '暂无客户端，请先创建' }}
+            columns={[
+              {
+                title: 'Client ID',
+                dataIndex: 'clientId',
+                ellipsis: true,
+                render: (v: string) => <code style={{ fontSize: 12 }}>{v}</code>,
+              },
+              {
+                title: '回调地址',
+                dataIndex: 'redirectUris',
+                render: (uris: string[]) => (
+                  <Space size={4} wrap>
+                    {uris.map((u) => (
+                      <Tag key={u} style={{ fontSize: 11, maxWidth: 220 }}>
+                        {u}
+                      </Tag>
+                    ))}
+                  </Space>
+                ),
+              },
+              {
+                title: '创建时间',
+                dataIndex: 'createdAt',
+                width: 100,
+                render: (v: string) => (v ? new Date(v).toLocaleDateString() : '-'),
+              },
+              {
+                title: '操作',
+                key: 'op',
+                width: 70,
+                render: (_, cl) => (
+                  <Popconfirm
+                    title="吊销客户端？"
+                    description="吊销后该客户端所有 code/token 立即失效，第三方应用将无法登录。"
+                    okText="吊销"
+                    okButtonProps={{ danger: true }}
+                    onConfirm={() => revokeMutation.mutate(cl.clientId)}
+                  >
+                    <Button type="link" size="small" danger loading={revokeMutation.isPending}>
+                      吊销
+                    </Button>
+                  </Popconfirm>
+                ),
+              },
+            ]}
+          />
+        </>
+      )}
+    </Modal>
   )
 }

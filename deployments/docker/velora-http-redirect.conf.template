@@ -1,0 +1,7 @@
+# Velora Web Nginx 配置（HTTP 跳转块 · 生产形态：80 → 443）。
+server {
+    listen 80;
+    server_name _;
+    # 全部请求跳转 HTTPS
+    return 301 https://$host$request_uri;
+}

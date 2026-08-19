@@ -1,0 +1,62 @@
+# Velora 生产环境 overlay（Phase A1/A4）。
+# 用法：
+#   docker compose -f docker-compose.yml -f deployments/env/prod/docker-compose.prod.yml up -d
+#
+# 生产差异：
+#   - Web 容器开启 TLS（443），证书挂载自 ./deployments/env/prod/certs/（外部签发后放入）
+#   - Casdoor origin 改为 Velora 域名下 /casdoor 路径（用户不可见，满足"Casdoor 藏在后面"）
+#   - server 端 COOKIE_SECURE=true、TRUSTED_PROXIES 显式网段、CORS 收紧
+#   - 密钥/凭据一律来自宿主环境（不写死在 yml；.env 由运维准备，不入 git）
+#   - 限制资源（deploy.resources）避免单机失控
+name: velora-prod
+
+services:
+  casdoor:
+    environment:
+      # origin 指向 Velora 域名下的反代路径：浏览器看到的登录页 URL 全部在 Velora 域内
+      origin: "https://${VELORA_EXTERNAL_URL:-velora.example.com}/casdoor"
+    ports: []
+    expose:
+      - "8000"
+
+  server:
+    environment:
+      VELORA_ENV: production
+      CASDOOR_ISSUER: "https://${VELORA_EXTERNAL_URL:-velora.example.com}/casdoor"
+      CASDOOR_REDIRECT_URI: "https://${VELORA_EXTERNAL_URL:-velora.example.com}/api/v1/auth/oidc/callback"
+      COOKIE_SECURE: "true"
+      COOKIE_DOMAIN: "${VELORA_COOKIE_DOMAIN:-}"
+      # 生产必须显式配置独立邮件凭证密钥（禁止 SESSION_SECRET 派生）
+      MAIL_CREDENTIAL_KEY: "${MAIL_CREDENTIAL_KEY:?生产必须配置 MAIL_CREDENTIAL_KEY（base64 32字节）}"
+      # 反代网段：按实际网关网段配置，保留真实客户端 IP（默认仅回环）
+      TRUSTED_PROXIES: "${TRUSTED_PROXIES:-127.0.0.1,::1}"
+      # CORS：同源部署可留空（nginx 反代不跨域）
+      CORS_ALLOWED_ORIGINS: "${CORS_ALLOWED_ORIGINS:-}"
+      SESSION_SECRET: "${SESSION_SECRET:?生产必须配置 SESSION_SECRET}"
+      CASDOOR_CLIENT_SECRET: "${CASDOOR_CLIENT_SECRET:?生产必须配置 CASDOOR_CLIENT_SECRET}"
+      CASDOOR_ADMIN_PASSWORD: "${CASDOOR_ADMIN_PASSWORD:?生产必须配置 CASDOOR_ADMIN_PASSWORD}"
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
+  web:
+    environment:
+      VELORA_API_PROXY_PASS: http://server:8080
+      VELORA_TLS_ENABLED: "true"
+    volumes:
+      # 证书挂载：运维将 velora.crt / velora.key 放入 deployments/env/prod/certs/
+      - ./deployments/env/prod/certs:/etc/nginx/certs:ro
+    ports:
+      - "443:443"
+      - "80:80"
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+
+  postgres:
+    deploy:
+      resources:
+        limits:
+          memory: 512M

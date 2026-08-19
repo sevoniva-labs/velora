@@ -1,48 +1,59 @@
-# Velora Web Nginx 配置：静态托管 + /api 反向代理到 Velora Server。
-# compose 网络中 server 服务名固定为 server；独立部署时按需修改 proxy_pass。
-gzip on;
-gzip_types text/plain text/css application/json application/javascript image/svg+xml;
-gzip_min_length 1024;
-
+# Velora Web Nginx 配置（HTTPS 服务块 · 生产形态）。
+# 证书挂载：/etc/nginx/certs/velora.crt + velora.key（compose 生产 overlay 挂载）。
 server {
-    listen 80;
+    listen 443 ssl;
     server_name _;
+
+    ssl_certificate     /etc/nginx/certs/velora.crt;
+    ssl_certificate_key /etc/nginx/certs/velora.key;
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_ciphers ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384;
+    ssl_prefer_server_ciphers off;
+    ssl_session_cache shared:SSL:10m;
+    ssl_session_timeout 1d;
+
+    # HSTS（确认证书链可信后启用）
+    # add_header Strict-Transport-Security "max-age=63072000; includeSubDomains; preload" always;
+
     root /usr/share/nginx/html;
     index index.html;
 
-    # 安全响应头（SPA 文档层防护）
     add_header X-Frame-Options "DENY" always;
     add_header X-Content-Type-Options "nosniff" always;
     add_header Referrer-Policy "strict-origin-when-cross-origin" always;
     add_header Permissions-Policy "camera=(), microphone=(), geolocation=()" always;
-    # 管理员可配置 http:// 图标，img-src 显式放行 http/https
     add_header Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: http: https:; font-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'" always;
 
-    # SPA 路由回退（index.html 与非指纹化公共文件：每次加载协商缓存，保证更新即时生效）
     location / {
         expires -1;
         try_files $uri $uri/ /index.html;
     }
 
-    # 指纹化构建产物（文件名含内容 hash）：长缓存
     location /assets/ {
         add_header Cache-Control "public, max-age=31536000, immutable";
         try_files $uri =404;
     }
 
-    # API 反向代理到 Velora Server
     location /api/ {
-        proxy_pass http://server:8080;
+        proxy_pass ${VELORA_API_PROXY_PASS:-http://server:8080};
         proxy_http_version 1.1;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Proto https;
         proxy_set_header X-Request-Id $request_id;
         proxy_read_timeout 30s;
     }
 
-    # 健康检查
+    location /casdoor/ {
+        proxy_pass http://casdoor:8000/;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto https;
+    }
+
     location = /healthz {
         access_log off;
         return 200 "ok\n";

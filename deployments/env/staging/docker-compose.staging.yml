@@ -1,0 +1,32 @@
+# Velora 预发（staging）环境 overlay（Phase A4）。
+# 用法：docker compose -f docker-compose.yml -f deployments/env/staging/docker-compose.staging.yml up -d
+#
+# staging 与生产保持同构（同样的 overlay 结构），差异：
+#   - 无 TLS（或内网自签，按需启用）
+#   - 独立端口避免与本地开发冲突
+#   - 数据卷独立命名，与生产隔离
+name: velora-staging
+
+services:
+  postgres:
+    container_name: velora-staging-postgres
+    ports:
+      - "15433:5432"
+
+  casdoor:
+    container_name: velora-staging-casdoor
+    ports:
+      - "18443:8000"
+
+  server:
+    container_name: velora-staging-server
+    environment:
+      VELORA_ENV: production
+      COOKIE_SECURE: "false"
+    ports:
+      - "18080:8080"
+
+  web:
+    container_name: velora-staging-web
+    ports:
+      - "15173:80"

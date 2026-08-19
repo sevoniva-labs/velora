@@ -4,7 +4,6 @@ import { useState } from 'react'
 import { App as AntdApp, Badge, Button, Tooltip } from 'antd'
 import { HeartFilled, HeartOutlined } from '@ant-design/icons'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import dayjs from 'dayjs'
 import { addFavorite, launchApplication, queryKeys, removeFavorite } from '../api/api'
 import type { Application } from '../types'
 import { HEALTH_COLOR, HEALTH_LABEL } from '../labels'
@@ -52,24 +51,29 @@ export interface AppCardProps {
 export function AppCard({ app, onLaunch }: AppCardProps) {
   const { message } = AntdApp.useApp()
   const queryClient = useQueryClient()
-  const [favorited, setFavorited] = useState(!!app.isFavorite)
+  // 收藏状态以服务端 isFavorite 为唯一事实来源；override 仅承担点击后的乐观显示，
+  // 待列表失效刷新完成（服务端数据回到最新）后释放，避免本地镜像状态与服务器漂移。
+  const [favOverride, setFavOverride] = useState<boolean | null>(null)
+  const favorited = favOverride ?? !!app.isFavorite
 
-  const invalidateApps = () => {
-    void queryClient.invalidateQueries({ queryKey: ['applications'] })
-    void queryClient.invalidateQueries({ queryKey: ['favorites'] })
-    void queryClient.invalidateQueries({ queryKey: ['recent'] })
-    void queryClient.invalidateQueries({ queryKey: queryKeys.me })
-  }
+  const invalidateApps = () =>
+    Promise.all([
+      queryClient.invalidateQueries({ queryKey: ['applications'] }),
+      queryClient.invalidateQueries({ queryKey: ['favorites'] }),
+      queryClient.invalidateQueries({ queryKey: ['recent'] }),
+      queryClient.invalidateQueries({ queryKey: queryKeys.me }),
+    ])
 
   const favMutation = useMutation({
-    mutationFn: () => (favorited ? removeFavorite(app.id) : addFavorite(app.id)),
-    onMutate: () => setFavorited((v) => !v),
-    onSuccess: () => {
-      message.success(favorited ? '已取消收藏' : '已收藏')
-      invalidateApps()
+    mutationFn: (next: boolean) => (next ? addFavorite(app.id) : removeFavorite(app.id)),
+    onMutate: (next) => setFavOverride(next),
+    onSuccess: async (_result, next) => {
+      message.success(next ? '已收藏' : '已取消收藏')
+      await invalidateApps()
+      setFavOverride(null)
     },
     onError: (err) => {
-      setFavorited((v) => !v)
+      setFavOverride(null)
       message.error(err instanceof Error ? err.message : '操作失败')
     },
   })
@@ -84,7 +88,7 @@ export function AppCard({ app, onLaunch }: AppCardProps) {
       if (result.url) {
         window.open(result.url, result.target === '_self' ? '_self' : '_blank', 'noopener,noreferrer')
       }
-      invalidateApps()
+      void invalidateApps()
     },
     onError: (err) => {
       message.error(err instanceof Error ? err.message : '启动失败')
@@ -109,9 +113,7 @@ export function AppCard({ app, onLaunch }: AppCardProps) {
       <div className="velora-app-card-main">
         <div className="velora-app-card-name">
           {app.name}
-          {app.createdAt && dayjs().diff(dayjs(app.createdAt), 'day') <= 7 && (
-            <span className="velora-app-new velora-app-new--inline">新</span>
-          )}
+          {app.isNew && <span className="velora-app-new velora-app-new--inline">新</span>}
         </div>
         <div className="velora-app-card-desc">{app.description || app.category?.name || '点击直达应用'}</div>
         {(app.category || (app.tags ?? []).length > 0) && (
@@ -141,7 +143,7 @@ export function AppCard({ app, onLaunch }: AppCardProps) {
           icon={favorited ? <HeartFilled style={{ color: '#FA541C' }} /> : <HeartOutlined />}
           onClick={(e) => {
             e.stopPropagation()
-            favMutation.mutate()
+            favMutation.mutate(!favorited)
           }}
         />
       </div>

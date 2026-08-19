@@ -108,6 +108,8 @@ func New(deps Deps) (*gin.Engine, error) {
 	}
 
 	portalService := portal.NewService(deps.DB)
+	// 应用服务读取门户设置（「新」应用标识天数规则）。
+	appService.SetSettingsReader(portalService)
 	portalHandler := portal.NewHandler(portalService, deps.Audit, deps.AdminRole)
 	// 门户展示配置（名称/公告/缩放）公开只读：登录页无需登录即可显示门户名称与公告。
 	portalHandler.RegisterPublic(api)

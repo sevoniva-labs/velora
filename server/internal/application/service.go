@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -36,6 +37,7 @@ type DTO struct {
 	Tags               []TagDTO     `json:"tags"`
 	Policies           []PolicyDTO  `json:"policies,omitempty"`
 	IsFavorite         bool         `json:"isFavorite"`
+	IsNew              bool         `json:"isNew"`
 	CreatedAt          time.Time    `json:"createdAt"`
 	UpdatedAt          time.Time    `json:"updatedAt"`
 	CreatedBy          string       `json:"createdBy,omitempty"`
@@ -120,6 +122,7 @@ type Service struct {
 	health     *HealthChecker
 	adminRole  string
 	oidcIssuer string
+	settings   SettingsReader
 }
 
 // NewService 创建应用服务。
@@ -133,6 +136,30 @@ func NewService(db *gorm.DB, adminRole, oidcIssuer string, checkTimeout time.Dur
 		adminRole:  adminRole,
 		oidcIssuer: oidcIssuer,
 	}
+}
+
+// SettingsReader 为门户设置读取器（portal.Service 满足该接口）。
+type SettingsReader interface {
+	Get(ctx context.Context, key string) (string, error)
+}
+
+// SetSettingsReader 注入门户设置读取器（可选；未注入时「新」标识按默认 7 天）。
+func (s *Service) SetSettingsReader(r SettingsReader) {
+	s.settings = r
+}
+
+// newBadgeCutoff 计算「新」应用标识的创建时间下限：createdAt 晚于该时间即为新应用。
+// 天数取门户设置 new_badge_days，默认 7；0 表示关闭标识；非法值回退默认。
+func (s *Service) newBadgeCutoff(ctx context.Context) time.Time {
+	days := 7
+	if s.settings != nil {
+		if v, err := s.settings.Get(ctx, "new_badge_days"); err == nil {
+			if n, convErr := strconv.Atoi(strings.TrimSpace(v)); convErr == nil && n >= 0 && n <= 90 {
+				days = n
+			}
+		}
+	}
+	return time.Now().AddDate(0, 0, -days)
 }
 
 // ListPublic 返回当前用户可见的应用（搜索/分类/标签过滤 + 收藏标记 + 分页）。
@@ -209,10 +236,12 @@ func (s *Service) ListPublic(ctx context.Context, user *auth.CurrentUser, f List
 		end = len(visible)
 	}
 
+	cutoff := s.newBadgeCutoff(ctx)
 	items := make([]DTO, 0, end-start)
 	for _, app := range visible[start:end] {
 		dto := s.toDTO(&app, false)
 		dto.IsFavorite = favSet[app.ID]
+		dto.IsNew = app.CreatedAt.After(cutoff)
 		items = append(items, *dto)
 	}
 	return &Page{Items: items, Total: total, Page: f.Page, PageSize: f.PageSize}, nil
@@ -236,6 +265,7 @@ func (s *Service) GetPublic(ctx context.Context, user *auth.CurrentUser, id uint
 	}
 	dto := s.toDTO(app, false)
 	dto.IsFavorite = favSet[app.ID]
+	dto.IsNew = app.CreatedAt.After(s.newBadgeCutoff(ctx))
 	// 详情页返回健康状态（列表不检查，避免放大请求）。
 	dto.HealthStatus = s.health.Check(ctx, app)
 	return dto, nil

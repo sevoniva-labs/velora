@@ -42,6 +42,7 @@ func (s *Service) RecentForUser(ctx context.Context, user *auth.CurrentUser, lim
 		return nil, errs.DB(err)
 	}
 
+	cutoff := s.newBadgeCutoff(ctx)
 	items := make([]RecentItem, 0, len(rows))
 	for _, r := range rows {
 		if len(items) >= limit {
@@ -56,6 +57,7 @@ func (s *Service) RecentForUser(ctx context.Context, user *auth.CurrentUser, lim
 			continue
 		}
 		dto := s.toDTO(app, false)
+		dto.IsNew = app.CreatedAt.After(cutoff)
 		items = append(items, RecentItem{
 			Application:   dto,
 			LastVisitedAt: r.LastVisitedAt,
@@ -88,6 +90,7 @@ func (s *Service) PopularForUser(ctx context.Context, user *auth.CurrentUser, li
 	).Scan(&rows).Error; err != nil {
 		return nil, errs.DB(err)
 	}
+	cutoff := s.newBadgeCutoff(ctx)
 	items := make([]*DTO, 0, len(rows))
 	for _, r := range rows {
 		if len(items) >= limit {
@@ -100,7 +103,9 @@ func (s *Service) PopularForUser(ctx context.Context, user *auth.CurrentUser, li
 		if !CanAccess(user, app.Policies) {
 			continue
 		}
-		items = append(items, s.toDTO(app, false))
+		dto := s.toDTO(app, false)
+		dto.IsNew = app.CreatedAt.After(cutoff)
+		items = append(items, dto)
 	}
 	return items, nil
 }

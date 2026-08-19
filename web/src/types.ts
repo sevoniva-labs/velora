@@ -62,6 +62,7 @@ export interface Application {
   tags: Tag[]
   policies?: AccessPolicy[]
   isFavorite?: boolean
+  isNew?: boolean
   createdAt: string
   updatedAt: string
   createdBy?: string

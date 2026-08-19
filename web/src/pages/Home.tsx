@@ -16,14 +16,12 @@ import {
 } from '@ant-design/icons'
 import { useNavigate } from 'react-router-dom'
 import { ProCard } from '@ant-design/pro-components'
-import dayjs from 'dayjs'
 import { launchApplication, listApplications, listCategories, listRecent, getPortalSettings, queryKeys } from '../api/api'
 import { AppIcon } from '../components/AppCard'
 import QueryErrorState from '../components/QueryErrorState'
 import TodoCenter from '../components/TodoCenter'
 import { formatRelativeTime } from '../utils/format'
 import { usePageTitle } from '../hooks/usePageTitle'
-import type { Application } from '../types'
 
 /** 应用图标（分类占位）：按 code 稳定映射到一套线性图标 */
 const CATEGORY_ICONS = [
@@ -51,11 +49,6 @@ function categoryIcon(code: string) {
   h ^= h >>> 16
   const Icon = CATEGORY_ICONS[(h >>> 0) % CATEGORY_ICONS.length]
   return <Icon />
-}
-
-/** 7 天内上架的应用视为"新" */
-function isNewApp(app: Application) {
-  return app.createdAt ? dayjs().diff(dayjs(app.createdAt), 'day') <= 7 : false
 }
 
 type Section = 'favorites' | 'all'
@@ -106,7 +99,7 @@ export default function Home() {
                 }
               }}
             >
-              {isNewApp(app) && <span className="velora-app-new">新</span>}
+              {app.isNew && <span className="velora-app-new">新</span>}
               <AppIcon app={app} size={38} />
               <span className="velora-app-tile-name">{app.name}</span>
             </div>

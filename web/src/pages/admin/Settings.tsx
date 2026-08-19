@@ -53,12 +53,15 @@ export default function AdminSettings() {
     onSuccess: () => {
       message.success('设置已保存')
       void queryClient.invalidateQueries({ queryKey: queryKeys.portalSettings })
+      void queryClient.invalidateQueries({ queryKey: ['applications'] })
     },
     onError: (err) => message.error(err instanceof Error ? err.message : '保存失败'),
   })
 
   const valueOf = (key: string) => settings?.find((s) => s.key === key)?.value ?? ''
   const uiScalePercent = valueOf('ui_scale') ? Math.round(Number.parseFloat(valueOf('ui_scale')) * 100) : 100
+  const parsedNewDays = Number.parseInt(valueOf('new_badge_days'), 10)
+  const newBadgeDays = valueOf('new_badge_days') === '' || Number.isNaN(parsedNewDays) ? 7 : parsedNewDays
   const saving = saveMutation.isPending
 
   return (
@@ -110,6 +113,26 @@ export default function AdminSettings() {
                 <div className="velora-settings-row-control velora-settings-row-control--fixed">
                   <Form.Item name="scale" noStyle>
                     <InputNumber min={80} max={140} step={5} addonAfter="%" style={{ width: 150 }} />
+                  </Form.Item>
+                  <Button type="primary" htmlType="submit" loading={saving}>
+                    保存
+                  </Button>
+                </div>
+              </div>
+            </Form>
+            <Form
+              key={`new_badge_days:${newBadgeDays}`}
+              initialValues={{ days: newBadgeDays }}
+              onFinish={(v) => saveMutation.mutate({ key: 'new_badge_days', value: String(v.days) })}
+            >
+              <div className="velora-settings-row">
+                <div className="velora-settings-row-text">
+                  <div className="velora-settings-row-label">新应用标识（天）</div>
+                  <div className="velora-settings-row-help">上架 N 天内的应用显示「新」角标，填 0 关闭。默认 7 天。</div>
+                </div>
+                <div className="velora-settings-row-control velora-settings-row-control--fixed">
+                  <Form.Item name="days" noStyle>
+                    <InputNumber min={0} max={90} addonAfter="天" style={{ width: 150 }} />
                   </Form.Item>
                   <Button type="primary" htmlType="submit" loading={saving}>
                     保存

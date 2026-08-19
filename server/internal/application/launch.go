@@ -148,9 +148,9 @@ type LaunchRegistry struct {
 func NewLaunchRegistry(oidcIssuer, publicBaseURL string, clientResolver func(ctx context.Context, applicationID uint64) (clientID string, redirectURIs []string, ok bool, err error)) *LaunchRegistry {
 	return &LaunchRegistry{
 		providers: map[string]LaunchProvider{
-			SSOTypeURL:        URLLaunchProvider{},
-			SSOTypeOIDC:       OIDCLaunchProvider{issuer: oidcIssuer},
-			SSOTypeVeloraOIDC: VeloraOIDCLaunchProvider{publicBaseURL: publicBaseURL, clientResolver: clientResolver},
+			SSOTypeURL:         URLLaunchProvider{},
+			SSOTypeOIDC:        OIDCLaunchProvider{issuer: oidcIssuer},
+			SSOTypeVeloraOIDC:  VeloraOIDCLaunchProvider{publicBaseURL: publicBaseURL, clientResolver: clientResolver},
 			SSOTypeForwardAuth: ForwardAuthLaunchProvider{publicBaseURL: publicBaseURL},
 		},
 	}

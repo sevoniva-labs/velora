@@ -76,9 +76,9 @@ type memEntry struct {
 }
 
 type memoryLimiter struct {
-	mu     sync.Mutex
+	mu      sync.Mutex
 	buckets map[string]*memEntry
-	cfg    Config
+	cfg     Config
 }
 
 func newMemoryLimiter(cfg Config) *memoryLimiter {

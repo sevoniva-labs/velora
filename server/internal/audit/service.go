@@ -169,7 +169,7 @@ func (s *Service) RecordWithMeta(ctx context.Context, e Entry, ip, userAgent, re
 	}
 }
 
-// BackfillChain 回填历史审计记录的哈希链（幂等：仅处理 hash='' 的记录）。
+// BackfillChain 回填历史审计记录的哈希链（幂等：仅处理 hash=” 的记录）。
 // 启动时调用，确保升级前存量记录与运行时算法一致。
 func (s *Service) BackfillChain(ctx context.Context) error {
 	var logs []AuditLog

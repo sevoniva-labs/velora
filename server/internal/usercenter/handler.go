@@ -30,8 +30,8 @@ type PasswordUpdater interface {
 
 // Handler 提供自助用户中心端点。
 type Handler struct {
-	casdoor PasswordUpdater
-	session *auth.SessionStore
+	casdoor   PasswordUpdater
+	session   *auth.SessionStore
 	adminRole string
 }
 

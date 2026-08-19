@@ -142,12 +142,12 @@ type Service struct {
 func NewService(db *gorm.DB, adminRole, oidcIssuer, publicBaseURL string, checkTimeout time.Duration, clientResolver func(ctx context.Context, applicationID uint64) (clientID string, redirectURIs []string, ok bool, err error), oidcClientFactory func(ctx context.Context, applicationID uint64, redirectURIs []string) (clientID, clientSecret string, err error)) *Service {
 	repo := NewRepository(db)
 	return &Service{
-		repo:             repo,
-		db:               db,
-		launch:           NewLaunchRegistry(oidcIssuer, publicBaseURL, clientResolver),
-		health:           NewHealthChecker(checkTimeout),
-		adminRole:        adminRole,
-		oidcIssuer:       oidcIssuer,
+		repo:              repo,
+		db:                db,
+		launch:            NewLaunchRegistry(oidcIssuer, publicBaseURL, clientResolver),
+		health:            NewHealthChecker(checkTimeout),
+		adminRole:         adminRole,
+		oidcIssuer:        oidcIssuer,
 		oidcClientFactory: oidcClientFactory,
 	}
 }
@@ -547,10 +547,10 @@ func (s *Service) toDTO(app *Application, isAdmin bool) *DTO {
 // favoriteSet 返回用户收藏的应用 ID 集合。
 // listCursor keyset 游标内容（Phase D2）。
 type listCursor struct {
-	Featured   bool
-	Sort       int
-	NameLower  string
-	ID         uint64
+	Featured  bool
+	Sort      int
+	NameLower string
+	ID        uint64
 }
 
 // encodeListCursor 编码游标：base64("featured|sort|nameLower|id")。

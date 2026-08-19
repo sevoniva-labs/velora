@@ -120,18 +120,18 @@ func (c *Client) HasGrant(g string) bool {
 
 // AuthCode 为一次性授权码（库中只存哈希）。
 type AuthCode struct {
-	ID                   uint64    `gorm:"column:id;primaryKey" json:"-"`
-	CodeHash             string    `gorm:"column:code_hash" json:"-"`
-	ClientID             string    `gorm:"column:client_id" json:"-"`
-	UserID               string    `gorm:"column:user_id" json:"-"`
-	RedirectURI          string    `gorm:"column:redirect_uri" json:"-"`
-	Scope                string    `gorm:"column:scope" json:"-"`
-	CodeChallenge        string    `gorm:"column:code_challenge" json:"-"`
-	CodeChallengeMethod  string    `gorm:"column:code_challenge_method" json:"-"`
-	Nonce                string    `gorm:"column:nonce" json:"-"`
-	ExpiresAt            time.Time `gorm:"column:expires_at" json:"-"`
-	Used                 bool      `gorm:"column:used" json:"-"`
-	CreatedAt            time.Time `gorm:"column:created_at" json:"-"`
+	ID                  uint64    `gorm:"column:id;primaryKey" json:"-"`
+	CodeHash            string    `gorm:"column:code_hash" json:"-"`
+	ClientID            string    `gorm:"column:client_id" json:"-"`
+	UserID              string    `gorm:"column:user_id" json:"-"`
+	RedirectURI         string    `gorm:"column:redirect_uri" json:"-"`
+	Scope               string    `gorm:"column:scope" json:"-"`
+	CodeChallenge       string    `gorm:"column:code_challenge" json:"-"`
+	CodeChallengeMethod string    `gorm:"column:code_challenge_method" json:"-"`
+	Nonce               string    `gorm:"column:nonce" json:"-"`
+	ExpiresAt           time.Time `gorm:"column:expires_at" json:"-"`
+	Used                bool      `gorm:"column:used" json:"-"`
+	CreatedAt           time.Time `gorm:"column:created_at" json:"-"`
 }
 
 // TableName 指定表名。
@@ -213,14 +213,14 @@ func (s *Service) CreateClient(ctx context.Context, applicationID uint64, redire
 	scopeJSON, _ := json.Marshal([]string{"openid", "profile", "email"})
 
 	cl := &Client{
-		ApplicationID:         applicationID,
-		ClientID:              clientID,
-		ClientSecretHash:      string(hash),
-		RedirectURIsRaw:       string(redirectJSON),
-		GrantTypesRaw:         string(grantJSON),
-		ScopesRaw:             string(scopeJSON),
+		ApplicationID:           applicationID,
+		ClientID:                clientID,
+		ClientSecretHash:        string(hash),
+		RedirectURIsRaw:         string(redirectJSON),
+		GrantTypesRaw:           string(grantJSON),
+		ScopesRaw:               string(scopeJSON),
 		TokenEndpointAuthMethod: "client_secret_post",
-		Enabled:               true,
+		Enabled:                 true,
 	}
 	if err := s.db.WithContext(ctx).Create(cl).Error; err != nil {
 		return nil, "", errs.DB(err)

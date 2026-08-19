@@ -156,7 +156,9 @@ func (h *Handler) token(c *gin.Context) {
 	}
 
 	start := time.Now()
-	defer func() { metricsObserve("velora_oidc_token_duration_milliseconds", float64(time.Since(start).Milliseconds())) }()
+	defer func() {
+		metricsObserve("velora_oidc_token_duration_milliseconds", float64(time.Since(start).Milliseconds()))
+	}()
 
 	cl, err := h.svc.authenticateClient(c.Request.Context(), clientID, clientSecret)
 	if err != nil {

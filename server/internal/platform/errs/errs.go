@@ -53,7 +53,7 @@ const (
 	CodeMailSyncFailed      Code = "A04010"
 	CodeMailAccountExists   Code = "A04011"
 	// OIDC Provider（Phase B）错误码
-	CodeOIDCProviderClientNotFound Code = "A04012" // client_id 不存在或禁用
+	CodeOIDCProviderClientNotFound  Code = "A04012" // client_id 不存在或禁用
 	CodeOIDCProviderInvalidGrant    Code = "A04013" // code/refresh 无效或已用
 	CodeOIDCProviderInvalidClient   Code = "A04014" // client 认证失败
 	CodeOIDCProviderInvalidRedirect Code = "A04015" // redirect_uri 不在白名单

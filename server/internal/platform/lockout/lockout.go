@@ -37,7 +37,7 @@ type Manager struct {
 }
 
 type memLock struct {
-	failures int
+	failures    int
 	windowStart time.Time
 	lockedUntil time.Time
 }

@@ -270,18 +270,23 @@ make build        # 构建 server 二进制 + web 产物
 - **可信代理**：默认仅信任回环，`TRUSTED_PROXIES` 显式配置反代网段，防止 `X-Forwarded-For` 伪造绕过限流 / 污染审计 IP。
 - **CORS fail-closed**：未配置 `CORS_ALLOWED_ORIGINS` 时不输出任何跨域头。
 - **Web 安全头**：Nginx 输出 CSP / X-Frame-Options / nosniff / Referrer-Policy / Permissions-Policy。
-- **权限强制**：应用列表按访问策略过滤（前端隐藏），Launch / 详情 / 收藏后端再次校验（403）；策略明细仅管理员可见。
+- **权限强制**：应用列表按访问策略过滤（**SQL 级下推**，非内存过滤），Launch / 详情 / 收藏后端再次校验（403）；策略明细仅管理员可见。
 - 输入校验：URL 仅允许 http/https 且含主机名；编码唯一性；枚举白名单；标签 ID 存在性校验。
 - 统一响应结构，不向前端返回 SQL 错误 / 堆栈 / 内部路径 / 密钥。
-- 审计日志覆盖登录、登出、应用增删改、启动、收藏、策略变更；审计写入不依赖请求上下文（客户端断开不丢失）。
+- 审计日志覆盖登录、登出、应用增删改、启动、收藏、策略变更、数据导出；**审计链防篡改**（SHA-256 哈希链 + 启动回填 + 校验端点）；审计写入不依赖请求上下文（客户端断开不丢失）。
+- **服务端会话**：登录签发服务端会话（UA/IP 快照），支持设备列表 / 单点吊销 / 全部吊销；会话撤销即时生效。
+- **限流与锁定**：Redis（可选，回退内存）固定窗口限流（全局 + 每端点）+ 登录失败锁定（5 次 / 15 分钟锁 15 分钟）。
+- **集成令牌（Service Account）**：`integration_tokens`（哈希存储 / scope / 过期 / 吊销），外部系统以 Bearer 推送待办，与用户会话解耦。
+- **Forward Auth**：`/api/v1/forward-auth` 校验端点，为非 OIDC 老系统（Nginx/APISIX auth_request）套 SSO，成功注入 `X-Velora-User/Email/Role` 身份头。
+- **数据可携带权**：管理员可导出指定用户全量数据（收藏/访问/待办/邮件元数据/审计），JSON 附件下载，导出行为入审计。
 
 ---
 
 ## Roadmap
 
-- **Phase 1（当前）**：Application Portal · Casdoor SSO · Application Center · Favorites · Recent Apps · Application Permission · Admin
-- **Phase 2**：SAML · CAS · Forward Auth（Nginx/APISIX）· Application Access Request · Notifications · Unified Search
-- **Phase 3**：Approval · Tasks · Service Catalog · AI Search · AI Assistant · Enterprise Integrations
+- **Phase 1（MVP 已完成）**：Application Portal · Casdoor SSO（隐藏于 Velora 之后）· 应用中心 · 收藏 · 最近使用 · 权限 · 管理后台
+- **Phase 2（生产化已完成）**：Velora OIDC Provider（PKCE/密钥轮换/吊销）· 服务端会话 · Redis 限流与锁定 · 审计防篡改链 · 自助用户中心 · 集成令牌 · SQL 级权限过滤 / pg_trgm / keyset 分页 · Forward Auth · 数据导出（GDPR）
+- **Phase 3（规划）**：SAML / CAS · IMAP IDLE 实时推送 · 邮件附件下载与回复 · i18n 切换层 · AI 搜索与助手
 
 ---
 

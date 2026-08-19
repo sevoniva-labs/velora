@@ -30,7 +30,7 @@ type Handler struct {
 	defaultRedirect string
 	onLogin         AuditCallback
 	onLogout        AuditCallback
-	onLoginFailed   AuditCallback // 登录失败审计（Phase C5：LOGIN_FAILED）
+	onLoginFailed   AuditCallback  // 登录失败审计（Phase C5：LOGIN_FAILED）
 	lockout         LockoutManager // 账户锁定（nil 时不启用）
 }
 

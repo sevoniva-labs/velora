@@ -1,6 +1,9 @@
 package auth
 
 import (
+	"context"
+	"fmt"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strings"
@@ -13,6 +16,9 @@ import (
 	"github.com/sevoniva-labs/velora/server/internal/platform/response"
 )
 
+// lockoutDefaultLockMinutes 锁定提示默认分钟数（RecordFailure 返回 locked 时无剩余时间信息）。
+const lockoutDefaultLockMinutes = 15
+
 // AuditCallback 为认证事件的审计回调（由组装层注入，避免 auth 依赖 audit 包）。
 type AuditCallback func(c *gin.Context, userID string)
 
@@ -24,10 +30,18 @@ type Handler struct {
 	defaultRedirect string
 	onLogin         AuditCallback
 	onLogout        AuditCallback
+	lockout         LockoutManager // 账户锁定（nil 时不启用）
+}
+
+// LockoutManager 为账户锁定接口（由组装层注入，避免 auth 依赖 lockout 包）。
+type LockoutManager interface {
+	IsLocked(ctx context.Context, username string) (bool, time.Duration, error)
+	RecordFailure(ctx context.Context, username string) (locked bool, err error)
+	RecordSuccess(ctx context.Context, username string) error
 }
 
 // NewHandler 创建认证 Handler。
-func NewHandler(oidc *OIDCManager, sessions *SessionStore, adminRole, defaultRedirect string, onLogin, onLogout AuditCallback) *Handler {
+func NewHandler(oidc *OIDCManager, sessions *SessionStore, adminRole, defaultRedirect string, onLogin, onLogout AuditCallback, lockout LockoutManager) *Handler {
 	return &Handler{
 		oidc:            oidc,
 		sessions:        sessions,
@@ -35,6 +49,7 @@ func NewHandler(oidc *OIDCManager, sessions *SessionStore, adminRole, defaultRed
 		defaultRedirect: defaultRedirect,
 		onLogin:         onLogin,
 		onLogout:        onLogout,
+		lockout:         lockout,
 	}
 }
 
@@ -115,9 +130,31 @@ func (h *Handler) LoginWithPassword(c *gin.Context) {
 		return
 	}
 
+	// 账户锁定检查（Phase C3）：锁定期间直接拒绝，不访问 Casdoor。
+	if h.lockout != nil {
+		locked, ttl, err := h.lockout.IsLocked(c.Request.Context(), body.Username)
+		if err != nil {
+			slog.Warn("账户锁定状态查询失败", "username", body.Username, "err", err)
+		} else if locked {
+			metrics.Emit("velora_auth_login_failure_total")
+			minutes := int(ttl.Minutes()) + 1
+			response.ErrorWith(c, http.StatusTooManyRequests, errs.CodeRateLimited,
+				fmt.Sprintf("登录失败次数过多，账户已锁定，请 %d 分钟后再试", minutes))
+			return
+		}
+	}
+
 	user, err := h.oidc.LoginWithPassword(c.Request.Context(), body.Username, body.Password)
 	if err != nil {
 		metrics.Emit("velora_auth_login_failure_total")
+		// 记录失败（凭据错误时计数；服务异常不计入账户锁定，避免误锁）
+		if h.lockout != nil && errs.Is(err, errs.CodeLoginFailed) {
+			if locked, lerr := h.lockout.RecordFailure(c.Request.Context(), body.Username); lerr == nil && locked {
+				response.ErrorWith(c, http.StatusTooManyRequests, errs.CodeRateLimited,
+					fmt.Sprintf("登录失败次数过多，账户已锁定，请 %d 分钟后再试", int(lockoutDefaultLockMinutes)))
+				return
+			}
+		}
 		if errs.Is(err, errs.CodeLoginFailed) {
 			response.Error(c, err)
 			return
@@ -126,6 +163,9 @@ func (h *Handler) LoginWithPassword(c *gin.Context) {
 		return
 	}
 	metrics.Emit("velora_auth_login_success_total")
+	if h.lockout != nil {
+		_ = h.lockout.RecordSuccess(c.Request.Context(), body.Username)
+	}
 
 	session := h.sessions.NewSession(user)
 	encoded, err := h.sessions.EncodeWithMeta(session, c.Request.UserAgent(), c.ClientIP())

@@ -18,6 +18,8 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/redis/go-redis/v9"
+
 	"github.com/sevoniva-labs/velora/server/internal/audit"
 	"github.com/sevoniva-labs/velora/server/internal/auth"
 	"github.com/sevoniva-labs/velora/server/internal/config"
@@ -25,6 +27,7 @@ import (
 	"github.com/sevoniva-labs/velora/server/internal/oidcprovider"
 	"github.com/sevoniva-labs/velora/server/internal/platform/db"
 	"github.com/sevoniva-labs/velora/server/internal/platform/httpserver"
+	"github.com/sevoniva-labs/velora/server/internal/platform/lockout"
 	"github.com/sevoniva-labs/velora/server/internal/todo"
 )
 
@@ -102,6 +105,26 @@ func serve(cfg *config.Config) error {
 		return fmt.Errorf("初始化 OIDC Provider 签名密钥失败: %w", err)
 	}
 
+	// Redis（Phase C3）：分布式限流 + 账户锁定；未配置时降级内存实现。
+	var redisClient *redis.Client
+	if cfg.RedisURL != "" {
+		opt, err := redis.ParseURL(cfg.RedisURL)
+		if err != nil {
+			return fmt.Errorf("REDIS_URL 解析失败: %w", err)
+		}
+		redisClient = redis.NewClient(opt)
+		pingCtx, cancel := context.WithTimeout(ctx, 3*time.Second)
+		if err := redisClient.Ping(pingCtx).Err(); err != nil {
+			cancel()
+			slog.Warn("Redis 连接失败，降级内存限流/锁定", "err", err)
+			redisClient = nil
+		} else {
+			cancel()
+			slog.Info("Redis 已连接：启用分布式限流与账户锁定")
+		}
+	}
+	loginLockout := lockout.New(redisClient, lockout.DefaultConfig())
+
 	engine, err := httpserver.New(httpserver.Deps{
 		Cfg:          cfg,
 		DB:           gormDB,
@@ -111,6 +134,8 @@ func serve(cfg *config.Config) error {
 		AdminRole:    cfg.AdminRole,
 		Mail:         mailSvc,
 		OIDCProvider: oidcProviderSvc,
+		Redis:        redisClient,
+		LoginLockout: loginLockout,
 	})
 	if err != nil {
 		return err

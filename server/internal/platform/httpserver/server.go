@@ -6,10 +6,10 @@ import (
 	"log/slog"
 	"net/http"
 	"net/url"
-	"sync"
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 
 	"github.com/sevoniva-labs/velora/server/internal/application"
@@ -22,6 +22,8 @@ import (
 	"github.com/sevoniva-labs/velora/server/internal/mail"
 	"github.com/sevoniva-labs/velora/server/internal/oidcprovider"
 	"github.com/sevoniva-labs/velora/server/internal/platform/errs"
+	"github.com/sevoniva-labs/velora/server/internal/platform/lockout"
+	"github.com/sevoniva-labs/velora/server/internal/platform/ratelimit"
 	"github.com/sevoniva-labs/velora/server/internal/platform/response"
 	"github.com/sevoniva-labs/velora/server/internal/portal"
 	"github.com/sevoniva-labs/velora/server/internal/tag"
@@ -39,6 +41,9 @@ type Deps struct {
 	AdminRole    string
 	Mail         *mail.Service // 邮件服务（nil 时不注册邮件路由）
 	OIDCProvider *oidcprovider.Service
+	Redis        *redis.Client // nil 时限流/锁定降级内存
+	LoginLimiter ratelimit.Limiter
+	LoginLockout *lockout.Manager
 }
 
 // New 组装 Gin Engine 与全部路由。
@@ -55,7 +60,14 @@ func New(deps Deps) (*gin.Engine, error) {
 	r.Use(Recovery(), RequestID(), SecurityHeaders())
 	r.Use(CORS(deps.Cfg.CORSAllowedOrigins))
 	r.Use(Logger())
-	r.Use(rateLimit(300, time.Minute))
+
+	// 全局限流：Redis 分布式（多实例统一）或内存降级（单实例）。
+	// key 按真实客户端 IP；登录等敏感端点另行收紧（见下）。
+	globalLimiter := deps.LoginLimiter
+	if globalLimiter == nil {
+		globalLimiter = ratelimit.New(deps.Redis, ratelimit.Config{Limit: 300, Window: time.Minute})
+	}
+	r.Use(limiterMiddleware(globalLimiter, 300, time.Minute))
 
 	RegisterHealth(r, deps.DB)
 
@@ -116,11 +128,12 @@ func New(deps Deps) (*gin.Engine, error) {
 		func(c *gin.Context, userID string) {
 			deps.Audit.Record(c, audit.Entry{Operator: userID, Action: audit.ActionLogout, Resource: "session"})
 		},
+		deps.LoginLockout,
 	)
-	api.GET("/auth/oidc/login", rateLimit(30, time.Minute), oidcHandler.Login)
-	api.GET("/auth/oidc/callback", rateLimit(60, time.Minute), oidcHandler.Callback)
+	api.GET("/auth/oidc/login", limiterMiddleware(globalLimiter, 30, time.Minute), oidcHandler.Login)
+	api.GET("/auth/oidc/callback", limiterMiddleware(globalLimiter, 60, time.Minute), oidcHandler.Callback)
 	// 账号密码登录（Casdoor ROPC 代理）：更严限流防暴力破解（每 IP 每分钟 10 次）。
-	api.POST("/auth/login", rateLimit(10, time.Minute), oidcHandler.LoginWithPassword)
+	api.POST("/auth/login", limiterMiddleware(globalLimiter, 10, time.Minute), oidcHandler.LoginWithPassword)
 
 	// --- 受保护端点（登录 + CSRF） ---
 	secured := api.Group("")
@@ -190,39 +203,18 @@ func New(deps Deps) (*gin.Engine, error) {
 	return r, nil
 }
 
-// rateLimit 简易内存限流：窗口内每 IP 允许 n 次。
-func rateLimit(n int, window time.Duration) gin.HandlerFunc {
-	type entry struct {
-		count int
-		start time.Time
-	}
-	var mu sync.Mutex
-	buckets := map[string]*entry{}
-	go func() {
-		ticker := time.NewTicker(window)
-		for range ticker.C {
-			mu.Lock()
-			now := time.Now()
-			for k, e := range buckets {
-				if now.Sub(e.start) > window {
-					delete(buckets, k)
-				}
-			}
-			mu.Unlock()
-		}
-	}()
+// limiterMiddleware 用限流器实现中间件：每客户端 IP 在窗口内允许 n 次。
+// 复用同一个 Limiter（Redis 连接/内存桶），通过带限流配置的 key 前缀区分不同阈值。
+func limiterMiddleware(l ratelimit.Limiter, n int, window time.Duration) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		key := c.ClientIP()
-		mu.Lock()
-		e, ok := buckets[key]
-		if !ok || time.Since(e.start) > window {
-			e = &entry{start: time.Now()}
-			buckets[key] = e
+		key := fmt.Sprintf("%d-%d:%s", n, window/time.Minute, c.ClientIP())
+		allowed, _, err := l.Allow(c.Request.Context(), key)
+		if err != nil {
+			// 限流器故障：放行（fail-open），不因限流组件故障拖垮业务。
+			c.Next()
+			return
 		}
-		e.count++
-		over := e.count > n
-		mu.Unlock()
-		if over {
+		if !allowed {
 			response.ErrorWith(c, http.StatusTooManyRequests, errs.CodeRateLimited, "请求过于频繁，请稍后再试")
 			c.Abort()
 			return

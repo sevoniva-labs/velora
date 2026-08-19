@@ -48,6 +48,9 @@ type Config struct {
 
 	HealthCheckTimeout time.Duration
 
+	// Redis（Phase C3 分布式限流/账户锁定；为空时降级内存实现）。
+	RedisURL string
+
 	// 邮件模块：凭证加密密钥（base64 32 字节；开发环境缺省时由 SESSION_SECRET 派生）
 	// 与定时补偿同步间隔（分钟，0 禁用；IDLE 实时推送属 Phase 2）。
 	MailCredentialKey string
@@ -87,6 +90,8 @@ func Load() (*Config, error) {
 		PublicBaseURL: getEnv("PUBLIC_BASE_URL", "http://localhost:8080"),
 
 		HealthCheckTimeout: time.Duration(getEnvInt("HEALTH_CHECK_TIMEOUT_SECONDS", 5)) * time.Second,
+
+		RedisURL: getEnv("REDIS_URL", ""),
 
 		MailCredentialKey: getEnv("MAIL_CREDENTIAL_KEY", ""),
 		MailSyncInterval:  time.Duration(getEnvInt("MAIL_SYNC_INTERVAL_MINUTES", 10)) * time.Minute,

@@ -1,5 +1,5 @@
 /* oxlint-disable react/only-export-components -- 路由配置非组件文件，页面级 lazy 不影响 fast refresh */
-import { lazy } from 'react'
+import { lazy, type ComponentType } from 'react'
 import { createBrowserRouter, Navigate } from 'react-router-dom'
 import { RouteErrorFallback } from './components/AppErrorBoundary'
 import App from './App'
@@ -8,19 +8,45 @@ import RequireAuth from './auth/RequireAuth'
 import Login from './pages/Login'
 import NotFound from './pages/NotFound'
 
-// 页面级代码分割。
-const Home = lazy(() => import('./pages/Home'))
-const Applications = lazy(() => import('./pages/Applications'))
-const ApplicationDetail = lazy(() => import('./pages/ApplicationDetail'))
-const Favorites = lazy(() => import('./pages/Favorites'))
+/**
+ * 懒加载容错：部署新版本后，旧页面留存的浏览器标签会请求已不存在的 chunk。
+ * 捕获动态导入失败并强制整页刷新一次（拿最新 index.html），避免用户看到错误页；
+ * 刷新后仍失败才交给 RouteErrorFallback。
+ */
+const CHUNK_RELOAD_FLAG = 'velora_chunk_reload'
 
-const AdminDashboard = lazy(() => import('./pages/admin/Dashboard'))
-const AdminApplications = lazy(() => import('./pages/admin/Applications'))
-const AdminCategories = lazy(() => import('./pages/admin/Categories'))
-const AdminTags = lazy(() => import('./pages/admin/Tags'))
-const AdminPolicies = lazy(() => import('./pages/admin/Policies'))
-const AdminAudit = lazy(() => import('./pages/admin/Audit'))
-const AdminSettings = lazy(() => import('./pages/admin/Settings'))
+function lazyWithReload<T extends ComponentType<unknown>>(factory: () => Promise<{ default: T }>) {
+  return lazy(async (): Promise<{ default: T }> => {
+    try {
+      const module = await factory()
+      sessionStorage.removeItem(CHUNK_RELOAD_FLAG)
+      return module
+    } catch (err) {
+      if (!sessionStorage.getItem(CHUNK_RELOAD_FLAG)) {
+        sessionStorage.setItem(CHUNK_RELOAD_FLAG, '1')
+        window.location.reload()
+        // 页面即将刷新，挂起当前加载，避免闪现错误页
+        return new Promise<{ default: T }>(() => {})
+      }
+      sessionStorage.removeItem(CHUNK_RELOAD_FLAG)
+      throw err
+    }
+  })
+}
+
+// 页面级代码分割。
+const Home = lazyWithReload(() => import('./pages/Home'))
+const Applications = lazyWithReload(() => import('./pages/Applications'))
+const ApplicationDetail = lazyWithReload(() => import('./pages/ApplicationDetail'))
+const Favorites = lazyWithReload(() => import('./pages/Favorites'))
+
+const AdminDashboard = lazyWithReload(() => import('./pages/admin/Dashboard'))
+const AdminApplications = lazyWithReload(() => import('./pages/admin/Applications'))
+const AdminCategories = lazyWithReload(() => import('./pages/admin/Categories'))
+const AdminTags = lazyWithReload(() => import('./pages/admin/Tags'))
+const AdminPolicies = lazyWithReload(() => import('./pages/admin/Policies'))
+const AdminAudit = lazyWithReload(() => import('./pages/admin/Audit'))
+const AdminSettings = lazyWithReload(() => import('./pages/admin/Settings'))
 
 export const router = createBrowserRouter([
   {

@@ -1,14 +1,18 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { App as AntdApp, Button, Empty, Skeleton } from 'antd'
+import { App as AntdApp, Button, Empty, Modal, Skeleton } from 'antd'
 import {
   AppstoreOutlined,
   ArrowRightOutlined,
+  DatabaseOutlined,
   FireOutlined,
   FolderOpenOutlined,
   HeartOutlined,
   PlusOutlined,
+  RocketOutlined,
   SoundOutlined,
+  TeamOutlined,
+  ToolOutlined,
 } from '@ant-design/icons'
 import { useNavigate } from 'react-router-dom'
 import { ProCard } from '@ant-design/pro-components'
@@ -22,12 +26,30 @@ import { usePageTitle } from '../hooks/usePageTitle'
 import type { Application } from '../types'
 
 /** 应用图标（分类占位）：按 code 稳定映射到一套线性图标 */
-const CATEGORY_ICONS = [AppstoreOutlined, FolderOpenOutlined, FireOutlined, SoundOutlined]
+const CATEGORY_ICONS = [
+  AppstoreOutlined,
+  FolderOpenOutlined,
+  FireOutlined,
+  SoundOutlined,
+  ToolOutlined,
+  DatabaseOutlined,
+  TeamOutlined,
+  RocketOutlined,
+]
 
 function categoryIcon(code: string) {
-  let h = 0
-  for (let i = 0; i < code.length; i++) h = (h * 31 + code.charCodeAt(i)) >>> 0
-  const Icon = CATEGORY_ICONS[h % CATEGORY_ICONS.length]
+  // FNV-1a + 雪崩混合：短编码也能均匀离散到 8 个图标
+  let h = 2166136261
+  for (let i = 0; i < code.length; i++) {
+    h ^= code.charCodeAt(i)
+    h = (h * 16777619) >>> 0
+  }
+  h ^= h >>> 16
+  h = (h * 2246822507) >>> 0
+  h ^= h >>> 13
+  h = (h * 3266489909) >>> 0
+  h ^= h >>> 16
+  const Icon = CATEGORY_ICONS[(h >>> 0) % CATEGORY_ICONS.length]
   return <Icon />
 }
 
@@ -131,6 +153,8 @@ export default function Home() {
   const { data: settings } = useQuery({ queryKey: queryKeys.portalSettings, queryFn: getPortalSettings })
   const noticeText = settings?.find((s) => s.key === 'announcement')?.value
   const notices = noticeText ? noticeText.split('|').map((s) => s.trim()).filter(Boolean) : []
+  // 全部公告弹窗
+  const [noticeOpen, setNoticeOpen] = useState(false)
 
   usePageTitle('工作台')
 
@@ -210,9 +234,23 @@ export default function Home() {
               {notices.join('　　　　')}
             </span>
           </div>
-          <span className="velora-notice-more">全部 ›</span>
+          <a className="velora-notice-more" onClick={() => setNoticeOpen(true)}>
+            全部 ›
+          </a>
         </div>
       ) : null}
+
+      {/* 全部公告弹窗 */}
+      <Modal title="通知公告" open={noticeOpen} onCancel={() => setNoticeOpen(false)} footer={null} width={520}>
+        <div className="velora-notice-list">
+          {notices.map((n) => (
+            <div key={n} className="velora-notice-item">
+              <SoundOutlined className="velora-notice-item-icon" />
+              <span>{n}</span>
+            </div>
+          ))}
+        </div>
+      </Modal>
 
       {/* 我的应用（胶囊分段控件：收藏 / 全部，带计数，智能默认） */}
       <ProCard

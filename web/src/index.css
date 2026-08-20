@@ -1089,8 +1089,26 @@ button {
     border-color 0.16s ease,
     transform 0.16s ease;
 }
+.velora-app-card-hitarea {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.velora-app-card-hitarea:focus-visible {
+  outline: 2px solid var(--velora-primary);
+  outline-offset: 3px;
+  border-radius: 10px;
+}
 .velora-app-card:hover,
-.velora-app-card:focus-visible {
+.velora-app-card:focus-within {
   border-color: color-mix(in srgb, var(--velora-primary-hover) 45%, transparent);
   transform: translateY(-2px);
   box-shadow:
@@ -1921,7 +1939,7 @@ button {
 .velora-cat-card:focus-visible,
 .velora-recent-item:focus-visible,
 .velora-popular-item:focus-visible,
-.velora-app-card:focus-visible {
+.velora-app-card-hitarea:focus-visible {
   outline: 2px solid var(--velora-primary);
   outline-offset: 1px;
 }
@@ -2070,13 +2088,28 @@ button {
   border-radius: 8px;
   border-bottom: 1px solid rgba(20, 32, 58, 0.06);
   transition: background 0.16s ease;
-  cursor: pointer;
 }
 .velora-todo-item:last-child {
   border-bottom: none;
 }
 .velora-todo-item:hover {
   background: rgba(255, 255, 255, 0.8);
+}
+.velora-todo-open {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  flex: 1;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.velora-todo-open:disabled {
+  cursor: default;
 }
 /* 优先级色条 */
 .velora-todo-pri {

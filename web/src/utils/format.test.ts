@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { formatRelativeTime, truncate, isSafeHttpUrl } from './format'
+import { formatRelativeTime, truncate, isSafeHttpUrl, isSafeExternalHttpsUrl } from './format'
 import dayjs from 'dayjs'
 
 describe('formatRelativeTime', () => {
@@ -61,5 +61,18 @@ describe('isSafeHttpUrl', () => {
   })
   it('非法输入拒绝', () => {
     expect(isSafeHttpUrl('not a url')).toBe(false)
+  })
+})
+
+describe('isSafeExternalHttpsUrl', () => {
+  it('只允许无凭据的 HTTPS 公网目标', () => {
+    expect(isSafeExternalHttpsUrl('https://app.example.com/path')).toBe(true)
+    expect(isSafeExternalHttpsUrl('http://app.example.com')).toBe(false)
+    expect(isSafeExternalHttpsUrl('https://user:pass@app.example.com')).toBe(false)
+  })
+  it('拒绝本地、私网、链路本地和 IPv6 本地地址', () => {
+    for (const value of ['https://localhost', 'https://127.0.0.1:8080', 'https://10.0.0.1', 'https://192.168.1.2', 'https://169.254.169.254', 'https://[::1]']) {
+      expect(isSafeExternalHttpsUrl(value)).toBe(false)
+    }
   })
 })

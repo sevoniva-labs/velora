@@ -42,3 +42,35 @@ export function isSafeHttpUrl(value: string): boolean {
     return false
   }
 }
+
+/**
+ * Validate a user-visible external navigation target. The backend remains the
+ * authority for application registration; this is a browser-side defense for
+ * Todo/legacy responses and rejects credentials, non-HTTPS schemes, and
+ * loopback/private/link-local destinations.
+ */
+export function isSafeExternalHttpsUrl(value: string): boolean {
+  if (!/^https:\/\/[^/\s]+/i.test(value)) return false
+  try {
+    const u = new URL(value)
+    const host = u.hostname.replace(/^\[|\]$/g, '').toLowerCase()
+    if (!host || u.username || u.password || [...value].some((char) => char.charCodeAt(0) <= 31 || char.charCodeAt(0) === 127)) return false
+    if (host === 'localhost' || host.endsWith('.localhost') || host.endsWith('.local')) return false
+    if (isPrivateIPv4(host) || isPrivateIPv6(host)) return false
+    return true
+  } catch {
+    return false
+  }
+}
+
+function isPrivateIPv4(host: string): boolean {
+  const octets = host.split('.').map((part) => Number(part))
+  if (octets.length !== 4 || octets.some((part) => !Number.isInteger(part) || part < 0 || part > 255)) return false
+  const [a, b] = octets
+  return a === 0 || a === 10 || a === 127 || (a === 100 && b >= 64 && b <= 127) || (a === 169 && b === 254) || (a === 172 && b >= 16 && b <= 31) || (a === 192 && b === 168)
+}
+
+function isPrivateIPv6(host: string): boolean {
+  const normalized = host.toLowerCase()
+  return normalized === '::1' || normalized === '::' || normalized.startsWith('fc') || normalized.startsWith('fd') || normalized.startsWith('fe8') || normalized.startsWith('fe9') || normalized.startsWith('fea') || normalized.startsWith('feb')
+}

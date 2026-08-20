@@ -15,8 +15,17 @@ interface Props {
 
 /** DOMPurify 基础配置：过滤 script/iframe/object/embed/form 等危险载体 */
 const SANITIZE_BASE = {
-  FORBID_TAGS: ['script', 'iframe', 'object', 'embed', 'form', 'input', 'button', 'link', 'meta', 'base'],
-  FORBID_ATTR: ['onerror', 'onclick', 'onload', 'onmouseover', 'onfocus', 'srcset'],
+  FORBID_TAGS: ['script', 'style', 'iframe', 'object', 'embed', 'form', 'input', 'button', 'link', 'meta', 'base', 'svg', 'math'],
+  // CSS is a URL-bearing channel too; remove it even when images are manually enabled.
+  FORBID_ATTR: ['onerror', 'onclick', 'onload', 'onmouseover', 'onfocus', 'srcset', 'style'],
+}
+
+export function sanitizeMailHtml(bodyHtml: string, showImages: boolean): string {
+  if (!bodyHtml) return ''
+  const cfg = showImages
+    ? SANITIZE_BASE
+    : { ...SANITIZE_BASE, FORBID_TAGS: [...SANITIZE_BASE.FORBID_TAGS, 'img'], FORBID_ATTR: [...SANITIZE_BASE.FORBID_ATTR, 'src'] }
+  return DOMPurify.sanitize(bodyHtml, cfg)
 }
 
 /**
@@ -53,13 +62,7 @@ export default function MailDetailDrawer({ mailId, onClose, onConvert }: Props) 
   })
 
   const hasRemoteImages = !!msg?.bodyHtml && /<img[\s>]/i.test(msg.bodyHtml)
-  const cleanHtml = useMemo(() => {
-    if (!msg?.bodyHtml) return ''
-    const cfg = showImages
-      ? SANITIZE_BASE
-      : { ...SANITIZE_BASE, FORBID_TAGS: [...SANITIZE_BASE.FORBID_TAGS, 'img'] }
-    return DOMPurify.sanitize(msg.bodyHtml, cfg)
-  }, [msg?.bodyHtml, showImages])
+  const cleanHtml = useMemo(() => sanitizeMailHtml(msg?.bodyHtml ?? '', showImages), [msg?.bodyHtml, showImages])
 
   const close = () => {
     setShowImages(false)

@@ -7,6 +7,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { addFavorite, launchApplication, queryKeys, removeFavorite } from '../api/api'
 import type { Application } from '../types'
 import { HEALTH_COLOR, HEALTH_LABEL } from '../labels'
+import { isSafeExternalHttpsUrl } from '../utils/format'
 
 /** 蓝族渐变图标变体：按应用 id 稳定映射到 6 种蓝色系渐变，增加视觉层次 */
 function iconVariant(id: number | string): string {
@@ -86,6 +87,10 @@ export function AppCard({ app, onLaunch }: AppCardProps) {
         return
       }
       if (result.url) {
+        if (!isSafeExternalHttpsUrl(result.url)) {
+          message.error('应用地址不符合安全策略')
+          return
+        }
         window.open(result.url, result.target === '_self' ? '_self' : '_blank', 'noopener,noreferrer')
       }
       void invalidateApps()
@@ -96,37 +101,27 @@ export function AppCard({ app, onLaunch }: AppCardProps) {
   })
 
   return (
-    <div
-      className="velora-app-card"
-      role="button"
-      tabIndex={0}
-      aria-label={`${app.name}，点击启动`}
-      onClick={() => launchMutation.mutate()}
-      onKeyDown={(e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault()
-          launchMutation.mutate()
-        }
-      }}
-    >
-      <AppIcon app={app} size={44} />
-      <div className="velora-app-card-main">
-        <div className="velora-app-card-name">
-          {app.name}
-          {app.isNew && <span className="velora-app-new velora-app-new--inline">新</span>}
-        </div>
-        <div className="velora-app-card-desc">{app.description || app.category?.name || '点击直达应用'}</div>
-        {(app.category || (app.tags ?? []).length > 0) && (
-          <div className="velora-app-card-meta">
-            {app.category && <span className="velora-app-card-cat">{app.category.name}</span>}
-            {(app.tags ?? []).slice(0, 2).map((t) => (
-              <span key={t.id} className="velora-app-card-tag">
-                {t.name}
-              </span>
-            ))}
-          </div>
-        )}
-      </div>
+    <div className="velora-app-card">
+      <button type="button" className="velora-app-card-hitarea" aria-label={`${app.name}，点击启动`} onClick={() => launchMutation.mutate()}>
+        <AppIcon app={app} size={44} />
+        <span className="velora-app-card-main">
+          <span className="velora-app-card-name">
+            {app.name}
+            {app.isNew && <span className="velora-app-new velora-app-new--inline">新</span>}
+          </span>
+          <span className="velora-app-card-desc">{app.description || app.category?.name || '点击直达应用'}</span>
+          {(app.category || (app.tags ?? []).length > 0) && (
+            <span className="velora-app-card-meta">
+              {app.category && <span className="velora-app-card-cat">{app.category.name}</span>}
+              {(app.tags ?? []).slice(0, 2).map((t) => (
+                <span key={t.id} className="velora-app-card-tag">
+                  {t.name}
+                </span>
+              ))}
+            </span>
+          )}
+        </span>
+      </button>
       <div className="velora-app-card-side">
         {app.healthCheckEnabled && (
           <Tooltip title={`健康状态：${HEALTH_LABEL[app.healthStatus ?? 'UNKNOWN']}`}>

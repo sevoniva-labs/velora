@@ -27,7 +27,7 @@ import type { AuthCapabilities } from '../api/api'
 const FEATURES = [
   { icon: <SafetyCertificateOutlined />, name: '统一身份认证', desc: '一次登录，访问全部授权应用' },
   { icon: <AppstoreOutlined />, name: '应用汇聚', desc: '分类、收藏与最近使用' },
-  { icon: <CheckSquareOutlined />, name: '待办与邮件', desc: '审批、工单与企业邮件' },
+  { icon: <SafetyCertificateOutlined />, name: '细粒度授权', desc: '按组织、角色与策略控制应用访问' },
 ]
 
 /** 品牌区装饰磁贴：呼应门户应用宫格，纯视觉（色调同应用图标体系） */

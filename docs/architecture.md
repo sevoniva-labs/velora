@@ -103,6 +103,9 @@ internal/bootstrap     依赖组装、迁移和健康检查
 
 ## 11. 待办中心（外部系统集成 API）
 
+> 当前 Wave 1 基座尚未提供这些 `/todos` 运行时接口；生产前端不展示待办入口。以下为后续接入契约，
+> 接入前必须补齐后端权限、幂等、分页、审计和 E2E，不得把前端空数组当作已上线能力。
+
 待办中心面向"统一待办"场景：其他业务系统（OA / 审批 / 运维工单等）通过 API 把待办推送到门户，用户在首页统一查看处理、点击跳回来源系统单据页。
 
 - 表 `todos`（`0002_todos.sql`）：`(source_system, source_id, user_id)` 唯一索引作为幂等键；`priority` 取 `urgent|high|mid|low`；`status` 取 `open|done`。
@@ -113,6 +116,9 @@ internal/bootstrap     依赖组装、迁移和健康检查
 - 对接方当前复用门户管理员会话（Cookie + CSRF）调用；独立的 service account / API token 认证属 Phase 2。
 
 ## 12. 邮件模块（企业邮箱，独立 Mail 领域）
+
+> 当前 Wave 1 基座尚未提供 Mail 运行时接口；生产前端不展示邮件入口。下述 Provider/表结构是后续
+> 实施边界，不代表当前版本已具备企业邮箱能力。
 
 定位：待办中心的一个独立 Tab，与 Todo 平级解耦——**邮件默认不进入待办**，仅用户手动"转为待办"时建立引用关联（`todos.source_system='mail'` + `source_id=mail_messages.id`，复用既有幂等机制，不改 Todo 主表、不建桥接表）。
 

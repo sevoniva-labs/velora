@@ -778,18 +778,18 @@ button {
   transform: none;
 }
 
-/* ---------- 工作台三栏（最近使用 / 待办中心 / 应用分类） ---------- */
+/* ---------- 工作台双栏（最近使用 / 应用分类） ---------- */
 
 .velora-workbench {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: 14px;
   margin-top: 14px;
   align-items: stretch;
-  /* 固定行高：三个面板始终等高，内容在面板内部滚动，切 Tab / 数据增减均不跳动 */
+  /* 固定行高：面板始终等高，内容在面板内部滚动 */
   height: 460px;
 }
-/* 三块面板等高：弹性占满所在格子，内部 flex 纵向布局 */
+/* 面板等高：弹性占满所在格子，内部 flex 纵向布局 */
 .velora-workbench > .velora-panel {
   min-height: 0;
   display: flex;

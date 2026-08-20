@@ -19,7 +19,6 @@ import { ProCard } from '@ant-design/pro-components'
 import { launchApplication, listApplications, listCategories, listRecent, getPortalSettings, queryKeys } from '../api/api'
 import { AppIcon } from '../components/AppCard'
 import QueryErrorState from '../components/QueryErrorState'
-import TodoCenter from '../components/TodoCenter'
 import { formatRelativeTime } from '../utils/format'
 import { usePageTitle } from '../hooks/usePageTitle'
 
@@ -330,9 +329,6 @@ export default function Home() {
             <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="暂无使用记录" style={{ padding: '28px 18px' }} />
           )}
         </section>
-
-        {/* 待办中心：多 Tab（全部 / 邮件 / 按类型），见 components/TodoCenter */}
-        <TodoCenter />
 
         {/* 应用分类（带计数，空分类不展示） */}
         <section className="velora-panel">

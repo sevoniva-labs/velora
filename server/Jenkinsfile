@@ -12,7 +12,10 @@ pipeline {
   }
   stages {
     stage('Policy') {
-      steps { sh 'make ci-policy' }
+      steps {
+        sh 'make ci-policy'
+        sh 'cd .. && make check-prod-config'
+      }
     }
     stage('Backend') {
       steps { sh 'make ci-go' }

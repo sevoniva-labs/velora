@@ -141,6 +141,30 @@ func TestCORSAllowsComposeNginxLoopbackOrigins(t *testing.T) {
 	}
 }
 
+func TestClientIPIgnoresForwardedHeadersFromUntrustedPeer(t *testing.T) {
+	var got string
+	handler := clientIP([]string{"10.0.0.0/8"})(http.HandlerFunc(func(_ http.ResponseWriter, r *http.Request) { got = ClientIP(r.Context()) }))
+	request := httptest.NewRequest(http.MethodGet, "/", nil)
+	request.RemoteAddr = "192.0.2.10:1234"
+	request.Header.Set("X-Forwarded-For", "198.51.100.5")
+	handler.ServeHTTP(httptest.NewRecorder(), request)
+	if got != "192.0.2.10" {
+		t.Fatalf("untrusted peer forwarded client IP = %q", got)
+	}
+}
+
+func TestClientIPWalksTrustedForwardedChainFromRight(t *testing.T) {
+	var got string
+	handler := clientIP([]string{"10.0.0.0/8"})(http.HandlerFunc(func(_ http.ResponseWriter, r *http.Request) { got = ClientIP(r.Context()) }))
+	request := httptest.NewRequest(http.MethodGet, "/", nil)
+	request.RemoteAddr = "10.0.0.8:1234"
+	request.Header.Set("X-Forwarded-For", "198.51.100.5, 10.0.0.9")
+	handler.ServeHTTP(httptest.NewRecorder(), request)
+	if got != "198.51.100.5" {
+		t.Fatalf("trusted forwarded chain client IP = %q", got)
+	}
+}
+
 func TestRequestIDReplacesUnsafeInput(t *testing.T) {
 	handler := requestID(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if RequestID(r.Context()) == "bad\r\nvalue" {

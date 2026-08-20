@@ -797,6 +797,11 @@ func (c Config) Validate() error {
 			seenOrigins[origin] = struct{}{}
 		}
 	}
+	for _, proxy := range c.Security.TrustedProxies {
+		if _, _, err := net.ParseCIDR(strings.TrimSpace(proxy)); err != nil {
+			errs = append(errs, "security.trusted_proxies must contain valid CIDRs")
+		}
+	}
 	if c.Server.TLSEnabled && (c.Server.TLSCertFile == "" || c.Server.TLSKeyFile == "") {
 		errs = append(errs, "tls enabled requires tls_cert_file and tls_key_file")
 	}
@@ -898,6 +903,9 @@ func (c Config) ValidateProductionAuth() error {
 	}
 	if c.Security.OIDCProviderEnabled {
 		errs = append(errs, "security.oidc_provider_enabled must be false in production; Casdoor is the only OIDC provider")
+	}
+	if len(c.Security.TrustedProxies) == 0 {
+		errs = append(errs, "security.trusted_proxies must contain approved proxy CIDRs in production")
 	}
 	if strings.EqualFold(strings.TrimSpace(c.Security.CryptoAdapter), "software") {
 		errs = append(errs, "security.crypto_adapter must be an approved KMS/HSM/PKCS#11 adapter in production; software key storage is development-only")

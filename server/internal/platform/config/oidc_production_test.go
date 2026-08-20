@@ -20,6 +20,7 @@ func TestValidateProductionAuthRequiresOIDCConfiguration(t *testing.T) {
 	cfg.Security.SessionTTL = time.Hour
 	cfg.Security.CasdoorAccountURL = "https://casdoor.example.test/account"
 	cfg.Security.CryptoAdapter = "hsm"
+	cfg.Security.TrustedProxies = []string{"10.0.0.0/8"}
 	if err := cfg.ValidateProductionAuth(); err != nil {
 		t.Fatalf("valid production OIDC configuration rejected: %v", err)
 	}
@@ -88,6 +89,7 @@ func TestValidateProductionTransportSecurity(t *testing.T) {
 
 	cfg.Security.SecureCookies = true
 	cfg.Security.AllowedOrigins = []string{"https://velora.example.test"}
+	cfg.Security.TrustedProxies = []string{"10.0.0.0/8"}
 	cfg.Cache.Provider = "redis"
 	cfg.Cache.Addresses = []string{"redis.internal:6379"}
 	cfg.Cache.TLS = true

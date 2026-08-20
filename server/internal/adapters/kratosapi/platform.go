@@ -30,6 +30,7 @@ import (
 	portaldomain "github.com/sevoniva-labs/velora/server/internal/domain/portal"
 	"github.com/sevoniva-labs/velora/server/internal/platform/authn"
 	"github.com/sevoniva-labs/velora/server/internal/platform/database"
+	"github.com/sevoniva-labs/velora/server/internal/platform/httpserver"
 )
 
 type PlatformService struct {
@@ -740,7 +741,13 @@ func newAuditEvent(ctx context.Context, principal domain.Principal, action, reso
 	if tr, ok := transport.FromServerContext(ctx); ok {
 		event.RequestID = tr.RequestHeader().Get("X-Request-ID")
 	}
+	if ip := httpserver.ClientIP(ctx); ip != "" {
+		event.ClientIP = ip
+	}
 	if remote, ok := peer.FromContext(ctx); ok && remote.Addr != nil {
+		if event.ClientIP != "" {
+			return event
+		}
 		host, _, err := net.SplitHostPort(remote.Addr.String())
 		if err == nil {
 			event.ClientIP = host

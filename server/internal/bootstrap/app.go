@@ -219,6 +219,7 @@ func New(ctx context.Context, opts Options) (*App, error) {
 		khttp.Filter(httpserver.Filters(httpserver.FilterOptions{
 			Log: log, Metrics: met, Secure: cfg.Security.SecureCookies,
 			AllowedOrigins: cfg.Security.AllowedOrigins, MaxBodyBytes: cfg.Server.MaxBodyBytes, ServiceName: cfg.App.Name,
+			TrustedProxies: cfg.Security.TrustedProxies,
 		})...),
 	}
 	grpcOpts := []kgrpc.ServerOption{kgrpc.Address(cfg.Server.GRPCListenAddr), kgrpc.Timeout(cfg.Server.WriteTimeout), kgrpc.Middleware(ktracing.Server(), grpcSecurity)}

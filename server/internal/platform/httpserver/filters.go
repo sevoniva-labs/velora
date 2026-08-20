@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
+	"net"
 	"net/http"
 	"net/url"
 	"runtime/debug"
@@ -27,18 +28,89 @@ type FilterOptions struct {
 	AllowedOrigins []string
 	MaxBodyBytes   int64
 	ServiceName    string
+	TrustedProxies []string
 }
 
 func Filters(options FilterOptions) []khttp.FilterFunc {
 	return []khttp.FilterFunc{
 		recoverer(options.Log),
 		requestID,
+		clientIP(options.TrustedProxies),
 		tracing(options.ServiceName),
 		securityHeaders(options.Secure),
 		cors(options.AllowedOrigins),
 		bodyLimit(options.MaxBodyBytes),
 		accessLog(options.Log, options.Metrics),
 	}
+}
+
+type clientIPContextKey struct{}
+
+// ClientIP returns the address selected by the trusted-proxy boundary.
+func ClientIP(ctx context.Context) string {
+	value, _ := ctx.Value(clientIPContextKey{}).(string)
+	return value
+}
+
+func clientIP(configured []string) khttp.FilterFunc {
+	trusted := make([]*net.IPNet, 0, len(configured))
+	for _, value := range configured {
+		if _, network, err := net.ParseCIDR(strings.TrimSpace(value)); err == nil {
+			trusted = append(trusted, network)
+		}
+	}
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			ip := requestPeerIP(r)
+			if peer := net.ParseIP(ip); peer != nil && containsIP(trusted, peer) {
+				chain := forwardedIPs(r.Header.Values("X-Forwarded-For"))
+				chain = append(chain, ip)
+				for i := len(chain) - 1; i >= 0; i-- {
+					candidate := net.ParseIP(chain[i])
+					if candidate == nil {
+						continue
+					}
+					if !containsIP(trusted, candidate) {
+						ip = candidate.String()
+						break
+					}
+				}
+			}
+			next.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), clientIPContextKey{}, ip)))
+		})
+	}
+}
+
+func requestPeerIP(r *http.Request) string {
+	if host, _, err := net.SplitHostPort(strings.TrimSpace(r.RemoteAddr)); err == nil {
+		return host
+	}
+	if net.ParseIP(strings.TrimSpace(r.RemoteAddr)) != nil {
+		return strings.TrimSpace(r.RemoteAddr)
+	}
+	return ""
+}
+
+func forwardedIPs(values []string) []string {
+	var out []string
+	for _, value := range values {
+		for _, part := range strings.Split(value, ",") {
+			part = strings.TrimSpace(part)
+			if net.ParseIP(part) != nil {
+				out = append(out, part)
+			}
+		}
+	}
+	return out
+}
+
+func containsIP(networks []*net.IPNet, ip net.IP) bool {
+	for _, network := range networks {
+		if network.Contains(ip) {
+			return true
+		}
+	}
+	return false
 }
 
 func tracing(serviceName string) khttp.FilterFunc {

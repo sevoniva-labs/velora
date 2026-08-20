@@ -27,7 +27,8 @@ env \
   VELORA_STORAGE_PATH_STYLE=true \
   VELORA_STORAGE_ACCESS_KEY=dummy-storage-access \
   VELORA_STORAGE_SECRET_KEY=dummy-storage-secret \
-  VELORA_STORAGE_SSE_MODE=none \
+  VELORA_STORAGE_SSE_MODE=kms \
+  VELORA_STORAGE_SSE_KMS_KEY_ID=dummy-kms-key \
   VELORA_CRYPTO_PROVIDER=standard \
   VELORA_CRYPTO_KEY_VERSION=v1 \
   VELORA_CRYPTO_KEY_FILE="$tmp_dir/crypto.key" \
@@ -83,6 +84,11 @@ fi
 
 if ! jq -e '.services.server.environment.VELORA_OIDC_PROVIDER_ENABLED == "false"' "$config_json" >/dev/null; then
   echo "错误：生产 server 必须显式禁用 Velora 自建 OIDC Provider" >&2
+  exit 1
+fi
+
+if ! jq -e '.services.server.environment.VELORA_STORAGE_SSE_MODE == "kms" and (.services.server.environment.VELORA_STORAGE_SSE_KMS_KEY_ID | length > 0)' "$config_json" >/dev/null; then
+  echo "错误：生产对象存储必须启用 KMS SSE 并配置 key id" >&2
   exit 1
 fi
 

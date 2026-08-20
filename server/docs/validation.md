@@ -2,11 +2,13 @@
 
 本文只记录在当前工作区实际执行并得到成功退出码的验证，不把配置存在、接口预留或文档声明等同于兼容认证。
 
+> Velora 使用该目录作为后端子树；前端仍位于父目录 `../web`，且按要求不复制、不修改。脚手架原生的 `make ci-web`/`make ci-web-e2e` 假定 `server/web` 是自己的 workspace，因此不属于本项目的权威前端门禁。
+
 ## 当前已验证
 
 ### Latest complete gate
 
-- 2026-08-20: `make verify` passed on the scaffold branch, including Go contract/module/race checks, frontend generated API/lint/typecheck/test/build/budget checks, APISIX and Helm policy checks, Gosec, govulncheck, Staticcheck, golangci-lint, SBOM, Gitleaks history/worktree scans, and license evidence generation.
+- 2026-08-20: 后端 `make ci-go`、`make ci-deploy`、`make security-tools` 通过；仓库根目录 `make test` 通过未修改的前端 lint/test/build。由于前端不属于后端子树，不能把脚手架原生 `make verify` 的前端 workspace 结果当作 Velora 结果。
 - The complete gate does not certify a target vendor, hardware, operating system, HSM/KMS, cluster, air-gapped bundle, or disaster-recovery topology; those require the target evidence workflows below.
 
 ### Go 与安全边界
@@ -39,7 +41,8 @@ GOPROXY=https://goproxy.cn \
 GOSUMDB='sum.golang.org https://goproxy.cn/sumdb/sum.golang.org' \
 go test ./internal/platform/config ./internal/platform/httpserver ./internal/bootstrap
 
-make ci-web
+# 前端保持在父目录，使用仓库根目录的未修改前端门禁
+cd .. && make test
 
 PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1 \
 PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/path/to/chrome \

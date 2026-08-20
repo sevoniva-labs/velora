@@ -41,13 +41,14 @@ make proto-generate
 
 ```bash
 make ci-go
-make ci-web
+# 前端保持在父目录，使用仓库根目录的未修改前端门禁
+cd .. && make test
 ```
 
 合并前运行完整矩阵：
 
 ```bash
-make verify
+make ci-go && make ci-deploy && make security-tools
 ```
 
 `make verify` 会覆盖接口契约、模块边界、Go 测试和竞态、前端 lint/typecheck/test/build、微前端边界、包体积、APISIX、可观测性、Helm、Gosec、漏洞、供应链、许可证、SBOM 和泄漏检查。

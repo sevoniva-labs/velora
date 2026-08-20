@@ -24,7 +24,7 @@
 
 ### 本次验收证据
 
-- `go test ./...`、`go vet ./...`、`go test -race ./...`、`make proto-check`、`make contract`、`make ci-go`、`make security-tools` 已通过。
+- 在 `server/` 中执行的 `make ci-go`、`make security-tools`、`make ci-deploy` 已通过；仓库根目录 `make test` 也通过（包含未修改前端的 lint/test/build）。
 - 临时 PostgreSQL 15 集群已从 00001—00022 完整迁移；启动后 `/api/v1/system/health` 和 `/api/v1/system/ready` 返回成功。
 - 真实 API smoke 已验证：登录、管理员创建分类、创建应用、门户列表、收藏、收藏列表、启动 URL；并验证了审计事务中的 PostgreSQL 游标关闭回归。
 - 生产 Compose 静态门禁通过：仅 Web 发布 80/443，数据库、Redis、Casdoor、server、监控不发布 host port，`initData=false`，无默认凭据；Docker daemon 不可用，因此未宣称容器运行时验收通过。

@@ -65,12 +65,15 @@ func (s *Service) Launch(ctx context.Context, principal domain.Principal, id str
 	if err != nil {
 		return portaldomain.Application{}, "", err
 	}
+	if strings.EqualFold(strings.TrimSpace(item.LaunchType), portaldomain.LaunchTypeRetiredVeloraOIDC) {
+		return portaldomain.Application{}, "", portaldomain.ErrRetiredLaunchType
+	}
 	launchURL := strings.TrimSpace(item.LaunchURL)
 	if launchURL == "" {
 		launchURL = strings.TrimSpace(item.HomeURL)
 	}
 	u, err := url.Parse(launchURL)
-	if err != nil || u.Host == "" || (u.Scheme != "https" && u.Scheme != "http") {
+	if err != nil || u.Host == "" || u.Scheme != "https" {
 		return portaldomain.Application{}, "", portaldomain.ErrInvalidLaunchURL
 	}
 	if err := s.repo.RecordVisit(ctx, principal.OrganizationID, principal.UserID, item.ID); err != nil {
@@ -152,7 +155,7 @@ func (s *Service) CreateApplication(ctx context.Context, principal domain.Princi
 	if input.LaunchType == "" {
 		input.LaunchType = "URL"
 	}
-	if err := portaldomain.ValidateApplication(portaldomain.Application{Code: input.Code, Name: input.Name, LaunchURL: input.LaunchURL, Status: input.Status}); err != nil {
+	if err := portaldomain.ValidateApplication(portaldomain.Application{Code: input.Code, Name: input.Name, LaunchType: input.LaunchType, LaunchURL: input.LaunchURL, Status: input.Status}); err != nil {
 		return portaldomain.Application{}, err
 	}
 	return s.repo.CreateApplication(ctx, principal.OrganizationID, principal.UserID, input)
@@ -167,7 +170,7 @@ func (s *Service) UpdateApplication(ctx context.Context, principal domain.Princi
 	if input.LaunchType == "" {
 		input.LaunchType = "URL"
 	}
-	if err := portaldomain.ValidateApplication(portaldomain.Application{Code: "valid", Name: input.Name, LaunchURL: input.LaunchURL, Status: input.Status}); err != nil {
+	if err := portaldomain.ValidateApplication(portaldomain.Application{Code: "valid", Name: input.Name, LaunchType: input.LaunchType, LaunchURL: input.LaunchURL, Status: input.Status}); err != nil {
 		return portaldomain.Application{}, err
 	}
 	item, err := s.repo.UpdateApplication(ctx, principal.OrganizationID, principal.UserID, strings.TrimSpace(id), input)

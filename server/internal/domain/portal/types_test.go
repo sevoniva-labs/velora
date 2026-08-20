@@ -43,11 +43,12 @@ func TestValidateApplication(t *testing.T) {
 		t.Fatalf("ValidateApplication(valid) error = %v", err)
 	}
 	for name, app := range map[string]Application{
-		"missing code": {Name: "CRM", Status: StatusEnabled},
-		"missing name": {Code: "crm", Status: StatusEnabled},
-		"bad status":   {Code: "crm", Name: "CRM", Status: "UNKNOWN"},
-		"relative url": {Code: "crm", Name: "CRM", Status: StatusEnabled, LaunchURL: "/crm"},
-		"http url":     {Code: "crm", Name: "CRM", Status: StatusEnabled, LaunchURL: "http://crm.example.test"},
+		"missing code":        {Name: "CRM", Status: StatusEnabled},
+		"missing name":        {Code: "crm", Status: StatusEnabled},
+		"bad status":          {Code: "crm", Name: "CRM", Status: "UNKNOWN"},
+		"relative url":        {Code: "crm", Name: "CRM", Status: StatusEnabled, LaunchURL: "/crm"},
+		"http url":            {Code: "crm", Name: "CRM", Status: StatusEnabled, LaunchURL: "http://crm.example.test"},
+		"retired velora oidc": {Code: "legacy", Name: "Legacy", LaunchType: LaunchTypeRetiredVeloraOIDC, Status: StatusEnabled, LaunchURL: "https://legacy.example.test"},
 	} {
 		t.Run(name, func(t *testing.T) {
 			if err := ValidateApplication(app); err == nil {

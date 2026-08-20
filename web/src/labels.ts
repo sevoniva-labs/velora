@@ -5,7 +5,7 @@ import type { SSOType, AppStatus, HealthStatus, PolicyType } from './types'
 export const SSO_TYPE_LABEL: Record<SSOType, string> = {
   URL: '直链',
   OIDC: 'OIDC',
-  VELORA_OIDC: 'Velora SSO',
+  VELORA_OIDC: '待迁移：Velora OIDC',
   SAML: 'SAML',
   CAS: 'CAS',
   FORWARD_AUTH: '反向代理',
@@ -14,7 +14,7 @@ export const SSO_TYPE_LABEL: Record<SSOType, string> = {
 export const SSO_TYPE_COLOR: Record<SSOType, string> = {
   URL: 'default',
   OIDC: 'blue',
-  VELORA_OIDC: 'green',
+  VELORA_OIDC: 'warning',
   SAML: 'purple',
   CAS: 'cyan',
   FORWARD_AUTH: 'orange',

@@ -13,11 +13,12 @@ const (
 	StatusEnabled  = "ENABLED"
 	StatusDisabled = "DISABLED"
 
-	PolicyEveryone     = "EVERYONE"
-	PolicyUser         = "USER"
-	PolicyRole         = "ROLE"
-	PolicyGroup        = "GROUP"
-	PolicyOrganization = "ORGANIZATION"
+	PolicyEveryone              = "EVERYONE"
+	PolicyUser                  = "USER"
+	PolicyRole                  = "ROLE"
+	PolicyGroup                 = "GROUP"
+	PolicyOrganization          = "ORGANIZATION"
+	LaunchTypeRetiredVeloraOIDC = "VELORA_OIDC"
 )
 
 type Category struct {
@@ -122,6 +123,9 @@ func ValidateApplication(app Application) error {
 	if app.Status != StatusEnabled && app.Status != StatusDisabled {
 		return ErrInvalidApplication
 	}
+	if strings.EqualFold(strings.TrimSpace(app.LaunchType), LaunchTypeRetiredVeloraOIDC) {
+		return ErrRetiredLaunchType
+	}
 	if app.LaunchType == "" {
 		app.LaunchType = "URL"
 	}
@@ -137,6 +141,7 @@ func ValidateApplication(app Application) error {
 var (
 	ErrInvalidApplication = &ValidationError{Message: "invalid portal application"}
 	ErrInvalidLaunchURL   = &ValidationError{Message: "launch URL must be an absolute HTTPS URL"}
+	ErrRetiredLaunchType  = &ValidationError{Message: "Velora OIDC provider is retired; migrate this application to Casdoor OIDC or another approved integration"}
 )
 
 type ValidationError struct{ Message string }

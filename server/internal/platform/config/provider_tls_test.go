@@ -18,6 +18,8 @@ func productionConfig() Config {
 	cfg.Storage.Provider = "s3-compatible"
 	cfg.Storage.Endpoint = "https://objects.internal"
 	cfg.Storage.Bucket = "velora"
+	cfg.Storage.AccessKey = "access"
+	cfg.Storage.SecretKey = "secret"
 	cfg.Storage.TLS = true
 	return cfg
 }
@@ -82,7 +84,7 @@ func TestValidateAllowsSecureProvidersInProduction(t *testing.T) {
 	cfg := productionConfig()
 	cfg.Streaming = Streaming{Provider: "kafka", Brokers: []string{"kafka:9093"}, TLS: true}
 	cfg.Search = Search{Provider: "opensearch", URLs: []string{"https://search:9200"}, TLS: true}
-	cfg.Storage = Storage{Provider: "ceph-rgw", Endpoint: "https://rgw.internal", Bucket: "documents", TLS: true}
+	cfg.Storage = Storage{Provider: "ceph-rgw", Endpoint: "https://rgw.internal", Bucket: "documents", AccessKey: "access", SecretKey: "secret", TLS: true}
 	cfg.Observability.TracingEnabled = true
 	cfg.Observability.OTLPEndpoint = "https://otel:4318"
 	cfg.Observability.OTLPTLS = true

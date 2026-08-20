@@ -160,3 +160,22 @@ func TestS3ImmutableStoreFailsClosedWithoutTargetEvidence(t *testing.T) {
 		t.Fatal("immutable put was accepted without target capability evidence")
 	}
 }
+
+func TestProductionStorageConfigurationRequiresCredentials(t *testing.T) {
+	cfg := config.Default()
+	cfg.App.Environment = "production"
+	cfg.Database.DSN = "postgres://user:secret@db/app?sslmode=verify-full"
+	cfg.Server.PublicURL = "https://velora.example.test"
+	cfg.Security.SecureCookies = true
+	cfg.Security.AllowedOrigins = []string{"https://velora.example.test"}
+	cfg.Cache.Provider = "redis"
+	cfg.Cache.Addresses = []string{"redis.internal:6379"}
+	cfg.Cache.TLS = true
+	cfg.Storage.Provider = "s3-compatible"
+	cfg.Storage.Endpoint = "https://objects.internal"
+	cfg.Storage.Bucket = "velora"
+	cfg.Storage.TLS = true
+	if err := cfg.Validate(); err == nil || !strings.Contains(err.Error(), "storage access_key and secret_key") {
+		t.Fatalf("missing production object-store credentials were accepted: %v", err)
+	}
+}

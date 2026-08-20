@@ -689,6 +689,9 @@ func (c Config) Validate() error {
 		if strings.TrimSpace(c.Storage.Endpoint) != "" && !isHTTPSURL(c.Storage.Endpoint) {
 			errs = append(errs, "storage.endpoint must use https in production")
 		}
+		if strings.TrimSpace(c.Storage.AccessKey) == "" || strings.TrimSpace(c.Storage.SecretKey) == "" {
+			errs = append(errs, "storage access_key and secret_key are required in production")
+		}
 	}
 	if normalizeStorageProvider(c.Storage.Provider) == "local" && strings.TrimSpace(c.Storage.LocalRoot) == "" {
 		errs = append(errs, "storage.local_root required for local storage")

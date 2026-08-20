@@ -78,6 +78,8 @@ func TestValidateProductionTransportSecurity(t *testing.T) {
 	cfg.Storage.Provider = "s3-compatible"
 	cfg.Storage.Endpoint = "https://objects.internal"
 	cfg.Storage.Bucket = "velora"
+	cfg.Storage.AccessKey = "access"
+	cfg.Storage.SecretKey = "secret"
 	cfg.Storage.TLS = true
 	if err := cfg.Validate(); err != nil {
 		t.Fatalf("valid production transport security rejected: %v", err)

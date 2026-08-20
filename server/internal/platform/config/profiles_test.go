@@ -31,6 +31,10 @@ func TestProductionProfilesAreSecureAndValid(t *testing.T) {
 				cfg.Messaging.RocketMQAccessKey = "access-key"
 				cfg.Messaging.RocketMQSecretKey = "secret-key"
 			}
+			if cfg.Storage.Provider != "local" {
+				cfg.Storage.AccessKey = "access-key"
+				cfg.Storage.SecretKey = "secret-key"
+			}
 			if err := cfg.Validate(); err != nil {
 				t.Fatalf("production profile rejected: %v", err)
 			}

@@ -14,6 +14,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
+	"github.com/aws/aws-sdk-go-v2/service/s3/types"
 	appcfg "github.com/sevoniva-labs/velora/server/internal/platform/config"
 	"github.com/sevoniva-labs/velora/server/internal/platform/tlsx"
 )
@@ -234,11 +235,28 @@ func newS3(ctx context.Context, c appcfg.Storage, profile ProviderProfile, contr
 	return &s3Store{client: cli, presign: s3.NewPresignClient(cli), bucket: c.Bucket, prefix: prefix, sseMode: strings.ToLower(strings.TrimSpace(c.SSEMode)), sseKMSID: strings.TrimSpace(c.SSEKMSKeyID), profile: profile, contract: contract}, nil
 }
 func (s *s3Store) Put(ctx context.Context, key string, r io.Reader) error {
+	if r == nil {
+		return errors.New("storage put body is required")
+	}
 	key, err := s.objectKey(key)
 	if err != nil {
 		return err
 	}
-	_, e := s.client.PutObject(ctx, &s3.PutObjectInput{Bucket: &s.bucket, Key: &key, Body: r})
+	input := &s3.PutObjectInput{
+		Bucket: &s.bucket, Key: &key, Body: r,
+		ChecksumAlgorithm: types.ChecksumAlgorithmSha256,
+	}
+	switch s.sseMode {
+	case "s3":
+		input.ServerSideEncryption = types.ServerSideEncryptionAes256
+	case "kms":
+		if strings.TrimSpace(s.sseKMSID) == "" {
+			return errors.New("storage sse kms key id is required")
+		}
+		input.ServerSideEncryption = types.ServerSideEncryptionAwsKms
+		input.SSEKMSKeyId = aws.String(s.sseKMSID)
+	}
+	_, e := s.client.PutObject(ctx, input)
 	return e
 }
 func (s *s3Store) Get(ctx context.Context, key string) (io.ReadCloser, error) {

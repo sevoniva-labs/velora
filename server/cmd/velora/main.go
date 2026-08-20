@@ -150,6 +150,26 @@ func serve(cfg *config.Config) error {
 	defer stopSync()
 	go mail.NewScheduler(mailSvc, cfg.MailSyncInterval).Run(syncCtx)
 
+	// 会话清理（后台任务）：每小时清理已过期 / 已吊销超过 7 天的 sessions 记录，
+	// 防止长期运行下 sessions 表无限增长。清理不影响任何在线会话。
+	go func() {
+		ticker := time.NewTicker(time.Hour)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-syncCtx.Done():
+				return
+			case <-ticker.C:
+				n, err := sessions.PruneExpired(time.Now().Add(-7 * 24 * time.Hour))
+				if err != nil {
+					slog.Warn("会话清理失败", "err", err)
+				} else if n > 0 {
+					slog.Info("会话清理完成", "removed", n)
+				}
+			}
+		}
+	}()
+
 	srv := &http.Server{
 		Addr:              ":" + cfg.Port,
 		Handler:           engine,

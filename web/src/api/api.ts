@@ -114,6 +114,39 @@ export function revokeOIDCClient(clientId: string): Promise<{ status: string }> 
   return apiFetch(`/admin/applications/oidc-clients/${encodeURIComponent(clientId)}`, { method: 'DELETE' })
 }
 
+// --- 集成令牌（Service Account，Phase D3） ---
+
+export interface IntegrationToken {
+  id: number
+  name: string
+  scopes: string[]
+  createdBy: string
+  expiresAt: string | null
+  lastUsedAt: string | null
+  revoked: boolean
+}
+
+export function listIntegrationTokens(): Promise<IntegrationToken[]> {
+  return apiFetch('/admin/integration-tokens')
+}
+
+export function createIntegrationToken(input: {
+  name: string
+  scopes: string[]
+  expiresInDays?: number
+}): Promise<{ token: string; message: string }> {
+  const body: Record<string, unknown> = { name: input.name, scopes: input.scopes }
+  if (input.expiresInDays) {
+    // 服务端按天计算过期时间（避免客户端时区差异）
+    body.expiresAt = new Date(Date.now() + input.expiresInDays * 24 * 3600 * 1000).toISOString()
+  }
+  return apiFetch('/admin/integration-tokens', { method: 'POST', body })
+}
+
+export function revokeIntegrationToken(id: number): Promise<{ status: string }> {
+  return apiFetch(`/admin/integration-tokens/${id}`, { method: 'DELETE' })
+}
+
 // --- 应用 ---
 
 export interface ListApplicationsParams {

@@ -1,6 +1,7 @@
 // 管理后台左侧菜单定义（与 admin 路由一一对应）。
 import type { ReactNode } from 'react'
 import {
+  ApiOutlined,
   AppstoreOutlined,
   AuditOutlined,
   DashboardOutlined,
@@ -40,6 +41,7 @@ export const adminNavGroups: AdminNavGroup[] = [
     label: '平台',
     items: [
       { key: 'admin-audit', path: '/admin/audit', label: '审计日志', icon: <AuditOutlined /> },
+      { key: 'admin-integration-tokens', path: '/admin/integration-tokens', label: '集成令牌', icon: <ApiOutlined /> },
       { key: 'admin-settings', path: '/admin/settings', label: '门户设置', icon: <SettingOutlined /> },
     ],
   },
@@ -51,6 +53,7 @@ export function adminActiveKey(pathname: string): string {
   if (pathname.startsWith('/admin/tags')) return 'admin-tags'
   if (pathname.startsWith('/admin/policies')) return 'admin-policies'
   if (pathname.startsWith('/admin/audit')) return 'admin-audit'
+  if (pathname.startsWith('/admin/integration-tokens')) return 'admin-integration-tokens'
   if (pathname.startsWith('/admin/settings')) return 'admin-settings'
   return 'admin-overview'
 }

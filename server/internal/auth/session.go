@@ -14,6 +14,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"sync"
 	"time"
 
 	"gorm.io/gorm"
@@ -95,6 +96,9 @@ type SessionStore struct {
 	secure bool
 	domain string
 	db     *gorm.DB
+	// lastActiveMu 保护 lastActiveAt 节流表（同一 SID 5 分钟内只写一次 DB）。
+	lastActiveMu sync.Mutex
+	lastActiveAt map[string]time.Time
 }
 
 // NewSessionStore 创建会话存储。secret 至少 32 字节。
@@ -102,7 +106,13 @@ func NewSessionStore(secret string, ttl time.Duration, secure bool, domain strin
 	if len(secret) < 32 {
 		return nil, errors.New("SESSION_SECRET 长度不足 32 字节")
 	}
-	return &SessionStore{secret: []byte(secret), ttl: ttl, secure: secure, domain: domain}, nil
+	return &SessionStore{
+		secret:       []byte(secret),
+		ttl:          ttl,
+		secure:       secure,
+		domain:       domain,
+		lastActiveAt: map[string]time.Time{},
+	}, nil
 }
 
 // SetDB 注入服务端会话表（启用吊销能力）。
@@ -227,8 +237,26 @@ func (s *SessionStore) checkServerSide(sid string) error {
 	if rec.RevokedAt != nil {
 		return errors.New("会话已吊销")
 	}
-	// 更新最后活跃时间（best-effort，失败不阻塞请求）
-	_ = s.db.Model(&ServerSession{}).Where("session_id = ?", sid).Update("last_active_at", time.Now()).Error
+	// 更新最后活跃时间（节流：同一 SID 5 分钟最多写一次 DB；失败不阻塞请求）。
+	// 避免高并发下每个请求都产生一次 UPDATE，减轻 DB 写放大。
+	s.lastActiveMu.Lock()
+	last, ok := s.lastActiveAt[sid]
+	now := time.Now()
+	// 节流表防无限增长：超过阈值时顺带清理 30 分钟前的条目（此时 DB 侧 last_active_at 已落库）。
+	if len(s.lastActiveAt) >= 10000 {
+		for k, v := range s.lastActiveAt {
+			if now.Sub(v) > 30*time.Minute {
+				delete(s.lastActiveAt, k)
+			}
+		}
+	}
+	if !ok || now.Sub(last) >= 5*time.Minute {
+		s.lastActiveAt[sid] = now
+		s.lastActiveMu.Unlock()
+		_ = s.db.Model(&ServerSession{}).Where("session_id = ?", sid).Update("last_active_at", now).Error
+	} else {
+		s.lastActiveMu.Unlock()
+	}
 	return nil
 }
 

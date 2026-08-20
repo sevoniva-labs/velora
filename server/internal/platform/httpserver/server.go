@@ -3,7 +3,6 @@ package httpserver
 import (
 	"context"
 	"fmt"
-	"log/slog"
 	"net/http"
 	"net/url"
 	"time"
@@ -244,5 +243,3 @@ func limiterMiddleware(l ratelimit.Limiter, n int, window time.Duration) gin.Han
 		c.Next()
 	}
 }
-
-var _ = slog.Info

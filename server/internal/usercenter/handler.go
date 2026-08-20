@@ -12,7 +12,6 @@ import (
 	"context"
 	"log/slog"
 	"net/http"
-	"strings"
 	"unicode/utf8"
 
 	"github.com/gin-gonic/gin"
@@ -131,6 +130,5 @@ func validatePassword(p string) string {
 	if !hasLetter || !hasDigit {
 		return "密码需同时包含字母和数字"
 	}
-	_ = strings.TrimSpace(p)
 	return ""
 }

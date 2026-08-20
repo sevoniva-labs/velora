@@ -156,6 +156,10 @@ type Storage struct {
 	TLSCertFile   string `yaml:"tls_cert_file"`
 	TLSKeyFile    string `yaml:"tls_key_file"`
 	TLSServerName string `yaml:"tls_server_name"`
+	// CapabilityContractFile points to immutable, target-specific S3 contract
+	// evidence. It is intentionally environment/file-only and never belongs in
+	// a shared YAML profile.
+	CapabilityContractFile string `yaml:"-"`
 }
 
 type Discovery struct {
@@ -496,6 +500,7 @@ func ApplyEnvironment(cfg *Config) {
 	overrideString(&cfg.Storage.TLSCertFile, "VELORA_STORAGE_TLS_CERT_FILE")
 	overrideString(&cfg.Storage.TLSKeyFile, "VELORA_STORAGE_TLS_KEY_FILE")
 	overrideString(&cfg.Storage.TLSServerName, "VELORA_STORAGE_TLS_SERVER_NAME")
+	overrideString(&cfg.Storage.CapabilityContractFile, "VELORA_STORAGE_CAPABILITY_CONTRACT_FILE")
 
 	overrideString(&cfg.Discovery.Provider, "VELORA_DISCOVERY_PROVIDER")
 	overrideCSV(&cfg.Discovery.Servers, "VELORA_NACOS_SERVERS")

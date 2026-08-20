@@ -1,9 +1,16 @@
 package storage
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
+	"encoding/json"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
+
+	appcfg "github.com/sevoniva-labs/velora/server/internal/platform/config"
 )
 
 func targetContract(profile ProviderProfile, capabilities ...Capability) CapabilityContract {
@@ -46,5 +53,55 @@ func TestCapabilityContractRejectsWrongProfile(t *testing.T) {
 	contract := targetContract(ProviderProfileAlibabaOSS, CapabilityBasicObjectIO)
 	if err := contract.Validate(CapabilityObjectLock); err == nil {
 		t.Fatal("unproven capability must fail closed")
+	}
+}
+
+func writeContractFile(t *testing.T, contract CapabilityContract) string {
+	t.Helper()
+	contract.EvidenceDigest = ""
+	canonical, err := json.Marshal(contract)
+	if err != nil {
+		t.Fatal(err)
+	}
+	sum := sha256.Sum256(canonical)
+	contract.EvidenceDigest = hex.EncodeToString(sum[:])
+	data, err := json.Marshal(contract)
+	if err != nil {
+		t.Fatal(err)
+	}
+	path := filepath.Join(t.TempDir(), "storage-contract.json")
+	if err := os.WriteFile(path, data, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	return path
+}
+
+func TestLoadCapabilityContractVerifiesDigestAndSchema(t *testing.T) {
+	path := writeContractFile(t, targetContract(ProviderProfileMinIO, CapabilityBasicObjectIO))
+	got, err := LoadCapabilityContract(path)
+	if err != nil {
+		t.Fatalf("LoadCapabilityContract() error = %v", err)
+	}
+	if got.Level != EvidenceTargetTested || got.Capabilities[CapabilityBasicObjectIO].State != CapabilitySupported {
+		t.Fatalf("unexpected loaded contract: %#v", got)
+	}
+
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	data = []byte(strings.Replace(string(data), "test-target", "other-target", 1))
+	if err := os.WriteFile(path, data, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := LoadCapabilityContract(path); err == nil {
+		t.Fatal("tampered contract must fail digest verification")
+	}
+}
+
+func TestTargetForConfigBindsEndpointRegionBucketAndPrefix(t *testing.T) {
+	got := TargetForConfig(appcfg.Storage{Endpoint: "https://s3.example/", Region: "cn", Bucket: "velora", Prefix: "/audit/"})
+	if got != "https://s3.example|cn|velora|audit" {
+		t.Fatalf("TargetForConfig() = %q", got)
 	}
 }

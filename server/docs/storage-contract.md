@@ -13,6 +13,27 @@
 - 契约必须标为 `Target-tested`，包含目标标识、测试时间、不可变证据引用和证据文件 SHA-256 摘要。
 - 未通过的能力不可通过厂商名称、配置别名或前端开关绕过。
 
+## 本地/目标环境验收命令
+
+使用 `storage-contract-check` 对实际桶做最小权限、目标特定的对象读写、SHA-256、版本和 Object Lock/Retention 往返检查。命令会将带摘要的契约写入 `VELORA_STORAGE_CONTRACT_OUTPUT`；输出文件不包含密钥，建议放入受控证据目录。
+
+```bash
+VELORA_CONFIG=configs/minimal.yaml \
+VELORA_DATABASE_DSN='postgres://velora:local@127.0.0.1:5432/velora?sslmode=disable' \
+VELORA_STORAGE_PROVIDER=minio \
+VELORA_STORAGE_ENDPOINT=http://127.0.0.1:9000 \
+VELORA_STORAGE_REGION=us-east-1 \
+VELORA_STORAGE_BUCKET=velora-worm \
+VELORA_STORAGE_PATH_STYLE=true \
+VELORA_STORAGE_TLS=false \
+VELORA_STORAGE_ACCESS_KEY=minioadmin \
+VELORA_STORAGE_SECRET_KEY=minioadmin \
+VELORA_STORAGE_CONTRACT_OUTPUT=/tmp/velora-minio-contract.json \
+go run ./cmd/storage-contract-check
+```
+
+生产环境只允许将该文件绑定到同一 endpoint、region、bucket、prefix；配置 `VELORA_STORAGE_CAPABILITY_CONTRACT_FILE` 后，启动时会校验目标绑定和证据摘要，不匹配则拒绝启动。
+
 ## 启用方式
 
 目标环境完成契约测试后，通过 `storage.NewWithCapabilityContract` 注入契约。契约测试应使用专用测试桶和最小权限账号，覆盖成功、权限拒绝、超时、重试、清理和审计记录；不能把单元测试当作厂商认证。

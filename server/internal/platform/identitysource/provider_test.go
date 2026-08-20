@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/http"
+	"net/http/httptest"
 	"net/url"
 	"testing"
 	"time"
@@ -73,5 +75,41 @@ func TestEndSessionURLIsOptionalWhenProviderDoesNotAdvertiseIt(t *testing.T) {
 	got, err := provider.EndSessionURL()
 	if err != nil || got != "" {
 		t.Fatalf("EndSessionURL() = %q, %v; want empty optional URL", got, err)
+	}
+}
+
+func TestOIDCJSONTokenExchangePreservesIDToken(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if got := r.Header.Get("Content-Type"); got != "application/json" {
+			t.Errorf("content type = %q", got)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"access_token":"access","id_token":"id","token_type":"Bearer","expires_in":60}`))
+	}))
+	defer server.Close()
+	provider := &OIDCProvider{
+		config:     oauth2.Config{ClientID: "client", ClientSecret: "secret", RedirectURL: "https://velora.example/callback"},
+		tokenURL:   server.URL,
+		httpClient: server.Client(),
+	}
+	token, err := provider.exchangeJSON(context.Background(), "code", "verifier")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if token.AccessToken != "access" || token.Extra("id_token") != "id" || token.TokenType != "Bearer" {
+		t.Fatalf("unexpected token: %#v", token)
+	}
+}
+
+func TestOIDCJSONTokenExchangeFailsClosedOnProviderError(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusUnauthorized)
+		_, _ = w.Write([]byte(`{"error":"invalid_client","error_description":"rejected"}`))
+	}))
+	defer server.Close()
+	provider := &OIDCProvider{config: oauth2.Config{ClientID: "client", ClientSecret: "secret"}, tokenURL: server.URL, httpClient: server.Client()}
+	if _, err := provider.exchangeJSON(context.Background(), "code", "verifier"); err == nil {
+		t.Fatal("provider error was accepted")
 	}
 }

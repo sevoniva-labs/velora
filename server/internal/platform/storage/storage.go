@@ -56,8 +56,8 @@ const (
 )
 
 type CapabilityStatus struct {
-	State    CapabilityState
-	Evidence string
+	State    CapabilityState `json:"state"`
+	Evidence string          `json:"evidence"`
 }
 
 type CapabilityReporter interface {
@@ -93,8 +93,26 @@ func New(ctx context.Context, c appcfg.Storage) (Store, error) {
 		}
 		return &local{root: c.LocalRoot}, nil
 	default:
-		return newS3(ctx, c, profile, defaultCapabilityContract(profile))
+		contract := defaultCapabilityContract(profile)
+		if path := strings.TrimSpace(c.CapabilityContractFile); path != "" {
+			loaded, err := LoadCapabilityContract(path)
+			if err != nil {
+				return nil, err
+			}
+			if loaded.Profile != profile || loaded.Target != TargetForConfig(c) {
+				return nil, errors.New("storage capability contract does not match the configured target")
+			}
+			contract = loaded
+		}
+		return newS3(ctx, c, profile, contract)
 	}
+}
+
+// TargetForConfig returns the stable target binding used by capability
+// evidence. A contract must never be reused for a different endpoint, bucket,
+// region, or object prefix.
+func TargetForConfig(c appcfg.Storage) string {
+	return strings.Join([]string{strings.TrimRight(strings.TrimSpace(c.Endpoint), "/"), strings.TrimSpace(c.Region), strings.TrimSpace(c.Bucket), strings.Trim(strings.TrimSpace(c.Prefix), "/")}, "|")
 }
 
 // NewWithCapabilityContract enables advanced S3 operations only after the

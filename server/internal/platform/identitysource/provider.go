@@ -1,10 +1,13 @@
 package identitysource
 
 import (
+	"bytes"
 	"context"
 	"crypto/tls"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 	"strings"
@@ -48,6 +51,8 @@ type OIDCProvider struct {
 	verifier              *oidc.IDTokenVerifier
 	endSessionEndpoint    string
 	postLogoutRedirectURL string
+	httpClient            *http.Client
+	tokenURL              string
 }
 
 func NewOIDCProvider(ctx context.Context, client *http.Client, cfg OIDCConfig) (*OIDCProvider, error) {
@@ -93,6 +98,8 @@ func NewOIDCProvider(ctx context.Context, client *http.Client, cfg OIDCConfig) (
 		verifier:              provider.Verifier(&oidc.Config{ClientID: cfg.ClientID}),
 		endSessionEndpoint:    strings.TrimSpace(metadata.EndSessionEndpoint),
 		postLogoutRedirectURL: strings.TrimSpace(cfg.PostLogoutRedirectURL),
+		httpClient:            client,
+		tokenURL:              provider.Endpoint().TokenURL,
 	}, nil
 }
 
@@ -139,6 +146,19 @@ func (p *OIDCProvider) AuthenticateCode(ctx context.Context, code, nonce string,
 		options = append(options, oauth2.SetAuthURLParam("code_verifier", codeVerifier[0]))
 	}
 	token, err := p.config.Exchange(ctx, code, options...)
+	// Casdoor's token endpoint accepts the authorization-code exchange as a
+	// JSON document, while golang.org/x/oauth2 first sends HTTP Basic/form
+	// credentials. Keep the standard exchange as the default for providers,
+	// then retry only the provider's explicit invalid_client response using its
+	// documented JSON shape. The authorization code is not consumed on an
+	// invalid-client response.
+	if err != nil && strings.Contains(err.Error(), `"invalid_client"`) {
+		var verifier string
+		if len(codeVerifier) > 0 {
+			verifier = strings.TrimSpace(codeVerifier[0])
+		}
+		token, err = p.exchangeJSON(ctx, code, verifier)
+	}
 	if err != nil {
 		return FederatedIdentity{}, ErrAuthenticationFailed
 	}
@@ -169,6 +189,69 @@ func (p *OIDCProvider) AuthenticateCode(ctx context.Context, code, nonce string,
 		identity.DisplayName = identity.LoginName
 	}
 	return identity, nil
+}
+
+type oidcJSONTokenResponse struct {
+	AccessToken  string `json:"access_token"`
+	TokenType    string `json:"token_type"`
+	RefreshToken string `json:"refresh_token"`
+	IDToken      string `json:"id_token"`
+	ExpiresIn    int64  `json:"expires_in"`
+	Error        string `json:"error"`
+	Description  string `json:"error_description"`
+}
+
+func (p *OIDCProvider) exchangeJSON(ctx context.Context, code, verifier string) (*oauth2.Token, error) {
+	payload := map[string]string{
+		"grant_type":    "authorization_code",
+		"client_id":     p.config.ClientID,
+		"client_secret": p.config.ClientSecret,
+		"code":          code,
+		"redirect_uri":  p.config.RedirectURL,
+	}
+	if verifier != "" {
+		payload["code_verifier"] = verifier
+	}
+	body, err := json.Marshal(payload)
+	if err != nil {
+		return nil, err
+	}
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, p.tokenURL, bytes.NewReader(body))
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	client := p.httpClient
+	if client == nil {
+		client = http.DefaultClient
+	}
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+	data, err := io.ReadAll(io.LimitReader(resp.Body, 1<<20))
+	if err != nil {
+		return nil, err
+	}
+	var decoded oidcJSONTokenResponse
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return nil, fmt.Errorf("oidc token response: %w", err)
+	}
+	if resp.StatusCode < http.StatusOK || resp.StatusCode >= http.StatusMultipleChoices || decoded.Error != "" || decoded.AccessToken == "" {
+		if decoded.Error == "" {
+			decoded.Error = resp.Status
+		}
+		return nil, fmt.Errorf("oidc token exchange: %s: %s", decoded.Error, decoded.Description)
+	}
+	token := &oauth2.Token{AccessToken: decoded.AccessToken, TokenType: decoded.TokenType, RefreshToken: decoded.RefreshToken}
+	if decoded.ExpiresIn > 0 {
+		token.Expiry = time.Now().Add(time.Duration(decoded.ExpiresIn) * time.Second)
+	}
+	if decoded.IDToken != "" {
+		token = token.WithExtra(map[string]any{"id_token": decoded.IDToken})
+	}
+	return token, nil
 }
 
 type LDAPConfig struct {

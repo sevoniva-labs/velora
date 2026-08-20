@@ -47,3 +47,16 @@ go run ./cmd/storage-contract-check
 契约会实测读写、SHA-256 checksum、版本、Object Lock、Compliance retention 和 Legal Hold，并用 SHA-256 绑定 endpoint/region/bucket/prefix。生产启动时设置 `VELORA_STORAGE_CAPABILITY_CONTRACT_FILE`，目标不匹配或证据被篡改会拒绝启动。
 
 MinIO 镜像版本已固定；国内镜像不可用时可显式设置 `DOCKER_REGISTRY=docker.io`，不可在生产环境使用本地默认账号。
+
+## 双库备份与 WAL/PITR
+
+该演练使用随机 Compose project 和临时卷，创建 Velora/Casdoor 两个数据库，验证 `wal_level`、`archive_mode`、`archive_command`、WAL 归档、命名恢复点、恢复后 marker，以及现有双库备份脚本的两份 dump、摘要和隔离恢复：
+
+```bash
+DOCKER_REGISTRY=docker.io \
+PITR_PORT=0 \
+VELORA_ACCEPTANCE_EVIDENCE_DIR=./artifacts/acceptance \
+./scripts/local-dual-db-pitr-smoke.sh
+```
+
+`PITR_PORT=0` 表示自动分配端口。脚本结束会清理临时容器、卷和恢复数据库；本地通过不代表生产 RPO/RTO、跨可用区或跨地域灾备已认证，生产仍需按计划执行带业务流量的恢复演练。

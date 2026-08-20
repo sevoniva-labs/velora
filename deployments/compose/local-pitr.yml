@@ -1,0 +1,37 @@
+# 本地双库备份/WAL-PITR 演练环境。仅用于验收，不是生产数据库编排。
+name: velora-pitr-contract
+
+services:
+  pitr-postgres:
+    image: "${DOCKER_REGISTRY:-docker.m.daocloud.io}/library/postgres:16-alpine"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: postgres
+      # 仅限隔离的临时演练容器；生产必须使用 TLS + scram 并显式配置 pg_hba。
+      POSTGRES_HOST_AUTH_METHOD: trust
+    ports:
+      - "${PITR_PORT:-0}:5432"
+    volumes:
+      - velora-pitr-data:/var/lib/postgresql/data
+      - "${PITR_ARCHIVE_DIR:-./artifacts/pitr-wal}:/wal_archive"
+      - ./init-pitr.sql:/docker-entrypoint-initdb.d/init-pitr.sql:ro
+      - ./init-pitr-replication.sh:/docker-entrypoint-initdb.d/00-pitr-replication.sh:ro
+    command:
+      - postgres
+      - -c
+      - wal_level=replica
+      - -c
+      - archive_mode=on
+      - -c
+      - archive_timeout=5s
+      - -c
+      - archive_command=test ! -f /wal_archive/%f && cp %p /wal_archive/%f
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+volumes:
+  velora-pitr-data:

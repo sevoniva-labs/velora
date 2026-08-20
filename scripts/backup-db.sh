@@ -22,6 +22,8 @@ BACKUP_DIR="${BACKUP_DIR:-./backups}"
 RETENTION_DAYS="${BACKUP_RETENTION_DAYS:-30}"
 DATABASE_URL="${DATABASE_URL:-}"
 POSTGRES_CONTAINER="${POSTGRES_CONTAINER:-}"
+BACKUP_USE_CONTAINER="${BACKUP_USE_CONTAINER:-false}"
+BACKUP_DATABASE_HOST="${BACKUP_DATABASE_HOST:-postgres}"
 BACKUP_ENCRYPTION_KEY_FILE="${BACKUP_ENCRYPTION_KEY_FILE:-}"
 BACKUP_ENCRYPTION_REQUIRED="${BACKUP_ENCRYPTION_REQUIRED:-false}"
 BACKUP_SIGNING_KEY_FILE="${BACKUP_SIGNING_KEY_FILE:-}"
@@ -77,7 +79,16 @@ echo "==> 开始备份：$TARGET"
 
 # 自定义格式（-Fc）支持 pg_restore 选择性恢复与并行恢复
 IN_CONTAINER=false
-if command -v pg_dump >/dev/null 2>&1; then
+if [[ "$BACKUP_USE_CONTAINER" == "true" ]]; then
+  IN_CONTAINER=true
+  echo "==> 使用 PostgreSQL 容器内 pg_dump"
+  if ! [[ "$POSTGRES_CONTAINER" =~ ^[a-zA-Z0-9_.-]+$ ]]; then
+    echo "错误：POSTGRES_CONTAINER 含非法字符" >&2
+    exit 1
+  fi
+  PG_DUMP=(docker exec "$POSTGRES_CONTAINER" pg_dump)
+  DATABASE_URL="$(echo "$DATABASE_URL" | sed -E "s#(postgres://[^@/]+@)[^:/]+(:[0-9]+)?/#\\1${BACKUP_DATABASE_HOST}:5432/#")"
+elif command -v pg_dump >/dev/null 2>&1; then
   PG_DUMP=(pg_dump)
 elif [ -x /opt/homebrew/bin/pg_dump ]; then
   PG_DUMP=(/opt/homebrew/bin/pg_dump)
@@ -91,7 +102,7 @@ else
   fi
   PG_DUMP=(docker exec "$POSTGRES_CONTAINER" pg_dump)
   # 容器内连接串：host 换 compose 服务名，端口统一 5432
-  DATABASE_URL="$(echo "$DATABASE_URL" | sed -E 's#(postgres://[^@/]+@)[^:/]+(:[0-9]+)?/#\1postgres:5432/#')"
+  DATABASE_URL="$(echo "$DATABASE_URL" | sed -E "s#(postgres://[^@/]+@)[^:/]+(:[0-9]+)?/#\\1${BACKUP_DATABASE_HOST}:5432/#")"
 fi
 
 if $IN_CONTAINER; then

@@ -55,10 +55,17 @@ trap 'rm -f "$SETTINGS_FILE"' EXIT
   "SELECT current_setting('wal_level'), current_setting('archive_mode'), current_setting('archive_command'), current_setting('archive_timeout'), pg_is_in_recovery();" \
   > "$SETTINGS_FILE"
 
-IFS=$'\t' read -r WAL_LEVEL ARCHIVE_MODE ARCHIVE_COMMAND ARCHIVE_TIMEOUT IN_RECOVERY < "$SETTINGS_FILE"
+WAL_LEVEL=""
+ARCHIVE_MODE=""
+ARCHIVE_COMMAND=""
+ARCHIVE_TIMEOUT=""
+IN_RECOVERY=""
+IFS=$'\t' read -r WAL_LEVEL ARCHIVE_MODE ARCHIVE_COMMAND ARCHIVE_TIMEOUT IN_RECOVERY < "$SETTINGS_FILE" || true
 WAL_LEVEL="${WAL_LEVEL,,}"
 ARCHIVE_MODE="${ARCHIVE_MODE,,}"
 IN_RECOVERY="${IN_RECOVERY,,}"
+[[ "$IN_RECOVERY" == f ]] && IN_RECOVERY=false
+[[ "$IN_RECOVERY" == t ]] && IN_RECOVERY=true
 
 if [[ "$WAL_LEVEL" != replica && "$WAL_LEVEL" != logical ]]; then
   echo "错误：wal_level=$WAL_LEVEL；PITR 至少需要 replica" >&2
@@ -72,8 +79,20 @@ if [[ -z "$ARCHIVE_COMMAND" || "$ARCHIVE_COMMAND" == "(disabled)" || "$ARCHIVE_C
   echo "错误：archive_command 未配置有效的 %p/%f 归档命令" >&2
   exit 1
 fi
-if ! [[ "$ARCHIVE_TIMEOUT" =~ ^[0-9]+$ ]] || (( ARCHIVE_TIMEOUT <= 0 )); then
-  echo "错误：archive_timeout 必须为大于 0 的秒数" >&2
+ARCHIVE_TIMEOUT_SECONDS=""
+if [[ "$ARCHIVE_TIMEOUT" =~ ^([0-9]+)(ms|s|min|h|d)?$ ]]; then
+  timeout_value="${BASH_REMATCH[1]}"
+  timeout_unit="${BASH_REMATCH[2]:-s}"
+  case "$timeout_unit" in
+    ms) ARCHIVE_TIMEOUT_SECONDS=$(( (timeout_value + 999) / 1000 )) ;;
+    s) ARCHIVE_TIMEOUT_SECONDS="$timeout_value" ;;
+    min) ARCHIVE_TIMEOUT_SECONDS=$(( timeout_value * 60 )) ;;
+    h) ARCHIVE_TIMEOUT_SECONDS=$(( timeout_value * 3600 )) ;;
+    d) ARCHIVE_TIMEOUT_SECONDS=$(( timeout_value * 86400 )) ;;
+  esac
+fi
+if ! [[ "$ARCHIVE_TIMEOUT_SECONDS" =~ ^[0-9]+$ ]] || (( ARCHIVE_TIMEOUT_SECONDS <= 0 )); then
+  echo "错误：archive_timeout 必须为大于 0 的 PostgreSQL 时间值" >&2
   exit 1
 fi
 if [[ "$PITR_REQUIRE_PRIMARY" == true && "$IN_RECOVERY" != false ]]; then
@@ -82,5 +101,5 @@ if [[ "$PITR_REQUIRE_PRIMARY" == true && "$IN_RECOVERY" != false ]]; then
 fi
 
 echo "PITR config check passed"
-echo "wal_level=$WAL_LEVEL archive_mode=$ARCHIVE_MODE archive_timeout=${ARCHIVE_TIMEOUT}s primary=$([[ "$IN_RECOVERY" == false ]] && echo true || echo false)"
+echo "wal_level=$WAL_LEVEL archive_mode=$ARCHIVE_MODE archive_timeout=${ARCHIVE_TIMEOUT_SECONDS}s primary=$([[ "$IN_RECOVERY" == false ]] && echo true || echo false)"
 echo "wal_archive_target=configured"

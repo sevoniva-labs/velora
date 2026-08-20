@@ -38,22 +38,25 @@ export function oidcLoginUrl(redirect?: string): string {
   return `/api/v1/auth/oidc/login${q}`
 }
 
-/** 账号密码登录（后端代理 Casdoor OAuth2 password 模式）。成功后返回站内跳转目标。 */
-export function loginWithPassword(
+/** 本地开发密码登录；生产环境由后端固定切换为 Casdoor OIDC。 */
+export async function loginWithPassword(
   username: string,
   password: string,
   redirect?: string,
-  turnstileToken?: string,
+  _turnstileToken?: string,
 ): Promise<{ redirect: string }> {
-  return apiFetch<{ redirect: string }>('/auth/login', {
+  await apiFetch('/auth/login', {
     method: 'POST',
     body: {
-      username,
+      // go-antd-fullstack 的 Proto/HTTP 契约使用 loginName/organization。
+      // 保留此适配在 API 层，不改变登录页 UI；redirect/Turnstile 由旧前端
+      // 传入但当前后端契约不消费，登录成功后由页面回到根路由。
+      loginName: username,
+      organization: 'default',
       password,
-      redirect: redirect && redirect.startsWith('/') ? redirect : undefined,
-      turnstileToken,
     },
   })
+  return { redirect: redirect && redirect.startsWith('/') ? redirect : '/' }
 }
 
 /** 登录页人机验证配置（Cloudflare Turnstile；未启用时 enabled=false）。 */

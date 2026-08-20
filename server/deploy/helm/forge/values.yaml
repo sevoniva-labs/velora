@@ -111,7 +111,7 @@ webRuntime:
   description: Enterprise Go + React Application Foundation
   environment: PROD
   apiBaseUrl: /api/v1
-  localLoginEnabled: true
+  localLoginEnabled: false
   showOrganizationField: false
   defaultOrganization: default
   oidcLoginUrl: ""
@@ -222,7 +222,15 @@ config:
   nacosConfigDataID: ""
   remoteConfigFailFast: "true"
 
-  sessionTTL: 8h
+  sessionTTL: 1h
+  authMode: oidc
+  oidcName: casdoor
+  oidcIssuer: ""
+  oidcClientID: ""
+  oidcRedirectURL: ""
+  oidcPostLogoutRedirectURL: ""
+  casdoorAccountURL: ""
+  oidcProviderEnabled: "false"
   passwordMinLength: "14"
   passwordRequireUpper: "true"
   passwordRequireLower: "true"
@@ -288,6 +296,7 @@ secretEnv:
   rocketmqSecretKey: ""
   bootstrapAdmin: ""
   bootstrapPassword: ""
+  oidcClientSecret: ""
 
 # Additional environment variables, e.g. Downward API or CSI/ExternalSecret references.
 extraEnv: []

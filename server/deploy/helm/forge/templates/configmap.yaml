@@ -4,6 +4,9 @@
 {{- if and (not .Values.config.webCSPWujieEnabled) (not (empty .Values.config.webCSPWujieApprovalRef)) -}}
 {{- fail "config.webCSPWujieApprovalRef requires config.webCSPWujieEnabled=true" -}}
 {{- end -}}
+{{- if and (eq .Values.config.environment "production") (ne .Values.config.authMode "oidc") -}}
+{{- fail "config.authMode must be oidc in production" -}}
+{{- end -}}
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -103,6 +106,14 @@ data:
   VELORA_REMOTE_CONFIG_FAIL_FAST: {{ .Values.config.remoteConfigFailFast | quote }}
 
   VELORA_SESSION_TTL: {{ .Values.config.sessionTTL | quote }}
+  VELORA_AUTH_MODE: {{ .Values.config.authMode | quote }}
+  VELORA_OIDC_NAME: {{ .Values.config.oidcName | quote }}
+  VELORA_OIDC_ISSUER: {{ .Values.config.oidcIssuer | quote }}
+  VELORA_OIDC_CLIENT_ID: {{ .Values.config.oidcClientID | quote }}
+  VELORA_OIDC_REDIRECT_URL: {{ .Values.config.oidcRedirectURL | quote }}
+  VELORA_OIDC_POST_LOGOUT_REDIRECT_URL: {{ .Values.config.oidcPostLogoutRedirectURL | quote }}
+  VELORA_CASDOOR_ACCOUNT_URL: {{ .Values.config.casdoorAccountURL | quote }}
+  VELORA_OIDC_PROVIDER_ENABLED: {{ .Values.config.oidcProviderEnabled | quote }}
   VELORA_PASSWORD_MIN_LENGTH: {{ .Values.config.passwordMinLength | quote }}
   VELORA_PASSWORD_REQUIRE_UPPER: {{ .Values.config.passwordRequireUpper | quote }}
   VELORA_PASSWORD_REQUIRE_LOWER: {{ .Values.config.passwordRequireLower | quote }}

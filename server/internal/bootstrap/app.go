@@ -24,6 +24,7 @@ import (
 	appconfigchange "github.com/sevoniva-labs/velora/server/internal/app/configchange"
 	appdatapolicy "github.com/sevoniva-labs/velora/server/internal/app/datapolicy"
 	appidentity "github.com/sevoniva-labs/velora/server/internal/app/identity"
+	appportal "github.com/sevoniva-labs/velora/server/internal/app/portal"
 	"github.com/sevoniva-labs/velora/server/internal/platform/authn"
 	"github.com/sevoniva-labs/velora/server/internal/platform/authz"
 	"github.com/sevoniva-labs/velora/server/internal/platform/cache"
@@ -155,6 +156,7 @@ func New(ctx context.Context, opts Options) (*App, error) {
 	approvalSvc := appapproval.NewService(repository.NewApprovalRepo(db))
 	configChangeSvc := appconfigchange.NewService(repository.NewConfigChangeRepo(db))
 	dataPolicySvc := appdatapolicy.NewService(repository.NewDataPolicyRepo(db))
+	portalSvc := appportal.NewService(repository.NewPortalRepo(db))
 	identitySvc := appidentity.NewService(repo, appidentity.Options{
 		MinLength:     cfg.Security.PasswordMinLength,
 		RequireUpper:  cfg.Security.PasswordUpper,
@@ -209,8 +211,8 @@ func New(ctx context.Context, opts Options) (*App, error) {
 			return true
 		}
 	}
-	grpcSecurity := selector.Server(authn.Server(identitySvc), authz.Server(authz.PlatformRules())).Match(publicOperation).Build()
-	httpSecurity := selector.Server(authn.Server(identitySvc), csrf.Server(), authz.Server(authz.PlatformRules())).Match(publicOperation).Build()
+	grpcSecurity := selector.Server(authn.Server(identitySvc), authz.Server(authz.Rules())).Match(publicOperation).Build()
+	httpSecurity := selector.Server(authn.Server(identitySvc), csrf.Server(), authz.Server(authz.Rules())).Match(publicOperation).Build()
 	httpOpts := []khttp.ServerOption{
 		khttp.Address(cfg.Server.ListenAddr), khttp.Timeout(cfg.Server.WriteTimeout), khttp.Middleware(httpSecurity),
 		khttp.ResponseEncoder(httpserver.EncodeResponse), khttp.ErrorEncoder(httpserver.EncodeError),
@@ -244,6 +246,7 @@ func New(ctx context.Context, opts Options) (*App, error) {
 	}
 	systemService := kratosapi.NewSystemService(cfg, opts.Version, checks, providers)
 	platformService := kratosapi.NewPlatformService(identitySvc, approvalSvc, configChangeSvc, dataPolicySvc, auditWriter, db)
+	portalService := kratosapi.NewPortalService(portalSvc, auditWriter, db)
 	identityService := kratosapi.NewIdentityService(identitySvc, auditWriter, db, ratelimit.New(c), cfg.Security.SecureCookies, cfg.Security.SameSite)
 	identityService.ConfigureFederatedLogin(kratosapi.FederatedLoginOptions{Cache: c, OIDC: oidcProviders, LDAP: ldapProviders})
 	approvalService := kratosapi.NewApprovalService(approvalSvc, auditWriter, db)
@@ -251,6 +254,7 @@ func New(ctx context.Context, opts Options) (*App, error) {
 	forgev1.RegisterIdentityServiceHTTPServer(httpServer, identityService)
 	forgev1.RegisterPlatformServiceHTTPServer(httpServer, platformService)
 	forgev1.RegisterApprovalServiceHTTPServer(httpServer, approvalService)
+	forgev1.RegisterPortalServiceHTTPServer(httpServer, portalService)
 	if met != nil {
 		httpServer.Handle(cfg.Observability.MetricsPath, met.Handler())
 	}
@@ -268,6 +272,7 @@ func New(ctx context.Context, opts Options) (*App, error) {
 	forgev1.RegisterPlatformServiceServer(grpcServer, platformService)
 	forgev1.RegisterIdentityServiceServer(grpcServer, identityService)
 	forgev1.RegisterApprovalServiceServer(grpcServer, approvalService)
+	forgev1.RegisterPortalServiceServer(grpcServer, portalService)
 	runtime := kratos.New(
 		kratos.Context(ctx), kratos.Name(cfg.App.Name), kratos.Version(opts.Version),
 		kratos.Metadata(map[string]string{"environment": cfg.App.Environment, "region": cfg.App.Region, "zone": cfg.App.Zone}),

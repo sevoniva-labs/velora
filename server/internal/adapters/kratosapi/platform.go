@@ -24,8 +24,10 @@ import (
 	appconfigchange "github.com/sevoniva-labs/velora/server/internal/app/configchange"
 	appdatapolicy "github.com/sevoniva-labs/velora/server/internal/app/datapolicy"
 	appidentity "github.com/sevoniva-labs/velora/server/internal/app/identity"
+	appportal "github.com/sevoniva-labs/velora/server/internal/app/portal"
 	domainapproval "github.com/sevoniva-labs/velora/server/internal/domain/approval"
 	domain "github.com/sevoniva-labs/velora/server/internal/domain/identity"
+	portaldomain "github.com/sevoniva-labs/velora/server/internal/domain/portal"
 	"github.com/sevoniva-labs/velora/server/internal/platform/authn"
 	"github.com/sevoniva-labs/velora/server/internal/platform/database"
 )
@@ -789,6 +791,12 @@ func securityPolicyDomain(policy *forgev1.SecurityPolicy) (domain.SecurityPolicy
 
 func serviceError(err error) error {
 	switch {
+	case errors.Is(err, appportal.ErrNotFound):
+		return kratoserrors.NotFound("NOT_FOUND", "portal resource not found")
+	case errors.Is(err, appportal.ErrAccessDenied):
+		return kratoserrors.Forbidden("PERMISSION_DENIED", "portal access denied")
+	case errors.Is(err, appportal.ErrInvalid), errors.Is(err, appportal.ErrDisabled), errors.Is(err, portaldomain.ErrInvalidApplication), errors.Is(err, portaldomain.ErrInvalidLaunchURL):
+		return kratoserrors.BadRequest("INVALID_ARGUMENT", "portal request violates policy")
 	case errors.Is(err, sql.ErrNoRows):
 		return kratoserrors.NotFound("NOT_FOUND", "resource not found")
 	case errors.Is(err, appidentity.ErrGrantCeiling), errors.Is(err, appidentity.ErrLastSystemAdmin):

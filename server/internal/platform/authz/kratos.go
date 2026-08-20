@@ -13,6 +13,7 @@ import (
 
 const platformOperationPrefix = "/forge.v1.PlatformService/"
 const approvalOperationPrefix = "/forge.v1.ApprovalService/"
+const portalOperationPrefix = "/forge.v1.PortalService/"
 
 func Server(rules map[string][]string) middleware.Middleware {
 	return func(next middleware.Handler) middleware.Handler {
@@ -27,7 +28,7 @@ func Server(rules map[string][]string) middleware.Middleware {
 			}
 			required, registered := rules[tr.Operation()]
 			if !registered {
-				if strings.HasPrefix(tr.Operation(), platformOperationPrefix) || strings.HasPrefix(tr.Operation(), approvalOperationPrefix) {
+				if strings.HasPrefix(tr.Operation(), platformOperationPrefix) || strings.HasPrefix(tr.Operation(), approvalOperationPrefix) || strings.HasPrefix(tr.Operation(), portalOperationPrefix) {
 					return nil, kratoserrors.Forbidden("PERMISSION_DENIED", "operation has no authorization policy")
 				}
 				return next(ctx, req)
@@ -115,4 +116,37 @@ func PlatformRules() map[string][]string {
 		forgev1.OperationApprovalServiceTransferApproval:           {"approval.task.transfer"},
 		forgev1.OperationApprovalServiceWithdrawApproval:           {"approval.request.withdraw"},
 	}
+}
+
+func PortalRules() map[string][]string {
+	return map[string][]string{
+		forgev1.OperationPortalServiceListPortalApplications:           {"portal.application.read"},
+		forgev1.OperationPortalServiceGetPortalApplication:             {"portal.application.read"},
+		forgev1.OperationPortalServiceLaunchPortalApplication:          {"portal.application.read"},
+		forgev1.OperationPortalServiceListPortalFavorites:              {"portal.application.read"},
+		forgev1.OperationPortalServiceAddPortalFavorite:                {"portal.application.read"},
+		forgev1.OperationPortalServiceRemovePortalFavorite:             {"portal.application.read"},
+		forgev1.OperationPortalServiceListRecentPortalApplications:     {"portal.application.read"},
+		forgev1.OperationPortalServiceListPortalCategories:             {"portal.application.read"},
+		forgev1.OperationPortalServiceListPortalTags:                   {"portal.application.read"},
+		forgev1.OperationPortalServiceListAdminPortalApplications:      {"portal.application.manage"},
+		forgev1.OperationPortalServiceCreatePortalApplication:          {"portal.application.manage"},
+		forgev1.OperationPortalServiceUpdatePortalApplication:          {"portal.application.manage"},
+		forgev1.OperationPortalServiceDeletePortalApplication:          {"portal.application.manage"},
+		forgev1.OperationPortalServiceCreatePortalCategory:             {"portal.application.manage"},
+		forgev1.OperationPortalServiceUpdatePortalCategory:             {"portal.application.manage"},
+		forgev1.OperationPortalServiceDeletePortalCategory:             {"portal.application.manage"},
+		forgev1.OperationPortalServiceCreatePortalTag:                  {"portal.application.manage"},
+		forgev1.OperationPortalServiceUpdatePortalTag:                  {"portal.application.manage"},
+		forgev1.OperationPortalServiceDeletePortalTag:                  {"portal.application.manage"},
+		forgev1.OperationPortalServiceReplacePortalApplicationPolicies: {"portal.application.manage"},
+	}
+}
+
+func Rules() map[string][]string {
+	rules := PlatformRules()
+	for operation, permissions := range PortalRules() {
+		rules[operation] = permissions
+	}
+	return rules
 }

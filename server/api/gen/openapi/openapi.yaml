@@ -634,6 +634,267 @@ paths:
             security:
                 - SessionCookie: []
                 - BearerAuth: []
+    /api/v1/admin/portal/applications:
+        get:
+            tags:
+                - PortalService
+            operationId: PortalService_ListAdminPortalApplications
+            parameters:
+                - name: limit
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/forge.v1.ListAdminPortalApplicationsResponse'
+            security:
+                - SessionCookie: []
+                - BearerAuth: []
+        post:
+            tags:
+                - PortalService
+            operationId: PortalService_CreatePortalApplication
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/forge.v1.CreatePortalApplicationRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/forge.v1.CreatePortalApplicationResponse'
+            security:
+                - SessionCookie: []
+                  CsrfToken: []
+                - BearerAuth: []
+    /api/v1/admin/portal/applications/{applicationId}:
+        delete:
+            tags:
+                - PortalService
+            operationId: PortalService_DeletePortalApplication
+            parameters:
+                - name: applicationId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/forge.v1.DeletePortalApplicationResponse'
+            security:
+                - SessionCookie: []
+                  CsrfToken: []
+                - BearerAuth: []
+        patch:
+            tags:
+                - PortalService
+            operationId: PortalService_UpdatePortalApplication
+            parameters:
+                - name: applicationId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/forge.v1.UpdatePortalApplicationRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/forge.v1.UpdatePortalApplicationResponse'
+            security:
+                - SessionCookie: []
+                  CsrfToken: []
+                - BearerAuth: []
+    /api/v1/admin/portal/applications/{applicationId}/policies:
+        put:
+            tags:
+                - PortalService
+            operationId: PortalService_ReplacePortalApplicationPolicies
+            parameters:
+                - name: applicationId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/forge.v1.ReplacePortalApplicationPoliciesRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/forge.v1.ReplacePortalApplicationPoliciesResponse'
+            security:
+                - SessionCookie: []
+                  CsrfToken: []
+                - BearerAuth: []
+    /api/v1/admin/portal/categories:
+        post:
+            tags:
+                - PortalService
+            operationId: PortalService_CreatePortalCategory
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/forge.v1.CreatePortalCategoryRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/forge.v1.CreatePortalCategoryResponse'
+            security:
+                - SessionCookie: []
+                  CsrfToken: []
+                - BearerAuth: []
+    /api/v1/admin/portal/categories/{categoryId}:
+        delete:
+            tags:
+                - PortalService
+            operationId: PortalService_DeletePortalCategory
+            parameters:
+                - name: categoryId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/forge.v1.DeletePortalCategoryResponse'
+            security:
+                - SessionCookie: []
+                  CsrfToken: []
+                - BearerAuth: []
+        patch:
+            tags:
+                - PortalService
+            operationId: PortalService_UpdatePortalCategory
+            parameters:
+                - name: categoryId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/forge.v1.UpdatePortalCategoryRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/forge.v1.UpdatePortalCategoryResponse'
+            security:
+                - SessionCookie: []
+                  CsrfToken: []
+                - BearerAuth: []
+    /api/v1/admin/portal/tags:
+        post:
+            tags:
+                - PortalService
+            operationId: PortalService_CreatePortalTag
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/forge.v1.CreatePortalTagRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/forge.v1.CreatePortalTagResponse'
+            security:
+                - SessionCookie: []
+                  CsrfToken: []
+                - BearerAuth: []
+    /api/v1/admin/portal/tags/{tagId}:
+        delete:
+            tags:
+                - PortalService
+            operationId: PortalService_DeletePortalTag
+            parameters:
+                - name: tagId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/forge.v1.DeletePortalTagResponse'
+            security:
+                - SessionCookie: []
+                  CsrfToken: []
+                - BearerAuth: []
+        patch:
+            tags:
+                - PortalService
+            operationId: PortalService_UpdatePortalTag
+            parameters:
+                - name: tagId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/forge.v1.UpdatePortalTagRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/forge.v1.UpdatePortalTagResponse'
+            security:
+                - SessionCookie: []
+                  CsrfToken: []
+                - BearerAuth: []
     /api/v1/admin/positions:
         get:
             tags:
@@ -1721,6 +1982,207 @@ paths:
             security:
                 - SessionCookie: []
                   CsrfToken: []
+    /api/v1/portal/applications:
+        get:
+            tags:
+                - PortalService
+            operationId: PortalService_ListPortalApplications
+            parameters:
+                - name: keyword
+                  in: query
+                  schema:
+                    type: string
+                - name: categoryId
+                  in: query
+                  schema:
+                    type: string
+                - name: tagId
+                  in: query
+                  schema:
+                    type: string
+                - name: favoritesOnly
+                  in: query
+                  schema:
+                    type: boolean
+                - name: limit
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/forge.v1.ListPortalApplicationsResponse'
+            security:
+                - SessionCookie: []
+                - BearerAuth: []
+    /api/v1/portal/applications/{applicationId}:
+        get:
+            tags:
+                - PortalService
+            operationId: PortalService_GetPortalApplication
+            parameters:
+                - name: applicationId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/forge.v1.GetPortalApplicationResponse'
+            security:
+                - SessionCookie: []
+                - BearerAuth: []
+    /api/v1/portal/applications/{applicationId}/launch:
+        post:
+            tags:
+                - PortalService
+            operationId: PortalService_LaunchPortalApplication
+            parameters:
+                - name: applicationId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/forge.v1.LaunchPortalApplicationRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/forge.v1.LaunchPortalApplicationResponse'
+            security:
+                - SessionCookie: []
+                  CsrfToken: []
+                - BearerAuth: []
+    /api/v1/portal/categories:
+        get:
+            tags:
+                - PortalService
+            operationId: PortalService_ListPortalCategories
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/forge.v1.ListPortalCategoriesResponse'
+            security:
+                - SessionCookie: []
+                - BearerAuth: []
+    /api/v1/portal/favorites:
+        get:
+            tags:
+                - PortalService
+            operationId: PortalService_ListPortalFavorites
+            parameters:
+                - name: limit
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/forge.v1.ListPortalFavoritesResponse'
+            security:
+                - SessionCookie: []
+                - BearerAuth: []
+        post:
+            tags:
+                - PortalService
+            operationId: PortalService_AddPortalFavorite
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/forge.v1.AddPortalFavoriteRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/forge.v1.AddPortalFavoriteResponse'
+            security:
+                - SessionCookie: []
+                  CsrfToken: []
+                - BearerAuth: []
+    /api/v1/portal/favorites/{applicationId}:
+        delete:
+            tags:
+                - PortalService
+            operationId: PortalService_RemovePortalFavorite
+            parameters:
+                - name: applicationId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/forge.v1.RemovePortalFavoriteResponse'
+            security:
+                - SessionCookie: []
+                  CsrfToken: []
+                - BearerAuth: []
+    /api/v1/portal/recent:
+        get:
+            tags:
+                - PortalService
+            operationId: PortalService_ListRecentPortalApplications
+            parameters:
+                - name: limit
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/forge.v1.ListRecentPortalApplicationsResponse'
+            security:
+                - SessionCookie: []
+                - BearerAuth: []
+    /api/v1/portal/tags:
+        get:
+            tags:
+                - PortalService
+            operationId: PortalService_ListPortalTags
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/forge.v1.ListPortalTagsResponse'
+            security:
+                - SessionCookie: []
+                - BearerAuth: []
     /api/v1/system/health:
         get:
             tags:
@@ -1816,6 +2278,16 @@ components:
                 createdAt:
                     type: string
                     format: date-time
+        forge.v1.AddPortalFavoriteRequest:
+            type: object
+            properties:
+                applicationId:
+                    type: string
+        forge.v1.AddPortalFavoriteResponse:
+            type: object
+            properties:
+                application:
+                    $ref: '#/components/schemas/forge.v1.PortalApplication'
         forge.v1.ApiToken:
             type: object
             properties:
@@ -2161,6 +2633,72 @@ components:
             properties:
                 department:
                     $ref: '#/components/schemas/forge.v1.Department'
+        forge.v1.CreatePortalApplicationRequest:
+            type: object
+            properties:
+                code:
+                    type: string
+                name:
+                    type: string
+                description:
+                    type: string
+                icon:
+                    type: string
+                categoryId:
+                    type: string
+                homeUrl:
+                    type: string
+                launchUrl:
+                    type: string
+                launchType:
+                    type: string
+                status:
+                    type: string
+                sortOrder:
+                    type: string
+                featured:
+                    type: boolean
+                tagIds:
+                    type: array
+                    items:
+                        type: string
+        forge.v1.CreatePortalApplicationResponse:
+            type: object
+            properties:
+                application:
+                    $ref: '#/components/schemas/forge.v1.PortalApplication'
+        forge.v1.CreatePortalCategoryRequest:
+            type: object
+            properties:
+                categoryKey:
+                    type: string
+                name:
+                    type: string
+                description:
+                    type: string
+                sortOrder:
+                    type: string
+                status:
+                    type: string
+        forge.v1.CreatePortalCategoryResponse:
+            type: object
+            properties:
+                category:
+                    $ref: '#/components/schemas/forge.v1.PortalCategory'
+        forge.v1.CreatePortalTagRequest:
+            type: object
+            properties:
+                tagKey:
+                    type: string
+                name:
+                    type: string
+                sortOrder:
+                    type: string
+        forge.v1.CreatePortalTagResponse:
+            type: object
+            properties:
+                tag:
+                    $ref: '#/components/schemas/forge.v1.PortalTag'
         forge.v1.CreatePositionRequest:
             type: object
             properties:
@@ -2327,6 +2865,15 @@ components:
             properties:
                 approval:
                     $ref: '#/components/schemas/forge.v1.ApprovalRequest'
+        forge.v1.DeletePortalApplicationResponse:
+            type: object
+            properties: {}
+        forge.v1.DeletePortalCategoryResponse:
+            type: object
+            properties: {}
+        forge.v1.DeletePortalTagResponse:
+            type: object
+            properties: {}
         forge.v1.Department:
             type: object
             properties:
@@ -2437,6 +2984,11 @@ components:
             properties:
                 organization:
                     $ref: '#/components/schemas/forge.v1.Organization'
+        forge.v1.GetPortalApplicationResponse:
+            type: object
+            properties:
+                application:
+                    $ref: '#/components/schemas/forge.v1.PortalApplication'
         forge.v1.GetSecurityPolicyResponse:
             type: object
             properties:
@@ -2474,6 +3026,18 @@ components:
                     type: string
                 version:
                     type: string
+        forge.v1.LaunchPortalApplicationRequest:
+            type: object
+            properties:
+                applicationId:
+                    type: string
+        forge.v1.LaunchPortalApplicationResponse:
+            type: object
+            properties:
+                application:
+                    $ref: '#/components/schemas/forge.v1.PortalApplication'
+                launchUrl:
+                    type: string
         forge.v1.LinkFederatedIdentityRequest:
             type: object
             properties:
@@ -2504,6 +3068,13 @@ components:
                     type: array
                     items:
                         $ref: '#/components/schemas/forge.v1.AccessReview'
+        forge.v1.ListAdminPortalApplicationsResponse:
+            type: object
+            properties:
+                applications:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/forge.v1.PortalApplication'
         forge.v1.ListApiTokensResponse:
             type: object
             properties:
@@ -2574,6 +3145,34 @@ components:
                     type: array
                     items:
                         $ref: '#/components/schemas/forge.v1.Permission'
+        forge.v1.ListPortalApplicationsResponse:
+            type: object
+            properties:
+                applications:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/forge.v1.PortalApplication'
+        forge.v1.ListPortalCategoriesResponse:
+            type: object
+            properties:
+                categories:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/forge.v1.PortalCategory'
+        forge.v1.ListPortalFavoritesResponse:
+            type: object
+            properties:
+                applications:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/forge.v1.PortalApplication'
+        forge.v1.ListPortalTagsResponse:
+            type: object
+            properties:
+                tags:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/forge.v1.PortalTag'
         forge.v1.ListPositionsResponse:
             type: object
             properties:
@@ -2581,6 +3180,13 @@ components:
                     type: array
                     items:
                         $ref: '#/components/schemas/forge.v1.Position'
+        forge.v1.ListRecentPortalApplicationsResponse:
+            type: object
+            properties:
+                applications:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/forge.v1.PortalApplication'
         forge.v1.ListRolesResponse:
             type: object
             properties:
@@ -2727,6 +3333,114 @@ components:
                     type: string
                 action:
                     type: string
+        forge.v1.PortalAccessPolicy:
+            type: object
+            properties:
+                id:
+                    type: string
+                applicationId:
+                    type: string
+                policyType:
+                    type: string
+                value:
+                    type: string
+                createdAt:
+                    type: string
+                    format: date-time
+                updatedAt:
+                    type: string
+                    format: date-time
+        forge.v1.PortalApplication:
+            type: object
+            properties:
+                id:
+                    type: string
+                organizationId:
+                    type: string
+                code:
+                    type: string
+                name:
+                    type: string
+                description:
+                    type: string
+                icon:
+                    type: string
+                categoryId:
+                    type: string
+                categoryName:
+                    type: string
+                homeUrl:
+                    type: string
+                launchUrl:
+                    type: string
+                launchType:
+                    type: string
+                status:
+                    type: string
+                sortOrder:
+                    type: string
+                featured:
+                    type: boolean
+                favorite:
+                    type: boolean
+                visitCount:
+                    type: string
+                tags:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/forge.v1.PortalTag'
+                policies:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/forge.v1.PortalAccessPolicy'
+                createdAt:
+                    type: string
+                    format: date-time
+                updatedAt:
+                    type: string
+                    format: date-time
+        forge.v1.PortalCategory:
+            type: object
+            properties:
+                id:
+                    type: string
+                organizationId:
+                    type: string
+                categoryKey:
+                    type: string
+                name:
+                    type: string
+                description:
+                    type: string
+                status:
+                    type: string
+                sortOrder:
+                    type: string
+                createdAt:
+                    type: string
+                    format: date-time
+                updatedAt:
+                    type: string
+                    format: date-time
+        forge.v1.PortalTag:
+            type: object
+            properties:
+                id:
+                    type: string
+                organizationId:
+                    type: string
+                tagKey:
+                    type: string
+                name:
+                    type: string
+                sortOrder:
+                    type: string
+                createdAt:
+                    type: string
+                    format: date-time
+                updatedAt:
+                    type: string
+                    format: date-time
         forge.v1.Position:
             type: object
             properties:
@@ -2798,6 +3512,25 @@ components:
             properties:
                 evidence:
                     $ref: '#/components/schemas/forge.v1.DataDeletionEvidence'
+        forge.v1.RemovePortalFavoriteResponse:
+            type: object
+            properties: {}
+        forge.v1.ReplacePortalApplicationPoliciesRequest:
+            type: object
+            properties:
+                applicationId:
+                    type: string
+                policies:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/forge.v1.PortalAccessPolicy'
+        forge.v1.ReplacePortalApplicationPoliciesResponse:
+            type: object
+            properties:
+                policies:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/forge.v1.PortalAccessPolicy'
         forge.v1.ReplaceUserAssignmentsRequest:
             type: object
             properties:
@@ -3094,6 +3827,72 @@ components:
             properties:
                 organization:
                     $ref: '#/components/schemas/forge.v1.Organization'
+        forge.v1.UpdatePortalApplicationRequest:
+            type: object
+            properties:
+                applicationId:
+                    type: string
+                name:
+                    type: string
+                description:
+                    type: string
+                icon:
+                    type: string
+                categoryId:
+                    type: string
+                homeUrl:
+                    type: string
+                launchUrl:
+                    type: string
+                launchType:
+                    type: string
+                status:
+                    type: string
+                sortOrder:
+                    type: string
+                featured:
+                    type: boolean
+                tagIds:
+                    type: array
+                    items:
+                        type: string
+        forge.v1.UpdatePortalApplicationResponse:
+            type: object
+            properties:
+                application:
+                    $ref: '#/components/schemas/forge.v1.PortalApplication'
+        forge.v1.UpdatePortalCategoryRequest:
+            type: object
+            properties:
+                categoryId:
+                    type: string
+                name:
+                    type: string
+                description:
+                    type: string
+                sortOrder:
+                    type: string
+                status:
+                    type: string
+        forge.v1.UpdatePortalCategoryResponse:
+            type: object
+            properties:
+                category:
+                    $ref: '#/components/schemas/forge.v1.PortalCategory'
+        forge.v1.UpdatePortalTagRequest:
+            type: object
+            properties:
+                tagId:
+                    type: string
+                name:
+                    type: string
+                sortOrder:
+                    type: string
+        forge.v1.UpdatePortalTagResponse:
+            type: object
+            properties:
+                tag:
+                    $ref: '#/components/schemas/forge.v1.PortalTag'
         forge.v1.UpdatePositionRequest:
             type: object
             properties:
@@ -3364,6 +4163,7 @@ tags:
     - name: ApprovalService
     - name: IdentityService
     - name: PlatformService
+    - name: PortalService
     - name: ReferenceSettlementService
       description: |-
         ReferenceSettlementService is the contract example for extracting a domain

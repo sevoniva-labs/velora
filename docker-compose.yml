@@ -100,6 +100,8 @@ services:
     environment:
       VELORA_ENV: development
       VELORA_APP_NAME: Velora
+      # 本地默认密码模式；接入真实 Casdoor 时通过 --env-file 切换为 oidc。
+      VELORA_AUTH_MODE: ${VELORA_AUTH_MODE:-password}
       VELORA_DATABASE_DSN: postgres://velora:velora@postgres:5432/velora?sslmode=disable
       VELORA_CRYPTO_KEY: ${VELORA_CRYPTO_KEY:-velora-local-development-key-change-me-32bytes}
       VELORA_BOOTSTRAP_ADMIN: ${VELORA_BOOTSTRAP_ADMIN:-admin}
@@ -134,6 +136,9 @@ services:
       - "5173:80"
     environment:
       VELORA_API_PROXY_PASS: http://server:8080
+      VELORA_CASDOOR_PROXY_PASS: http://casdoor:8000/
+      VELORA_DNS_RESOLVER: ${VELORA_DNS_RESOLVER:-127.0.0.11}
+      VELORA_NGINX_RESOLVE_MODE: ${VELORA_NGINX_RESOLVE_MODE:-dynamic}
 
   # --- 可观测性（可选 profile：docker compose --profile monitoring up -d） ---
   prometheus:

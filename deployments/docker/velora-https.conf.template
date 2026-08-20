@@ -3,6 +3,8 @@
 server {
     listen 443 ssl;
     server_name _;
+    # Docker 服务重建后 IP 会变化，使用内置 DNS 动态解析，避免旧 IP 导致 502。
+    resolver ${VELORA_DNS_RESOLVER} valid=10s ipv6=off;
 
     ssl_certificate     /etc/nginx/certs/velora.crt;
     ssl_certificate_key /etc/nginx/certs/velora.key;
@@ -36,7 +38,8 @@ server {
     }
 
     location /api/ {
-        proxy_pass ${VELORA_API_PROXY_PASS:-http://server:8080};
+        set $velora_api_proxy_pass "${VELORA_API_PROXY_PASS}";
+        proxy_pass $velora_api_proxy_pass;
         proxy_http_version 1.1;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
@@ -47,7 +50,8 @@ server {
     }
 
     location /casdoor/ {
-        proxy_pass http://casdoor:8000/;
+        set $velora_casdoor_proxy_pass "${VELORA_CASDOOR_PROXY_PASS}";
+        proxy_pass $velora_casdoor_proxy_pass;
         proxy_http_version 1.1;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;

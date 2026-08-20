@@ -56,7 +56,7 @@ x-app-env: &app-env
 
 services:
   postgres:
-    image: "${DOCKER_REGISTRY:-docker.io}/library/postgres:16-alpine"
+    image: "${DOCKER_REGISTRY:-docker.m.daocloud.io}/library/postgres:16-alpine"
     container_name: velora-prod-postgres
     restart: unless-stopped
     logging: *default-logging
@@ -82,7 +82,7 @@ services:
       retries: 20
 
   redis:
-    image: "${DOCKER_REGISTRY:-docker.io}/library/redis:7-alpine"
+    image: "${DOCKER_REGISTRY:-docker.m.daocloud.io}/library/redis:7-alpine"
     container_name: velora-prod-redis
     restart: unless-stopped
     logging: *default-logging
@@ -106,7 +106,7 @@ services:
       retries: 20
 
   casdoor:
-    image: "${DOCKER_REGISTRY:-docker.io}/casbin/casdoor:v1.762.0"
+    image: "${DOCKER_REGISTRY:-docker.m.daocloud.io}/casbin/casdoor:v1.762.0"
     container_name: velora-prod-casdoor
     restart: unless-stopped
     logging: *default-logging
@@ -137,8 +137,8 @@ services:
       context: ../..
       dockerfile: deployments/docker/Dockerfile.server
       args:
-        DOCKER_REGISTRY: "${DOCKER_REGISTRY:-docker.io}"
-        GOPROXY: "${GOPROXY:-https://proxy.golang.org,direct}"
+        DOCKER_REGISTRY: "${DOCKER_REGISTRY:-docker.m.daocloud.io}"
+        GOPROXY: "${GOPROXY:-https://goproxy.cn}"
     restart: unless-stopped
     logging: *default-logging
     depends_on:
@@ -172,8 +172,8 @@ services:
       context: ../..
       dockerfile: deployments/docker/Dockerfile.server
       args:
-        DOCKER_REGISTRY: "${DOCKER_REGISTRY:-docker.io}"
-        GOPROXY: "${GOPROXY:-https://proxy.golang.org,direct}"
+        DOCKER_REGISTRY: "${DOCKER_REGISTRY:-docker.m.daocloud.io}"
+        GOPROXY: "${GOPROXY:-https://goproxy.cn}"
     profiles: [release]
     depends_on:
       postgres:
@@ -192,8 +192,8 @@ services:
       context: ../..
       dockerfile: deployments/docker/Dockerfile.web
       args:
-        DOCKER_REGISTRY: "${DOCKER_REGISTRY:-docker.io}"
-        NPM_CONFIG_REGISTRY: "${NPM_CONFIG_REGISTRY:-https://registry.npmjs.org/}"
+        DOCKER_REGISTRY: "${DOCKER_REGISTRY:-docker.m.daocloud.io}"
+        NPM_CONFIG_REGISTRY: "${NPM_CONFIG_REGISTRY:-https://registry.npmmirror.com}"
     restart: unless-stopped
     logging: *default-logging
     depends_on:
@@ -203,6 +203,9 @@ services:
         condition: service_healthy
     environment:
       VELORA_API_PROXY_PASS: http://server:8080
+      VELORA_CASDOOR_PROXY_PASS: http://casdoor:8000/
+      VELORA_DNS_RESOLVER: "${VELORA_DNS_RESOLVER:-127.0.0.11}"
+      VELORA_NGINX_RESOLVE_MODE: "${VELORA_NGINX_RESOLVE_MODE:-dynamic}"
       VELORA_TLS_ENABLED: "true"
     volumes:
       - ./certs:/etc/nginx/certs:ro
@@ -219,7 +222,7 @@ services:
       retries: 5
 
   prometheus:
-    image: "${DOCKER_REGISTRY:-docker.io}/prom/prometheus:v2.53.3"
+    image: "${DOCKER_REGISTRY:-docker.m.daocloud.io}/prom/prometheus:v2.53.3"
     container_name: velora-prod-prometheus
     restart: unless-stopped
     logging: *default-logging
@@ -237,7 +240,7 @@ services:
       - app
 
   grafana:
-    image: "${DOCKER_REGISTRY:-docker.io}/grafana/grafana:11.1.0"
+    image: "${DOCKER_REGISTRY:-docker.m.daocloud.io}/grafana/grafana:11.1.0"
     container_name: velora-prod-grafana
     restart: unless-stopped
     logging: *default-logging

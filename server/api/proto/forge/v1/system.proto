@@ -101,6 +101,10 @@ message HealthResponse {
   string status = 1;
   string service = 2;
   string version = 3;
+  // Public, non-secret capabilities used by the login shell before a session exists.
+  string auth_mode = 4;
+  bool password_login_enabled = 5;
+  string casdoor_account_url = 6;
 }
 
 message ReadinessRequest {}

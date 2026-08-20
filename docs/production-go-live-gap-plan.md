@@ -120,7 +120,7 @@
 VELORA_ENV=production
 VELORA_AUTH_MODE=oidc
 VELORA_OIDC_ISSUER=https://<approved-casdoor-issuer>
-VELORA_OIDC_REDIRECT_URL=https://<public-host>/api/v1/auth/federated/oidc/casdoor/callback
+VELORA_OIDC_REDIRECT_URL=https://<public-host>/auth/callback
 VELORA_ALLOWED_ORIGINS=https://<public-host>
 VELORA_SECURE_COOKIES=true
 VELORA_TRUSTED_PROXIES=<approved-proxy-cidr>

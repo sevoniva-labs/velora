@@ -111,12 +111,71 @@ async function fetchPortalApplications(params: ListApplicationsParams = {}, admi
 
 // --- 认证 ---
 
+export interface AuthCapabilities {
+  authMode: 'oidc' | 'password'
+  passwordLoginEnabled: boolean
+  casdoorAccountUrl: string
+}
+
+const OIDC_REDIRECT_STORAGE_KEY = 'velora.oidc.redirect'
+
+function internalRedirect(value?: string | null): string {
+  const candidate = String(value ?? '').trim()
+  if (!candidate || !candidate.startsWith('/') || candidate.startsWith('//') || candidate.includes('\\')) return '/'
+  try {
+    const parsed = new URL(candidate, window.location.origin)
+    if (parsed.origin !== window.location.origin) return '/'
+    return `${parsed.pathname}${parsed.search}${parsed.hash}`
+  } catch {
+    return '/'
+  }
+}
+
+export async function getAuthCapabilities(): Promise<AuthCapabilities> {
+  const data = record(await apiFetch<unknown>('/system/health'))
+  const authMode = String(data.authMode ?? 'oidc').toLowerCase() === 'password' ? 'password' : 'oidc'
+  return {
+    authMode,
+    passwordLoginEnabled: Boolean(data.passwordLoginEnabled) && authMode === 'password',
+    casdoorAccountUrl: String(data.casdoorAccountUrl ?? ''),
+  }
+}
+
 export async function getMe(): Promise<CurrentUser> { const data = await apiFetch<unknown>('/me'); return mapUser(record(data).user ?? data) }
 export function logout(): Promise<{ status: string }> { return apiFetch('/auth/logout', { method: 'POST', body: {} }).then(() => ({ status: 'logged_out' })) }
 export function oidcLoginUrl(redirect?: string): string { return `/api/v1/auth/federated/oidc/casdoor/begin${buildQuery({ organization: 'default', redirect })}` }
+export async function beginOIDCLogin(redirect?: string): Promise<string> {
+  const data = record(await apiFetch<unknown>(`/auth/federated/oidc/casdoor/begin${buildQuery({ organization: 'default' })}`))
+  const target = internalRedirect(redirect)
+  try {
+    window.sessionStorage.setItem(OIDC_REDIRECT_STORAGE_KEY, target)
+  } catch {
+    // Session storage can be disabled by a browser policy; root is the safe fallback.
+  }
+  const redirectURL = String(data.redirectUrl ?? '')
+  if (!redirectURL || !/^https:\/\//i.test(redirectURL)) throw new Error('OIDC 登录地址无效')
+  return redirectURL
+}
+
+export async function completeOIDCLogin(provider: string, code: string, state: string): Promise<void> {
+  const safeProvider = String(provider || 'casdoor').toLowerCase().replace(/[^a-z0-9._-]/g, '')
+  if (!safeProvider || !code || !state) throw new Error('OIDC 回调参数不完整')
+  await apiFetch(`/auth/federated/oidc/${encodeURIComponent(safeProvider)}/callback`, { method: 'POST', body: { code, state } })
+}
+
+export function consumeOIDCRedirect(): string {
+  try {
+    const target = internalRedirect(window.sessionStorage.getItem(OIDC_REDIRECT_STORAGE_KEY))
+    window.sessionStorage.removeItem(OIDC_REDIRECT_STORAGE_KEY)
+    return target
+  } catch {
+    return '/'
+  }
+}
+
 export async function loginWithPassword(username: string, password: string, redirect?: string, _turnstileToken?: string): Promise<{ redirect: string }> {
   await apiFetch('/auth/login', { method: 'POST', body: { loginName: username, organization: 'default', password } })
-  return { redirect: redirect && redirect.startsWith('/') ? redirect : '/' }
+  return { redirect: internalRedirect(redirect) }
 }
 // 当前后端基座没有 Turnstile 路由，关闭旧登录页组件而不是请求 404。
 export function getTurnstileConfig(): Promise<{ enabled: boolean; siteKey: string }> { return Promise.resolve({ enabled: false, siteKey: '' }) }

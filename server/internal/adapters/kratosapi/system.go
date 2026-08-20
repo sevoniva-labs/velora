@@ -2,6 +2,7 @@ package kratosapi
 
 import (
 	"context"
+	"strings"
 
 	kratoserrors "github.com/go-kratos/kratos/v2/errors"
 	forgev1 "github.com/sevoniva-labs/velora/server/api/gen/go/forge/v1"
@@ -23,7 +24,15 @@ func NewSystemService(cfg config.Config, version string, checks []health.Check, 
 }
 
 func (s *SystemService) Health(context.Context, *forgev1.HealthRequest) (*forgev1.HealthResponse, error) {
-	return &forgev1.HealthResponse{Status: "UP", Service: s.cfg.App.Name, Version: s.version}, nil
+	authMode := strings.ToLower(strings.TrimSpace(s.cfg.Security.AuthMode))
+	return &forgev1.HealthResponse{
+		Status:               "UP",
+		Service:              s.cfg.App.Name,
+		Version:              s.version,
+		AuthMode:             authMode,
+		PasswordLoginEnabled: authMode == "password" && !strings.EqualFold(s.cfg.App.Environment, "production"),
+		CasdoorAccountUrl:    s.cfg.Security.CasdoorAccountURL,
+	}, nil
 }
 
 func (s *SystemService) Readiness(ctx context.Context, _ *forgev1.ReadinessRequest) (*forgev1.ReadinessResponse, error) {

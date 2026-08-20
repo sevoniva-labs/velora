@@ -3026,6 +3026,13 @@ components:
                     type: string
                 version:
                     type: string
+                authMode:
+                    type: string
+                    description: Public, non-secret capabilities used by the login shell before a session exists.
+                passwordLoginEnabled:
+                    type: boolean
+                casdoorAccountUrl:
+                    type: string
         forge.v1.LaunchPortalApplicationRequest:
             type: object
             properties:

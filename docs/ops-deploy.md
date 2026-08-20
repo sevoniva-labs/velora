@@ -21,7 +21,7 @@ deployments/env/
 # 0) 准备环境变量（不入 git）：复制生产模板并填入 Secret Manager 注入的值
 cp deployments/env/prod/.env.example /secure/velora-prod.env
 #    必填：VELORA_EXTERNAL_URL / VELORA_DATABASE_DSN / CASDOOR_DATA_SOURCE_NAME
-#          VELORA_OIDC_ISSUER / VELORA_OIDC_CLIENT_ID / VELORA_OIDC_REDIRECT_URL
+#          VELORA_OIDC_ISSUER / VELORA_OIDC_CLIENT_ID / VELORA_OIDC_REDIRECT_URL (https://<public-host>/auth/callback)
 #          VELORA_CASDOOR_ACCOUNT_URL / Redis TLS / ObjectStore / CryptoProvider Secret 文件
 #          PostgreSQL 首次初始化账号（POSTGRES_*）
 

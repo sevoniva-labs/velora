@@ -1,6 +1,6 @@
 // Velora 领域类型（与后端 OpenAPI/JSON 契约一致，snake_case 响应已由 client 解包）。
 
-// VELORA_OIDC：通过 Velora 自身 OIDC Provider 登录（统一登录入口，Casdoor 隐藏在后）。
+// OIDC：目标应用直接对接 Casdoor；Velora 只负责门户侧的统一登录入口。
 export type SSOType = 'URL' | 'OIDC' | 'SAML' | 'CAS' | 'FORWARD_AUTH' | 'VELORA_OIDC'
 export type AppStatus = 'ENABLED' | 'DISABLED'
 export type HealthStatus = 'UP' | 'DOWN' | 'UNKNOWN'

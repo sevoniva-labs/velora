@@ -6,6 +6,7 @@ import App from './App'
 import AdminApp from './AdminApp'
 import RequireAuth from './auth/RequireAuth'
 import Login from './pages/Login'
+import OIDCCallback from './pages/OIDCCallback'
 import NotFound from './pages/NotFound'
 
 /**
@@ -54,6 +55,11 @@ export const router = createBrowserRouter([
   {
     path: '/login',
     element: <Login />,
+    errorElement: <RouteErrorFallback />,
+  },
+  {
+    path: '/auth/callback',
+    element: <OIDCCallback />,
     errorElement: <RouteErrorFallback />,
   },
   {

@@ -60,12 +60,16 @@ func (*HealthRequest) Descriptor() ([]byte, []int) {
 }
 
 type HealthResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Status        string                 `protobuf:"bytes,1,opt,name=status,proto3" json:"status,omitempty"`
-	Service       string                 `protobuf:"bytes,2,opt,name=service,proto3" json:"service,omitempty"`
-	Version       string                 `protobuf:"bytes,3,opt,name=version,proto3" json:"version,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state   protoimpl.MessageState `protogen:"open.v1"`
+	Status  string                 `protobuf:"bytes,1,opt,name=status,proto3" json:"status,omitempty"`
+	Service string                 `protobuf:"bytes,2,opt,name=service,proto3" json:"service,omitempty"`
+	Version string                 `protobuf:"bytes,3,opt,name=version,proto3" json:"version,omitempty"`
+	// Public, non-secret capabilities used by the login shell before a session exists.
+	AuthMode             string `protobuf:"bytes,4,opt,name=auth_mode,json=authMode,proto3" json:"auth_mode,omitempty"`
+	PasswordLoginEnabled bool   `protobuf:"varint,5,opt,name=password_login_enabled,json=passwordLoginEnabled,proto3" json:"password_login_enabled,omitempty"`
+	CasdoorAccountUrl    string `protobuf:"bytes,6,opt,name=casdoor_account_url,json=casdoorAccountUrl,proto3" json:"casdoor_account_url,omitempty"`
+	unknownFields        protoimpl.UnknownFields
+	sizeCache            protoimpl.SizeCache
 }
 
 func (x *HealthResponse) Reset() {
@@ -115,6 +119,27 @@ func (x *HealthResponse) GetService() string {
 func (x *HealthResponse) GetVersion() string {
 	if x != nil {
 		return x.Version
+	}
+	return ""
+}
+
+func (x *HealthResponse) GetAuthMode() string {
+	if x != nil {
+		return x.AuthMode
+	}
+	return ""
+}
+
+func (x *HealthResponse) GetPasswordLoginEnabled() bool {
+	if x != nil {
+		return x.PasswordLoginEnabled
+	}
+	return false
+}
+
+func (x *HealthResponse) GetCasdoorAccountUrl() string {
+	if x != nil {
+		return x.CasdoorAccountUrl
 	}
 	return ""
 }
@@ -392,11 +417,14 @@ var File_forge_v1_system_proto protoreflect.FileDescriptor
 const file_forge_v1_system_proto_rawDesc = "" +
 	"\n" +
 	"\x15forge/v1/system.proto\x12\bforge.v1\x1a\x1cgoogle/api/annotations.proto\x1a\x1bopenapiv3/annotations.proto\"\x0f\n" +
-	"\rHealthRequest\"\\\n" +
+	"\rHealthRequest\"\xdf\x01\n" +
 	"\x0eHealthResponse\x12\x16\n" +
 	"\x06status\x18\x01 \x01(\tR\x06status\x12\x18\n" +
 	"\aservice\x18\x02 \x01(\tR\aservice\x12\x18\n" +
-	"\aversion\x18\x03 \x01(\tR\aversion\"\x12\n" +
+	"\aversion\x18\x03 \x01(\tR\aversion\x12\x1b\n" +
+	"\tauth_mode\x18\x04 \x01(\tR\bauthMode\x124\n" +
+	"\x16password_login_enabled\x18\x05 \x01(\bR\x14passwordLoginEnabled\x12.\n" +
+	"\x13casdoor_account_url\x18\x06 \x01(\tR\x11casdoorAccountUrl\"\x12\n" +
 	"\x10ReadinessRequest\"X\n" +
 	"\x10DependencyStatus\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x16\n" +

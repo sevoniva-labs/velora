@@ -18,7 +18,7 @@ func TestSystemHealthAndReadiness(t *testing.T) {
 	}, map[string]string{"database": "postgres"})
 
 	healthReply, err := svc.Health(context.Background(), &forgev1.HealthRequest{})
-	if err != nil || healthReply.Status != "UP" || healthReply.Version != "test" {
+	if err != nil || healthReply.Status != "UP" || healthReply.Version != "test" || healthReply.AuthMode != "password" || !healthReply.PasswordLoginEnabled {
 		t.Fatalf("unexpected health reply: %+v, err %v", healthReply, err)
 	}
 	readyReply, err := svc.Readiness(context.Background(), &forgev1.ReadinessRequest{})
@@ -27,6 +27,20 @@ func TestSystemHealthAndReadiness(t *testing.T) {
 	}
 	if readyReply.Dependencies[1].Message != "dependency unavailable" {
 		t.Fatalf("dependency error was not safely normalized: %+v", readyReply.Dependencies[1])
+	}
+}
+
+func TestSystemHealthNeverAdvertisesPasswordInProduction(t *testing.T) {
+	cfg := config.Default()
+	cfg.App.Environment = "production"
+	cfg.Security.AuthMode = "password"
+	svc := NewSystemService(cfg, "test", nil, nil)
+	reply, err := svc.Health(context.Background(), &forgev1.HealthRequest{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if reply.PasswordLoginEnabled {
+		t.Fatalf("production health advertised password login: %+v", reply)
 	}
 }
 

@@ -13,6 +13,7 @@ printf 'dummy\n' >"$tmp_dir/redis-key.pem"
 printf 'dummy-crypto-key-material-32-bytes\n' >"$tmp_dir/crypto.key"
 printf 'dummy-bootstrap-password\n' >"$tmp_dir/bootstrap.password"
 printf 'dummy-client-secret\n' >"$tmp_dir/oidc-client.secret"
+printf 'dummy-redis-password\n' >"$tmp_dir/redis.password"
 
 config_json="$tmp_dir/config.json"
 env \
@@ -54,7 +55,7 @@ env \
   CASDOOR_CLIENT_SECRET=dummy-client-secret \
   SESSION_SECRET=dummy-session-secret-32-bytes-minimum-000 \
   MAIL_CREDENTIAL_KEY='MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDA=' \
-  REDIS_PASSWORD=dummy-redis-password \
+  REDIS_PASSWORD_FILE="$tmp_dir/redis.password" \
   REDIS_TLS_CA_FILE="$tmp_dir/redis-ca.pem" \
   REDIS_TLS_CERT_FILE="$tmp_dir/redis-cert.pem" \
   REDIS_TLS_KEY_FILE="$tmp_dir/redis-key.pem" \

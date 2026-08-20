@@ -83,7 +83,7 @@ VELORA_CRYPTO_KEY_FILE          必填，只读 Secret 文件
 VELORA_EXTERNAL_URL    必须是外部 HTTPS host
 VELORA_DATABASE_DSN    必须使用独立 Velora 数据库账号且 sslmode=verify-full
 CASDOOR_DATA_SOURCE_NAME  必须使用独立 Casdoor 数据库账号
-Redis TLS 证书/密钥、REDIS_PASSWORD 必填，生产禁止内存降级
+Redis TLS 证书/密钥、`REDIS_PASSWORD_FILE` 必填；Redis 密码只通过只读 Secret 文件提供，禁止放入 Compose 环境变量或命令行固定值，生产禁止内存降级。
 TRUSTED_PROXIES        必须显式配置网关网段
 ```
 

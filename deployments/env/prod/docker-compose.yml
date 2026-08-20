@@ -17,7 +17,7 @@ x-app-env: &app-env
   VELORA_DATABASE_DSN: "${VELORA_DATABASE_DSN:?VELORA_DATABASE_DSN is required}"
   VELORA_CACHE_PROVIDER: redis
   VELORA_REDIS_ADDRESSES: redis:6379
-  VELORA_REDIS_PASSWORD: "${REDIS_PASSWORD:?REDIS_PASSWORD is required}"
+  VELORA_REDIS_PASSWORD_FILE: /run/secrets/redis_password
   VELORA_REDIS_TLS: "true"
   VELORA_REDIS_TLS_CA_FILE: /run/secrets/redis_tls_ca
   VELORA_REDIS_TLS_CERT_FILE: /run/secrets/redis_tls_cert
@@ -88,12 +88,11 @@ services:
     container_name: velora-prod-redis
     restart: unless-stopped
     logging: *default-logging
-    command: ["redis-server", "--port", "0", "--tls-port", "6379", "--tls-cert-file", "/run/secrets/redis_tls_cert", "--tls-key-file", "/run/secrets/redis_tls_key", "--tls-ca-cert-file", "/run/secrets/redis_tls_ca", "--tls-auth-clients", "no", "--appendonly", "yes", "--requirepass", "${REDIS_PASSWORD:?REDIS_PASSWORD is required}"]
-    environment:
-      REDIS_PASSWORD: "${REDIS_PASSWORD:?REDIS_PASSWORD is required}"
+    command: ["sh", "-ec", "exec redis-server --port 0 --tls-port 6379 --tls-cert-file /run/secrets/redis_tls_cert --tls-key-file /run/secrets/redis_tls_key --tls-ca-cert-file /run/secrets/redis_tls_ca --tls-auth-clients no --appendonly yes --requirepass \"$$(cat /run/secrets/redis_password)\""]
     volumes:
       - velora-prod-redisdata:/data
     secrets:
+      - redis_password
       - redis_tls_ca
       - redis_tls_cert
       - redis_tls_key
@@ -102,7 +101,7 @@ services:
     networks:
       - app
     healthcheck:
-      test: ["CMD-SHELL", "redis-cli --tls --cacert /run/secrets/redis_tls_ca -a \"$$REDIS_PASSWORD\" ping | grep -q PONG"]
+      test: ["CMD-SHELL", "redis-cli --tls --cacert /run/secrets/redis_tls_ca -a \"$$(cat /run/secrets/redis_password)\" ping | grep -q PONG"]
       interval: 5s
       timeout: 3s
       retries: 20
@@ -154,6 +153,7 @@ services:
         condition: service_healthy
     environment: *app-env
     secrets:
+      - redis_password
       - redis_tls_ca
       - redis_tls_cert
       - redis_tls_key
@@ -269,6 +269,8 @@ volumes:
   velora-prod-grafanadata:
 
 secrets:
+  redis_password:
+    file: "${REDIS_PASSWORD_FILE:?REDIS_PASSWORD_FILE is required}"
   redis_tls_ca:
     file: "${REDIS_TLS_CA_FILE:?REDIS_TLS_CA_FILE is required}"
   redis_tls_cert:

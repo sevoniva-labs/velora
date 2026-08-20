@@ -222,8 +222,15 @@ func (w *responseRecorder) Unwrap() http.ResponseWriter { return w.ResponseWrite
 func metricRoute(path string) string {
 	for _, prefix := range []string{
 		"/api/v1/admin/users/", "/api/v1/admin/departments/", "/api/v1/admin/positions/", "/api/v1/admin/user-groups/", "/api/v1/admin/sessions/", "/api/v1/admin/roles/", "/api/v1/api-tokens/",
+		"/api/v1/auth/federated/oidc/", "/api/v1/auth/forward/",
 	} {
 		if strings.HasPrefix(path, prefix) {
+			if strings.HasPrefix(prefix, "/api/v1/auth/federated/oidc/") {
+				return prefix + ":provider"
+			}
+			if strings.HasPrefix(prefix, "/api/v1/auth/forward/") {
+				return prefix + ":application_id"
+			}
 			return prefix + ":id"
 		}
 	}

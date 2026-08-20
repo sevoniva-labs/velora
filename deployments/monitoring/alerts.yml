@@ -13,22 +13,23 @@ groups:
           description: "Prometheus 无法抓取 velora /metrics 已超过 2 分钟。"
 
       - alert: Velora5xxRateHigh
-        # 5xx 比例（最近 5 分钟 5xx 数 / 总请求数）超过 5%。
-        # 无现成 status 维度计数时降级用审计失败/登录失败指标；此处用请求失败近似：
-        # 需要 server 暴露按状态分桶的请求计数（后续增强：velora_http_requests_total{status=~"5.."}）。
+        # forge_http_requests_total 是当前 Kratos 基座实际暴露的请求计数。
         expr: |
-          (velora_audit_write_failure_total > 10)
+          sum(rate(forge_http_requests_total{status=~"5.."}[5m]))
+          /
+          clamp_min(sum(rate(forge_http_requests_total[5m])), 1)
+          > 0.05
         for: 5m
         labels:
-          severity: warning
+          severity: critical
         annotations:
-          summary: "审计写入持续失败"
-          description: "audit_logs 写入失败超过 10 次，可能影响合规审计。"
+          summary: "Velora 5xx 比例过高"
+          description: "最近 5 分钟 HTTP 5xx 比例超过 5%。"
 
   - name: velora-security
     rules:
       - alert: LoginFailuresSpike
-        expr: increase(velora_auth_login_failure_total[5m]) > 30
+        expr: increase(forge_http_requests_total{route="/api/v1/auth/login",status=~"401|403|423"}[5m]) > 30
         for: 2m
         labels:
           severity: warning
@@ -37,33 +38,13 @@ groups:
           description: "最近 5 分钟登录失败超过 30 次，可能为暴力破解攻击。"
 
       - alert: OidcFailureRateHigh
-        expr: increase(velora_oidc_authorize_failure_total[5m]) > 50
+        expr: increase(forge_http_requests_total{route="/api/v1/auth/federated/oidc/:provider",status=~"4..|5.."}[5m]) > 50
         for: 5m
         labels:
           severity: warning
         annotations:
           summary: "OIDC authorize 失败激增"
           description: "最近 5 分钟 OIDC authorize 失败超过 50 次。"
-
-  - name: velora-mail
-    rules:
-      - alert: MailSyncFailing
-        expr: increase(velora_mail_sync_failure_total[15m]) >= 3
-        for: 5m
-        labels:
-          severity: warning
-        annotations:
-          summary: "邮件同步连续失败"
-          description: "15 分钟内邮件同步失败 >= 3 次，请检查 IMAP 凭据或网络。"
-
-      - alert: MailSyncStalled
-        expr: increase(velora_mail_sync_total[30m]) == 0
-        for: 40m
-        labels:
-          severity: warning
-        annotations:
-          summary: "邮件同步停滞"
-          description: "30 分钟内无任何邮件同步轮次，检查 scheduler 或 lease 是否被占用。"
 
   - name: velora-runtime
     rules:

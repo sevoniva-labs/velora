@@ -152,6 +152,12 @@ func TestMetricRouteBoundsCardinality(t *testing.T) {
 	if got := metricRoute("/attacker/unique/path"); got != "unmatched" {
 		t.Fatalf("metricRoute() = %q", got)
 	}
+	if got := metricRoute("/api/v1/auth/federated/oidc/casdoor/callback"); got != "/api/v1/auth/federated/oidc/:provider" {
+		t.Fatalf("OIDC metricRoute() = %q", got)
+	}
+	if got := metricRoute("/api/v1/auth/forward/app-123"); got != "/api/v1/auth/forward/:application_id" {
+		t.Fatalf("ForwardAuth metricRoute() = %q", got)
+	}
 }
 
 func TestTracingCreatesServerSpan(t *testing.T) {

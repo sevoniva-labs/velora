@@ -37,6 +37,21 @@ export interface RequestOptions {
 
 const WRITE_METHODS: ReadonlySet<string> = new Set(['POST', 'PATCH', 'PUT', 'DELETE'])
 
+// 会话过期（401）处理：自动跳登录页并携带回跳地址。
+// 模块级标志防止多个并发请求同时触发多次跳转。
+let redirectingToLogin = false
+
+function handleUnauthorized(path: string): void {
+  // 已在登录页 / 登录相关端点自身的 401（账号/密码错误）不触发跳转，避免死循环与闪烁。
+  if (redirectingToLogin) return
+  if (window.location.pathname.startsWith('/login')) return
+  if (path.startsWith('/auth/login') || path === '/auth/oidc/login') return
+  redirectingToLogin = true
+  const current = window.location.pathname + window.location.search
+  const target = `/login?redirect=${encodeURIComponent(current === '/' ? '' : current)}`
+  window.location.assign(target)
+}
+
 /** 发起请求；非 2xx 抛 ApiError。写请求自动注入 X-CSRF-Token。 */
 export async function apiFetch<T>(path: string, options: RequestOptions = {}): Promise<T> {
   const method = options.method ?? 'GET'
@@ -55,6 +70,11 @@ export async function apiFetch<T>(path: string, options: RequestOptions = {}): P
     credentials: 'include',
     body: options.body !== undefined ? JSON.stringify(options.body) : undefined,
   })
+
+  // 会话失效（未登录/已过期/已吊销）：统一跳登录页。
+  if (res.status === 401) {
+    handleUnauthorized(path)
+  }
 
   const data = await parseBody<VeloraEnvelope>(res)
   if (!res.ok) {

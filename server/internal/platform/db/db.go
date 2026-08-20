@@ -54,7 +54,16 @@ func Connect(cfg *config.Config) (*gorm.DB, error) {
 }
 
 // Migrate 执行 migrations/ 下尚未应用的 SQL 文件。
+// 通过 pg_advisory_xact_lock 串行化，防止多实例并发启动时迁移冲突
+// （advisory 锁随事务自动释放，无需手动解锁）。
 func Migrate(ctx context.Context, db *gorm.DB) error {
+	// 迁移专用全局锁键（固定常量）。
+	const lockKey = 0x56454C4F4D494752 // "VELOMIGR"
+	if db.Dialector.Name() == "postgres" {
+		if err := db.Exec("SELECT pg_advisory_xact_lock($1)", lockKey).Error; err != nil {
+			return fmt.Errorf("无法获取迁移锁: %w", err)
+		}
+	}
 	if err := db.Exec(`CREATE TABLE IF NOT EXISTS schema_migrations (
 		filename TEXT PRIMARY KEY,
 		applied_at TIMESTAMPTZ NOT NULL DEFAULT now()

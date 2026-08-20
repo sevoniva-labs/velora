@@ -19,7 +19,8 @@ server {
     add_header Referrer-Policy "strict-origin-when-cross-origin" always;
     add_header Permissions-Policy "camera=(), microphone=(), geolocation=()" always;
     # 管理员可配置 http:// 图标，img-src 显式放行 http/https
-    add_header Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: http: https:; font-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'" always;
+    # Turnstile 人机验证（登录页）：script/frame/style/font 来自 challenges.cloudflare.com
+    add_header Content-Security-Policy "default-src 'self'; script-src 'self' https://challenges.cloudflare.com; style-src 'self' 'unsafe-inline' https://challenges.cloudflare.com; img-src 'self' data: http: https:; font-src 'self' data: https://challenges.cloudflare.com; connect-src 'self'; frame-src https://challenges.cloudflare.com; frame-ancestors 'none'; base-uri 'self'; form-action 'self'" always;
 
     # SPA 路由回退（index.html 与非指纹化公共文件：每次加载协商缓存，保证更新即时生效）
     location / {
@@ -48,6 +49,16 @@ server {
     # Casdoor 反代（生产：让 Casdoor 登录页位于 Velora 域名下，用户无感）
     location /casdoor/ {
         proxy_pass http://casdoor:8000/;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    # OIDC Provider（Phase B）：第三方应用 SSO 端点（/oidc/authorize、/oidc/token 等）
+    location /oidc/ {
+        proxy_pass ${VELORA_API_PROXY_PASS:-http://server:8080};
         proxy_http_version 1.1;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;

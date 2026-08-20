@@ -12,6 +12,12 @@ name: velora-prod
 
 services:
   casdoor:
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "5"
     environment:
       # origin 指向 Velora 域名下的反代路径：浏览器看到的登录页 URL 全部在 Velora 域内
       origin: "https://${VELORA_EXTERNAL_URL:-velora.example.com}/casdoor"
@@ -20,6 +26,12 @@ services:
       - "8000"
 
   server:
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "5"
     environment:
       VELORA_ENV: production
       CASDOOR_ISSUER: "https://${VELORA_EXTERNAL_URL:-velora.example.com}/casdoor"
@@ -45,6 +57,12 @@ services:
           memory: 512M
 
   web:
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "5"
     environment:
       VELORA_API_PROXY_PASS: http://server:8080
       VELORA_TLS_ENABLED: "true"
@@ -60,6 +78,12 @@ services:
           memory: 256M
 
   postgres:
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "5"
     deploy:
       resources:
         limits:

@@ -9,6 +9,12 @@ x-registry: &registry "${DOCKER_REGISTRY:-docker.m.daocloud.io}"
 
 services:
   postgres:
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "5"
     image: ${DOCKER_REGISTRY:-docker.m.daocloud.io}/library/postgres:16-alpine
     container_name: velora-postgres
     environment:
@@ -29,6 +35,12 @@ services:
       retries: 20
 
   redis:
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "5"
     image: ${DOCKER_REGISTRY:-docker.m.daocloud.io}/library/redis:7-alpine
     container_name: velora-redis
     profiles: ["redis"]
@@ -39,6 +51,12 @@ services:
       - velora-redisdata:/data
 
   casdoor:
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "5"
     image: ${DOCKER_REGISTRY:-docker.m.daocloud.io}/casbin/casdoor:v1.762.0
     container_name: velora-casdoor
     depends_on:
@@ -62,6 +80,12 @@ services:
       start_period: 20s
 
   server:
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "5"
     build:
       context: .
       dockerfile: deployments/docker/Dockerfile.server
@@ -110,6 +134,12 @@ services:
       retries: 12
 
   web:
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "5"
     build:
       context: .
       dockerfile: deployments/docker/Dockerfile.web
@@ -125,6 +155,12 @@ services:
 
   # --- 可观测性（可选 profile：docker compose --profile monitoring up -d） ---
   prometheus:
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "5"
     image: ${DOCKER_REGISTRY:-docker.m.daocloud.io}/prom/prometheus:v2.53.3
     container_name: velora-prometheus
     profiles: ["monitoring"]
@@ -139,6 +175,12 @@ services:
       - --storage.tsdb.retention.time=30d
 
   grafana:
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "5"
     image: ${DOCKER_REGISTRY:-docker.m.daocloud.io}/grafana/grafana:11.1.0
     container_name: velora-grafana
     profiles: ["monitoring"]

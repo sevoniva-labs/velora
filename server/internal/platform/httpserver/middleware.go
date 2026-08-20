@@ -107,7 +107,8 @@ func SecurityHeaders() gin.HandlerFunc {
 		c.Header("X-Frame-Options", "DENY")
 		c.Header("Referrer-Policy", "strict-origin-when-cross-origin")
 		c.Header("X-XSS-Protection", "0")
-		c.Header("Content-Security-Policy", "default-src 'self'; img-src 'self' data: https:; style-src 'self' 'unsafe-inline'; script-src 'self'")
+		// Turnstile 人机验证资源（登录页 widget）：脚本/内联脚本/iframe/样式/字体均来自 challenges.cloudflare.com
+		c.Header("Content-Security-Policy", "default-src 'self'; img-src 'self' data: https:; style-src 'self' 'unsafe-inline' https://challenges.cloudflare.com; script-src 'self' 'unsafe-inline' https://challenges.cloudflare.com; frame-src https://challenges.cloudflare.com; font-src 'self' https://challenges.cloudflare.com; connect-src 'self'")
 		c.Next()
 	}
 }

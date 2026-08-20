@@ -25,6 +25,7 @@ import (
 	"github.com/sevoniva-labs/velora/server/internal/platform/lockout"
 	"github.com/sevoniva-labs/velora/server/internal/platform/ratelimit"
 	"github.com/sevoniva-labs/velora/server/internal/platform/response"
+	"github.com/sevoniva-labs/velora/server/internal/platform/turnstile"
 	"github.com/sevoniva-labs/velora/server/internal/portal"
 	"github.com/sevoniva-labs/velora/server/internal/privacy"
 	"github.com/sevoniva-labs/velora/server/internal/serviceaccount"
@@ -136,6 +137,12 @@ func New(deps Deps) (*gin.Engine, error) {
 		},
 		deps.LoginLockout,
 	)
+	// Cloudflare Turnstile 人机验证：TURNSTILE_SITE_KEY/SECRET_KEY 均配置后启用（登录页防 bot）。
+	if deps.Cfg.TurnstileSecretKey != "" {
+		turnstileSvc := turnstile.NewVerifier(deps.Cfg.TurnstileSecretKey)
+		oidcHandler.WithTurnstile(turnstileSvc, deps.Cfg.TurnstileSiteKey)
+	}
+	oidcHandler.RegisterPublic(api)
 	api.GET("/auth/oidc/login", limiterMiddleware(globalLimiter, 30, time.Minute), oidcHandler.Login)
 	api.GET("/auth/oidc/callback", limiterMiddleware(globalLimiter, 60, time.Minute), oidcHandler.Callback)
 	// 账号密码登录（Casdoor ROPC 代理）：更严限流防暴力破解（每 IP 每分钟 10 次）。

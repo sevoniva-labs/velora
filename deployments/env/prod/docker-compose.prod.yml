@@ -35,6 +35,10 @@ services:
       SESSION_SECRET: "${SESSION_SECRET:?生产必须配置 SESSION_SECRET}"
       CASDOOR_CLIENT_SECRET: "${CASDOOR_CLIENT_SECRET:?生产必须配置 CASDOOR_CLIENT_SECRET}"
       CASDOOR_ADMIN_PASSWORD: "${CASDOOR_ADMIN_PASSWORD:?生产必须配置 CASDOOR_ADMIN_PASSWORD}"
+      # Cloudflare Turnstile 人机验证（登录页防 bot 撞库/暴力破解）：建议生产启用。
+      # Turnstile 控制台（dash.cloudflare.com）创建 widget 获取 Site Key / Secret Key。
+      TURNSTILE_SITE_KEY: "${TURNSTILE_SITE_KEY:-}"
+      TURNSTILE_SECRET_KEY: "${TURNSTILE_SECRET_KEY:-}"
     deploy:
       resources:
         limits:

@@ -39,11 +39,26 @@ export function oidcLoginUrl(redirect?: string): string {
 }
 
 /** 账号密码登录（后端代理 Casdoor OAuth2 password 模式）。成功后返回站内跳转目标。 */
-export function loginWithPassword(username: string, password: string, redirect?: string): Promise<{ redirect: string }> {
+export function loginWithPassword(
+  username: string,
+  password: string,
+  redirect?: string,
+  turnstileToken?: string,
+): Promise<{ redirect: string }> {
   return apiFetch<{ redirect: string }>('/auth/login', {
     method: 'POST',
-    body: { username, password, redirect: redirect && redirect.startsWith('/') ? redirect : undefined },
+    body: {
+      username,
+      password,
+      redirect: redirect && redirect.startsWith('/') ? redirect : undefined,
+      turnstileToken,
+    },
   })
+}
+
+/** 登录页人机验证配置（Cloudflare Turnstile；未启用时 enabled=false）。 */
+export function getTurnstileConfig(): Promise<{ enabled: boolean; siteKey: string }> {
+  return apiFetch('/auth/turnstile-config')
 }
 
 // --- 用户中心（Phase C4 自助） ---

@@ -24,14 +24,16 @@ type AuditCallback func(c *gin.Context, userID string)
 
 // Handler 提供认证相关 HTTP 端点。
 type Handler struct {
-	oidc            *OIDCManager
-	sessions        *SessionStore
-	adminRole       string
-	defaultRedirect string
-	onLogin         AuditCallback
-	onLogout        AuditCallback
-	onLoginFailed   AuditCallback  // 登录失败审计（Phase C5：LOGIN_FAILED）
-	lockout         LockoutManager // 账户锁定（nil 时不启用）
+	oidc             *OIDCManager
+	sessions         *SessionStore
+	adminRole        string
+	defaultRedirect  string
+	onLogin          AuditCallback
+	onLogout         AuditCallback
+	onLoginFailed    AuditCallback  // 登录失败审计（Phase C5：LOGIN_FAILED）
+	lockout          LockoutManager // 账户锁定（nil 时不启用）
+	turnstile        TurnstileVerifier
+	turnstileSiteKey string // 公开 site key（前端 widget 渲染；未配置时不启用）
 }
 
 // LockoutManager 为账户锁定接口（由组装层注入，避免 auth 依赖 lockout 包）。
@@ -39,6 +41,12 @@ type LockoutManager interface {
 	IsLocked(ctx context.Context, username string) (bool, time.Duration, error)
 	RecordFailure(ctx context.Context, username string) (locked bool, err error)
 	RecordSuccess(ctx context.Context, username string) error
+}
+
+// TurnstileVerifier 为 Cloudflare Turnstile 人机验证接口（由组装层注入）。
+type TurnstileVerifier interface {
+	Enabled() bool
+	Verify(ctx context.Context, token, remoteIP string) (bool, error)
 }
 
 // NewHandler 创建认证 Handler。
@@ -55,6 +63,14 @@ func NewHandler(oidc *OIDCManager, sessions *SessionStore, adminRole, defaultRed
 	}
 }
 
+// WithTurnstile 启用登录人机验证（配置了 site/secret key 后由组装层调用）。
+func (h *Handler) WithTurnstile(v TurnstileVerifier, siteKey string) *Handler {
+	h.turnstile = v
+	h.turnstileSiteKey = siteKey
+	return h
+}
+
+// Register 注册受保护路由（login/callback 为公开端点，由 httpserver 组装时注册）。
 // Register 注册受保护路由（login/callback 为公开端点，由 httpserver 组装时注册）。
 func (h *Handler) Register(r gin.IRouter) {
 	r.POST("/auth/logout", h.logout)
@@ -63,6 +79,17 @@ func (h *Handler) Register(r gin.IRouter) {
 	r.GET("/auth/sessions", h.listSessions)
 	r.DELETE("/auth/sessions/:sid", h.revokeSession)
 	r.DELETE("/auth/sessions", h.revokeAllSessions)
+}
+
+// RegisterPublic 注册公开端点：登录页人机验证配置（仅暴露 site key，secret 永不下发）。
+func (h *Handler) RegisterPublic(r gin.IRouter) {
+	r.GET("/auth/turnstile-config", h.turnstileConfig)
+}
+
+// turnstileConfig 返回登录人机验证配置（未启用时 enabled=false，前端不渲染 widget）。
+func (h *Handler) turnstileConfig(c *gin.Context) {
+	enabled := h.turnstile != nil && h.turnstile.Enabled() && h.turnstileSiteKey != ""
+	response.OK(c, gin.H{"enabled": enabled, "siteKey": h.turnstileSiteKey})
 }
 
 // login 发起 OIDC 登录跳转（Authorization Code + PKCE）。
@@ -118,9 +145,10 @@ func (h *Handler) Callback(c *gin.Context) {
 // 公开端点（无需会话/CSRF），由 httpserver 组装时注册并附加限流。
 func (h *Handler) LoginWithPassword(c *gin.Context) {
 	var body struct {
-		Username string `json:"username"`
-		Password string `json:"password"`
-		Redirect string `json:"redirect"`
+		Username       string `json:"username"`
+		Password       string `json:"password"`
+		Redirect       string `json:"redirect"`
+		TurnstileToken string `json:"turnstileToken"`
 	}
 	if err := c.ShouldBindJSON(&body); err != nil {
 		response.Error(c, errs.InvalidParam("请求体格式错误"))
@@ -130,6 +158,27 @@ func (h *Handler) LoginWithPassword(c *gin.Context) {
 	if body.Username == "" || body.Password == "" {
 		response.Error(c, errs.New(errs.CodeLoginFailed, http.StatusBadRequest, "请输入账号和密码"))
 		return
+	}
+
+	// Cloudflare Turnstile 人机验证（Phase：登录安全加固）：配置启用后强制校验，
+	// 防 bot 撞库/分布式暴力破解（IP 限流可被轮换 IP 绕过，验证码是可靠门禁）。
+	if h.turnstile != nil && h.turnstile.Enabled() {
+		if strings.TrimSpace(body.TurnstileToken) == "" {
+			// 缺 token 直接拒绝，避免无谓的 siteverify 调用。
+			response.ErrorWith(c, http.StatusForbidden, errs.CodeTurnstile, "请完成人机验证后重试")
+			return
+		}
+		ok, verr := h.turnstile.Verify(c.Request.Context(), body.TurnstileToken, c.ClientIP())
+		if verr != nil {
+			// 验证服务故障：拒绝登录（fail-closed），宁可误伤不放行 bot。
+			slog.Warn("人机验证服务异常，拒绝登录", "err", verr)
+			response.ErrorWith(c, http.StatusForbidden, errs.CodeTurnstile, "人机验证服务异常，请稍后重试")
+			return
+		}
+		if !ok {
+			response.ErrorWith(c, http.StatusForbidden, errs.CodeTurnstile, "请完成人机验证后重试")
+			return
+		}
 	}
 
 	// 账户锁定检查（Phase C3）：锁定期间直接拒绝，不访问 Casdoor。

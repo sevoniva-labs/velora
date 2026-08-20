@@ -276,6 +276,7 @@ make build        # 构建 server 二进制 + web 产物
 - 审计日志覆盖登录、登出、应用增删改、启动、收藏、策略变更、数据导出；**审计链防篡改**（SHA-256 哈希链 + 启动回填 + 校验端点）；审计写入不依赖请求上下文（客户端断开不丢失）。
 - **服务端会话**：登录签发服务端会话（UA/IP 快照），支持设备列表 / 单点吊销 / 全部吊销；会话撤销即时生效。
 - **限流与锁定**：Redis（可选，回退内存）固定窗口限流（全局 + 每端点）+ 登录失败锁定（5 次 / 15 分钟锁 15 分钟）。
+- **人机验证（Cloudflare Turnstile）**：配置 `TURNSTILE_SITE_KEY` / `TURNSTILE_SECRET_KEY` 后，登录页强制人机验证（服务端 siteverify，fail-closed），阻断 bot 撞库 / 分布式暴力破解（IP 限流可被轮换 IP 绕过）；未配置时自动降级（仍由限流 + 锁定兜底）。
 - **集成令牌（Service Account）**：`integration_tokens`（哈希存储 / scope / 过期 / 吊销），外部系统以 Bearer 推送待办，与用户会话解耦。
 - **Forward Auth**：`/api/v1/forward-auth` 校验端点，为非 OIDC 老系统（Nginx/APISIX auth_request）套 SSO，成功注入 `X-Velora-User/Email/Role` 身份头。
 - **数据可携带权**：管理员可导出指定用户全量数据（收藏/访问/待办/邮件元数据/审计），JSON 附件下载，导出行为入审计。

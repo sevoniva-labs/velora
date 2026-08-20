@@ -11,7 +11,14 @@ import {
 import { useSearchParams, Navigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { useMe } from '../auth/useMe'
-import { getPortalSettings, getSystemVersion, loginWithPassword, queryKeys } from '../api/api'
+import TurnstileWidget from '../components/TurnstileWidget'
+import {
+  getPortalSettings,
+  getSystemVersion,
+  getTurnstileConfig,
+  loginWithPassword,
+  queryKeys,
+} from '../api/api'
 
 /** 品牌区三大能力点（与门户真实能力对应，不写空话） */
 const FEATURES = [
@@ -40,6 +47,15 @@ export default function Login() {
   const { message } = AntdApp.useApp()
   const [serverVersion, setServerVersion] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  // Cloudflare Turnstile 人机验证（登录防 bot；后端配置启用后必须通过验证才能登录）
+  const [turnstileToken, setTurnstileToken] = useState('')
+  const { data: turnstile } = useQuery({
+    queryKey: ['turnstile-config'],
+    queryFn: getTurnstileConfig,
+    retry: false,
+    staleTime: 10 * 60 * 1000,
+  })
+  const turnstileEnabled = turnstile?.enabled && !!turnstile.siteKey
 
   useEffect(() => {
     void getSystemVersion()
@@ -58,9 +74,14 @@ export default function Login() {
   const redirect = searchParams.get('redirect')
 
   const onFinish = async (values: { username: string; password: string }) => {
+    // 人机验证启用时强制校验 token（组件回调填充；未通过则按钮禁用）。
+    if (turnstileEnabled && !turnstileToken) {
+      message.warning('请先完成人机验证')
+      return
+    }
     setSubmitting(true)
     try {
-      const res = await loginWithPassword(values.username, values.password, redirect ?? undefined)
+      const res = await loginWithPassword(values.username, values.password, redirect ?? undefined, turnstileToken || undefined)
       // 整页跳转：让应用重新加载会话（Cookie 已由后端种下）。
       window.location.assign(res.redirect || '/')
     } catch (err) {
@@ -173,11 +194,21 @@ export default function Login() {
                 htmlType="submit"
                 block
                 loading={submitting}
+                disabled={turnstileEnabled && !turnstileToken}
                 className="velora-login-submit"
               >
                 登录
               </Button>
             </Form.Item>
+            {turnstileEnabled && (
+              <div style={{ marginTop: 16, marginBottom: 4 }}>
+                <TurnstileWidget
+                  siteKey={turnstile.siteKey}
+                  onVerify={setTurnstileToken}
+                  onExpire={() => setTurnstileToken('')}
+                />
+              </div>
+            )}
           </Form>
 
           <p className="velora-login-note">无法登录？请联系系统管理员。</p>

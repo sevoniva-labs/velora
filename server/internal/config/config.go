@@ -55,6 +55,12 @@ type Config struct {
 	// 与定时补偿同步间隔（分钟，0 禁用；IDLE 实时推送属 Phase 2）。
 	MailCredentialKey string
 	MailSyncInterval  time.Duration
+
+	// Cloudflare Turnstile 人机验证（登录页防 bot 撞库/暴力破解）。
+	// 两者都配置后启用：登录请求必须携带有效 widget token，否则拒绝。
+	// 未配置时降级（不强制验证），仍由限流 + 账户锁定兜底。
+	TurnstileSiteKey   string
+	TurnstileSecretKey string
 }
 
 // Load 读取 .env（若存在）与环境变量，返回配置。
@@ -93,8 +99,10 @@ func Load() (*Config, error) {
 
 		RedisURL: getEnv("REDIS_URL", ""),
 
-		MailCredentialKey: getEnv("MAIL_CREDENTIAL_KEY", ""),
-		MailSyncInterval:  time.Duration(getEnvInt("MAIL_SYNC_INTERVAL_MINUTES", 10)) * time.Minute,
+		MailCredentialKey:  getEnv("MAIL_CREDENTIAL_KEY", ""),
+		MailSyncInterval:   time.Duration(getEnvInt("MAIL_SYNC_INTERVAL_MINUTES", 10)) * time.Minute,
+		TurnstileSiteKey:   getEnv("TURNSTILE_SITE_KEY", ""),
+		TurnstileSecretKey: getEnv("TURNSTILE_SECRET_KEY", ""),
 	}
 
 	if origins := getEnv("CORS_ALLOWED_ORIGINS", ""); origins != "" {

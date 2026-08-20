@@ -96,6 +96,9 @@ services:
       # Redis（Phase C3 分布式限流/账户锁定）；启动 redis profile 后取消注释启用：
       # docker compose --profile redis up -d redis
       REDIS_URL: ${REDIS_URL:-}
+      # Cloudflare Turnstile 人机验证（登录页防 bot）：两者都配置后启用。
+      TURNSTILE_SITE_KEY: ${TURNSTILE_SITE_KEY:-}
+      TURNSTILE_SECRET_KEY: ${TURNSTILE_SECRET_KEY:-}
       # 信任 compose 内部网段（nginx 反代），保留真实客户端 IP（限流/审计）
       TRUSTED_PROXIES: "172.16.0.0/12"
     ports:

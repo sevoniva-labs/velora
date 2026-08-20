@@ -92,7 +92,7 @@ services:
     container_name: velora-prod-redis
     restart: unless-stopped
     logging: *default-logging
-    command: ["sh", "-ec", "exec redis-server --port 0 --tls-port 6379 --tls-cert-file /run/secrets/redis_tls_cert --tls-key-file /run/secrets/redis_tls_key --tls-ca-cert-file /run/secrets/redis_tls_ca --tls-auth-clients no --appendonly yes --requirepass \"$$(cat /run/secrets/redis_password)\""]
+    command: ["sh", "-ec", "umask 077; { printf '%s\\n' 'port 0' 'tls-port 6379' 'tls-cert-file /run/secrets/redis_tls_cert' 'tls-key-file /run/secrets/redis_tls_key' 'tls-ca-cert-file /run/secrets/redis_tls_ca' 'tls-auth-clients no' 'appendonly yes'; printf 'requirepass %s\\n' \"$$(cat /run/secrets/redis_password)\"; } > /tmp/velora-redis.conf; exec redis-server /tmp/velora-redis.conf"]
     volumes:
       - velora-prod-redisdata:/data
     secrets:

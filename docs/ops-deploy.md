@@ -83,7 +83,7 @@ VELORA_CRYPTO_KEY_FILE          必填，只读 Secret 文件
 VELORA_EXTERNAL_URL    必须是外部 HTTPS host
 VELORA_DATABASE_DSN_FILE 必须指向只读 DSN 文件，使用独立 Velora 数据库账号且 sslmode=verify-full
 CASDOOR_DATA_SOURCE_NAME  必须使用独立 Casdoor 数据库账号
-Redis TLS 证书/密钥、`REDIS_PASSWORD_FILE` 必填；Redis 密码只通过只读 Secret 文件提供，禁止放入 Compose 环境变量或命令行固定值，生产禁止内存降级。应用 DSN、对象存储访问密钥同样使用 `VELORA_DATABASE_DSN_FILE`、`VELORA_STORAGE_ACCESS_KEY_FILE`、`VELORA_STORAGE_SECRET_KEY_FILE`，由 Secret Manager 渲染为 root-only 文件。
+Redis TLS 证书/密钥、`REDIS_PASSWORD_FILE` 必填；Redis 密码只通过只读 Secret 文件读取并写入 root-only 临时配置，禁止放入 Compose 环境变量或长期进程命令行，生产禁止内存降级。应用 DSN、对象存储访问密钥同样使用 `VELORA_DATABASE_DSN_FILE`、`VELORA_STORAGE_ACCESS_KEY_FILE`、`VELORA_STORAGE_SECRET_KEY_FILE`，由 Secret Manager 渲染为 root-only 文件。
 PostgreSQL 初始化密码使用 `POSTGRES_SUPERUSER_PASSWORD_FILE`、`POSTGRES_APP_PASSWORD_FILE`、`POSTGRES_IDP_PASSWORD_FILE`；仅 Casdoor 官方 DSN 配置仍由 `CASDOOR_DATA_SOURCE_NAME` 注入。金融生产模板默认 `VELORA_CRYPTO_PROVIDER=gm` 与 `VELORA_CRYPTO_ADAPTER=hsm`；未接入经审批国密 HSM/PKCS#11 驱动时必须保持不可启动。
 TRUSTED_PROXIES        必须显式配置网关网段
 ```

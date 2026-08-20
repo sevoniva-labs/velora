@@ -27,7 +27,7 @@ func TestPortalCreateApplicationWithinTransaction(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 	var orgID, userID, categoryID string
 	if err := db.QueryRow(`SELECT organization_id,id FROM users ORDER BY created_at LIMIT 1`).Scan(&orgID, &userID); err != nil {
 		t.Skipf("bootstrap user is unavailable: %v", err)

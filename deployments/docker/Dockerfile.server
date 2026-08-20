@@ -2,16 +2,16 @@
 # 中国大陆加速：DOCKER_REGISTRY=docker.m.daocloud.io（默认）；官方源 DOCKER_REGISTRY=docker.io
 ARG DOCKER_REGISTRY=docker.m.daocloud.io
 
-FROM ${DOCKER_REGISTRY}/library/golang:1.25.13-alpine AS builder
+FROM ${DOCKER_REGISTRY}/library/golang:1.26.6-alpine AS builder
 WORKDIR /src
 # Go 模块代理：默认国内加速，官方源构建时传 GOPROXY=https://proxy.golang.org,direct
-ARG GOPROXY=https://goproxy.cn,direct
+ARG GOPROXY=https://goproxy.cn
 ENV GOPROXY=${GOPROXY}
 # 先拷贝依赖清单以利用构建缓存
 COPY server/go.mod server/go.sum ./
 RUN go mod download
 COPY server/ .
-RUN CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags="-s -w" -o /out/velora ./cmd/velora
+RUN CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags="-s -w" -o /out/velora ./cmd/server
 
 FROM ${DOCKER_REGISTRY}/library/alpine:3.21
 RUN apk add --no-cache ca-certificates tzdata wget \
@@ -21,4 +21,3 @@ WORKDIR /app
 COPY --from=builder /out/velora /usr/local/bin/velora
 EXPOSE 8080
 ENTRYPOINT ["velora"]
-CMD ["serve"]

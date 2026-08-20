@@ -97,38 +97,20 @@ services:
         condition: service_healthy
       casdoor:
         condition: service_healthy
-    # Casdoor 的 OIDC issuer 固定为 host 视角地址（origin=http://localhost:8443），
-    # server 容器通过 host-gateway 以同一地址访问，保证 go-oidc 的 issuer 严格校验通过。
-    extra_hosts:
-      - "localhost:host-gateway"
     environment:
       VELORA_ENV: development
-      LOG_LEVEL: info
-      DATABASE_URL: postgres://velora:velora@postgres:5432/velora?sslmode=disable
-      CASDOOR_ISSUER: http://localhost:8443
-      CASDOOR_CLIENT_ID: ${CASDOOR_CLIENT_ID:-velora}
-      CASDOOR_CLIENT_SECRET: ${CASDOOR_CLIENT_SECRET:-change-me}
-      CASDOOR_REDIRECT_URI: http://localhost:8080/api/v1/auth/oidc/callback
-      CASDOOR_ADMIN_USERNAME: ${CASDOOR_ADMIN_USERNAME:-admin}
-      CASDOOR_ADMIN_PASSWORD: ${CASDOOR_ADMIN_PASSWORD:-123}
-      SESSION_SECRET: ${SESSION_SECRET:-docker-compose-dev-secret-change-me}
-      COOKIE_SECURE: "false"
-      CORS_ALLOWED_ORIGINS: http://localhost:5173
-      # 邮件模块：定时补偿同步间隔（分钟，0 禁用）。
-      # 生产环境必须显式配置 MAIL_CREDENTIAL_KEY（base64 编码的 32 字节密钥），开发缺省时由 SESSION_SECRET 派生。
-      MAIL_SYNC_INTERVAL_MINUTES: "10"
-      # Redis（Phase C3 分布式限流/账户锁定）；启动 redis profile 后取消注释启用：
-      # docker compose --profile redis up -d redis
-      REDIS_URL: ${REDIS_URL:-}
-      # Cloudflare Turnstile 人机验证（登录页防 bot）：两者都配置后启用。
-      TURNSTILE_SITE_KEY: ${TURNSTILE_SITE_KEY:-}
-      TURNSTILE_SECRET_KEY: ${TURNSTILE_SECRET_KEY:-}
-      # 信任 compose 内部网段（nginx 反代），保留真实客户端 IP（限流/审计）
-      TRUSTED_PROXIES: "172.16.0.0/12"
+      VELORA_APP_NAME: Velora
+      VELORA_DATABASE_DSN: postgres://velora:velora@postgres:5432/velora?sslmode=disable
+      VELORA_CRYPTO_KEY: ${VELORA_CRYPTO_KEY:-velora-local-development-key-change-me-32bytes}
+      VELORA_BOOTSTRAP_ADMIN: ${VELORA_BOOTSTRAP_ADMIN:-admin}
+      VELORA_BOOTSTRAP_PASSWORD: ${VELORA_BOOTSTRAP_PASSWORD:-change-me-development-only}
+      VELORA_PUBLIC_URL: http://localhost:8080
+      VELORA_SECURE_COOKIES: "false"
+      VELORA_WEB_DIR: /app/web
     ports:
       - "8080:8080"
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8080/healthz >/dev/null 2>&1 || exit 1"]
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8080/api/v1/system/health >/dev/null 2>&1 || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 12

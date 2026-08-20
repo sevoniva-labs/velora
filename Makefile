@@ -4,7 +4,7 @@
 # 常用流程：
 #   make init        # 准备环境（Go 代理 / pnpm 源 / 依赖 / .env）
 #   make dev-web     # 前端开发（Vite, :5173, 代理 /api → :8080）
-#   make dev-server  # 后端开发（Gin, :8080）
+#   make dev-server  # 后端开发（Kratos, :8080）
 #   make docker-up   # 一键起 PostgreSQL + Casdoor + Velora Server + Web
 # ============================================================================
 
@@ -16,7 +16,7 @@ PROD_ENV_FILE ?= deployments/env/prod/.env
 
 .PHONY: help init bootstrap dev dev-web dev-server test lint build \
         docker-build docker-up docker-down docker-up-prod docker-up-staging \
-        docker-up-monitoring check-prod-config migrate seed fmt vet
+        docker-up-monitoring check-prod-config migrate fmt vet
 
 help: ## 显示可用命令
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-14s\033[0m %s\n", $$1, $$2}'
@@ -36,7 +36,7 @@ dev-web: ## 前端开发服务器（:5173）
 	cd web && pnpm dev
 
 dev-server: ## 后端开发服务器（:8080）
-	cd server && go run ./cmd/velora serve
+	cd server && VELORA_CONFIG=configs/minimal.yaml go run ./cmd/server
 
 test: ## 全部测试（后端 go test + 前端 lint/build/test）
 	cd server && go test ./...
@@ -50,7 +50,7 @@ fmt: ## 格式化（gofmt + goimports 风格由 gofmt 处理）
 	cd server && gofmt -w $$(find . -name '*.go' -not -path './vendor/*')
 
 build: ## 构建（server 二进制 + web 产物）
-	cd server && go build -o bin/velora ./cmd/velora
+	cd server && go build -o bin/velora ./cmd/server
 	cd web && pnpm build
 
 docker-build: ## 构建 Docker 镜像（可用 DOCKER_REGISTRY=docker.io 切官方源）
@@ -81,8 +81,5 @@ backup: ## 数据库全量备份（见 docs/ops-backup.md）
 audit-archive: ## 归档 180 天前审计日志（见 docs/ops-audit.md）
 	./scripts/audit-archive.sh
 
-migrate: ## 执行数据库迁移（本地直连 .env 中的 DATABASE_URL）
-	cd server && go run ./cmd/velora migrate
-
-seed: ## 写入开发 Seed 数据（分类 + 示例应用）
-	cd server && go run ./cmd/velora seed
+migrate: ## 执行一次性数据库迁移（读取 VELORA_DATABASE_DSN）
+	cd server && VELORA_CONFIG=configs/minimal.yaml go run ./cmd/migrate

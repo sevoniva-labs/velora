@@ -38,13 +38,22 @@ func (s *SystemService) Health(context.Context, *forgev1.HealthRequest) (*forgev
 func (s *SystemService) Readiness(ctx context.Context, _ *forgev1.ReadinessRequest) (*forgev1.ReadinessResponse, error) {
 	results := health.Run(ctx, s.checks)
 	reply := &forgev1.ReadinessResponse{Status: "UP", Dependencies: make([]*forgev1.DependencyStatus, 0, len(results))}
+	degraded := false
 	for _, result := range results {
 		dependency := &forgev1.DependencyStatus{Name: result.Name, Status: result.Status}
 		if result.Status != "UP" {
 			reply.Status = "DOWN"
+			degraded = true
 			dependency.Message = "dependency unavailable"
 		}
 		reply.Dependencies = append(reply.Dependencies, dependency)
+	}
+	if degraded {
+		// Readiness is consumed by load balancers and orchestrators. Returning a
+		// 503 keeps the transport status aligned with the dependency result;
+		// callers must not mistake a JSON body with status=DOWN and HTTP 200 for
+		// a ready instance.
+		return reply, kratoserrors.ServiceUnavailable("DEPENDENCY_UNAVAILABLE", "one or more dependencies are unavailable")
 	}
 	return reply, nil
 }

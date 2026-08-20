@@ -22,7 +22,7 @@ func TestSystemHealthAndReadiness(t *testing.T) {
 		t.Fatalf("unexpected health reply: %+v, err %v", healthReply, err)
 	}
 	readyReply, err := svc.Readiness(context.Background(), &forgev1.ReadinessRequest{})
-	if err != nil || readyReply.Status != "DOWN" || len(readyReply.Dependencies) != 2 {
+	if err == nil || readyReply.Status != "DOWN" || len(readyReply.Dependencies) != 2 {
 		t.Fatalf("unexpected readiness reply: %+v, err %v", readyReply, err)
 	}
 	if readyReply.Dependencies[1].Message != "dependency unavailable" {

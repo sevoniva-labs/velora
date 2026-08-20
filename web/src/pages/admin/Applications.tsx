@@ -76,7 +76,6 @@ export default function AdminApplications() {
       status: 'ENABLED',
       sort: 0,
       isFeatured: false,
-      healthCheckEnabled: false,
       tagIds: [],
     })
     setModalOpen(true)
@@ -101,8 +100,6 @@ export default function AdminApplications() {
       status: app.status,
       sort: app.sort,
       isFeatured: app.isFeatured,
-      healthCheckEnabled: app.healthCheckEnabled,
-      healthCheckUrl: app.healthCheckUrl,
       tagIds: (app.tags ?? []).map((t) => t.id),
     })
     setModalOpen(true)
@@ -383,22 +380,7 @@ export default function AdminApplications() {
             <Form.Item label="精选展示" name="isFeatured" valuePropName="checked" style={{ marginBottom: 8 }}>
               <Switch />
             </Form.Item>
-            <Form.Item label="健康检查" name="healthCheckEnabled" valuePropName="checked" style={{ marginBottom: 8 }}>
-              <Switch />
-            </Form.Item>
           </Space>
-          <Form.Item
-            noStyle
-            shouldUpdate={(prev, cur) => prev.healthCheckEnabled !== cur.healthCheckEnabled}
-          >
-            {({ getFieldValue }) =>
-              getFieldValue('healthCheckEnabled') ? (
-                <Form.Item label="健康检查地址" name="healthCheckUrl" rules={[{ type: 'url', message: '请输入合法 URL' }]}>
-                  <Input placeholder="https://app.example.internal/healthz" />
-                </Form.Item>
-              ) : null
-            }
-          </Form.Item>
         </Form>
       </Modal>
 

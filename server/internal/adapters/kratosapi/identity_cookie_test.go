@@ -69,3 +69,19 @@ func TestIdentitySecurityRateLimitRejectsSixthAttempt(t *testing.T) {
 		}
 	}
 }
+
+func TestLoginRateLimitKeysSeparateIPAndNormalizedAccount(t *testing.T) {
+	keys := loginRateLimitKeys("192.0.2.10", " Alice ")
+	if len(keys) != 2 || keys[0] != "192.0.2.10|login-ip" {
+		t.Fatalf("unexpected login keys: %#v", keys)
+	}
+	if keys[1] == "" || strings.Contains(keys[1], "Alice") {
+		t.Fatalf("account key leaks login identifier: %q", keys[1])
+	}
+	if same := loginRateLimitKeys("198.51.100.2", "alice"); same[1] != keys[1] {
+		t.Fatalf("case/whitespace normalization mismatch: %q vs %q", keys[1], same[1])
+	}
+	if other := loginRateLimitKeys("198.51.100.2", "bob"); other[1] == keys[1] {
+		t.Fatal("different accounts share a rate-limit key")
+	}
+}

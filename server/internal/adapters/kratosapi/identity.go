@@ -2,6 +2,8 @@ package kratosapi
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"errors"
 	"net/http"
 	"strings"
@@ -59,11 +61,14 @@ func (s *IdentityService) Login(ctx context.Context, req *forgev1.LoginRequest) 
 	if len(req.GetLoginName()) > 120 || len(req.GetPassword()) > 512 || len(req.GetMfaCode()) > 32 || len(req.GetRecoveryCode()) > 128 {
 		return nil, kerrors.Unauthorized("INVALID_CREDENTIALS", "invalid credentials")
 	}
-	attempt := domain.Principal{LoginName: strings.TrimSpace(req.GetLoginName())}
+	loginName := strings.TrimSpace(req.GetLoginName())
+	attempt := domain.Principal{LoginName: loginName}
 	event := newAuditEvent(ctx, attempt, "auth.login", "session", "", nil)
 	event.Result = "FAILED"
-	if err := s.allow(ctx, event.ClientIP+"|login", 10, time.Minute, "60"); err != nil {
-		return nil, err
+	for _, key := range loginRateLimitKeys(event.ClientIP, loginName) {
+		if err := s.allow(ctx, key, 10, time.Minute, "60"); err != nil {
+			return nil, err
+		}
 	}
 
 	organization := strings.TrimSpace(req.GetOrganization())
@@ -115,6 +120,18 @@ func (s *IdentityService) Login(ctx context.Context, req *forgev1.LoginRequest) 
 	}
 	s.setLoginCookies(ctx, sessionToken, csrfToken, expiresAt)
 	return &forgev1.LoginResponse{User: principalUser(principal), CsrfToken: csrfToken}, nil
+}
+
+// loginRateLimitKeys applies independent IP and normalized-account windows.
+// The account component is hashed so raw login identifiers never become cache
+// keys or appear in rate-limit telemetry.
+func loginRateLimitKeys(clientIP, loginName string) []string {
+	normalized := strings.ToLower(strings.TrimSpace(loginName))
+	digest := sha256.Sum256([]byte(normalized))
+	return []string{
+		clientIP + "|login-ip",
+		"login-account:" + hex.EncodeToString(digest[:]),
+	}
 }
 
 func (s *IdentityService) GetMFAStatus(ctx context.Context, _ *forgev1.GetMFAStatusRequest) (*forgev1.GetMFAStatusResponse, error) {

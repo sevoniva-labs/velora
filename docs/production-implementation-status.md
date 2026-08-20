@@ -1,6 +1,6 @@
 # Velora 生产实施状态与 Go/No-Go 证据
 
-更新时间：2026-08-21（最近代码证据：`0f2ee65`）
+更新时间：2026-08-21（最近代码证据：`002ca68`）
 
 ## 当前结论
 
@@ -21,6 +21,7 @@
 - 本地限流状态有 10,000 key 上限并清理过期条目；CORS 不信任伪造 `X-Forwarded-Proto`。
 - 生产告警改用当前真实 `forge_http_requests_total` 指标，路由标签低基数归一，移除未实现邮件告警。
 - 根 `make verify` 已接入后端完整门禁；CI 增加生产 Compose 静态检查。
+- 生产 Secret 文件边界已覆盖 Redis、PostgreSQL 初始化密码、Velora DSN、对象存储密钥；Redis 密码不进入长期进程参数。APISIX 与 Nginx 均清理入站 `X-Velora-*` 头，ForwardAuth 额外校验可信代理和注册应用 HTTPS host。
 
 ## 已执行的代码门禁
 

@@ -8,6 +8,9 @@ import (
 func productionConfig() Config {
 	cfg := Default()
 	cfg.App.Environment = "production"
+	cfg.Server.PublicURL = "https://velora.example.test"
+	cfg.Security.SecureCookies = true
+	cfg.Security.AllowedOrigins = []string{"https://velora.example.test"}
 	cfg.Database.DSN = "postgres://user:secret@db/app?sslmode=verify-full"
 	return cfg
 }

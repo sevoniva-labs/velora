@@ -65,7 +65,7 @@ security:
   login_lock_duration: 30m
   crypto_provider: standard
   crypto_key_version: v1
-  allowed_origins: []
+  allowed_origins: ["https://velora.example.com"]
   trusted_proxies: ["10.0.0.0/8"]
 observability:
   log_level: info

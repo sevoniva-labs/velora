@@ -36,3 +36,28 @@ func TestValidateProductionAuthRejectsVeloraOIDCProvider(t *testing.T) {
 		t.Fatalf("self-hosted OIDC provider was not rejected: %v", err)
 	}
 }
+
+func TestValidateProductionTransportSecurity(t *testing.T) {
+	cfg := Default()
+	cfg.App.Environment = "production"
+	cfg.Database.DSN = "postgres://velora:secret@db/velora?sslmode=verify-full"
+	if err := cfg.Validate(); err == nil || !strings.Contains(err.Error(), "server.public_url must be a non-loopback https URL") {
+		t.Fatalf("insecure production public URL was not rejected: %v", err)
+	}
+
+	cfg.Server.PublicURL = "https://velora.example.test"
+	if err := cfg.Validate(); err == nil || !strings.Contains(err.Error(), "security.secure_cookies must be true") {
+		t.Fatalf("insecure production cookies were not rejected: %v", err)
+	}
+
+	cfg.Security.SecureCookies = true
+	cfg.Security.AllowedOrigins = []string{"https://velora.example.test"}
+	if err := cfg.Validate(); err != nil {
+		t.Fatalf("valid production transport security rejected: %v", err)
+	}
+
+	cfg.Security.AllowedOrigins = []string{"*"}
+	if err := cfg.Validate(); err == nil || !strings.Contains(err.Error(), "security.allowed_origins must contain exact https origins") {
+		t.Fatalf("wildcard production origin was not rejected: %v", err)
+	}
+}

@@ -3,6 +3,7 @@ package config
 import (
 	"errors"
 	"fmt"
+	"net"
 	"net/url"
 	"os"
 	"strconv"
@@ -755,6 +756,29 @@ func (c Config) Validate() error {
 	if c.Server.GRPCListenAddr == "" {
 		errs = append(errs, "server.grpc_listen_addr is required")
 	}
+	if isProduction(c.App.Environment) {
+		if !validProductionPublicURL(c.Server.PublicURL) {
+			errs = append(errs, "server.public_url must be a non-loopback https URL in production")
+		}
+		if !c.Security.SecureCookies {
+			errs = append(errs, "security.secure_cookies must be true in production")
+		}
+		if len(c.Security.AllowedOrigins) == 0 {
+			errs = append(errs, "security.allowed_origins must contain at least one exact https origin in production")
+		}
+		seenOrigins := make(map[string]struct{}, len(c.Security.AllowedOrigins))
+		for _, origin := range c.Security.AllowedOrigins {
+			origin = strings.TrimSpace(origin)
+			if !validWebCSPOrigin(origin, true) {
+				errs = append(errs, "security.allowed_origins must contain exact https origins in production")
+				continue
+			}
+			if _, duplicate := seenOrigins[origin]; duplicate {
+				errs = append(errs, "security.allowed_origins must not contain duplicates")
+			}
+			seenOrigins[origin] = struct{}{}
+		}
+	}
 	if c.Server.TLSEnabled && (c.Server.TLSCertFile == "" || c.Server.TLSKeyFile == "") {
 		errs = append(errs, "tls enabled requires tls_cert_file and tls_key_file")
 	}
@@ -872,6 +896,21 @@ func validWebCSPOrigin(source string, production bool) bool {
 		return parsed.Scheme == "https"
 	}
 	return parsed.Scheme == "https" || parsed.Scheme == "http"
+}
+
+func validProductionPublicURL(value string) bool {
+	u, err := url.Parse(strings.TrimSpace(value))
+	if err != nil || !strings.EqualFold(u.Scheme, "https") || u.Host == "" || u.User != nil || u.RawQuery != "" || u.Fragment != "" {
+		return false
+	}
+	host := strings.ToLower(u.Hostname())
+	if host == "" || host == "localhost" {
+		return false
+	}
+	if ip := net.ParseIP(host); ip != nil && ip.IsLoopback() {
+		return false
+	}
+	return u.Path == "" || u.Path == "/"
 }
 
 func validApprovalReference(value string) bool {

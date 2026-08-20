@@ -345,9 +345,15 @@ func (s *Service) ExchangeCode(ctx context.Context, cl *Client, code, redirectUR
 		return nil, "", "", errs.New(errs.CodeOIDCProviderInvalidGrant, 400, "PKCE 校验失败")
 	}
 
-	// 标记已用（一次性）
-	if err := s.db.WithContext(ctx).Model(rec).Update("used", true).Error; err != nil {
-		return nil, "", "", errs.DB(err)
+	// 标记已用（一次性）：条件更新保证并发下仅一个请求成功（防授权码重放）。
+	res := s.db.WithContext(ctx).Model(&AuthCode{}).
+		Where("code_hash = ? AND used = false", hashToken(code)).
+		Update("used", true)
+	if res.Error != nil {
+		return nil, "", "", errs.DB(res.Error)
+	}
+	if res.RowsAffected == 0 {
+		return nil, "", "", errs.New(errs.CodeOIDCProviderInvalidGrant, 400, "授权码已使用或已过期")
 	}
 
 	// 签发 token
@@ -421,9 +427,17 @@ func (s *Service) RefreshToken(ctx context.Context, cl *Client, refresh string) 
 	if tok.ClientID != cl.ClientID {
 		return nil, "", "", errs.New(errs.CodeOIDCProviderInvalidGrant, 400, "refresh_token 与客户端不匹配")
 	}
-	// 轮换 refresh_token：旧记录吊销，签发新记录（防重放）。
-	if err := s.db.WithContext(ctx).Model(tok).Update("revoked_at", time.Now()).Error; err != nil {
-		return nil, "", "", errs.DB(err)
+	// 轮换 refresh_token：条件更新（revoked_at IS NULL）保证并发下仅一个请求成功，
+	// 旧 token 吊销 + 新 token 签发原子化，彻底防重放。
+	now := time.Now()
+	res := s.db.WithContext(ctx).Model(&Token{}).
+		Where("refresh_hash = ? AND revoked_at IS NULL", hashToken(refresh)).
+		Update("revoked_at", now)
+	if res.Error != nil {
+		return nil, "", "", errs.DB(res.Error)
+	}
+	if res.RowsAffected == 0 {
+		return nil, "", "", errs.New(errs.CodeOIDCProviderInvalidGrant, 400, "refresh_token 已吊销或已过期")
 	}
 	key, err := s.currentSigningKey(ctx)
 	if err != nil {

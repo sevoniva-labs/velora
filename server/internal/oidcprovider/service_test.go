@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/base64"
+	"sync"
 	"testing"
 	"time"
 
@@ -172,4 +173,68 @@ func TestClientAuth(t *testing.T) {
 	if ok := assert.ErrorAs(t, err, &e); ok {
 		assert.Equal(t, errs.CodeOIDCProviderInvalidClient, e.Code)
 	}
+}
+
+// TestExchangeCodeConcurrentSingleUse 并发换码仅一次成功（防重放）。
+func TestExchangeCodeConcurrentSingleUse(t *testing.T) {
+	env := newOIDCTestEnv(t, true)
+	cl := env.cl
+
+	verifier := "v-1234567890abcdef"
+	challenge := s256Challenge(verifier)
+	code, err := env.svc.IssueCode(t.Context(), cl, &auth.CurrentUser{ID: "u-1", Username: "alice"}, "http://localhost:9999/cb", "openid profile", challenge, "S256", "")
+	require.NoError(t, err)
+
+	var wg sync.WaitGroup
+	results := make(chan error, 8)
+	for range 8 {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			_, _, _, err := env.svc.ExchangeCode(t.Context(), cl, code, "http://localhost:9999/cb", verifier)
+			results <- err
+		}()
+	}
+	wg.Wait()
+	close(results)
+	success := 0
+	for err := range results {
+		if err == nil {
+			success++
+		}
+	}
+	assert.Equal(t, 1, success, "同一授权码并发兑换仅一次成功")
+}
+
+// TestRefreshTokenConcurrentSingleUse 并发刷新仅一次成功（防重放）。
+func TestRefreshTokenConcurrentSingleUse(t *testing.T) {
+	env := newOIDCTestEnv(t, true)
+	cl := env.cl
+
+	verifier := "v-1234567890abcdef"
+	challenge := s256Challenge(verifier)
+	code, err := env.svc.IssueCode(t.Context(), cl, &auth.CurrentUser{ID: "u-1", Username: "alice"}, "http://localhost:9999/cb", "openid", challenge, "S256", "")
+	require.NoError(t, err)
+	_, _, refresh, err := env.svc.ExchangeCode(t.Context(), cl, code, "http://localhost:9999/cb", verifier)
+	require.NoError(t, err)
+
+	var wg sync.WaitGroup
+	results := make(chan error, 8)
+	for range 8 {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			_, _, _, err := env.svc.RefreshToken(t.Context(), cl, refresh)
+			results <- err
+		}()
+	}
+	wg.Wait()
+	close(results)
+	success := 0
+	for err := range results {
+		if err == nil {
+			success++
+		}
+	}
+	assert.Equal(t, 1, success, "同一 refresh_token 并发刷新仅一次成功")
 }

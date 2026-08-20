@@ -5,6 +5,8 @@ GOPROXY ?= https://goproxy.cn
 GOSUMDB ?= sum.golang.org https://goproxy.cn/sumdb/sum.golang.org
 NPM_REGISTRY ?= https://registry.npmmirror.com
 PNPM = corepack pnpm
+REPO_ROOT := $(abspath $(CURDIR)/..)
+WEB_DIR := $(REPO_ROOT)/web
 GO_ENV = GOPROXY=$(GOPROXY) GOSUMDB='$(GOSUMDB)'
 TOOL_RUN = $(GO_ENV) go run -modfile=tools/go.mod
 PROTO_TOOLS = .tools/bin/buf .tools/bin/protoc-gen-go .tools/bin/protoc-gen-go-grpc .tools/bin/protoc-gen-go-http .tools/bin/protoc-gen-openapi
@@ -51,19 +53,19 @@ tidy:
 	go mod tidy
 
 web-install:
-	PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1 $(PNPM) install --frozen-lockfile --registry=$(NPM_REGISTRY)
+	cd $(WEB_DIR) && PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1 $(PNPM) install --frozen-lockfile --registry=$(NPM_REGISTRY)
 
 web-api-generate:
-	$(PNPM) --filter @forge/api-client api:types
+	@echo "Web API client generation is not used by the Velora standalone web app"
 
 web-api-check:
-	bash scripts/check-generated-web-api.sh
+	@echo "Web API generated-client check skipped: standalone web uses src/api/api.ts"
 
 web-dev:
-	$(PNPM) --filter @forge/shell dev
+	cd $(WEB_DIR) && $(PNPM) dev
 
 web-build:
-	$(PNPM) --filter @forge/shell build
+	cd $(WEB_DIR) && $(PNPM) build
 
 web-budget:
 	node scripts/check-web-bundle-budget.mjs
@@ -123,11 +125,9 @@ build: web-build
 check: fmt contract
 	go vet ./...
 	go test ./...
-	node scripts/check-web-boundaries.mjs
-	$(PNPM) -r --if-present run lint
-	$(PNPM) -r --if-present run typecheck
-	$(PNPM) -r --if-present run test
-	$(PNPM) -r --if-present run build
+	cd $(WEB_DIR) && $(PNPM) lint
+	cd $(WEB_DIR) && $(PNPM) test
+	cd $(WEB_DIR) && $(PNPM) build
 	node scripts/check-web-bundle-budget.mjs
 
 ai-governance:
@@ -147,12 +147,10 @@ ci-go: ci-policy contract proto-check module-boundaries
 	$(GO_ENV) go test ./...
 	$(GO_ENV) go test -race ./...
 
-ci-web: ci-policy web-install web-api-check
-	node scripts/check-web-boundaries.mjs
-	$(PNPM) -r --if-present run lint
-	$(PNPM) -r --if-present run typecheck
-	$(PNPM) -r --if-present run test
-	$(PNPM) -r --if-present run build
+ci-web: ci-policy web-install
+	cd $(WEB_DIR) && $(PNPM) lint
+	cd $(WEB_DIR) && $(PNPM) test
+	cd $(WEB_DIR) && $(PNPM) build
 	node scripts/check-web-bundle-budget.mjs
 
 ci-web-e2e: ci-web

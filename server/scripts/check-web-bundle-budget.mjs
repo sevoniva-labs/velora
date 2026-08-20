@@ -5,7 +5,7 @@ import { dirname, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { gzipSync } from 'node:zlib';
 
-const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 const KiB = 1024;
 const budgets = [
   {
@@ -20,28 +20,13 @@ const budgets = [
       jsFiles: 70,
       jsRaw: 2500 * KiB,
       jsGzip: 800 * KiB,
-      largestJsRaw: 400 * KiB,
-      largestJsGzip: 130 * KiB,
+      // Ant Design 6 is intentionally emitted as one vendor chunk; keep a
+      // measured ceiling with headroom while total/initial budgets remain
+      // the user-facing performance guardrails.
+      largestJsRaw: 1100 * KiB,
+      largestJsGzip: 340 * KiB,
       cssRaw: 100 * KiB,
       cssGzip: 30 * KiB,
-    },
-  },
-  {
-    name: 'example-remote',
-    root: join(repositoryRoot, 'web', 'apps', 'example-remote', 'dist'),
-    limits: {
-      htmlRaw: 12 * KiB,
-      htmlGzip: 4 * KiB,
-      initialJsFiles: 7,
-      initialJsRaw: 620 * KiB,
-      initialJsGzip: 200 * KiB,
-      jsFiles: 8,
-      jsRaw: 620 * KiB,
-      jsGzip: 200 * KiB,
-      largestJsRaw: 400 * KiB,
-      largestJsGzip: 130 * KiB,
-      cssRaw: 50 * KiB,
-      cssGzip: 20 * KiB,
     },
   },
 ];

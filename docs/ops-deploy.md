@@ -68,6 +68,8 @@ GET /api/v1/auth/forward/{application_id}
 `X-Velora-Login-Name`、`X-Velora-Organization-ID`。网关须在转发前删除所有入站
 `X-Velora-*` 头；客户端提供的 app-id、Host 或身份头永远不可信。未知、禁用或未通过
 `CanAccess` 的应用统一返回 401/403，不得回退到门户隐藏或仅校验“已登录”。
+服务端还要求请求来自 `TRUSTED_PROXIES` 中的网关 CIDR，并要求网关设置单值
+`X-Forwarded-Host`；该值必须与应用登记的 HTTPS `home_url`/`launch_url` 主机完全匹配。
 
 生产上线验收必须覆盖：伪造 header、未知 app、禁用应用、撤销角色后旧会话四类直接绕过测试。
 

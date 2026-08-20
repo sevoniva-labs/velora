@@ -3,7 +3,10 @@ package kratosapi
 import (
 	"context"
 	"errors"
+	"net/url"
+	"strings"
 
+	kratoserrors "github.com/go-kratos/kratos/v2/errors"
 	"github.com/go-kratos/kratos/v2/transport"
 	forgev1 "github.com/sevoniva-labs/velora/server/api/gen/go/forge/v1"
 	"github.com/sevoniva-labs/velora/server/internal/adapters/repository"
@@ -11,6 +14,7 @@ import (
 	appportal "github.com/sevoniva-labs/velora/server/internal/app/portal"
 	portaldomain "github.com/sevoniva-labs/velora/server/internal/domain/portal"
 	"github.com/sevoniva-labs/velora/server/internal/platform/database"
+	"github.com/sevoniva-labs/velora/server/internal/platform/httpserver"
 )
 
 type PortalService struct {
@@ -42,6 +46,9 @@ func (s *PortalService) audited(ctx context.Context, event *audit.Event, operati
 // Gateways must strip inbound X-Velora-* headers and copy only response
 // headers emitted by this endpoint to the upstream application.
 func (s *PortalService) AuthorizePortalApplication(ctx context.Context, req *forgev1.AuthorizePortalApplicationRequest) (*forgev1.AuthorizePortalApplicationResponse, error) {
+	if !httpserver.IsTrustedProxy(ctx) {
+		return nil, kratoserrors.Forbidden("FORWARD_AUTH_PROXY_UNTRUSTED", "forward auth requires a trusted gateway")
+	}
 	principal, err := requiredPrincipal(ctx)
 	if err != nil {
 		return nil, err
@@ -49,6 +56,13 @@ func (s *PortalService) AuthorizePortalApplication(ctx context.Context, req *for
 	item, err := s.portal.GetApplication(ctx, principal, req.GetApplicationId())
 	if err != nil {
 		return nil, serviceError(err)
+	}
+	targetURL := item.HomeURL
+	if strings.TrimSpace(targetURL) == "" {
+		targetURL = item.LaunchURL
+	}
+	if !forwardAuthHostMatches(targetURL, requestHeader(ctx, "X-Forwarded-Host", 255)) {
+		return nil, kratoserrors.Forbidden("FORWARD_AUTH_HOST_INVALID", "forward auth host is not bound to the registered application")
 	}
 	if tr, ok := transport.FromServerContext(ctx); ok {
 		h := tr.ReplyHeader()
@@ -65,6 +79,18 @@ func (s *PortalService) AuthorizePortalApplication(ctx context.Context, req *for
 		OrganizationId: principal.OrganizationID,
 		DisplayName:    principal.DisplayName,
 	}, nil
+}
+
+func forwardAuthHostMatches(targetURL, forwardedHost string) bool {
+	forwardedHost = strings.TrimSpace(forwardedHost)
+	if forwardedHost == "" || strings.ContainsAny(forwardedHost, ", \t\r\n/\\") {
+		return false
+	}
+	u, err := url.Parse(strings.TrimSpace(targetURL))
+	if err != nil || !strings.EqualFold(u.Scheme, "https") || u.Host == "" || u.User != nil {
+		return false
+	}
+	return strings.EqualFold(u.Host, forwardedHost)
 }
 
 func (s *PortalService) ListPortalApplications(ctx context.Context, req *forgev1.ListPortalApplicationsRequest) (*forgev1.ListPortalApplicationsResponse, error) {

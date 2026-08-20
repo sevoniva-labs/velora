@@ -130,6 +130,12 @@ for nginx_template in deployments/docker/velora-http.conf.template deployments/d
     echo "错误：$nginx_template 的 /healthz 必须代理到 server readiness，不得固定返回 200" >&2
     exit 1
   fi
+  for header in X-Velora-Authenticated X-Velora-Application-ID X-Velora-User-ID X-Velora-Login-Name X-Velora-Organization-ID; do
+    rg -Fq "proxy_set_header $header \"\";" "$nginx_template" || {
+      echo "错误：$nginx_template 未清理入站 $header" >&2
+      exit 1
+    }
+  done
 done
 if ! rg -Fq 'Strict-Transport-Security' deployments/docker/velora-https.conf.template; then
   echo "错误：生产 HTTPS 模板必须启用 HSTS" >&2

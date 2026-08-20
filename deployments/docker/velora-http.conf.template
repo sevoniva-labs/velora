@@ -45,6 +45,14 @@ server {
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Host $host;
+        # Never forward client-supplied authorization result headers to the
+        # server; only the server may mint X-Velora-* response headers.
+        proxy_set_header X-Velora-Authenticated "";
+        proxy_set_header X-Velora-Application-ID "";
+        proxy_set_header X-Velora-User-ID "";
+        proxy_set_header X-Velora-Login-Name "";
+        proxy_set_header X-Velora-Organization-ID "";
         proxy_set_header X-Request-Id $request_id;
         proxy_read_timeout 30s;
     }

@@ -45,10 +45,18 @@ func Filters(options FilterOptions) []khttp.FilterFunc {
 }
 
 type clientIPContextKey struct{}
+type trustedProxyContextKey struct{}
 
 // ClientIP returns the address selected by the trusted-proxy boundary.
 func ClientIP(ctx context.Context) string {
 	value, _ := ctx.Value(clientIPContextKey{}).(string)
+	return value
+}
+
+// IsTrustedProxy reports whether the immediate peer matched configured proxy
+// CIDRs. Forwarded identity/app headers are only meaningful when this is true.
+func IsTrustedProxy(ctx context.Context) bool {
+	value, _ := ctx.Value(trustedProxyContextKey{}).(bool)
 	return value
 }
 
@@ -62,7 +70,9 @@ func clientIP(configured []string) khttp.FilterFunc {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			ip := requestPeerIP(r)
+			trustedPeer := false
 			if peer := net.ParseIP(ip); peer != nil && containsIP(trusted, peer) {
+				trustedPeer = true
 				chain := forwardedIPs(r.Header.Values("X-Forwarded-For"))
 				chain = append(chain, ip)
 				for i := len(chain) - 1; i >= 0; i-- {
@@ -76,7 +86,9 @@ func clientIP(configured []string) khttp.FilterFunc {
 					}
 				}
 			}
-			next.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), clientIPContextKey{}, ip)))
+			requestContext := context.WithValue(r.Context(), clientIPContextKey{}, ip)
+			requestContext = context.WithValue(requestContext, trustedProxyContextKey{}, trustedPeer)
+			next.ServeHTTP(w, r.WithContext(requestContext))
 		})
 	}
 }

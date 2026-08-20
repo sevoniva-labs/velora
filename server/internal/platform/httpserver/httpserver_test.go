@@ -155,12 +155,16 @@ func TestClientIPIgnoresForwardedHeadersFromUntrustedPeer(t *testing.T) {
 
 func TestClientIPWalksTrustedForwardedChainFromRight(t *testing.T) {
 	var got string
-	handler := clientIP([]string{"10.0.0.0/8"})(http.HandlerFunc(func(_ http.ResponseWriter, r *http.Request) { got = ClientIP(r.Context()) }))
+	var trusted bool
+	handler := clientIP([]string{"10.0.0.0/8"})(http.HandlerFunc(func(_ http.ResponseWriter, r *http.Request) {
+		got = ClientIP(r.Context())
+		trusted = IsTrustedProxy(r.Context())
+	}))
 	request := httptest.NewRequest(http.MethodGet, "/", nil)
 	request.RemoteAddr = "10.0.0.8:1234"
 	request.Header.Set("X-Forwarded-For", "198.51.100.5, 10.0.0.9")
 	handler.ServeHTTP(httptest.NewRecorder(), request)
-	if got != "198.51.100.5" {
+	if got != "198.51.100.5" || !trusted {
 		t.Fatalf("trusted forwarded chain client IP = %q", got)
 	}
 }

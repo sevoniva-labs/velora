@@ -13,7 +13,12 @@
 ## 2. 备份命令
 
 ```bash
-# 全量备份（读 .env 的 DATABASE_URL，输出到 ./backups/；生产设置 POSTGRES_CONTAINER=velora-prod-postgres）
+# 生产一致恢复点：同时备份 Velora 与 Casdoor（两个 URL 都必须提供）
+DATABASE_URL='postgres://velora_app:***@postgres:5432/velora?sslmode=require' \
+CASDOOR_DATABASE_URL='postgres://casdoor_app:***@postgres:5432/casdoor?sslmode=require' \
+POSTGRES_CONTAINER=velora-prod-postgres ./scripts/backup-all-databases.sh
+
+# 仅开发/单库场景才使用单库脚本
 ./scripts/backup-db.sh
 
 # 自定义目录 / 保留天数 / 对象存储上传
@@ -21,7 +26,8 @@ BACKUP_DIR=/data/velora-backup BACKUP_RETENTION_DAYS=30 POSTGRES_CONTAINER=velor
 BACKUP_S3=s3://velora-backup-prod ./scripts/backup-db.sh   # 需 s5cmd 或 aws cli
 ```
 
-备份文件：`velora_full_YYYYMMDD_HHMMSS.dump`（PostgreSQL custom format，支持选择性/并行恢复）。
+一致恢复点会生成 `velora_full_YYYYMMDD_HHMMSS.dump` 与
+`casdoor_full_YYYYMMDD_HHMMSS.dump`（两者时间戳相同，PostgreSQL custom format）。
 
 生产备份必须启用加密和校验清单。脚本使用 `age` 收件人文件加密，并在同目录生成
 `.sha256` 清单；对象存储上传会同时上传两者。示例：
@@ -46,7 +52,11 @@ BACKUP_S3=s3://velora-backup-prod ./scripts/backup-db.sh
 
 ```bash
 # 恢复到 .env 指向的库（恢复前强制做保险备份，并要求确认）
-RESTORE_CONFIRM=yes ./scripts/restore-db.sh backups/velora_full_20260101_020000.dump
+RESTORE_DB_URL='postgres://velora_restore:***@postgres:5432/velora?sslmode=require' \
+RESTORE_IDP_DB_URL='postgres://casdoor_restore:***@postgres:5432/casdoor?sslmode=require' \
+RESTORE_CONFIRM=yes ./scripts/restore-all-databases.sh \
+  backups/velora_full_20260101_020000.dump \
+  backups/casdoor_full_20260101_020000.dump
 
 # 恢复到指定新库
 RESTORE_DB_URL='postgres://velora:velora@127.0.0.1:5433/velora?sslmode=disable' POSTGRES_CONTAINER=velora-prod-postgres \

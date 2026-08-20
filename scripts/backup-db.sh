@@ -24,6 +24,7 @@ DATABASE_URL="${DATABASE_URL:-}"
 POSTGRES_CONTAINER="${POSTGRES_CONTAINER:-}"
 BACKUP_ENCRYPTION_KEY_FILE="${BACKUP_ENCRYPTION_KEY_FILE:-}"
 BACKUP_ENCRYPTION_REQUIRED="${BACKUP_ENCRYPTION_REQUIRED:-false}"
+BACKUP_FILENAME_PREFIX="${BACKUP_FILENAME_PREFIX:-velora_full}"
 
 if ! [[ "$RETENTION_DAYS" =~ ^[1-9][0-9]*$ ]]; then
   echo "错误：BACKUP_RETENTION_DAYS 必须是正整数" >&2
@@ -31,6 +32,10 @@ if ! [[ "$RETENTION_DAYS" =~ ^[1-9][0-9]*$ ]]; then
 fi
 if [[ -z "$BACKUP_DIR" || "$BACKUP_DIR" == "/" ]]; then
   echo "错误：BACKUP_DIR 不能为空或为根目录" >&2
+  exit 1
+fi
+if ! [[ "$BACKUP_FILENAME_PREFIX" =~ ^[a-zA-Z0-9_.-]+$ ]]; then
+  echo "错误：BACKUP_FILENAME_PREFIX 含非法字符" >&2
   exit 1
 fi
 if [[ "$BACKUP_ENCRYPTION_REQUIRED" == "true" && -z "$BACKUP_ENCRYPTION_KEY_FILE" ]]; then
@@ -53,8 +58,12 @@ fi
 
 mkdir -p "$BACKUP_DIR"
 chmod 700 "$BACKUP_DIR"
-STAMP="$(date +%Y%m%d_%H%M%S)"
-FILENAME="velora_full_${STAMP}.dump"
+STAMP="${BACKUP_STAMP:-$(date +%Y%m%d_%H%M%S)}"
+if ! [[ "$STAMP" =~ ^[0-9]{8}_[0-9]{6}$ ]]; then
+  echo "错误：BACKUP_STAMP 必须为 YYYYMMDD_HHMMSS" >&2
+  exit 1
+fi
+FILENAME="${BACKUP_FILENAME_PREFIX}_${STAMP}.dump"
 RAW_TARGET="$BACKUP_DIR/$FILENAME"
 TARGET="$RAW_TARGET"
 
@@ -128,7 +137,7 @@ fi
 
 # --- 清理过期备份 ---
 echo "==> 清理超过 ${RETENTION_DAYS} 天的本地备份…"
-find "$BACKUP_DIR" -name 'velora_full_*.dump*' -mtime "+$RETENTION_DAYS" -delete
+find "$BACKUP_DIR" -name "${BACKUP_FILENAME_PREFIX}_*.dump*" -mtime "+$RETENTION_DAYS" -delete
 
 # --- 可选：上传对象存储 ---
 if [ -n "${BACKUP_S3:-}" ]; then

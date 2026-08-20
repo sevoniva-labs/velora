@@ -49,6 +49,10 @@ func main() {
 	if !ok {
 		fail(errors.New("storage provider does not report capabilities"))
 	}
+	profileReporter, ok := store.(storage.ProfileReporter)
+	if !ok {
+		fail(errors.New("storage provider does not report its provider profile"))
+	}
 	capabilities := reporter.Capabilities()
 	if raw := strings.TrimSpace(os.Getenv("VELORA_STORAGE_CHECK_REQUIRE")); raw != "" {
 		required := make([]storage.Capability, 0)
@@ -63,7 +67,7 @@ func main() {
 			fail(fmt.Errorf("required target-tested capability: %w", err))
 		}
 	}
-	output := report{Provider: store.Provider(), Profile: store.(storage.ProfileReporter).Profile(), Capabilities: capabilities}
+	output := report{Provider: store.Provider(), Profile: profileReporter.Profile(), Capabilities: capabilities}
 	if err := json.NewEncoder(os.Stdout).Encode(output); err != nil {
 		fail(fmt.Errorf("encode report: %w", err))
 	}

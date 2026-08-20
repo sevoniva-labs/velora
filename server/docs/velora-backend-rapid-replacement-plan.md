@@ -40,7 +40,7 @@ Go module 固定为现有的 `github.com/sevoniva-labs/velora/server`，机械�
 
 1. 将当前 Velora 工作区全部变更提交到快照分支，保证可以一键回滚。
 2. 删除旧 `server` 实现并复制 Forge 的 `api/cmd/configs/internal/tools`、Go module、生成规则和后端脚本。
-3. 将 module/import 从 `github.com/sevoniva-labs/velora/server` 改为 `github.com/sevoniva-labs/velora/server`。
+3. 将 module/import 从 `github.com/sevoniva-labs/forge` 改为 `github.com/sevoniva-labs/velora/server`。
 4. 应用名、二进制名、环境变量前缀统一为 Velora；暂不做前端和全仓库品牌重构。
 5. 保证 `go test ./...`、`go vet ./...`、Proto/合同门禁通过，服务能够启动并返回 health/readiness。
 
@@ -106,7 +106,7 @@ R1 增加 OIDC discovery/code/state/nonce/replay/错误 issuer/错误 audience/R
 ## 给 Luna 的快速替换提示词
 
 ```text
-完整读取并严格执行 /Users/chuncheng/Downloads/code/go-antd-fullstack/AGENTS.md、.agents/skills/velora-banking-scaffold/SKILL.md、docs/ai-engineering-governance.md 和 docs/velora-backend-rapid-replacement-plan.md。
+完整读取并严格执行 /Users/chuncheng/Downloads/code/go-antd-fullstack/AGENTS.md、.agents/skills/forge-banking-scaffold/SKILL.md、docs/ai-engineering-governance.md 和 docs/velora-backend-rapid-replacement-plan.md。
 
 目标是迅速整体替换 Velora 后端，不做渐进迁移。目标仓库为 /Users/chuncheng/Downloads/code/velora；保持 web 目录不变，把 server 整体替换为 Forge 后端基座，Go module 使用 github.com/sevoniva-labs/velora/server。
 

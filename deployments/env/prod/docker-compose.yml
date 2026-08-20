@@ -58,7 +58,7 @@ x-app-env: &app-env
 
 services:
   postgres:
-    image: "${DOCKER_REGISTRY:-docker.m.daocloud.io}/library/postgres:16-alpine"
+    image: "${POSTGRES_IMAGE:?POSTGRES_IMAGE must be an approved internal image digest}"
     container_name: velora-prod-postgres
     restart: unless-stopped
     logging: *default-logging
@@ -84,7 +84,7 @@ services:
       retries: 20
 
   redis:
-    image: "${DOCKER_REGISTRY:-docker.m.daocloud.io}/library/redis:7-alpine"
+    image: "${REDIS_IMAGE:?REDIS_IMAGE must be an approved internal image digest}"
     container_name: velora-prod-redis
     restart: unless-stopped
     logging: *default-logging
@@ -108,7 +108,7 @@ services:
       retries: 20
 
   casdoor:
-    image: "${DOCKER_REGISTRY:-docker.m.daocloud.io}/casbin/casdoor:v1.762.0"
+    image: "${CASDOOR_IMAGE:?CASDOOR_IMAGE must be an approved internal image digest}"
     container_name: velora-prod-casdoor
     restart: unless-stopped
     logging: *default-logging
@@ -136,7 +136,9 @@ services:
   server:
     container_name: velora-prod-server
     build:
-      context: ../..
+      # Compose resolves build paths relative to this file. Three levels are
+      # required to reach the repository root from deployments/env/prod.
+      context: ../../..
       dockerfile: deployments/docker/Dockerfile.server
       args:
         DOCKER_REGISTRY: "${DOCKER_REGISTRY:-docker.m.daocloud.io}"
@@ -171,7 +173,7 @@ services:
   migrate:
     container_name: velora-prod-migrate
     build:
-      context: ../..
+      context: ../../..
       dockerfile: deployments/docker/Dockerfile.server
       args:
         DOCKER_REGISTRY: "${DOCKER_REGISTRY:-docker.m.daocloud.io}"
@@ -191,7 +193,7 @@ services:
   web:
     container_name: velora-prod-web
     build:
-      context: ../..
+      context: ../../..
       dockerfile: deployments/docker/Dockerfile.web
       args:
         DOCKER_REGISTRY: "${DOCKER_REGISTRY:-docker.m.daocloud.io}"
@@ -224,7 +226,7 @@ services:
       retries: 5
 
   prometheus:
-    image: "${DOCKER_REGISTRY:-docker.m.daocloud.io}/prom/prometheus:v2.53.3"
+    image: "${PROMETHEUS_IMAGE:?PROMETHEUS_IMAGE must be an approved internal image digest}"
     container_name: velora-prod-prometheus
     restart: unless-stopped
     logging: *default-logging
@@ -242,7 +244,7 @@ services:
       - app
 
   grafana:
-    image: "${DOCKER_REGISTRY:-docker.m.daocloud.io}/grafana/grafana:11.1.0"
+    image: "${GRAFANA_IMAGE:?GRAFANA_IMAGE must be an approved internal image digest}"
     container_name: velora-prod-grafana
     restart: unless-stopped
     logging: *default-logging

@@ -17,6 +17,11 @@ printf 'dummy-client-secret\n' >"$tmp_dir/oidc-client.secret"
 config_json="$tmp_dir/config.json"
 env \
   DOCKER_REGISTRY=docker.io \
+  POSTGRES_IMAGE=harbor.internal.example/approved/postgres@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa \
+  REDIS_IMAGE=harbor.internal.example/approved/redis@sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb \
+  CASDOOR_IMAGE=harbor.internal.example/approved/casdoor@sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc \
+  PROMETHEUS_IMAGE=harbor.internal.example/approved/prometheus@sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd \
+  GRAFANA_IMAGE=harbor.internal.example/approved/grafana@sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee \
   VELORA_EXTERNAL_URL=velora.example.com \
   VELORA_DATABASE_DSN='postgres://velora_app:dummy@postgres:5432/velora?sslmode=verify-full' \
   VELORA_STORAGE_PROVIDER=s3-compatible \
@@ -63,10 +68,20 @@ env \
   POSTGRES_IDP_PASSWORD=dummy-idp-password \
   GRAFANA_ADMIN_USER=grafana_admin \
   GRAFANA_ADMIN_PASSWORD=dummy-grafana-password \
-  docker compose --env-file "$tmp_dir/empty.env" -f "$COMPOSE_FILE" config --format json >"$config_json"
+  docker compose --env-file "$tmp_dir/empty.env" --profile monitoring -f "$COMPOSE_FILE" config --format json >"$config_json"
 
 if ! jq -e '.services.postgres.ports == null and .services.redis.ports == null and .services.casdoor.ports == null and .services.server.ports == null and .services.prometheus.ports == null and .services.grafana.ports == null' "$config_json" >/dev/null; then
   echo "错误：生产 Compose 中非 Web 服务存在 published ports" >&2
+  exit 1
+fi
+
+if ! jq -e '[.services.postgres.image, .services.redis.image, .services.casdoor.image, .services.prometheus.image, .services.grafana.image] | length == 5 and all(.[]; type == "string" and test("@sha256:[0-9a-f]{64}$"))' "$config_json" >/dev/null; then
+  echo "错误：生产基础设施镜像必须全部固定为内部 digest" >&2
+  exit 1
+fi
+
+if ! jq -e '.services.server.build.context | endswith("/velora")' "$config_json" >/dev/null || ! jq -e '.services.web.build.context | endswith("/velora")' "$config_json" >/dev/null; then
+  echo "错误：生产 server/web 构建上下文必须指向仓库根目录" >&2
   exit 1
 fi
 

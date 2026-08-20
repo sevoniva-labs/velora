@@ -149,22 +149,25 @@ func (w *Writer) List(ctx context.Context, orgID string, limit int) ([]Event, er
 }
 
 func (w *Writer) VerifyIntegrity(ctx context.Context, orgID string) error {
-	rows, err := w.db.QueryContext(ctx, w.db.Rebind(`SELECT id,occurred_at,request_id,organization_id,actor_id,actor_name,action,resource_type,resource_id,result,client_ip,details_json,sequence_no,prev_hash,event_hash FROM audit_logs WHERE (organization_id=? OR (?='' AND organization_id IS NULL)) ORDER BY sequence_no ASC,id ASC`), orgID, orgID)
-	if err != nil {
-		return err
-	}
-	defer func() { _ = rows.Close() }()
 	var expectedSequence int64 = 1
 	previous := ""
 	var anchorSequence int64
 	var anchorHash string
 	anchorErr := w.db.QueryRowContext(ctx, w.db.Rebind(`SELECT sequence_no,head_hash FROM audit_chain_anchors WHERE scope=?`), auditScope(orgID)).Scan(&anchorSequence, &anchorHash)
+	anchored := false
 	if anchorErr == nil {
 		expectedSequence = anchorSequence + 1
 		previous = anchorHash
+		anchored = true
 	} else if !errors.Is(anchorErr, sql.ErrNoRows) {
 		return anchorErr
 	}
+	query, args := auditIntegrityQuery(orgID, anchorSequence, anchored)
+	rows, err := w.db.QueryContext(ctx, w.db.Rebind(query), args...)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = rows.Close() }()
 	for rows.Next() {
 		var e Event
 		var organizationID, actorID sql.NullString
@@ -186,6 +189,20 @@ func (w *Writer) VerifyIntegrity(ctx context.Context, orgID string) error {
 		expectedSequence++
 	}
 	return rows.Err()
+}
+
+// auditIntegrityQuery starts at the first event after an immutable archive
+// anchor. Archived rows remain in cold storage and must not be re-read as if
+// they were part of the online chain prefix.
+func auditIntegrityQuery(orgID string, anchorSequence int64, anchored bool) (string, []any) {
+	query := `SELECT id,occurred_at,request_id,organization_id,actor_id,actor_name,action,resource_type,resource_id,result,client_ip,details_json,sequence_no,prev_hash,event_hash FROM audit_logs WHERE (organization_id=? OR (?='' AND organization_id IS NULL))`
+	args := []any{orgID, orgID}
+	if anchored {
+		query += ` AND sequence_no>?`
+		args = append(args, anchorSequence)
+	}
+	query += ` ORDER BY sequence_no ASC,id ASC`
+	return query, args
 }
 
 // PurgeExpired archives and deletes audit events older than retentionDays.

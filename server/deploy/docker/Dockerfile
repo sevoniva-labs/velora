@@ -33,7 +33,8 @@ RUN go mod download && go mod verify
 COPY . .
 RUN CGO_ENABLED=0 go build -trimpath -ldflags "-s -w -X main.version=${VERSION}" -o /out/velora ./cmd/server \
  && CGO_ENABLED=0 go build -trimpath -ldflags "-s -w -X main.version=${VERSION}" -o /out/velora-worker ./cmd/worker \
- && CGO_ENABLED=0 go build -trimpath -ldflags "-s -w -X main.version=${VERSION}" -o /out/velora-migrate ./cmd/migrate
+ && CGO_ENABLED=0 go build -trimpath -ldflags "-s -w -X main.version=${VERSION}" -o /out/velora-migrate ./cmd/migrate \
+ && CGO_ENABLED=0 go build -trimpath -ldflags "-s -w -X main.version=${VERSION}" -o /out/velora-storage-check ./cmd/storage-check
 
 FROM ${RUNTIME_IMAGE}
 # The signed enterprise runtime base must already contain CA certificates and timezone data.
@@ -43,6 +44,7 @@ WORKDIR /app
 COPY --from=go-build /out/velora /app/velora
 COPY --from=go-build /out/velora-worker /app/velora-worker
 COPY --from=go-build /out/velora-migrate /app/velora-migrate
+COPY --from=go-build /out/velora-storage-check /app/velora-storage-check
 COPY --from=web-build /src/web/dist /app/web
 COPY configs/minimal.yaml /app/config.yaml
 USER 10001

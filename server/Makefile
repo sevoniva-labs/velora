@@ -11,13 +11,14 @@ GO_ENV = GOPROXY=$(GOPROXY) GOSUMDB='$(GOSUMDB)'
 TOOL_RUN = $(GO_ENV) go run -modfile=tools/go.mod
 PROTO_TOOLS = .tools/bin/buf .tools/bin/protoc-gen-go .tools/bin/protoc-gen-go-grpc .tools/bin/protoc-gen-go-http .tools/bin/protoc-gen-openapi
 
-.PHONY: help run worker migrate test fmt tidy web-install web-api-generate web-api-check web-dev web-build web-budget web-e2e-install-cn build check contract module-boundaries proto-tools proto-lint proto-generate proto-breaking proto-check offline-check disaster-check disaster-check-certified docker-build compose-up compose-down init ai-governance apisix-policy ci-policy ci-go ci-web ci-web-e2e ci-deploy security-tools supply-chain-evidence release-evidence verify
+.PHONY: help run worker migrate storage-check test fmt tidy web-install web-api-generate web-api-check web-dev web-build web-budget web-e2e-install-cn build check contract module-boundaries proto-tools proto-lint proto-generate proto-breaking proto-check offline-check disaster-check disaster-check-certified docker-build compose-up compose-down init ai-governance apisix-policy ci-policy ci-go ci-web ci-web-e2e ci-deploy security-tools supply-chain-evidence release-evidence verify
 
 help:
 	@echo "Velora"
 	@echo "  make run           Run API server"
 	@echo "  make worker        Run reliable-message/background worker"
 	@echo "  make migrate       Run one-shot database migrations"
+	@echo "  make storage-check Read-only object-store ping and capability report"
 	@echo "  make web-dev       Run frontend"
 	@echo "  make web-budget    Enforce production frontend bundle budgets"
 	@echo "  make web-e2e-install-cn  Install validated Linux ARM64 Chromium from npmmirror"
@@ -42,6 +43,9 @@ worker:
 
 migrate:
 	VELORA_CONFIG=configs/minimal.yaml go run ./cmd/migrate
+
+storage-check:
+	go run ./cmd/storage-check
 
 test:
 	go test ./...
@@ -121,6 +125,7 @@ build: web-build
 	CGO_ENABLED=0 go build -trimpath -ldflags "-s -w -X main.version=$${VERSION:-dev}" -o bin/velora-worker ./cmd/worker
 	CGO_ENABLED=0 go build -trimpath -ldflags "-s -w -X main.version=$${VERSION:-dev}" -o bin/velora-migrate ./cmd/migrate
 	CGO_ENABLED=0 go build -trimpath -ldflags "-s -w -X main.version=$${VERSION:-dev}" -o bin/velora-example-settlement ./cmd/example-settlement-service
+	CGO_ENABLED=0 go build -trimpath -ldflags "-s -w -X main.version=$${VERSION:-dev}" -o bin/velora-storage-check ./cmd/storage-check
 
 check: fmt contract
 	go vet ./...

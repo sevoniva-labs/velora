@@ -12,7 +12,8 @@ COPY server/go.mod server/go.sum ./
 RUN go mod download
 COPY server/ .
 RUN CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags="-s -w" -o /out/velora ./cmd/server \
-    && CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags="-s -w" -o /out/velora-migrate ./cmd/migrate
+    && CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags="-s -w" -o /out/velora-migrate ./cmd/migrate \
+    && CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags="-s -w" -o /out/velora-storage-check ./cmd/storage-check
 
 FROM ${DOCKER_REGISTRY}/library/alpine:3.21
 # 国内构建默认使用阿里云 Alpine 镜像，避免构建阶段访问境外源。
@@ -23,5 +24,6 @@ USER velora
 WORKDIR /app
 COPY --from=builder /out/velora /usr/local/bin/velora
 COPY --from=builder /out/velora-migrate /usr/local/bin/velora-migrate
+COPY --from=builder /out/velora-storage-check /usr/local/bin/velora-storage-check
 EXPOSE 8080
 ENTRYPOINT ["velora"]

@@ -20,7 +20,7 @@ deployments/env/
 ```bash
 # 0) 准备环境变量（不入 git）：复制生产模板并填入 Secret Manager 注入的值
 cp deployments/env/prod/.env.example /secure/velora-prod.env
-#    必填：VELORA_EXTERNAL_URL / VELORA_DATABASE_DSN / CASDOOR_DATA_SOURCE_NAME
+#    必填：VELORA_EXTERNAL_URL / VELORA_DATABASE_DSN_FILE / CASDOOR_DATA_SOURCE_NAME
 #          VELORA_OIDC_ISSUER / VELORA_OIDC_CLIENT_ID / VELORA_OIDC_REDIRECT_URL (https://<public-host>/auth/callback)
 #          VELORA_CASDOOR_ACCOUNT_URL / Redis TLS / ObjectStore / CryptoProvider Secret 文件
 #          VELORA_SESSION_TTL=1h / VELORA_OIDC_POST_LOGOUT_REDIRECT_URL (HTTPS)
@@ -81,9 +81,9 @@ GET /api/v1/auth/forward/{application_id}
 VELORA_OIDC_CLIENT_SECRET_FILE  必填，只读 Secret 文件
 VELORA_CRYPTO_KEY_FILE          必填，只读 Secret 文件
 VELORA_EXTERNAL_URL    必须是外部 HTTPS host
-VELORA_DATABASE_DSN    必须使用独立 Velora 数据库账号且 sslmode=verify-full
+VELORA_DATABASE_DSN_FILE 必须指向只读 DSN 文件，使用独立 Velora 数据库账号且 sslmode=verify-full
 CASDOOR_DATA_SOURCE_NAME  必须使用独立 Casdoor 数据库账号
-Redis TLS 证书/密钥、`REDIS_PASSWORD_FILE` 必填；Redis 密码只通过只读 Secret 文件提供，禁止放入 Compose 环境变量或命令行固定值，生产禁止内存降级。
+Redis TLS 证书/密钥、`REDIS_PASSWORD_FILE` 必填；Redis 密码只通过只读 Secret 文件提供，禁止放入 Compose 环境变量或命令行固定值，生产禁止内存降级。应用 DSN、对象存储访问密钥同样使用 `VELORA_DATABASE_DSN_FILE`、`VELORA_STORAGE_ACCESS_KEY_FILE`、`VELORA_STORAGE_SECRET_KEY_FILE`，由 Secret Manager 渲染为 root-only 文件。
 TRUSTED_PROXIES        必须显式配置网关网段
 ```
 

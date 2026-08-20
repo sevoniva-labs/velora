@@ -14,6 +14,9 @@ printf 'dummy-crypto-key-material-32-bytes\n' >"$tmp_dir/crypto.key"
 printf 'dummy-bootstrap-password\n' >"$tmp_dir/bootstrap.password"
 printf 'dummy-client-secret\n' >"$tmp_dir/oidc-client.secret"
 printf 'dummy-redis-password\n' >"$tmp_dir/redis.password"
+printf 'postgres://velora_app:dummy@postgres:5432/velora?sslmode=verify-full\n' >"$tmp_dir/database.dsn"
+printf 'dummy-storage-access\n' >"$tmp_dir/storage.access"
+printf 'dummy-storage-secret\n' >"$tmp_dir/storage.secret"
 
 config_json="$tmp_dir/config.json"
 env \
@@ -24,15 +27,15 @@ env \
   PROMETHEUS_IMAGE=harbor.internal.example/approved/prometheus@sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd \
   GRAFANA_IMAGE=harbor.internal.example/approved/grafana@sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee \
   VELORA_EXTERNAL_URL=velora.example.com \
-  VELORA_DATABASE_DSN='postgres://velora_app:dummy@postgres:5432/velora?sslmode=verify-full' \
+  VELORA_DATABASE_DSN_FILE="$tmp_dir/database.dsn" \
   VELORA_STORAGE_PROVIDER=s3-compatible \
   VELORA_STORAGE_ENDPOINT=https://objects.example.internal \
   VELORA_STORAGE_REGION=cn-north-1 \
   VELORA_STORAGE_BUCKET=velora-prod \
   VELORA_STORAGE_PREFIX=velora-prod \
   VELORA_STORAGE_PATH_STYLE=true \
-  VELORA_STORAGE_ACCESS_KEY=dummy-storage-access \
-  VELORA_STORAGE_SECRET_KEY=dummy-storage-secret \
+  VELORA_STORAGE_ACCESS_KEY_FILE="$tmp_dir/storage.access" \
+  VELORA_STORAGE_SECRET_KEY_FILE="$tmp_dir/storage.secret" \
   VELORA_STORAGE_SSE_MODE=kms \
   VELORA_STORAGE_SSE_KMS_KEY_ID=dummy-kms-key \
   VELORA_CRYPTO_PROVIDER=standard \
@@ -118,6 +121,15 @@ fi
 
 if ! jq -e '.services.server.environment.VELORA_STORAGE_SSE_MODE == "kms" and (.services.server.environment.VELORA_STORAGE_SSE_KMS_KEY_ID | length > 0)' "$config_json" >/dev/null; then
   echo "错误：生产对象存储必须启用 KMS SSE 并配置 key id" >&2
+  exit 1
+fi
+
+if ! jq -e '.services.server.environment.VELORA_DATABASE_DSN == null and .services.server.environment.VELORA_DATABASE_DSN_FILE == "/run/secrets/velora_database_dsn" and .services.server.environment.VELORA_STORAGE_ACCESS_KEY == null and .services.server.environment.VELORA_STORAGE_ACCESS_KEY_FILE == "/run/secrets/storage_access_key" and .services.server.environment.VELORA_STORAGE_SECRET_KEY == null and .services.server.environment.VELORA_STORAGE_SECRET_KEY_FILE == "/run/secrets/storage_secret_key"' "$config_json" >/dev/null; then
+  echo "错误：生产 server 的数据库 DSN 与对象存储凭据必须只读 Secret 文件注入" >&2
+  exit 1
+fi
+if ! jq -e '.services.redis.environment.REDIS_PASSWORD == null and (.services.redis.secrets | any((.source // .) == "redis_password")) and (.services.server.secrets | any((.source // .) == "redis_password"))' "$config_json" >/dev/null; then
+  echo "错误：生产 Redis 密码不得通过环境变量注入，且必须挂载 Secret 文件" >&2
   exit 1
 fi
 

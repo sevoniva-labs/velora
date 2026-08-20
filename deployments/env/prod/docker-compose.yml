@@ -14,7 +14,7 @@ x-app-env: &app-env
   VELORA_APP_NAME: Velora
   VELORA_PUBLIC_URL: "https://${VELORA_EXTERNAL_URL:?VELORA_EXTERNAL_URL is required}"
   VELORA_DATABASE_PROVIDER: postgres
-  VELORA_DATABASE_DSN: "${VELORA_DATABASE_DSN:?VELORA_DATABASE_DSN is required}"
+  VELORA_DATABASE_DSN_FILE: /run/secrets/velora_database_dsn
   VELORA_CACHE_PROVIDER: redis
   VELORA_REDIS_ADDRESSES: redis:6379
   VELORA_REDIS_PASSWORD_FILE: /run/secrets/redis_password
@@ -30,8 +30,8 @@ x-app-env: &app-env
   VELORA_STORAGE_PREFIX: "${VELORA_STORAGE_PREFIX:?VELORA_STORAGE_PREFIX is required}"
   VELORA_STORAGE_PATH_STYLE: "${VELORA_STORAGE_PATH_STYLE:?VELORA_STORAGE_PATH_STYLE is required}"
   VELORA_STORAGE_TLS: "true"
-  VELORA_STORAGE_ACCESS_KEY: "${VELORA_STORAGE_ACCESS_KEY:?VELORA_STORAGE_ACCESS_KEY is required}"
-  VELORA_STORAGE_SECRET_KEY: "${VELORA_STORAGE_SECRET_KEY:?VELORA_STORAGE_SECRET_KEY is required}"
+  VELORA_STORAGE_ACCESS_KEY_FILE: /run/secrets/storage_access_key
+  VELORA_STORAGE_SECRET_KEY_FILE: /run/secrets/storage_secret_key
   VELORA_STORAGE_SSE_MODE: "${VELORA_STORAGE_SSE_MODE:?VELORA_STORAGE_SSE_MODE is required}"
   VELORA_STORAGE_SSE_KMS_KEY_ID: "${VELORA_STORAGE_SSE_KMS_KEY_ID:-}"
   VELORA_CRYPTO_PROVIDER: "${VELORA_CRYPTO_PROVIDER:?VELORA_CRYPTO_PROVIDER is required}"
@@ -153,6 +153,9 @@ services:
         condition: service_healthy
     environment: *app-env
     secrets:
+      - velora_database_dsn
+      - storage_access_key
+      - storage_secret_key
       - redis_password
       - redis_tls_ca
       - redis_tls_cert
@@ -186,7 +189,9 @@ services:
     environment:
       VELORA_ENV: production
       VELORA_DATABASE_PROVIDER: postgres
-      VELORA_DATABASE_DSN: "${VELORA_DATABASE_DSN:?VELORA_DATABASE_DSN is required}"
+      VELORA_DATABASE_DSN_FILE: /run/secrets/velora_database_dsn
+    secrets:
+      - velora_database_dsn
     networks:
       - app
 
@@ -269,6 +274,12 @@ volumes:
   velora-prod-grafanadata:
 
 secrets:
+  velora_database_dsn:
+    file: "${VELORA_DATABASE_DSN_FILE:?VELORA_DATABASE_DSN_FILE is required}"
+  storage_access_key:
+    file: "${VELORA_STORAGE_ACCESS_KEY_FILE:?VELORA_STORAGE_ACCESS_KEY_FILE is required}"
+  storage_secret_key:
+    file: "${VELORA_STORAGE_SECRET_KEY_FILE:?VELORA_STORAGE_SECRET_KEY_FILE is required}"
   redis_password:
     file: "${REDIS_PASSWORD_FILE:?REDIS_PASSWORD_FILE is required}"
   redis_tls_ca:

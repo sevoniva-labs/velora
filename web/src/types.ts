@@ -20,7 +20,7 @@ export interface CurrentUser {
 }
 
 export interface Category {
-  id: number
+  id: string | number
   code: string
   name: string
   description: string
@@ -30,7 +30,7 @@ export interface Category {
 }
 
 export interface Tag {
-  id: number
+  id: string | number
   code: string
   name: string
   sort: number
@@ -44,14 +44,14 @@ export interface AccessPolicy {
 }
 
 export interface Application {
-  id: number
+  id: string | number
   code: string
   name: string
   description: string
   keywords?: string
   icon: string
-  categoryId?: number
-  category?: { id: number; code: string; name: string }
+  categoryId?: string | number
+  category?: { id: string | number; code: string; name: string }
   ssoType: SSOType
   owner: string
   department: string

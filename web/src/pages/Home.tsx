@@ -198,7 +198,7 @@ export default function Home() {
 
   // 分类计数（前端统计）；有计数的分类优先展示，全未分类时回退展示全部
   const catCounts = useMemo(() => {
-    const m = new Map<number, number>()
+    const m = new Map<string | number, number>()
     allAppsList?.items.forEach((a) => {
       if (a.categoryId != null) m.set(a.categoryId, (m.get(a.categoryId) ?? 0) + 1)
     })

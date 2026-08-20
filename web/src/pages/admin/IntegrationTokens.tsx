@@ -10,7 +10,7 @@ import { createIntegrationToken, listIntegrationTokens, revokeIntegrationToken, 
 const { Text } = Typography
 
 const SCOPE_OPTIONS = [
-  { value: 'todo:write', label: '待办推送（todo:write）' },
+  { value: '*', label: '当前账号全部权限（*）' },
 ]
 
 export default function AdminIntegrationTokens() {
@@ -41,7 +41,7 @@ export default function AdminIntegrationTokens() {
   })
 
   const revokeMutation = useMutation({
-    mutationFn: (id: number) => revokeIntegrationToken(id),
+    mutationFn: (id: string | number) => revokeIntegrationToken(id),
     onSuccess: () => {
       message.success('令牌已吊销')
       invalidate()
@@ -65,7 +65,7 @@ export default function AdminIntegrationTokens() {
         showIcon
         style={{ marginBottom: 16 }}
         message="Service Account 鉴权"
-        description="供外部系统（如工单/CI 系统）以 Authorization: Bearer 调用集成端点（当前支持待办推送 POST /api/v1/todos），与用户会话解耦。令牌明文仅创建时展示一次，请立即保存。"
+        description="供外部系统以 Authorization: Bearer 调用当前已开放的 API，与用户会话解耦。令牌明文仅创建时展示一次，请立即保存；默认有效期 90 天。"
       />
 
       {created && (
@@ -166,8 +166,8 @@ export default function AdminIntegrationTokens() {
           <Form.Item label="权限范围" name="scopes" rules={[{ required: true, message: '至少选择一个权限' }]}>
             <Select mode="multiple" placeholder="选择权限范围" options={SCOPE_OPTIONS} />
           </Form.Item>
-          <Form.Item label="有效期（天）" name="expiresInDays" extra="留空表示永不过期；建议生产环境设置有效期">
-            <Input type="number" min={1} placeholder="留空 = 永不过期" />
+          <Form.Item label="有效期（天）" name="expiresInDays" extra="留空使用服务端默认 90 天；生产环境建议设置更短有效期">
+            <Input type="number" min={1} placeholder="留空 = 90 天" />
           </Form.Item>
         </Form>
       </Modal>

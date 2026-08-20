@@ -1,5 +1,5 @@
 // 小型 fetch 封装：统一 baseURL、凭证、JSON 处理与 Velora 统一返回结构。
-// 后端契约：{"code":"000000","message":"success","data":{...},"requestId":"..."}
+// 后端契约：{"code":"000000","message":"success","data":{...},"request_id":"..."}
 
 /** 统一 API 错误：携带 HTTP 状态码与后端稳定业务码。 */
 export class ApiError extends Error {
@@ -78,10 +78,10 @@ export async function apiFetch<T>(path: string, options: RequestOptions = {}): P
 
   const data = await parseBody<VeloraEnvelope>(res)
   if (!res.ok) {
-    throw new ApiError(res.status, data?.code ?? 'A05001', data?.message ?? '', data?.requestId)
+    throw new ApiError(res.status, data?.code ?? 'A05001', data?.message ?? '', data?.requestId ?? data?.request_id)
   }
   // 统一返回结构取 data 字段。
-  return (data?.data ?? undefined) as T
+  return snakeToCamel(data?.data ?? undefined) as T
 }
 
 interface VeloraEnvelope {
@@ -89,6 +89,7 @@ interface VeloraEnvelope {
   message?: string
   data?: unknown
   requestId?: string
+  request_id?: string
 }
 
 async function parseBody<T>(res: Response): Promise<T | undefined> {
@@ -111,4 +112,20 @@ export function buildQuery(params: Record<string, string | number | boolean | un
   }
   const s = qs.toString()
   return s ? `?${s}` : ''
+}
+
+/**
+ * Kratos 的 protojson 编码使用 proto 字段名（snake_case），而 Web 领域模型
+ * 保持 camelCase。集中在传输层做递归转换，避免每个页面重复处理字段。
+ */
+export function snakeToCamel<T>(value: T): T {
+  if (Array.isArray(value)) return value.map((item) => snakeToCamel(item)) as T
+  if (value && typeof value === 'object') {
+    const result: Record<string, unknown> = {}
+    for (const [key, item] of Object.entries(value as Record<string, unknown>)) {
+      result[key.replace(/_([a-z])/g, (_, letter: string) => letter.toUpperCase())] = snakeToCamel(item)
+    }
+    return result as T
+  }
+  return value
 }

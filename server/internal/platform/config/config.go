@@ -899,6 +899,9 @@ func (c Config) ValidateProductionAuth() error {
 	if c.Security.OIDCProviderEnabled {
 		errs = append(errs, "security.oidc_provider_enabled must be false in production; Casdoor is the only OIDC provider")
 	}
+	if strings.EqualFold(strings.TrimSpace(c.Security.CryptoAdapter), "software") {
+		errs = append(errs, "security.crypto_adapter must be an approved KMS/HSM/PKCS#11 adapter in production; software key storage is development-only")
+	}
 	if strings.EqualFold(strings.TrimSpace(c.Security.CryptoProvider), "gm") && strings.EqualFold(strings.TrimSpace(c.Security.CryptoAdapter), "software") {
 		errs = append(errs, "security.crypto_provider=gm requires an approved KMS/HSM/PKCS#11 adapter in production; software GM is not an approved trust root")
 	}

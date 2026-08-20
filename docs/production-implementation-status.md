@@ -12,7 +12,7 @@
 - OIDC 事务缓存键改为 SHA-256(state)，一次性消费仍由 Redis compare-and-delete 保证；回调严格校验 HttpOnly 事务 cookie、state、nonce、PKCE 和 issuer/client。
 - ForwardAuth：`GET /api/v1/auth/forward/{application_id}` 从可信路由参数加载应用，统一执行 `CanAccess`，返回后端签发的身份响应头；文档要求网关剥离入站 `X-Velora-*` 头。
 - 生产配置 fail-fast：HTTPS public URL、精确 HTTPS origins、Secure Cookie、OIDC、ObjectStore KMS SSE、无 host port 的生产 Compose、Casdoor `initData=false`。
-- CryptoProvider 已显式区分 `software` 与 KMS/HSM/PKCS#11 adapter slot；生产选择 `gm` 时拒绝软件信任根，未安装真实 adapter 会 fail-closed，不把软件 SM4 基线冒充商密硬件/认证能力。
+- CryptoProvider 已显式区分 `software` 与 KMS/HSM/PKCS#11 adapter slot；生产一律拒绝 software key storage，选择 `gm` 时同样拒绝软件信任根，未安装真实 adapter 会 fail-closed，不把软件 SM4 基线冒充商密硬件/认证能力。
 - OIDC 模式下本地密码/MFA 管理后端拒绝，用户中心跳转 Casdoor 账号中心；未接入的待办、邮件、共享门户设置从生产 UI 隐藏或明确失败，门户设置页已改为只读并提示走版本化配置发布。
 - 备份/恢复：`umask 077`、SHA-256 清单、可选 age 加密、上传失败非零、恢复前保险备份失败即中止、`pg_restore` 错误不再吞掉；新增 `backup-all-databases.sh` / `restore-all-databases.sh`，以同一时间戳编排 Velora 与 Casdoor 双库。
 - 网关 `/healthz` 已代理 server readiness，依赖异常通过 HTTP 503 暴露；不再固定返回 200 冒充业务就绪。

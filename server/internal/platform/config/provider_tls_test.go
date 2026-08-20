@@ -12,6 +12,13 @@ func productionConfig() Config {
 	cfg.Security.SecureCookies = true
 	cfg.Security.AllowedOrigins = []string{"https://velora.example.test"}
 	cfg.Database.DSN = "postgres://user:secret@db/app?sslmode=verify-full"
+	cfg.Cache.Provider = "redis"
+	cfg.Cache.Addresses = []string{"redis.internal:6379"}
+	cfg.Cache.TLS = true
+	cfg.Storage.Provider = "s3-compatible"
+	cfg.Storage.Endpoint = "https://objects.internal"
+	cfg.Storage.Bucket = "velora"
+	cfg.Storage.TLS = true
 	return cfg
 }
 
@@ -41,6 +48,7 @@ func TestValidateRequiresProviderTLSInProduction(t *testing.T) {
 		{name: "s3 flag", want: "storage.tls", prepare: func(c *Config) {
 			c.Storage.Provider = "oss"
 			c.Storage.Bucket = "documents"
+			c.Storage.TLS = false
 		}},
 		{name: "s3 scheme", want: "storage.endpoint", prepare: func(c *Config) {
 			c.Storage.Provider = "cos"

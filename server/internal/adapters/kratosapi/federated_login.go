@@ -36,6 +36,15 @@ type FederatedLogin struct {
 
 const oidcTransactionCookieName = "velora_oidc_tx"
 
+const (
+	maxFederatedProvider = 64
+	maxFederatedOrg      = 100
+	maxOIDCCode          = 4096
+	maxOIDCState         = 512
+	maxLDAPLogin         = 120
+	maxLDAPPassword      = 512
+)
+
 func (s *IdentityService) ConfigureFederatedLogin(options FederatedLoginOptions) {
 	s.federated = &FederatedLogin{cache: options.Cache, oidc: options.OIDC, ldap: options.LDAP}
 }
@@ -45,6 +54,9 @@ func (s *IdentityService) BeginOIDCLogin(ctx context.Context, req *forgev1.Begin
 		return nil, federatedUnavailable()
 	}
 	providerName := normalizeProviderName(req.GetProvider())
+	if len(providerName) == 0 || len(providerName) > maxFederatedProvider {
+		return nil, kerrors.New(http.StatusBadRequest, "FEDERATED_PROVIDER_INVALID", "OIDC provider is invalid")
+	}
 	provider, ok := s.federated.oidc[providerName]
 	if !ok {
 		return nil, kerrors.NotFound("FEDERATED_PROVIDER_NOT_FOUND", "OIDC provider is not configured")
@@ -64,6 +76,9 @@ func (s *IdentityService) BeginOIDCLogin(ctx context.Context, req *forgev1.Begin
 	organization := strings.TrimSpace(req.GetOrganization())
 	if organization == "" {
 		organization = "default"
+	}
+	if len(organization) > maxFederatedOrg {
+		return nil, kerrors.New(http.StatusBadRequest, "FEDERATED_ORGANIZATION_INVALID", "organization is invalid")
 	}
 	verifier, err := randomPKCEVerifier()
 	if err != nil {
@@ -86,6 +101,9 @@ func (s *IdentityService) CompleteOIDCLogin(ctx context.Context, req *forgev1.Co
 		return nil, federatedUnavailable()
 	}
 	providerName := normalizeProviderName(req.GetProvider())
+	if len(providerName) == 0 || len(providerName) > maxFederatedProvider || len(req.GetCode()) > maxOIDCCode || len(req.GetState()) > maxOIDCState {
+		return nil, kerrors.Unauthorized("FEDERATED_LOGIN_FAILED", "federated login failed")
+	}
 	provider, ok := s.federated.oidc[providerName]
 	if !ok {
 		return nil, kerrors.NotFound("FEDERATED_PROVIDER_NOT_FOUND", "OIDC provider is not configured")
@@ -149,6 +167,9 @@ func (s *IdentityService) LoginLDAP(ctx context.Context, req *forgev1.LoginLDAPR
 	organization := strings.TrimSpace(req.GetOrganization())
 	if organization == "" {
 		organization = "default"
+	}
+	if len(organization) > maxFederatedOrg || len(req.GetLoginName()) > maxLDAPLogin || len(req.GetPassword()) > maxLDAPPassword {
+		return nil, kerrors.Unauthorized("FEDERATED_LOGIN_FAILED", "federated login failed")
 	}
 	attempt := domain.Principal{LoginName: strings.TrimSpace(req.GetLoginName())}
 	event := newAuditEvent(ctx, attempt, "auth.federated.login", "session", "", map[string]any{"provider": providerName})

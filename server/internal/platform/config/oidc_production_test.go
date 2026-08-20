@@ -72,6 +72,13 @@ func TestValidateProductionTransportSecurity(t *testing.T) {
 
 	cfg.Security.SecureCookies = true
 	cfg.Security.AllowedOrigins = []string{"https://velora.example.test"}
+	cfg.Cache.Provider = "redis"
+	cfg.Cache.Addresses = []string{"redis.internal:6379"}
+	cfg.Cache.TLS = true
+	cfg.Storage.Provider = "s3-compatible"
+	cfg.Storage.Endpoint = "https://objects.internal"
+	cfg.Storage.Bucket = "velora"
+	cfg.Storage.TLS = true
 	if err := cfg.Validate(); err != nil {
 		t.Fatalf("valid production transport security rejected: %v", err)
 	}
@@ -79,5 +86,18 @@ func TestValidateProductionTransportSecurity(t *testing.T) {
 	cfg.Security.AllowedOrigins = []string{"*"}
 	if err := cfg.Validate(); err == nil || !strings.Contains(err.Error(), "security.allowed_origins must contain exact https origins") {
 		t.Fatalf("wildcard production origin was not rejected: %v", err)
+	}
+}
+
+func TestValidateProductionRequiresSharedRedisAndObjectStorage(t *testing.T) {
+	cfg := Default()
+	cfg.App.Environment = "production"
+	cfg.Database.DSN = "postgres://velora:secret@db/velora?sslmode=verify-full"
+	cfg.Server.PublicURL = "https://velora.example.test"
+	cfg.Security.SecureCookies = true
+	cfg.Security.AllowedOrigins = []string{"https://velora.example.test"}
+	cfg.Storage.LocalRoot = "/var/lib/velora"
+	if err := cfg.Validate(); err == nil || !strings.Contains(err.Error(), "cache.provider must be redis") || !strings.Contains(err.Error(), "storage.provider must be an S3-compatible target") {
+		t.Fatalf("production accepted local/shared-state fallbacks: %v", err)
 	}
 }

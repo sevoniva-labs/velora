@@ -56,6 +56,9 @@ func (s *IdentityService) Login(ctx context.Context, req *forgev1.LoginRequest) 
 	if !s.passwordLoginEnabled {
 		return nil, kerrors.ServiceUnavailable("PASSWORD_LOGIN_DISABLED", "password login is disabled; use the configured OIDC provider")
 	}
+	if len(req.GetLoginName()) > 120 || len(req.GetPassword()) > 512 || len(req.GetMfaCode()) > 32 || len(req.GetRecoveryCode()) > 128 {
+		return nil, kerrors.Unauthorized("INVALID_CREDENTIALS", "invalid credentials")
+	}
 	attempt := domain.Principal{LoginName: strings.TrimSpace(req.GetLoginName())}
 	event := newAuditEvent(ctx, attempt, "auth.login", "session", "", nil)
 	event.Result = "FAILED"

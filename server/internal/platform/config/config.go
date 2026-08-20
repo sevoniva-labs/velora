@@ -621,6 +621,9 @@ func (c Config) Validate() error {
 	if c.Cache.Provider == "redis" && isProduction(c.App.Environment) && !c.Cache.TLS {
 		errs = append(errs, "cache.tls must be enabled for redis in production")
 	}
+	if isProduction(c.App.Environment) && c.Cache.Provider != "redis" {
+		errs = append(errs, "cache.provider must be redis in production; memory/disabled cache cannot provide shared session and rate-limit state")
+	}
 	if c.Cache.Mode != "" && c.Cache.Mode != "standalone" && c.Cache.Mode != "sentinel" && c.Cache.Mode != "cluster" {
 		errs = append(errs, "cache.mode must be standalone|sentinel|cluster")
 	}
@@ -689,6 +692,9 @@ func (c Config) Validate() error {
 	}
 	if normalizeStorageProvider(c.Storage.Provider) == "local" && strings.TrimSpace(c.Storage.LocalRoot) == "" {
 		errs = append(errs, "storage.local_root required for local storage")
+	}
+	if isProduction(c.App.Environment) && normalizeStorageProvider(c.Storage.Provider) == "local" {
+		errs = append(errs, "storage.provider must be an S3-compatible target in production")
 	}
 	switch strings.ToLower(strings.TrimSpace(c.Storage.SSEMode)) {
 	case "", "none", "s3", "kms":

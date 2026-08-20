@@ -305,7 +305,11 @@ message LoginLDAPResponse {
 }
 
 message LogoutRequest {}
-message LogoutResponse {}
+message LogoutResponse {
+  // Optional RP-initiated logout URL for the external IdP. The Velora
+  // session is already revoked before this value is returned.
+  string federated_logout_url = 1;
+}
 
 message ChangePasswordRequest {
   string current_password = 1;

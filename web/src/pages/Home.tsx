@@ -56,7 +56,7 @@ export default function Home() {
   const navigate = useNavigate()
   const { message } = AntdApp.useApp()
 
-  // SSO 门户模型：点击应用 = 直接启动（OIDC 应用跳转 Casdoor 登录，URL 应用直接打开）。
+  // SSO 门户模型：点击应用 = 直接启动（OIDC 应用跳转外部 IdP，URL 应用直接打开）。
   const launchApp = async (appId: number | string) => {
     try {
       const result = await launchApplication(appId)
@@ -283,7 +283,7 @@ export default function Home() {
         {renderMyApps()}
       </ProCard>
 
-      {/* 三栏工作台：最近使用 / 待办中心 / 应用分类 */}
+      {/* 双栏工作台：最近使用 / 应用分类；未接入模块不渲染。 */}
       <div className="velora-workbench">
         {/* 最近使用 */}
         <section className="velora-panel">

@@ -197,31 +197,32 @@ type RemoteConfig struct {
 }
 
 type Security struct {
-	AuthMode            string        `yaml:"auth_mode"` // oidc | password (development only)
-	SessionTTL          time.Duration `yaml:"session_ttl"`
-	SecureCookies       bool          `yaml:"secure_cookies"`
-	SameSite            string        `yaml:"same_site"`
-	PasswordMinLength   int           `yaml:"password_min_length"`
-	PasswordUpper       bool          `yaml:"password_require_upper"`
-	PasswordLower       bool          `yaml:"password_require_lower"`
-	PasswordDigit       bool          `yaml:"password_require_digit"`
-	PasswordSymbol      bool          `yaml:"password_require_symbol"`
-	PasswordHistory     int           `yaml:"password_history"`
-	PasswordMaxAgeDay   int           `yaml:"password_max_age_days"`
-	LoginMaxFailures    int           `yaml:"login_max_failures"`
-	LoginLockDuration   time.Duration `yaml:"login_lock_duration"`
-	CryptoProvider      string        `yaml:"crypto_provider"` // standard | gm
-	CryptoKey           string        `yaml:"-"`
-	CryptoKeyVersion    string        `yaml:"crypto_key_version"`
-	OIDCIssuer          string        `yaml:"oidc_issuer"`
-	OIDCName            string        `yaml:"oidc_name"`
-	OIDCClientID        string        `yaml:"oidc_client_id"`
-	OIDCClientSecret    string        `yaml:"-"`
-	OIDCRedirectURL     string        `yaml:"oidc_redirect_url"`
-	CasdoorAccountURL   string        `yaml:"casdoor_account_url"`
-	OIDCProviderEnabled bool          `yaml:"oidc_provider_enabled"`
-	AllowedOrigins      []string      `yaml:"allowed_origins"`
-	TrustedProxies      []string      `yaml:"trusted_proxies"`
+	AuthMode                  string        `yaml:"auth_mode"` // oidc | password (development only)
+	SessionTTL                time.Duration `yaml:"session_ttl"`
+	SecureCookies             bool          `yaml:"secure_cookies"`
+	SameSite                  string        `yaml:"same_site"`
+	PasswordMinLength         int           `yaml:"password_min_length"`
+	PasswordUpper             bool          `yaml:"password_require_upper"`
+	PasswordLower             bool          `yaml:"password_require_lower"`
+	PasswordDigit             bool          `yaml:"password_require_digit"`
+	PasswordSymbol            bool          `yaml:"password_require_symbol"`
+	PasswordHistory           int           `yaml:"password_history"`
+	PasswordMaxAgeDay         int           `yaml:"password_max_age_days"`
+	LoginMaxFailures          int           `yaml:"login_max_failures"`
+	LoginLockDuration         time.Duration `yaml:"login_lock_duration"`
+	CryptoProvider            string        `yaml:"crypto_provider"` // standard | gm
+	CryptoKey                 string        `yaml:"-"`
+	CryptoKeyVersion          string        `yaml:"crypto_key_version"`
+	OIDCIssuer                string        `yaml:"oidc_issuer"`
+	OIDCName                  string        `yaml:"oidc_name"`
+	OIDCClientID              string        `yaml:"oidc_client_id"`
+	OIDCClientSecret          string        `yaml:"-"`
+	OIDCRedirectURL           string        `yaml:"oidc_redirect_url"`
+	OIDCPostLogoutRedirectURL string        `yaml:"oidc_post_logout_redirect_url"`
+	CasdoorAccountURL         string        `yaml:"casdoor_account_url"`
+	OIDCProviderEnabled       bool          `yaml:"oidc_provider_enabled"`
+	AllowedOrigins            []string      `yaml:"allowed_origins"`
+	TrustedProxies            []string      `yaml:"trusted_proxies"`
 }
 
 type Observability struct {
@@ -540,6 +541,7 @@ func ApplyEnvironment(cfg *Config) {
 	overrideString(&cfg.Security.OIDCName, "VELORA_OIDC_NAME")
 	overrideString(&cfg.Security.OIDCClientID, "VELORA_OIDC_CLIENT_ID")
 	overrideString(&cfg.Security.OIDCRedirectURL, "VELORA_OIDC_REDIRECT_URL")
+	overrideString(&cfg.Security.OIDCPostLogoutRedirectURL, "VELORA_OIDC_POST_LOGOUT_REDIRECT_URL")
 	overrideString(&cfg.Security.CasdoorAccountURL, "VELORA_CASDOOR_ACCOUNT_URL")
 	overrideBool(&cfg.Security.OIDCProviderEnabled, "VELORA_OIDC_PROVIDER_ENABLED")
 	overrideBool(&cfg.Security.SecureCookies, "VELORA_SECURE_COOKIES")
@@ -868,6 +870,12 @@ func (c Config) ValidateProductionAuth() error {
 	}
 	if strings.TrimSpace(c.Security.OIDCRedirectURL) == "" || !isHTTPSURL(c.Security.OIDCRedirectURL) {
 		errs = append(errs, "security.oidc_redirect_url must be an https URL in production")
+	}
+	if c.Security.OIDCPostLogoutRedirectURL != "" && !isHTTPSURL(c.Security.OIDCPostLogoutRedirectURL) {
+		errs = append(errs, "security.oidc_post_logout_redirect_url must be an https URL in production")
+	}
+	if c.Security.SessionTTL <= 0 || c.Security.SessionTTL > time.Hour {
+		errs = append(errs, "security.session_ttl must be between 1 second and 1 hour for production OIDC")
 	}
 	if strings.TrimSpace(c.Security.CasdoorAccountURL) == "" || !isHTTPSURL(c.Security.CasdoorAccountURL) {
 		errs = append(errs, "security.casdoor_account_url must be an https URL in production")

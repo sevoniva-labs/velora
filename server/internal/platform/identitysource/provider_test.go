@@ -4,10 +4,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/url"
 	"testing"
 	"time"
 
 	"github.com/go-ldap/ldap/v3"
+	"golang.org/x/oauth2"
 )
 
 func TestNewLDAPProviderRequiresSecureTransportByDefault(t *testing.T) {
@@ -44,5 +46,32 @@ func TestNewOIDCProviderRequiresConfidentialClientConfiguration(t *testing.T) {
 	})
 	if !errors.Is(err, ErrInvalidConfiguration) {
 		t.Fatalf("NewOIDCProvider() error = %v, want ErrInvalidConfiguration", err)
+	}
+}
+
+func TestEndSessionURLBuildsSafeRPInitiatedLogoutRequest(t *testing.T) {
+	provider := &OIDCProvider{
+		config:                oauth2.Config{ClientID: "velora"},
+		endSessionEndpoint:    "https://casdoor.example.com/api/logout",
+		postLogoutRedirectURL: "https://velora.example.com/login",
+	}
+	got, err := provider.EndSessionURL()
+	if err != nil {
+		t.Fatalf("EndSessionURL() error = %v", err)
+	}
+	parsed, err := url.Parse(got)
+	if err != nil || parsed.Scheme != "https" || parsed.Host != "casdoor.example.com" {
+		t.Fatalf("unexpected logout URL %q", got)
+	}
+	if parsed.Query().Get("client_id") != "velora" || parsed.Query().Get("post_logout_redirect_uri") != "https://velora.example.com/login" {
+		t.Fatalf("logout query = %v", parsed.Query())
+	}
+}
+
+func TestEndSessionURLIsOptionalWhenProviderDoesNotAdvertiseIt(t *testing.T) {
+	provider := &OIDCProvider{config: oauth2.Config{ClientID: "velora"}}
+	got, err := provider.EndSessionURL()
+	if err != nil || got != "" {
+		t.Fatalf("EndSessionURL() = %q, %v; want empty optional URL", got, err)
 	}
 }

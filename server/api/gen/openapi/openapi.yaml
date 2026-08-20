@@ -3313,7 +3313,12 @@ components:
             properties: {}
         forge.v1.LogoutResponse:
             type: object
-            properties: {}
+            properties:
+                federatedLogoutUrl:
+                    type: string
+                    description: |-
+                        Optional RP-initiated logout URL for the external IdP. The Velora
+                         session is already revoked before this value is returned.
         forge.v1.Menu:
             type: object
             properties:

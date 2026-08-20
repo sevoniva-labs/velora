@@ -3,6 +3,7 @@ package config
 import (
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestValidateProductionAuthRequiresOIDCConfiguration(t *testing.T) {
@@ -16,6 +17,7 @@ func TestValidateProductionAuthRequiresOIDCConfiguration(t *testing.T) {
 	cfg.Security.OIDCClientID = "velora"
 	cfg.Security.OIDCClientSecret = "secret"
 	cfg.Security.OIDCRedirectURL = "https://velora.example.test/auth/callback"
+	cfg.Security.SessionTTL = time.Hour
 	cfg.Security.CasdoorAccountURL = "https://casdoor.example.test/account"
 	if err := cfg.ValidateProductionAuth(); err != nil {
 		t.Fatalf("valid production OIDC configuration rejected: %v", err)
@@ -30,6 +32,7 @@ func TestValidateProductionAuthRejectsVeloraOIDCProvider(t *testing.T) {
 	cfg.Security.OIDCClientID = "velora"
 	cfg.Security.OIDCClientSecret = "secret"
 	cfg.Security.OIDCRedirectURL = "https://velora.example.test/auth/callback"
+	cfg.Security.SessionTTL = time.Hour
 	cfg.Security.CasdoorAccountURL = "https://casdoor.example.test/account"
 	cfg.Security.OIDCProviderEnabled = true
 	if err := cfg.ValidateProductionAuth(); err == nil || !strings.Contains(err.Error(), "oidc_provider_enabled must be false") {

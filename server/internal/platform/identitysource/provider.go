@@ -31,20 +31,23 @@ type FederatedIdentity struct {
 }
 
 type OIDCConfig struct {
-	Name         string
-	Issuer       string
-	ClientID     string
-	ClientSecret string
-	RedirectURL  string
-	Scopes       []string
-	AllowHTTP    bool
+	Name                  string
+	Issuer                string
+	ClientID              string
+	ClientSecret          string
+	RedirectURL           string
+	PostLogoutRedirectURL string
+	Scopes                []string
+	AllowHTTP             bool
 }
 
 type OIDCProvider struct {
-	name     string
-	config   oauth2.Config
-	provider *oidc.Provider
-	verifier *oidc.IDTokenVerifier
+	name                  string
+	config                oauth2.Config
+	provider              *oidc.Provider
+	verifier              *oidc.IDTokenVerifier
+	endSessionEndpoint    string
+	postLogoutRedirectURL string
 }
 
 func NewOIDCProvider(ctx context.Context, client *http.Client, cfg OIDCConfig) (*OIDCProvider, error) {
@@ -58,6 +61,11 @@ func NewOIDCProvider(ctx context.Context, client *http.Client, cfg OIDCConfig) (
 	if err := validateEndpoint(cfg.RedirectURL, cfg.AllowHTTP); err != nil {
 		return nil, err
 	}
+	if strings.TrimSpace(cfg.PostLogoutRedirectURL) != "" {
+		if err := validateEndpoint(cfg.PostLogoutRedirectURL, cfg.AllowHTTP); err != nil {
+			return nil, err
+		}
+	}
 	if client == nil {
 		client = http.DefaultClient
 	}
@@ -66,16 +74,50 @@ func NewOIDCProvider(ctx context.Context, client *http.Client, cfg OIDCConfig) (
 	if err != nil {
 		return nil, fmt.Errorf("oidc discovery: %w", err)
 	}
+	var metadata struct {
+		EndSessionEndpoint string `json:"end_session_endpoint"`
+	}
+	if err := provider.Claims(&metadata); err != nil {
+		return nil, fmt.Errorf("oidc discovery metadata: %w", err)
+	}
+	if strings.TrimSpace(metadata.EndSessionEndpoint) != "" {
+		if err := validateEndpoint(metadata.EndSessionEndpoint, cfg.AllowHTTP); err != nil {
+			return nil, fmt.Errorf("oidc end-session endpoint: %w", err)
+		}
+	}
 	scopes := append([]string{"openid", "profile", "email"}, cfg.Scopes...)
 	return &OIDCProvider{
-		name:     cfg.Name,
-		config:   oauth2.Config{ClientID: cfg.ClientID, ClientSecret: cfg.ClientSecret, Endpoint: provider.Endpoint(), RedirectURL: cfg.RedirectURL, Scopes: uniqueStrings(scopes)},
-		provider: provider,
-		verifier: provider.Verifier(&oidc.Config{ClientID: cfg.ClientID}),
+		name:                  cfg.Name,
+		config:                oauth2.Config{ClientID: cfg.ClientID, ClientSecret: cfg.ClientSecret, Endpoint: provider.Endpoint(), RedirectURL: cfg.RedirectURL, Scopes: uniqueStrings(scopes)},
+		provider:              provider,
+		verifier:              provider.Verifier(&oidc.Config{ClientID: cfg.ClientID}),
+		endSessionEndpoint:    strings.TrimSpace(metadata.EndSessionEndpoint),
+		postLogoutRedirectURL: strings.TrimSpace(cfg.PostLogoutRedirectURL),
 	}, nil
 }
 
 func (p *OIDCProvider) Name() string { return p.name }
+
+// EndSessionURL returns the provider's standard RP-initiated logout URL. An
+// empty result means the discovery document does not advertise end_session.
+// Local Velora session revocation must happen independently of this optional
+// browser redirect.
+func (p *OIDCProvider) EndSessionURL() (string, error) {
+	if strings.TrimSpace(p.endSessionEndpoint) == "" {
+		return "", nil
+	}
+	u, err := url.Parse(p.endSessionEndpoint)
+	if err != nil || u.Host == "" {
+		return "", ErrInvalidConfiguration
+	}
+	query := u.Query()
+	query.Set("client_id", p.config.ClientID)
+	if p.postLogoutRedirectURL != "" {
+		query.Set("post_logout_redirect_uri", p.postLogoutRedirectURL)
+	}
+	u.RawQuery = query.Encode()
+	return u.String(), nil
+}
 
 func (p *OIDCProvider) AuthorizationURL(state, nonce string, codeChallenge ...string) string {
 	options := []oauth2.AuthCodeOption{oauth2.SetAuthURLParam("nonce", nonce)}

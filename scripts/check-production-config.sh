@@ -36,6 +36,8 @@ env \
   VELORA_OIDC_ISSUER=https://casdoor.example.com \
   VELORA_OIDC_CLIENT_ID=velora \
   VELORA_OIDC_REDIRECT_URL=https://velora.example.com/auth/callback \
+  VELORA_OIDC_POST_LOGOUT_REDIRECT_URL=https://velora.example.com/login \
+  VELORA_SESSION_TTL=1h \
   VELORA_CASDOOR_ACCOUNT_URL=https://casdoor.example.com/account \
   VELORA_OIDC_PROVIDER_ENABLED=false \
   VELORA_BOOTSTRAP_ADMIN=break-glass \

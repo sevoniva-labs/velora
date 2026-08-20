@@ -167,7 +167,7 @@ export default function Login() {
             <br />
             接入企业全部应用
           </h1>
-          <p className="velora-login-sub">统一认证，直达应用、待办与企业邮件。</p>
+          <p className="velora-login-sub">统一认证，直达已授权企业应用。</p>
           <ul className="velora-login-features">
             {FEATURES.map((f) => (
               <li key={f.name} className="velora-login-feature">

@@ -517,9 +517,12 @@ func (*LogoutRequest) Descriptor() ([]byte, []int) {
 }
 
 type LogoutResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Optional RP-initiated logout URL for the external IdP. The Velora
+	// session is already revoked before this value is returned.
+	FederatedLogoutUrl string `protobuf:"bytes,1,opt,name=federated_logout_url,json=federatedLogoutUrl,proto3" json:"federated_logout_url,omitempty"`
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
 }
 
 func (x *LogoutResponse) Reset() {
@@ -550,6 +553,13 @@ func (x *LogoutResponse) ProtoReflect() protoreflect.Message {
 // Deprecated: Use LogoutResponse.ProtoReflect.Descriptor instead.
 func (*LogoutResponse) Descriptor() ([]byte, []int) {
 	return file_forge_v1_identity_proto_rawDescGZIP(), []int{9}
+}
+
+func (x *LogoutResponse) GetFederatedLogoutUrl() string {
+	if x != nil {
+		return x.FederatedLogoutUrl
+	}
+	return ""
 }
 
 type ChangePasswordRequest struct {
@@ -1495,8 +1505,9 @@ const file_forge_v1_identity_proto_rawDesc = "" +
 	"\x04user\x18\x01 \x01(\v2\x0e.forge.v1.UserR\x04user\x12\x1d\n" +
 	"\n" +
 	"csrf_token\x18\x02 \x01(\tR\tcsrfToken\"\x0f\n" +
-	"\rLogoutRequest\"\x10\n" +
-	"\x0eLogoutResponse\"e\n" +
+	"\rLogoutRequest\"B\n" +
+	"\x0eLogoutResponse\x120\n" +
+	"\x14federated_logout_url\x18\x01 \x01(\tR\x12federatedLogoutUrl\"e\n" +
 	"\x15ChangePasswordRequest\x12)\n" +
 	"\x10current_password\x18\x01 \x01(\tR\x0fcurrentPassword\x12!\n" +
 	"\fnew_password\x18\x02 \x01(\tR\vnewPassword\"\x18\n" +

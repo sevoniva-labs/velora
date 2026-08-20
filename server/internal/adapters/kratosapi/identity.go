@@ -211,7 +211,17 @@ func (s *IdentityService) Logout(ctx context.Context, _ *forgev1.LogoutRequest) 
 		return nil, serviceError(err)
 	}
 	s.clearLoginCookies(ctx)
-	return &forgev1.LogoutResponse{}, nil
+	var federatedLogoutURL string
+	if strings.EqualFold(principal.AuthenticationLevel, "FEDERATED") && s.federated != nil {
+		// Casdoor is the sole production OIDC provider. Local session
+		// revocation above is authoritative; this optional URL clears the
+		// upstream browser session when the provider supports RP-initiated
+		// logout. Never fail local logout merely because discovery omits it.
+		if provider, ok := s.federated.oidc["casdoor"]; ok {
+			federatedLogoutURL, _ = provider.EndSessionURL()
+		}
+	}
+	return &forgev1.LogoutResponse{FederatedLogoutUrl: federatedLogoutURL}, nil
 }
 
 func (s *IdentityService) GetCurrentUser(ctx context.Context, _ *forgev1.GetCurrentUserRequest) (*forgev1.GetCurrentUserResponse, error) {

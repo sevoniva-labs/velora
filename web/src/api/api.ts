@@ -142,7 +142,11 @@ export async function getAuthCapabilities(): Promise<AuthCapabilities> {
 }
 
 export async function getMe(): Promise<CurrentUser> { const data = await apiFetch<unknown>('/me'); return mapUser(record(data).user ?? data) }
-export function logout(): Promise<{ status: string }> { return apiFetch('/auth/logout', { method: 'POST', body: {} }).then(() => ({ status: 'logged_out' })) }
+export async function logout(): Promise<{ status: string; federatedLogoutUrl?: string }> {
+  const data = await apiFetch<unknown>('/auth/logout', { method: 'POST', body: {} })
+  const item = record(data)
+  return { status: 'logged_out', federatedLogoutUrl: String(item.federatedLogoutUrl ?? '') || undefined }
+}
 export function oidcLoginUrl(redirect?: string): string { return `/api/v1/auth/federated/oidc/casdoor/begin${buildQuery({ organization: 'default', redirect })}` }
 export async function beginOIDCLogin(redirect?: string): Promise<string> {
   const data = record(await apiFetch<unknown>(`/auth/federated/oidc/casdoor/begin${buildQuery({ organization: 'default' })}`))

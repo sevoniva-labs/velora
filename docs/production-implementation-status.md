@@ -8,7 +8,7 @@
 
 ## 已实施并已 push
 
-- Casdoor Authorization Code + PKCE 前端入口、SPA `/auth/callback`、生产关闭密码登录；Velora 自建 OIDC Provider 有配置硬开关，生产为 true 时启动失败。
+- Casdoor Authorization Code + PKCE 前端入口、SPA `/auth/callback`、生产关闭密码登录；Velora 自建 OIDC Provider 有配置硬开关，生产为 true 时启动失败。生产 OIDC session TTL 强制不超过 1 小时；本地 session 撤销后，如 Casdoor discovery 提供 `end_session_endpoint`，后端返回标准 RP-initiated logout URL，前端再跳转清理上游会话。
 - ForwardAuth：`GET /api/v1/auth/forward/{application_id}` 从可信路由参数加载应用，统一执行 `CanAccess`，返回后端签发的身份响应头；文档要求网关剥离入站 `X-Velora-*` 头。
 - 生产配置 fail-fast：HTTPS public URL、精确 HTTPS origins、Secure Cookie、OIDC、ObjectStore KMS SSE、无 host port 的生产 Compose、Casdoor `initData=false`。
 - OIDC 模式下本地密码/MFA 管理后端拒绝，用户中心跳转 Casdoor 账号中心；未接入的待办、邮件、共享门户设置从生产 UI 隐藏或明确失败。
@@ -43,9 +43,10 @@
 6. WORM/SIEM 链头锚定、职责分离、外部渗透/红队、等保/金融控制映射和签字证据。
 7. 目标域名、TLS 证书链、DNS、网关 ForwardAuth 配置、Secret Manager 注入和生产值班/回滚演练。
 
+OIDC 的上游 logout URL 只是标准协议跳转，是否真正清理 Casdoor 会话仍需目标 Casdoor 版本的真实 E2E 证明；本仓库不会伪造该证据。
+
 ## 回滚
 
 - 代码：使用当前远端分支上一个已验证 commit/tag 构建旧镜像，生产 Compose 只回滚 `server/web` 镜像；保留新卷、日志和证据，不删除数据卷。
 - 数据：按 `docs/ops-backup.md` 在隔离恢复环境演练后执行；禁止未经审批直接回滚生产数据库或 Casdoor 数据库。
 - 配置：恢复上一份经审批的 Secret/配置版本，确认 `VELORA_OIDC_PROVIDER_ENABLED=false`、TLS、origins 和网关路由后再滚动重启。
-

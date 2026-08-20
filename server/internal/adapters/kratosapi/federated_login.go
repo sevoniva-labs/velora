@@ -89,7 +89,7 @@ func (s *IdentityService) BeginOIDCLogin(ctx context.Context, req *forgev1.Begin
 	if err != nil {
 		return nil, federatedUnavailable()
 	}
-	if err := s.federated.cache.Set(ctx, "oidc:state:"+state, string(payload), 5*time.Minute); err != nil {
+	if err := s.federated.cache.Set(ctx, oidcTransactionKey(state), string(payload), 5*time.Minute); err != nil {
 		return nil, federatedUnavailable()
 	}
 	setOIDCTransactionCookie(ctx, state, s.secure)
@@ -122,7 +122,7 @@ func (s *IdentityService) CompleteOIDCLogin(ctx context.Context, req *forgev1.Co
 	if cookieState == "" || subtle.ConstantTimeCompare([]byte(cookieState), []byte(state)) != 1 {
 		return nil, kerrors.Unauthorized("FEDERATED_LOGIN_FAILED", "federated login transaction is invalid")
 	}
-	key := "oidc:state:" + state
+	key := oidcTransactionKey(state)
 	payload, err := s.federated.cache.Get(ctx, key)
 	if err != nil {
 		return nil, kerrors.Unauthorized("FEDERATED_LOGIN_FAILED", "federated login failed")
@@ -243,6 +243,13 @@ func randomPKCEVerifier() (string, error) {
 func pkceChallenge(verifier string) string {
 	sum := sha256.Sum256([]byte(verifier))
 	return base64.RawURLEncoding.EncodeToString(sum[:])
+}
+
+// oidcTransactionKey keeps the high-entropy browser state out of cache key
+// listings and metrics while preserving a deterministic one-time lookup.
+func oidcTransactionKey(state string) string {
+	sum := sha256.Sum256([]byte(state))
+	return "oidc:state:" + hex.EncodeToString(sum[:])
 }
 
 func setOIDCTransactionCookie(ctx context.Context, state string, secure bool) {

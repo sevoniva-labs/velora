@@ -12,3 +12,17 @@ func TestPKCEChallengeUsesS256(t *testing.T) {
 		t.Fatal("pkceChallenge() is not deterministic")
 	}
 }
+
+func TestOIDCTransactionKeyDoesNotExposeState(t *testing.T) {
+	state := "state-with-high-entropy"
+	key := oidcTransactionKey(state)
+	if key == "oidc:state:"+state {
+		t.Fatal("OIDC transaction key exposed raw state")
+	}
+	if len(key) != len("oidc:state:")+64 {
+		t.Fatalf("unexpected transaction key length: %d", len(key))
+	}
+	if key != oidcTransactionKey(state) {
+		t.Fatal("OIDC transaction key must be deterministic")
+	}
+}

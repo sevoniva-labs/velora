@@ -45,6 +45,13 @@ func (s *IdentityService) ConfigureAuthMode(mode string) {
 	s.passwordLoginEnabled = mode == "" || strings.EqualFold(mode, "password")
 }
 
+func (s *IdentityService) requirePasswordManagement() error {
+	if !s.passwordLoginEnabled {
+		return kerrors.ServiceUnavailable("PASSWORD_MANAGEMENT_DISABLED", "password and local MFA management are disabled; use the configured OIDC provider")
+	}
+	return nil
+}
+
 func (s *IdentityService) Login(ctx context.Context, req *forgev1.LoginRequest) (*forgev1.LoginResponse, error) {
 	if !s.passwordLoginEnabled {
 		return nil, kerrors.ServiceUnavailable("PASSWORD_LOGIN_DISABLED", "password login is disabled; use the configured OIDC provider")
@@ -112,6 +119,9 @@ func (s *IdentityService) GetMFAStatus(ctx context.Context, _ *forgev1.GetMFASta
 	if err != nil {
 		return nil, err
 	}
+	if err := s.requirePasswordManagement(); err != nil {
+		return nil, err
+	}
 	enabled, err := s.identity.MFAEnabled(ctx, principal)
 	if err != nil {
 		return nil, serviceError(err)
@@ -122,6 +132,9 @@ func (s *IdentityService) GetMFAStatus(ctx context.Context, _ *forgev1.GetMFASta
 func (s *IdentityService) BeginMFAEnrollment(ctx context.Context, req *forgev1.BeginMFAEnrollmentRequest) (*forgev1.BeginMFAEnrollmentResponse, error) {
 	principal, err := requiredPrincipal(ctx)
 	if err != nil {
+		return nil, err
+	}
+	if err := s.requirePasswordManagement(); err != nil {
 		return nil, err
 	}
 	event := newAuditEvent(ctx, principal, "auth.mfa.enrollment.begin", "user", principal.UserID, nil)
@@ -140,6 +153,9 @@ func (s *IdentityService) BeginMFAEnrollment(ctx context.Context, req *forgev1.B
 func (s *IdentityService) ConfirmMFAEnrollment(ctx context.Context, req *forgev1.ConfirmMFAEnrollmentRequest) (*forgev1.ConfirmMFAEnrollmentResponse, error) {
 	principal, err := requiredPrincipal(ctx)
 	if err != nil {
+		return nil, err
+	}
+	if err := s.requirePasswordManagement(); err != nil {
 		return nil, err
 	}
 	if err := s.allow(ctx, "mfa-confirm:user:"+principal.UserID, 5, 5*time.Minute, "300"); err != nil {
@@ -161,6 +177,9 @@ func (s *IdentityService) ConfirmMFAEnrollment(ctx context.Context, req *forgev1
 func (s *IdentityService) DisableMFA(ctx context.Context, req *forgev1.DisableMFARequest) (*forgev1.DisableMFAResponse, error) {
 	principal, err := requiredPrincipal(ctx)
 	if err != nil {
+		return nil, err
+	}
+	if err := s.requirePasswordManagement(); err != nil {
 		return nil, err
 	}
 	if err := s.allow(ctx, "mfa-disable:user:"+principal.UserID, 5, 15*time.Minute, "900"); err != nil {
@@ -208,6 +227,9 @@ func (s *IdentityService) ChangePassword(ctx context.Context, req *forgev1.Chang
 	if err != nil {
 		return nil, err
 	}
+	if err := s.requirePasswordManagement(); err != nil {
+		return nil, err
+	}
 	for _, key := range []string{"password-change:user:" + principal.UserID, "password-change:ip:" + clientIP(ctx)} {
 		if err := s.allow(ctx, key, 5, 15*time.Minute, "900"); err != nil {
 			return nil, err
@@ -226,6 +248,9 @@ func (s *IdentityService) ChangePassword(ctx context.Context, req *forgev1.Chang
 func (s *IdentityService) StepUpAuthentication(ctx context.Context, req *forgev1.StepUpAuthenticationRequest) (*forgev1.StepUpAuthenticationResponse, error) {
 	principal, err := requiredPrincipal(ctx)
 	if err != nil {
+		return nil, err
+	}
+	if err := s.requirePasswordManagement(); err != nil {
 		return nil, err
 	}
 	if err := s.allow(ctx, "step-up:user:"+principal.UserID, 5, 5*time.Minute, "300"); err != nil {

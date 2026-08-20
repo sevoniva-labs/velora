@@ -36,7 +36,11 @@ type PresignStore interface {
 }
 
 func validateMultipartKey(key string) error {
-	if strings.TrimSpace(key) == "" || len(key) > 1024 {
+	if len(key) > 1024 {
+		return errors.New("invalid multipart object key")
+	}
+	_, err := normalizeObjectKey("", key)
+	if err != nil {
 		return errors.New("invalid multipart object key")
 	}
 	return nil
@@ -60,6 +64,10 @@ func (s *s3Store) CreateMultipart(ctx context.Context, key, contentType string) 
 	if err := validateMultipartKey(key); err != nil {
 		return "", err
 	}
+	key, err := s.objectKey(key)
+	if err != nil {
+		return "", err
+	}
 	if err := RequireTargetTestedCapabilities(s, CapabilityMultipartRecovery); err != nil {
 		return "", err
 	}
@@ -79,6 +87,10 @@ func (s *s3Store) CreateMultipart(ctx context.Context, key, contentType string) 
 
 func (s *s3Store) UploadPart(ctx context.Context, key, uploadID string, partNumber int32, body io.Reader, checksumSHA256 string) (MultipartPart, error) {
 	if err := validateMultipartKey(key); err != nil {
+		return MultipartPart{}, err
+	}
+	key, err := s.objectKey(key)
+	if err != nil {
 		return MultipartPart{}, err
 	}
 	if err := validateMultipartPart(partNumber); err != nil {
@@ -112,6 +124,10 @@ func (s *s3Store) CompleteMultipart(ctx context.Context, key, uploadID string, p
 	if err := validateMultipartKey(key); err != nil {
 		return err
 	}
+	key, err := s.objectKey(key)
+	if err != nil {
+		return err
+	}
 	if strings.TrimSpace(uploadID) == "" || len(parts) == 0 {
 		return errors.New("multipart upload id and parts are required")
 	}
@@ -133,7 +149,7 @@ func (s *s3Store) CompleteMultipart(ctx context.Context, key, uploadID string, p
 		}
 		completed = append(completed, item)
 	}
-	_, err := s.client.CompleteMultipartUpload(ctx, &s3.CompleteMultipartUploadInput{
+	_, err = s.client.CompleteMultipartUpload(ctx, &s3.CompleteMultipartUploadInput{
 		Bucket: &s.bucket, Key: &key, UploadId: &uploadID, MultipartUpload: &types.CompletedMultipartUpload{Parts: completed},
 	})
 	return err
@@ -143,18 +159,26 @@ func (s *s3Store) AbortMultipart(ctx context.Context, key, uploadID string) erro
 	if err := validateMultipartKey(key); err != nil {
 		return err
 	}
+	key, err := s.objectKey(key)
+	if err != nil {
+		return err
+	}
 	if strings.TrimSpace(uploadID) == "" {
 		return errors.New("multipart upload id is required")
 	}
 	if err := RequireTargetTestedCapabilities(s, CapabilityMultipartRecovery); err != nil {
 		return err
 	}
-	_, err := s.client.AbortMultipartUpload(ctx, &s3.AbortMultipartUploadInput{Bucket: &s.bucket, Key: &key, UploadId: &uploadID})
+	_, err = s.client.AbortMultipartUpload(ctx, &s3.AbortMultipartUploadInput{Bucket: &s.bucket, Key: &key, UploadId: &uploadID})
 	return err
 }
 
 func (s *s3Store) PresignGet(ctx context.Context, key string, ttl time.Duration) (string, error) {
 	if err := validateMultipartKey(key); err != nil {
+		return "", err
+	}
+	key, err := s.objectKey(key)
+	if err != nil {
 		return "", err
 	}
 	if err := validatePresignTTL(ttl); err != nil {
@@ -172,6 +196,10 @@ func (s *s3Store) PresignGet(ctx context.Context, key string, ttl time.Duration)
 
 func (s *s3Store) PresignPut(ctx context.Context, key string, ttl time.Duration, contentType string) (string, error) {
 	if err := validateMultipartKey(key); err != nil {
+		return "", err
+	}
+	key, err := s.objectKey(key)
+	if err != nil {
 		return "", err
 	}
 	if err := validatePresignTTL(ttl); err != nil {

@@ -83,6 +83,10 @@ func (s *s3Store) PutGoverned(ctx context.Context, key string, payload []byte, o
 	if err := validateGovernedWrite(key, options); err != nil {
 		return ObjectReceipt{}, err
 	}
+	key, err := s.objectKey(key)
+	if err != nil {
+		return ObjectReceipt{}, err
+	}
 	required := []Capability{CapabilityBasicObjectIO}
 	if options.ChecksumSHA256 != "" {
 		required = append(required, CapabilityChecksum)
@@ -145,6 +149,10 @@ func (s *s3Store) GetVersion(ctx context.Context, key, versionID string) (io.Rea
 	if err := validateMultipartKey(key); err != nil || strings.TrimSpace(versionID) == "" {
 		return nil, errors.New("object key and version id are required")
 	}
+	key, err := s.objectKey(key)
+	if err != nil {
+		return nil, err
+	}
 	if err := RequireTargetTestedCapabilities(s, CapabilityVersioning); err != nil {
 		return nil, err
 	}
@@ -178,19 +186,27 @@ func (s *s3Store) SetRetention(ctx context.Context, key, versionID string, mode 
 	if err := validateMultipartKey(key); err != nil || strings.TrimSpace(versionID) == "" || retainUntil.IsZero() || !retainUntil.After(time.Now().UTC()) {
 		return errors.New("valid object key, version id, and future retention time are required")
 	}
+	key, err := s.objectKey(key)
+	if err != nil {
+		return err
+	}
 	if mode != types.ObjectLockRetentionModeCompliance && mode != types.ObjectLockRetentionModeGovernance {
 		return errors.New("unsupported object retention mode")
 	}
 	if err := RequireTargetTestedCapabilities(s, CapabilityVersioning, CapabilityObjectLock, CapabilityRetention); err != nil {
 		return err
 	}
-	_, err := s.client.PutObjectRetention(ctx, &s3.PutObjectRetentionInput{Bucket: &s.bucket, Key: &key, VersionId: &versionID, Retention: &types.ObjectLockRetention{Mode: mode, RetainUntilDate: aws.Time(retainUntil.UTC())}})
+	_, err = s.client.PutObjectRetention(ctx, &s3.PutObjectRetentionInput{Bucket: &s.bucket, Key: &key, VersionId: &versionID, Retention: &types.ObjectLockRetention{Mode: mode, RetainUntilDate: aws.Time(retainUntil.UTC())}})
 	return err
 }
 
 func (s *s3Store) SetLegalHold(ctx context.Context, key, versionID string, enabled bool) error {
 	if err := validateMultipartKey(key); err != nil || strings.TrimSpace(versionID) == "" {
 		return errors.New("object key and version id are required")
+	}
+	key, err := s.objectKey(key)
+	if err != nil {
+		return err
 	}
 	if err := RequireTargetTestedCapabilities(s, CapabilityVersioning, CapabilityObjectLock, CapabilityLegalHold); err != nil {
 		return err
@@ -199,6 +215,6 @@ func (s *s3Store) SetLegalHold(ctx context.Context, key, versionID string, enabl
 	if enabled {
 		status = types.ObjectLockLegalHoldStatusOn
 	}
-	_, err := s.client.PutObjectLegalHold(ctx, &s3.PutObjectLegalHoldInput{Bucket: &s.bucket, Key: &key, VersionId: &versionID, LegalHold: &types.ObjectLockLegalHold{Status: status}})
+	_, err = s.client.PutObjectLegalHold(ctx, &s3.PutObjectLegalHoldInput{Bucket: &s.bucket, Key: &key, VersionId: &versionID, LegalHold: &types.ObjectLockLegalHold{Status: status}})
 	return err
 }

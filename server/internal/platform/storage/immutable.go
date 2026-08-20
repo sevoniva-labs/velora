@@ -31,6 +31,14 @@ type ImmutableStore interface {
 }
 
 func (s *s3Store) PutImmutable(ctx context.Context, key string, payload []byte, retainUntil time.Time) (ImmutableReceipt, error) {
+	if err := validateMultipartKey(key); err != nil {
+		return ImmutableReceipt{}, err
+	}
+	logicalKey := key
+	key, err := s.objectKey(key)
+	if err != nil {
+		return ImmutableReceipt{}, err
+	}
 	if retainUntil.IsZero() || !retainUntil.After(time.Now().UTC()) {
 		return ImmutableReceipt{}, errors.New("immutable object retention must be in the future")
 	}
@@ -55,17 +63,21 @@ func (s *s3Store) PutImmutable(ctx context.Context, key string, payload []byte, 
 	if out.VersionId == nil || *out.VersionId == "" {
 		return ImmutableReceipt{}, errors.New("s3 immutable put did not return a version id")
 	}
-	return ImmutableReceipt{Key: key, VersionID: *out.VersionId, SHA256: hex.EncodeToString(digest[:]), RetainUntil: retainUntil}, nil
+	return ImmutableReceipt{Key: logicalKey, VersionID: *out.VersionId, SHA256: hex.EncodeToString(digest[:]), RetainUntil: retainUntil}, nil
 }
 
 func (s *s3Store) VerifyImmutable(ctx context.Context, receipt ImmutableReceipt) error {
 	if receipt.Key == "" || receipt.VersionID == "" || receipt.SHA256 == "" || receipt.RetainUntil.IsZero() {
 		return errors.New("immutable receipt is incomplete")
 	}
+	key, err := s.objectKey(receipt.Key)
+	if err != nil {
+		return err
+	}
 	if err := RequireTargetTestedCapabilities(s, CapabilityChecksum, CapabilityVersioning, CapabilityObjectLock, CapabilityRetention); err != nil {
 		return err
 	}
-	out, err := s.client.HeadObject(ctx, &s3.HeadObjectInput{Bucket: &s.bucket, Key: &receipt.Key, VersionId: &receipt.VersionID})
+	out, err := s.client.HeadObject(ctx, &s3.HeadObjectInput{Bucket: &s.bucket, Key: &key, VersionId: &receipt.VersionID})
 	if err != nil {
 		return fmt.Errorf("s3 immutable head: %w", err)
 	}

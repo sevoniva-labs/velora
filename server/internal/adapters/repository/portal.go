@@ -102,12 +102,24 @@ func (r *PortalRepo) ListApplications(ctx context.Context, orgID, userID string,
 			return nil, err
 		}
 		item.Favorite = favorite == 1
-		if err := r.loadRelations(ctx, &item); err != nil {
-			return nil, err
-		}
 		items = append(items, item)
 	}
-	return items, rows.Err()
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	// A PostgreSQL transaction is pinned to one connection and cannot execute
+	// relation queries while this result set is still open. Buffer the base rows
+	// first, then load tags/policies after closing the cursor. This also keeps
+	// the same behavior for MySQL and prevents transaction-only driver errors.
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	for i := range items {
+		if err := r.loadRelations(ctx, &items[i]); err != nil {
+			return nil, err
+		}
+	}
+	return items, nil
 }
 
 func (r *PortalRepo) GetApplication(ctx context.Context, orgID, userID, id string, includeDisabled bool) (portaldomain.Application, error) {
@@ -461,12 +473,20 @@ func (r *PortalRepo) listByVisitOrFavorite(ctx context.Context, orgID, userID st
 			return nil, err
 		}
 		item.Favorite = fav == 1
-		if err := r.loadRelations(ctx, &item); err != nil {
-			return nil, err
-		}
 		out = append(out, item)
 	}
-	return out, rows.Err()
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	for i := range out {
+		if err := r.loadRelations(ctx, &out[i]); err != nil {
+			return nil, err
+		}
+	}
+	return out, nil
 }
 
 func validPolicyType(value string) bool {

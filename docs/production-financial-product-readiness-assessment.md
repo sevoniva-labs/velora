@@ -5,6 +5,41 @@
 > 范围：本仓库源码、配置、容器编排、脚本、测试、运维文档及本地登录页
 > 结论性质：工程评估，不替代等保测评、渗透测试、法律意见或金融监管验收
 
+> **状态说明（后端替换后，2026-08-20）**：本文第 1—10 节保留了替换前快照的风险证据和决策背景；下面的“当前实施状态”是本次 go-antd-fullstack 替换后的权威状态。替换后的后端源码、配置、路由和迁移以当前分支为准，不能再把旧 Gin/GORM/自建 OIDC Provider 的行号当作现状证据。
+
+## 当前实施状态（权威）
+
+### 结论
+
+后端已经实际切换到 `go-antd-fullstack` 的 Kratos/Proto 基座，Go module 为 `github.com/sevoniva-labs/velora/server`；`web/` 未修改，Casdoor 未修改且仅作为外部 OIDC Provider。R0—R3 的代码骨架和主要闭环已经落地，但尚未取得金融生产 Go 资格：真实 Casdoor 互操作、MinIO/COS 目标契约、国密 KMS/HSM、HA/灾备、外部渗透和等保测评仍需在目标环境验收。
+
+### 已交付
+
+| 波次 | 实施内容 | 证据 |
+|---|---|---|
+| R0 | 脚手架替换、模块路径、Kratos HTTP/gRPC、Proto/OpenAPI、配置、迁移命令、健康/就绪、生产 Compose、回滚点 | `server/cmd/server`、`server/cmd/migrate`、`server/api/proto`、`deployments/env/prod` |
+| R1 | Casdoor OIDC Client；Authorization Code + PKCE(S256)、state/nonce、一次性服务端 transaction cookie、生产关闭密码登录和自建 Provider 路由 | `server/internal/platform/identitysource`、`server/internal/adapters/kratosapi/federated_login.go` |
+| R2 | 应用目录、分类、标签、收藏、最近访问、应用策略（EVERYONE/USER/ROLE/GROUP/ORGANIZATION）、审计事务和权限菜单 | `server/internal/domain/portal`、`server/internal/app/portal`、migration `00022_portal.sql` |
+| R3 | S3-compatible ObjectStore（MinIO/COS 等通过 endpoint/profile）、安全对象 key、checksum/SSE、能力证据 fail-closed、版本化 envelope crypto、SM 软件 Provider 基线、生产部署模板 | `server/internal/platform/storage`、`server/internal/platform/security/crypto`、`deployments/env/prod` |
+
+### 本次验收证据
+
+- `go test ./...`、`go vet ./...`、`go test -race ./...`、`make proto-check`、`make contract`、`make ci-go`、`make security-tools` 已通过。
+- 临时 PostgreSQL 15 集群已从 00001—00022 完整迁移；启动后 `/api/v1/system/health` 和 `/api/v1/system/ready` 返回成功。
+- 真实 API smoke 已验证：登录、管理员创建分类、创建应用、门户列表、收藏、收藏列表、启动 URL；并验证了审计事务中的 PostgreSQL 游标关闭回归。
+- 生产 Compose 静态门禁通过：仅 Web 发布 80/443，数据库、Redis、Casdoor、server、监控不发布 host port，`initData=false`，无默认凭据；Docker daemon 不可用，因此未宣称容器运行时验收通过。
+- `git diff --name-only` 未出现 `web/`；Casdoor 服务源码未进入替换范围。
+
+### 未完成且禁止宣称已通过的门槛
+
+1. Casdoor 真实 discovery、授权、回调、登出、MFA、claims/角色映射和撤权 E2E；需要目标 Casdoor 环境和批准的 client/redirect 配置。
+2. MinIO 与腾讯云 COS 的真实目标契约（multipart、checksum、SSE、versioning、object-lock/presign）及证据归档；代码默认对高级能力 fail-closed。
+3. `gm` 当前是软件国密 Provider 基线，不等于商密认证或 KMS/HSM；金融生产必须接入已审计的国密 KMS/HSM/PKCS#11 adapter，并完成密钥轮换演练。
+4. PostgreSQL/Redis HA、PITR、跨地域备份恢复、WORM/SIEM 审计、容量/故障注入、外部渗透、等保/金融监管测评。
+5. ForwardAuth 目标应用的可信 app-id/host 绑定和下游应用自身 OIDC 配置；门户隐藏按钮不是下游授权边界。
+
+因此当前判定为：**代码替换可实施，开发/隔离预发可继续；金融生产仍 NO-GO，必须完成上述目标环境证据后再 Go/No-Go。**
+
 ## 1. 执行结论
 
 **总体结论：金融生产环境 NO-GO；普通企业生产环境 NO-GO；隔离的内部试点可在 P0 全部关闭后有条件上线。**

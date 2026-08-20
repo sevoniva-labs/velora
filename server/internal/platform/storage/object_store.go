@@ -3,6 +3,7 @@ package storage
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"os"
 	"path/filepath"
@@ -194,6 +195,15 @@ func (s *s3Store) putObject(ctx context.Context, key string, body io.Reader, siz
 	}
 	var lastErr error
 	for attempt := 0; attempt < 3; attempt++ {
+		if attempt > 0 {
+			seeker, ok := body.(io.Seeker)
+			if !ok {
+				break
+			}
+			if _, seekErr := seeker.Seek(0, io.SeekStart); seekErr != nil {
+				return ObjectInfo{}, fmt.Errorf("reset object body for retry: %w", seekErr)
+			}
+		}
 		out, callErr := s.client.PutObject(ctx, input)
 		if callErr == nil {
 			info := ObjectInfo{Key: key}

@@ -24,6 +24,8 @@ DATABASE_URL="${DATABASE_URL:-}"
 POSTGRES_CONTAINER="${POSTGRES_CONTAINER:-}"
 BACKUP_ENCRYPTION_KEY_FILE="${BACKUP_ENCRYPTION_KEY_FILE:-}"
 BACKUP_ENCRYPTION_REQUIRED="${BACKUP_ENCRYPTION_REQUIRED:-false}"
+BACKUP_SIGNING_KEY_FILE="${BACKUP_SIGNING_KEY_FILE:-}"
+BACKUP_SIGNING_REQUIRED="${BACKUP_SIGNING_REQUIRED:-false}"
 BACKUP_FILENAME_PREFIX="${BACKUP_FILENAME_PREFIX:-velora_full}"
 
 if ! [[ "$RETENTION_DAYS" =~ ^[1-9][0-9]*$ ]]; then
@@ -40,6 +42,10 @@ if ! [[ "$BACKUP_FILENAME_PREFIX" =~ ^[a-zA-Z0-9_.-]+$ ]]; then
 fi
 if [[ "$BACKUP_ENCRYPTION_REQUIRED" == "true" && -z "$BACKUP_ENCRYPTION_KEY_FILE" ]]; then
   echo "错误：生产备份必须设置 BACKUP_ENCRYPTION_KEY_FILE" >&2
+  exit 1
+fi
+if [[ "$BACKUP_SIGNING_REQUIRED" == "true" && -z "$BACKUP_SIGNING_KEY_FILE" ]]; then
+  echo "错误：生产备份必须设置 BACKUP_SIGNING_KEY_FILE" >&2
   exit 1
 fi
 
@@ -135,6 +141,25 @@ else
   shasum -a 256 "$TARGET" > "$MANIFEST"
 fi
 
+SIGNATURE=""
+if [ -n "$BACKUP_SIGNING_KEY_FILE" ]; then
+  if ! command -v openssl >/dev/null 2>&1; then
+    echo "错误：设置 BACKUP_SIGNING_KEY_FILE 时必须安装 openssl" >&2
+    exit 1
+  fi
+  if [ ! -r "$BACKUP_SIGNING_KEY_FILE" ]; then
+    echo "错误：备份签名私钥不可读：$BACKUP_SIGNING_KEY_FILE" >&2
+    exit 1
+  fi
+  SIGNATURE="${TARGET}.sig"
+  openssl dgst -sha256 -sign "$BACKUP_SIGNING_KEY_FILE" -out "$SIGNATURE" "$TARGET"
+  if [ ! -s "$SIGNATURE" ]; then
+    echo "错误：备份签名文件为空（$SIGNATURE）" >&2
+    exit 1
+  fi
+  echo "==> 已生成备份签名：$SIGNATURE"
+fi
+
 # --- 清理过期备份 ---
 echo "==> 清理超过 ${RETENTION_DAYS} 天的本地备份…"
 find "$BACKUP_DIR" -name "${BACKUP_FILENAME_PREFIX}_*.dump*" -mtime "+$RETENTION_DAYS" -delete
@@ -145,9 +170,11 @@ if [ -n "${BACKUP_S3:-}" ]; then
   if command -v s5cmd >/dev/null 2>&1; then
     s5cmd cp "$TARGET" "$BACKUP_S3/"
     s5cmd cp "$MANIFEST" "$BACKUP_S3/"
+    [ -z "$SIGNATURE" ] || s5cmd cp "$SIGNATURE" "$BACKUP_S3/"
   elif command -v aws >/dev/null 2>&1; then
     aws s3 cp "$TARGET" "$BACKUP_S3/"
     aws s3 cp "$MANIFEST" "$BACKUP_S3/"
+    [ -z "$SIGNATURE" ] || aws s3 cp "$SIGNATURE" "$BACKUP_S3/"
   else
     echo "错误：设置 BACKUP_S3 时必须安装 s5cmd 或 aws" >&2
     exit 1

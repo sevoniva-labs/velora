@@ -29,16 +29,19 @@ BACKUP_S3=s3://velora-backup-prod ./scripts/backup-db.sh   # 需 s5cmd 或 aws c
 一致恢复点会生成 `velora_full_YYYYMMDD_HHMMSS.dump` 与
 `casdoor_full_YYYYMMDD_HHMMSS.dump`（两者时间戳相同，PostgreSQL custom format）。
 
-生产备份必须启用加密和校验清单。脚本使用 `age` 收件人文件加密，并在同目录生成
-`.sha256` 清单；对象存储上传会同时上传两者。示例：
+生产备份必须启用加密、签名和校验清单。脚本使用 `age` 收件人文件加密，使用受控
+OpenSSL 私钥签名，并在同目录生成 `.sha256` 清单与 `.sig`；对象存储上传会同时上传三者。
+示例：
 
 ```bash
 BACKUP_ENCRYPTION_REQUIRED=true \
 BACKUP_ENCRYPTION_KEY_FILE=/secure/velora/backup/age-recipient.txt \
+BACKUP_SIGNING_REQUIRED=true \
+BACKUP_SIGNING_KEY_FILE=/secure/velora/backup/backup-signing.key \
 BACKUP_S3=s3://velora-backup-prod ./scripts/backup-db.sh
 ```
 
-未安装 `age`、收件人文件不可读、或配置了 `BACKUP_S3` 但没有 `aws/s5cmd` 时脚本会失败，
+未安装 `age`/`openssl`、密钥文件不可读、或配置了 `BACKUP_S3` 但没有 `aws/s5cmd` 时脚本会失败，
 不会报告“成功但未加密/未上传”。对象存储还必须由平台侧启用 SSE-KMS、版本控制、对象锁/保留策略和跨区域复制；脚本本身不假装提供这些能力。
 
 ## 3. 调度（cron 示例，生产主机）
@@ -64,6 +67,8 @@ RESTORE_DB_URL='postgres://velora:velora@127.0.0.1:5433/velora?sslmode=disable' 
 
 # 加密备份：先把 age 私钥放到受控 Secret 路径
 BACKUP_AGE_IDENTITY_FILE=/secure/velora/backup/age-identity.txt \
+BACKUP_SIGNATURE_REQUIRED=true \
+BACKUP_SIGNATURE_PUBLIC_KEY_FILE=/secure/velora/backup/backup-signing.pub \
 RESTORE_CONFIRM=yes ./scripts/restore-db.sh backups/velora_full_20260101_020000.dump.age
 ```
 

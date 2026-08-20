@@ -16,6 +16,8 @@ umask 077
 RESTORE_DB_URL="${RESTORE_DB_URL:-}"
 POSTGRES_CONTAINER="${POSTGRES_CONTAINER:-}"
 RESTORE_SAFETY_BACKUP_DIR="${RESTORE_SAFETY_BACKUP_DIR:-./backups/restore-safety}"
+BACKUP_SIGNATURE_PUBLIC_KEY_FILE="${BACKUP_SIGNATURE_PUBLIC_KEY_FILE:-}"
+BACKUP_SIGNATURE_REQUIRED="${BACKUP_SIGNATURE_REQUIRED:-false}"
 if [ -z "$RESTORE_DB_URL" ] && [ -f .env ]; then
   RESTORE_DB_URL="$(grep -E '^DATABASE_URL=' .env | head -1 | cut -d= -f2-)"
 fi
@@ -36,6 +38,26 @@ fi
 if [ -z "$RESTORE_DB_URL" ]; then
   echo "错误：RESTORE_DB_URL 未设置（恢复目标库）" >&2
   exit 1
+fi
+
+SIGNATURE_FILE="${1}.sig"
+if [[ "$BACKUP_SIGNATURE_REQUIRED" == "true" && -z "$BACKUP_SIGNATURE_PUBLIC_KEY_FILE" ]]; then
+  echo "错误：签名校验已强制启用，必须设置 BACKUP_SIGNATURE_PUBLIC_KEY_FILE" >&2
+  exit 1
+fi
+if [ -n "$BACKUP_SIGNATURE_PUBLIC_KEY_FILE" ] || [[ "$BACKUP_SIGNATURE_REQUIRED" == "true" ]]; then
+  if ! command -v openssl >/dev/null 2>&1; then
+    echo "错误：签名恢复校验需要 openssl" >&2
+    exit 1
+  fi
+  if [ ! -r "$BACKUP_SIGNATURE_PUBLIC_KEY_FILE" ] || [ ! -s "$SIGNATURE_FILE" ]; then
+    echo "错误：备份签名或公钥缺失：$SIGNATURE_FILE" >&2
+    exit 1
+  fi
+  if ! openssl dgst -sha256 -verify "$BACKUP_SIGNATURE_PUBLIC_KEY_FILE" -signature "$SIGNATURE_FILE" "$DUMP_FILE"; then
+    echo "错误：备份签名校验失败，停止恢复" >&2
+    exit 1
+  fi
 fi
 
 if [[ "$DUMP_FILE" == *.age ]]; then

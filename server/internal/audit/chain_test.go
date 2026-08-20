@@ -2,6 +2,8 @@ package audit
 
 import (
 	"context"
+	"fmt"
+	"sync"
 	"testing"
 	"time"
 
@@ -76,4 +78,43 @@ func TestVerifyChainDetectsTamper(t *testing.T) {
 	require.NoError(t, err, "篡改检测不应是系统错误")
 	assert.False(t, ok, "篡改应被检测")
 	assert.Equal(t, uint64(2), badID, "不一致应定位到第 2 条")
+}
+
+// TestConcurrentRecordChainIntegrity 并发写入审计记录后链仍完整（无分叉）。
+func TestConcurrentRecordChainIntegrity(t *testing.T) {
+	db := newTestAuditService(t).db
+	svc := NewService(db)
+
+	const n = 50
+	var wg sync.WaitGroup
+	errsCh := make(chan error, n)
+	for i := range n {
+		wg.Add(1)
+		go func(i int) {
+			defer wg.Done()
+			err := svc.withChainLock(context.Background(), func(tx *gorm.DB) error {
+				prev := lastHashTx(tx)
+				rec := AuditLog{
+					Operator:  fmt.Sprintf("u-%d", i%5),
+					Action:    "CONCURRENT_TEST",
+					Resource:  "chain",
+					Detail:    "c",
+					CreatedAt: time.Now(),
+					PrevHash:  prev,
+				}
+				rec.Hash = chainHash(prev, rec.Action, rec.Resource, rec.ResourceID, rec.Operator, rec.IP, rec.Detail, rec.CreatedAt)
+				return tx.Create(&rec).Error
+			})
+			errsCh <- err
+		}(i)
+	}
+	wg.Wait()
+	close(errsCh)
+	for err := range errsCh {
+		require.NoError(t, err)
+	}
+
+	ok, badID, err := svc.VerifyChain(context.Background(), 0)
+	require.NoError(t, err)
+	assert.True(t, ok, "并发写入后链应完整；断裂记录 id=%d", badID)
 }

@@ -6,6 +6,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -107,11 +108,35 @@ func NewService(db *gorm.DB) *Service {
 	return &Service{db: db}
 }
 
+// chainLockKey 为审计链写入的 PostgreSQL advisory lock 键（固定常量，全库唯一）。
+// 用于串行化「取 prev → 写记录」两步，防止并发分叉（两个请求读到同一 prev → 链断裂）。
+const chainLockKey = 0x56454C4F // "VELO"
+
+// chainMu 为进程内互斥：sqlite 测试环境无 advisory lock，退化为同进程串行
+// （生产环境仍以 PostgreSQL advisory lock 为准，跨实例有效）。
+var chainMu sync.Mutex
+
+// withChainLock 在链锁内执行 fn（事务内取 prev + INSERT 必须原子）。
+func (s *Service) withChainLock(ctx context.Context, fn func(tx *gorm.DB) error) error {
+	chainMu.Lock()
+	defer chainMu.Unlock()
+	if s.db.Dialector.Name() == "postgres" {
+		return s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+			if err := tx.Exec("SELECT pg_advisory_xact_lock($1)", chainLockKey).Error; err != nil {
+				return err
+			}
+			return fn(tx)
+		})
+	}
+	return s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		return fn(tx)
+	})
+}
+
 // Record 记录一条审计日志（异步写入失败仅记日志，不阻断业务）。
+// 链写入经 advisory lock 串行化，杜绝并发分叉导致的假性篡改。
 func (s *Service) Record(c *gin.Context, e Entry) {
 	now := time.Now()
-	// 防篡改链：取最新一条的 hash 作为 prev_hash（空库时 prev=""）。
-	prev := s.lastHash(context.Background())
 	log := AuditLog{
 		Operator:   e.Operator,
 		Action:     e.Action,
@@ -121,14 +146,17 @@ func (s *Service) Record(c *gin.Context, e Entry) {
 		UserAgent:  c.Request.UserAgent(),
 		RequestID:  response.RequestID(c),
 		Detail:     e.Detail,
-		PrevHash:   prev,
 		CreatedAt:  now,
 	}
-	log.Hash = chainHash(prev, e.Action, e.Resource, e.ResourceID, e.Operator, log.IP, e.Detail, now)
 	// 用独立 context（超时 5s）：客户端断开不丢失审计；审计失败不应阻断主流程。
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-	if err := s.db.WithContext(ctx).Create(&log).Error; err != nil {
+	if err := s.withChainLock(ctx, func(tx *gorm.DB) error {
+		prev := lastHashTx(tx)
+		log.PrevHash = prev
+		log.Hash = chainHash(prev, e.Action, e.Resource, e.ResourceID, e.Operator, log.IP, e.Detail, now)
+		return tx.Create(&log).Error
+	}); err != nil {
 		// 审计失败不应阻断主流程，仅记录错误日志（由调用方 logger 处理）。
 		metrics.Emit("velora_audit_write_failure_total")
 		_ = err
@@ -137,8 +165,13 @@ func (s *Service) Record(c *gin.Context, e Entry) {
 
 // lastHash 返回最新审计记录 hash（防篡改链前驱）。
 func (s *Service) lastHash(ctx context.Context) string {
+	return lastHashTx(s.db.WithContext(ctx))
+}
+
+// lastHashTx 在给定执行体上取最新 hash（链锁事务内使用）。
+func lastHashTx(db *gorm.DB) string {
 	var h string
-	_ = s.db.WithContext(ctx).Model(&AuditLog{}).
+	_ = db.Model(&AuditLog{}).
 		Where("hash <> ''").
 		Order("id DESC").Limit(1).Pluck("hash", &h).Error
 	return h
@@ -147,7 +180,6 @@ func (s *Service) lastHash(ctx context.Context) string {
 // RecordWithMeta 记录审计（无 gin.Context 场景：服务端任务如邮件同步/登录失败）。
 func (s *Service) RecordWithMeta(ctx context.Context, e Entry, ip, userAgent, requestID string) {
 	now := time.Now()
-	prev := s.lastHash(ctx)
 	log := AuditLog{
 		Operator:   e.Operator,
 		Action:     e.Action,
@@ -157,13 +189,16 @@ func (s *Service) RecordWithMeta(ctx context.Context, e Entry, ip, userAgent, re
 		UserAgent:  userAgent,
 		RequestID:  requestID,
 		Detail:     e.Detail,
-		PrevHash:   prev,
 		CreatedAt:  now,
 	}
-	log.Hash = chainHash(prev, e.Action, e.Resource, e.ResourceID, e.Operator, ip, e.Detail, now)
 	ctx2, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
-	if err := s.db.WithContext(ctx2).Create(&log).Error; err != nil {
+	if err := s.withChainLock(ctx2, func(tx *gorm.DB) error {
+		prev := lastHashTx(tx)
+		log.PrevHash = prev
+		log.Hash = chainHash(prev, e.Action, e.Resource, e.ResourceID, e.Operator, ip, e.Detail, now)
+		return tx.Create(&log).Error
+	}); err != nil {
 		metrics.Emit("velora_audit_write_failure_total")
 		_ = err
 	}

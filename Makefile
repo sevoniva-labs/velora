@@ -16,7 +16,7 @@ PROD_ENV_FILE ?= deployments/env/prod/.env
 
 .PHONY: help init bootstrap dev dev-web dev-server test lint build \
         docker-build docker-up docker-down docker-up-prod docker-up-staging \
-        docker-up-monitoring check-prod-config migrate fmt vet
+        docker-up-monitoring check-prod-config verify migrate fmt vet
 
 help: ## 显示可用命令
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-14s\033[0m %s\n", $$1, $$2}'
@@ -74,6 +74,9 @@ docker-up-monitoring: ## 启动监控栈（Prometheus + Grafana）
 
 check-prod-config: ## 仅校验生产 Compose，不启动容器
 	./scripts/check-production-config.sh
+
+verify: ## 执行后端完整生产门禁（含前端、部署和安全扫描）
+	$(MAKE) -C server verify
 
 backup: ## 数据库全量备份（见 docs/ops-backup.md）
 	./scripts/backup-db.sh

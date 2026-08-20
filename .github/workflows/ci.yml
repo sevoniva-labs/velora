@@ -73,3 +73,5 @@ jobs:
         uses: ludeeus/action-shellcheck@master
         with:
           scandir: ./scripts
+      - name: Production Compose static gate
+        run: make check-prod-config

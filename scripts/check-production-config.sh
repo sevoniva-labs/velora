@@ -34,8 +34,9 @@ env \
   VELORA_AUTH_MODE=oidc \
   VELORA_OIDC_ISSUER=https://casdoor.example.com \
   VELORA_OIDC_CLIENT_ID=velora \
-  VELORA_OIDC_REDIRECT_URL=https://velora.example.com/api/v1/auth/federated/oidc/casdoor/callback \
+  VELORA_OIDC_REDIRECT_URL=https://velora.example.com/auth/callback \
   VELORA_CASDOOR_ACCOUNT_URL=https://casdoor.example.com/account \
+  VELORA_OIDC_PROVIDER_ENABLED=false \
   VELORA_BOOTSTRAP_ADMIN=break-glass \
   VELORA_BOOTSTRAP_PASSWORD_FILE="$tmp_dir/bootstrap.password" \
   VELORA_ALLOWED_ORIGINS=https://velora.example.com \
@@ -77,6 +78,16 @@ fi
 
 if ! jq -e '.services.casdoor.environment.initData == "false"' "$config_json" >/dev/null; then
   echo "错误：生产 Casdoor 必须禁用 initData" >&2
+  exit 1
+fi
+
+if ! jq -e '.services.server.environment.VELORA_OIDC_PROVIDER_ENABLED == "false"' "$config_json" >/dev/null; then
+  echo "错误：生产 server 必须显式禁用 Velora 自建 OIDC Provider" >&2
+  exit 1
+fi
+
+if jq -e '.. | strings | select(test("/api/v1/auth/federated/oidc/.*/callback"))' "$config_json" >/dev/null; then
+  echo "错误：生产 Compose 仍使用后端 OIDC callback，必须使用 SPA /auth/callback" >&2
   exit 1
 fi
 

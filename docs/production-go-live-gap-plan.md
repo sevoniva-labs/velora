@@ -1,6 +1,6 @@
 # Velora 生产级上线差距与实施方案
 
-> 评估基线：`codex/velora-forge-backend-replacement`，提交 `002ca68`
+> 评估基线：`codex/velora-forge-backend-replacement`，提交 `83f7fbf`
 >
 > 评估时间：2026-08-21
 >

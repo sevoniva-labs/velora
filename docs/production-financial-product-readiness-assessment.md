@@ -1,7 +1,7 @@
 # Velora 生产级、金融级与产品级就绪度评估
 
 > 评估日期：2026-08-20
-> 评估版本：历史快照；当前代码证据以 `codex/velora-forge-backend-replacement` 的 `766c608` 及 [`production-implementation-status.md`](production-implementation-status.md) 为准。
+> 评估版本：历史快照；当前代码证据以 `codex/velora-forge-backend-replacement` 的 `83f7fbf` 及 [`production-implementation-status.md`](production-implementation-status.md) 为准。
 > 范围：本仓库源码、配置、容器编排、脚本、测试、运维文档及本地登录页
 > 结论性质：工程评估，不替代等保测评、渗透测试、法律意见或金融监管验收
 

@@ -1,6 +1,6 @@
 # Velora 生产实施状态与 Go/No-Go 证据
 
-更新时间：2026-08-21（最近代码证据：`002ca68`）
+更新时间：2026-08-21（最近代码证据：`83f7fbf`）
 
 ## 当前结论
 
@@ -22,6 +22,8 @@
 - 生产告警改用当前真实 `forge_http_requests_total` 指标，路由标签低基数归一，移除未实现邮件告警。
 - 根 `make verify` 已接入后端完整门禁；CI 增加生产 Compose 静态检查。
 - 生产 Secret 文件边界已覆盖 Redis、PostgreSQL 初始化密码、Velora DSN、对象存储密钥；Redis 密码不进入长期进程参数。APISIX 与 Nginx 均清理入站 `X-Velora-*` 头，ForwardAuth 额外校验可信代理和注册应用 HTTPS host。
+- 前端外链统一限制为 HTTPS 公网地址，拒绝凭据、localhost、内网/链路本地 IP；邮件正文默认移除 CSS、`srcset`、SVG 和图片追踪器；应用卡片与待办项改为可访问的非嵌套交互控件（`b02b9cb`）。
+- 新增只读 `velora-storage-check`，在目标对象存储上验证 bucket 连通性和 `Target-tested` capability；新增 `scripts/check-pitr-config.sh`，只读验证 PostgreSQL WAL/PITR 前置条件，不把目标环境能力伪装成已验收（`325670a`、`eab5c17`、`83f7fbf`）。
 
 ## 已执行的代码门禁
 
@@ -29,12 +31,12 @@
 
 - API error/proto/OpenAPI/security/module boundary checks
 - `go mod verify`、`go vet`、`go test`、`go test -race`
-- 前端 `pnpm install --frozen-lockfile`、lint、32 tests、build、bundle budget
+- 前端 `pnpm install --frozen-lockfile`、lint、36 tests、build、bundle budget
 - Helm lint/template、APISIX/observability policy
 - gosec（0 issues）、govulncheck（0 可达漏洞）、staticcheck、golangci-lint（0 issues）
 - supply-chain evidence generation
 
-`make check-prod-config` 已通过；当前新增切片还执行了 Go focused tests、Web lint/test/build、Helm lint/template、shell `bash -n` 和 `git diff --check`。这些检查只做代码/静态门禁，不代表 Docker、Casdoor、数据库、对象存储或 KMS 真实环境已验收。
+`make check-prod-config` 已通过；当前新增切片还执行了 Go focused tests、`check-pitr-config.test.sh`、Web lint/test/build、Helm lint/template、shell `bash -n` 和 `git diff --check`。这些检查只做代码/静态门禁，不代表 Docker、Casdoor、数据库、对象存储或 KMS 真实环境已验收。
 
 ## 仍为 Go/No-Go 阻断项
 

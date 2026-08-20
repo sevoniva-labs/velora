@@ -2,9 +2,21 @@
 set -euo pipefail
 
 : "${POSTGRES_APP_USER:?POSTGRES_APP_USER is required}"
-: "${POSTGRES_APP_PASSWORD:?POSTGRES_APP_PASSWORD is required}"
 : "${POSTGRES_IDP_USER:?POSTGRES_IDP_USER is required}"
-: "${POSTGRES_IDP_PASSWORD:?POSTGRES_IDP_PASSWORD is required}"
+
+read_secret() {
+  local file_var="$1" env_var="$2" file
+  file="${!file_var:-}"
+  if [ -n "$file" ]; then
+    [ -r "$file" ] || { echo "错误：Secret 文件不可读：$file" >&2; exit 1; }
+    cat "$file"
+    return
+  fi
+  printf '%s' "${!env_var:?$env_var is required}"
+}
+
+POSTGRES_APP_PASSWORD="$(read_secret POSTGRES_APP_PASSWORD_FILE POSTGRES_APP_PASSWORD)"
+POSTGRES_IDP_PASSWORD="$(read_secret POSTGRES_IDP_PASSWORD_FILE POSTGRES_IDP_PASSWORD)"
 
 if [ "$POSTGRES_APP_USER" = "$POSTGRES_IDP_USER" ]; then
   echo "错误：Velora 与 Casdoor 必须使用不同的 PostgreSQL 账号。" >&2

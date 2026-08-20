@@ -17,6 +17,9 @@ printf 'dummy-redis-password\n' >"$tmp_dir/redis.password"
 printf 'postgres://velora_app:dummy@postgres:5432/velora?sslmode=verify-full\n' >"$tmp_dir/database.dsn"
 printf 'dummy-storage-access\n' >"$tmp_dir/storage.access"
 printf 'dummy-storage-secret\n' >"$tmp_dir/storage.secret"
+printf 'dummy-postgres-superuser\n' >"$tmp_dir/postgres.superuser"
+printf 'dummy-postgres-app\n' >"$tmp_dir/postgres.app"
+printf 'dummy-postgres-idp\n' >"$tmp_dir/postgres.idp"
 
 config_json="$tmp_dir/config.json"
 env \
@@ -65,11 +68,11 @@ env \
   CASDOOR_OIDC_CLIENT_SECRET_FILE="$tmp_dir/oidc-client.secret" \
   TRUSTED_PROXIES=10.0.0.0/8 \
   POSTGRES_SUPERUSER=postgres_bootstrap \
-  POSTGRES_SUPERUSER_PASSWORD=dummy-postgres-password \
+  POSTGRES_SUPERUSER_PASSWORD_FILE="$tmp_dir/postgres.superuser" \
   POSTGRES_APP_USER=velora_app \
-  POSTGRES_APP_PASSWORD=dummy-app-password \
+  POSTGRES_APP_PASSWORD_FILE="$tmp_dir/postgres.app" \
   POSTGRES_IDP_USER=casdoor_app \
-  POSTGRES_IDP_PASSWORD=dummy-idp-password \
+  POSTGRES_IDP_PASSWORD_FILE="$tmp_dir/postgres.idp" \
   GRAFANA_ADMIN_USER=grafana_admin \
   GRAFANA_ADMIN_PASSWORD=dummy-grafana-password \
   docker compose --env-file "$tmp_dir/empty.env" --profile monitoring -f "$COMPOSE_FILE" config --format json >"$config_json"
@@ -126,6 +129,10 @@ fi
 
 if ! jq -e '.services.server.environment.VELORA_DATABASE_DSN == null and .services.server.environment.VELORA_DATABASE_DSN_FILE == "/run/secrets/velora_database_dsn" and .services.server.environment.VELORA_STORAGE_ACCESS_KEY == null and .services.server.environment.VELORA_STORAGE_ACCESS_KEY_FILE == "/run/secrets/storage_access_key" and .services.server.environment.VELORA_STORAGE_SECRET_KEY == null and .services.server.environment.VELORA_STORAGE_SECRET_KEY_FILE == "/run/secrets/storage_secret_key"' "$config_json" >/dev/null; then
   echo "错误：生产 server 的数据库 DSN 与对象存储凭据必须只读 Secret 文件注入" >&2
+  exit 1
+fi
+if ! jq -e '.services.postgres.environment.POSTGRES_PASSWORD == null and .services.postgres.environment.POSTGRES_PASSWORD_FILE == "/run/secrets/postgres_superuser_password" and .services.postgres.environment.POSTGRES_APP_PASSWORD == null and .services.postgres.environment.POSTGRES_APP_PASSWORD_FILE == "/run/secrets/postgres_app_password" and .services.postgres.environment.POSTGRES_IDP_PASSWORD == null and .services.postgres.environment.POSTGRES_IDP_PASSWORD_FILE == "/run/secrets/postgres_idp_password"' "$config_json" >/dev/null; then
+  echo "错误：生产 PostgreSQL 密码必须只读 Secret 文件注入" >&2
   exit 1
 fi
 if ! jq -e '.services.redis.environment.REDIS_PASSWORD == null and (.services.redis.secrets | any((.source // .) == "redis_password")) and (.services.server.secrets | any((.source // .) == "redis_password"))' "$config_json" >/dev/null; then

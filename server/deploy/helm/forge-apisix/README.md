@@ -36,6 +36,8 @@ The chart deliberately sets upstream retries to zero. Retrying non-idempotent fi
 
 The gateway does not replace application authorization, organization isolation, CSRF, idempotency, body-size validation, audit, or stable error-code handling. The `remote_addr` quota is only meaningful after the platform team proves how the load balancer preserves source addresses; otherwise select a reviewed, non-spoofable key at the gateway layer.
 
+The shared `proxy-rewrite` plugin removes all `X-Velora-*` identity headers supplied by a client before forwarding. Only authenticated application responses may re-introduce these headers; the gateway must copy response headers deliberately for legacy ForwardAuth integrations.
+
 ## TLS boundary
 
 Ingress TLS terminates at APISIX. APISIX then uses `https` and `grpcs` and presents the client certificate referenced by `upstream.clientCertificateSecretName`; Forge must verify that certificate. APISIX currently does not verify the legality of upstream server certificates, so this is not symmetric end-to-end identity verification. Keep Forge ingress restricted to APISIX Pods with NetworkPolicy, use dedicated short-lived certificates, and record this residual risk in the deployment security assessment.

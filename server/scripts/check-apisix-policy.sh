@@ -25,6 +25,12 @@ for required in \
   'velora.sevoniva.cn/change-approval-ref: "CHG-20260817-001"' \
   'allow_degradation: false' \
   'policy: "local"' \
+  'name: proxy-rewrite' \
+  'X-Velora-Authenticated' \
+  'X-Velora-Application-ID' \
+  'X-Velora-User-ID' \
+  'X-Velora-Login-Name' \
+  'X-Velora-Organization-ID' \
   'retries: 0' \
   'scheme: https' \
   'scheme: grpcs'; do

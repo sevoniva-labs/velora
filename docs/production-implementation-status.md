@@ -11,6 +11,7 @@
 - Casdoor Authorization Code + PKCE 前端入口、SPA `/auth/callback`、生产关闭密码登录；Velora 自建 OIDC Provider 有配置硬开关，生产为 true 时启动失败。生产 OIDC session TTL 强制不超过 1 小时；本地 session 撤销后，如 Casdoor discovery 提供 `end_session_endpoint`，后端返回标准 RP-initiated logout URL，前端再跳转清理上游会话。
 - ForwardAuth：`GET /api/v1/auth/forward/{application_id}` 从可信路由参数加载应用，统一执行 `CanAccess`，返回后端签发的身份响应头；文档要求网关剥离入站 `X-Velora-*` 头。
 - 生产配置 fail-fast：HTTPS public URL、精确 HTTPS origins、Secure Cookie、OIDC、ObjectStore KMS SSE、无 host port 的生产 Compose、Casdoor `initData=false`。
+- CryptoProvider 已显式区分 `software` 与 KMS/HSM/PKCS#11 adapter slot；生产选择 `gm` 时拒绝软件信任根，未安装真实 adapter 会 fail-closed，不把软件 SM4 基线冒充商密硬件/认证能力。
 - OIDC 模式下本地密码/MFA 管理后端拒绝，用户中心跳转 Casdoor 账号中心；未接入的待办、邮件、共享门户设置从生产 UI 隐藏或明确失败。
 - 备份/恢复：`umask 077`、SHA-256 清单、可选 age 加密、上传失败非零、恢复前保险备份失败即中止、`pg_restore` 错误不再吞掉。
 - 审计导出按真实 `audit_logs` schema 生成 CSV/清单/元数据，默认不删除；删除必须走 WORM receipt 与 `audit_chain_anchors` 的应用归档流程。

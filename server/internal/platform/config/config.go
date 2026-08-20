@@ -211,6 +211,7 @@ type Security struct {
 	LoginMaxFailures          int           `yaml:"login_max_failures"`
 	LoginLockDuration         time.Duration `yaml:"login_lock_duration"`
 	CryptoProvider            string        `yaml:"crypto_provider"` // standard | gm
+	CryptoAdapter             string        `yaml:"crypto_adapter"`  // software | kms | hsm | pkcs11
 	CryptoKey                 string        `yaml:"-"`
 	CryptoKeyVersion          string        `yaml:"crypto_key_version"`
 	OIDCIssuer                string        `yaml:"oidc_issuer"`
@@ -287,7 +288,7 @@ func Default() Config {
 			AuthMode: "password", SessionTTL: 12 * time.Hour, SameSite: "lax", PasswordMinLength: 12,
 			PasswordUpper: true, PasswordLower: true, PasswordDigit: true, PasswordSymbol: true,
 			PasswordHistory: 5, PasswordMaxAgeDay: 90, LoginMaxFailures: 5, LoginLockDuration: 30 * time.Minute,
-			CryptoProvider: "standard", CryptoKeyVersion: "v1",
+			CryptoProvider: "standard", CryptoAdapter: "software", CryptoKeyVersion: "v1",
 		},
 		Observability: Observability{LogLevel: "info", LogFormat: "json", MetricsEnabled: true, MetricsPath: "/metrics"},
 		Resilience:    Resilience{DependencyTimeout: 10 * time.Second, RetryMaxAttempts: 3, RetryBaseDelay: 100 * time.Millisecond, CircuitFailureThreshold: 5, CircuitOpenDuration: 30 * time.Second, BulkheadConcurrency: 100},
@@ -535,6 +536,7 @@ func ApplyEnvironment(cfg *Config) {
 	overrideInt(&cfg.Security.LoginMaxFailures, "VELORA_LOGIN_MAX_FAILURES")
 	overrideDuration(&cfg.Security.LoginLockDuration, "VELORA_LOGIN_LOCK_DURATION")
 	overrideString(&cfg.Security.CryptoProvider, "VELORA_CRYPTO_PROVIDER")
+	overrideString(&cfg.Security.CryptoAdapter, "VELORA_CRYPTO_ADAPTER")
 	overrideString(&cfg.Security.CryptoKeyVersion, "VELORA_CRYPTO_KEY_VERSION")
 	overrideString(&cfg.Security.AuthMode, "VELORA_AUTH_MODE")
 	overrideString(&cfg.Security.OIDCIssuer, "VELORA_OIDC_ISSUER")
@@ -731,6 +733,11 @@ func (c Config) Validate() error {
 	default:
 		errs = append(errs, "security.crypto_provider must be standard|gm")
 	}
+	switch strings.ToLower(strings.TrimSpace(c.Security.CryptoAdapter)) {
+	case "software", "kms", "hsm", "pkcs11":
+	default:
+		errs = append(errs, "security.crypto_adapter must be software|kms|hsm|pkcs11")
+	}
 	switch strings.ToLower(strings.TrimSpace(c.Security.AuthMode)) {
 	case "oidc", "password":
 	default:
@@ -882,6 +889,9 @@ func (c Config) ValidateProductionAuth() error {
 	}
 	if c.Security.OIDCProviderEnabled {
 		errs = append(errs, "security.oidc_provider_enabled must be false in production; Casdoor is the only OIDC provider")
+	}
+	if strings.EqualFold(strings.TrimSpace(c.Security.CryptoProvider), "gm") && strings.EqualFold(strings.TrimSpace(c.Security.CryptoAdapter), "software") {
+		errs = append(errs, "security.crypto_provider=gm requires an approved KMS/HSM/PKCS#11 adapter in production; software GM is not an approved trust root")
 	}
 	if len(errs) > 0 {
 		return errors.New(strings.Join(errs, "; "))

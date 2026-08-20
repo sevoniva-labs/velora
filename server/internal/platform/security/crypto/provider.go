@@ -24,6 +24,20 @@ type Provider interface {
 }
 
 func New(name string, rawKey string, versions ...string) (Provider, error) {
+	return NewWithAdapter(name, "software", rawKey, versions...)
+}
+
+// NewWithAdapter keeps the provider boundary explicit. Hardware/KMS adapters
+// are intentionally not guessed: until an approved implementation is linked,
+// selecting one fails closed instead of silently using software key material.
+func NewWithAdapter(name, adapter string, rawKey string, versions ...string) (Provider, error) {
+	adapter = strings.ToLower(strings.TrimSpace(adapter))
+	if adapter == "" {
+		adapter = "software"
+	}
+	if adapter != "software" {
+		return nil, fmt.Errorf("crypto adapter %q is not installed; configure an approved KMS/HSM/PKCS#11 adapter before use", adapter)
+	}
 	version := "v1"
 	if len(versions) > 0 && versions[0] != "" {
 		version = versions[0]

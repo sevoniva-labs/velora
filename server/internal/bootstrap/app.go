@@ -136,7 +136,7 @@ func New(ctx context.Context, opts Options) (*App, error) {
 		_ = db.Close()
 		return nil, err
 	}
-	crypt, err := appcrypto.New(cfg.Security.CryptoProvider, cfg.Security.CryptoKey, cfg.Security.CryptoKeyVersion)
+	crypt, err := appcrypto.NewWithAdapter(cfg.Security.CryptoProvider, cfg.Security.CryptoAdapter, cfg.Security.CryptoKey, cfg.Security.CryptoKeyVersion)
 	if err != nil {
 		bus.Close()
 		_ = c.Close()

@@ -23,6 +23,18 @@ BACKUP_S3=s3://velora-backup-prod ./scripts/backup-db.sh   # 需 s5cmd 或 aws c
 
 备份文件：`velora_full_YYYYMMDD_HHMMSS.dump`（PostgreSQL custom format，支持选择性/并行恢复）。
 
+生产备份必须启用加密和校验清单。脚本使用 `age` 收件人文件加密，并在同目录生成
+`.sha256` 清单；对象存储上传会同时上传两者。示例：
+
+```bash
+BACKUP_ENCRYPTION_REQUIRED=true \
+BACKUP_ENCRYPTION_KEY_FILE=/secure/velora/backup/age-recipient.txt \
+BACKUP_S3=s3://velora-backup-prod ./scripts/backup-db.sh
+```
+
+未安装 `age`、收件人文件不可读、或配置了 `BACKUP_S3` 但没有 `aws/s5cmd` 时脚本会失败，
+不会报告“成功但未加密/未上传”。对象存储还必须由平台侧启用 SSE-KMS、版本控制、对象锁/保留策略和跨区域复制；脚本本身不假装提供这些能力。
+
 ## 3. 调度（cron 示例，生产主机）
 
 ```cron
@@ -33,12 +45,16 @@ BACKUP_S3=s3://velora-backup-prod ./scripts/backup-db.sh   # 需 s5cmd 或 aws c
 ## 4. 恢复
 
 ```bash
-# 恢复到 .env 指向的库（恢复前自动做一次保险备份，并要求确认）
-./scripts/restore-db.sh backups/velora_full_20260101_020000.dump
+# 恢复到 .env 指向的库（恢复前强制做保险备份，并要求确认）
+RESTORE_CONFIRM=yes ./scripts/restore-db.sh backups/velora_full_20260101_020000.dump
 
 # 恢复到指定新库
 RESTORE_DB_URL='postgres://velora:velora@127.0.0.1:5433/velora?sslmode=disable' POSTGRES_CONTAINER=velora-prod-postgres \
   ./scripts/restore-db.sh backups/velora_full_20260101_020000.dump
+
+# 加密备份：先把 age 私钥放到受控 Secret 路径
+BACKUP_AGE_IDENTITY_FILE=/secure/velora/backup/age-identity.txt \
+RESTORE_CONFIRM=yes ./scripts/restore-db.sh backups/velora_full_20260101_020000.dump.age
 ```
 
 恢复后验证：
@@ -88,4 +104,5 @@ docker exec velora-prod-postgres psql -U postgres -c "DROP DATABASE velora_drill
 | 本机无 pg_dump | 脚本自动回退到 `docker exec $POSTGRES_CONTAINER pg_dump`（默认 `velora-postgres`，生产为 `velora-prod-postgres`） |
 | 恢复报"role does not exist" | 备份含 owner 信息，恢复时用 `--no-owner` 或确保同名角色存在 |
 | 备份文件为空 | 检查 DATABASE_URL 是否指向正确库；容器场景确认对应 `POSTGRES_CONTAINER` 在运行 |
+| 校验清单不匹配 | 立即停止恢复，重新从对象存储取同一备份和 `.sha256`；不要绕过校验 |
 | 磁盘不足 | 备份目录与数据目录分离；开启 BACKUP_S3 异地备份 |

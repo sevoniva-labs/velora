@@ -79,14 +79,30 @@ curl http://localhost:8080/healthz        # 服务健康
 curl http://localhost:8080/api/v1/me      # 会话正常（需重新登录）
 ```
 
-## 5. PITR（时间点恢复，可选增强）
+## 5. PITR（时间点恢复，生产准入门禁）
 
-若业务要求 RPO < 24h：
+若业务要求 RPO < 24h，生产必须在目标 PostgreSQL 主库和对象存储上启用连续 WAL 归档。仓库提供只读门禁，
+不会修改数据库配置、上传或删除 WAL：
+
+```bash
+DATABASE_URL_FILE=/run/secrets/velora_database_dsn \
+PITR_WAL_ARCHIVE_URI=s3://approved-prod/wal \
+POSTGRES_CONTAINER=velora-prod-postgres \
+./scripts/check-pitr-config.sh
+```
+
+门禁会验证 `wal_level`、`archive_mode`、包含 `%p/%f` 的 `archive_command`、大于零的
+`archive_timeout`，并默认拒绝 standby（`PITR_REQUIRE_PRIMARY=true`）。目标 URI 只做格式检查，
+实际对象存储、跨地域复制、权限和恢复能力必须由目标环境验收证据证明。
+
+目标环境实施：
 
 1. postgres 容器启用 WAL 归档（`archive_mode=on` + `archive_command` 写对象存储）；
 2. 备份从"每日全量"升级为"每日全量 + 持续归档"；
 3. 恢复时 `pg_basebackup` + `pg_archivecleanup` 回放到目标时间点。
 4. 注意：casdoor 库与 velora 库同实例，PITR 会同时回放两者，需在恢复后检查 Casdoor 数据一致性。
+
+没有目标环境门禁输出和恢复演练报告，不得把 PITR 标记为已完成或放行金融生产。
 
 ## 5.1 审计归档
 

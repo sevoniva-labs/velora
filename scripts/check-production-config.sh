@@ -90,6 +90,11 @@ if ! jq -e '.services.server.environment.VELORA_OIDC_PROVIDER_ENABLED == "false"
   exit 1
 fi
 
+if ! jq -e '.services.server.environment.VELORA_CRYPTO_ADAPTER | length > 0' "$config_json" >/dev/null; then
+  echo "错误：生产 server 必须显式配置 crypto adapter（software 仅适用于非生产基线）" >&2
+  exit 1
+fi
+
 if ! jq -e '.services.server.environment.VELORA_STORAGE_SSE_MODE == "kms" and (.services.server.environment.VELORA_STORAGE_SSE_KMS_KEY_ID | length > 0)' "$config_json" >/dev/null; then
   echo "错误：生产对象存储必须启用 KMS SSE 并配置 key id" >&2
   exit 1
@@ -99,5 +104,12 @@ if jq -e '.. | strings | select(test("/api/v1/auth/federated/oidc/.*/callback"))
   echo "错误：生产 Compose 仍使用后端 OIDC callback，必须使用 SPA /auth/callback" >&2
   exit 1
 fi
+
+for nginx_template in deployments/docker/velora-http.conf.template deployments/docker/velora-https.conf.template; do
+  if rg -Fq 'return 200 "ok\\n"' "$nginx_template" || ! rg -Fq '/api/v1/system/ready' "$nginx_template"; then
+    echo "错误：$nginx_template 的 /healthz 必须代理到 server readiness，不得固定返回 200" >&2
+    exit 1
+  fi
+done
 
 echo "生产 Compose 静态检查通过：仅 Web 发布 80/443，非 Web 服务无 host port，Casdoor initData=false，无默认凭据。"

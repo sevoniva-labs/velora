@@ -8,6 +8,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"io"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -39,6 +40,10 @@ func (s *s3Store) PutImmutable(ctx context.Context, key string, payload []byte, 
 	if err != nil {
 		return ImmutableReceipt{}, err
 	}
+	// S3 Object Lock timestamps have second precision. Normalize the receipt to
+	// the value the target can actually return, otherwise a nanosecond-level
+	// comparison would reject an otherwise valid retained object.
+	retainUntil = retainUntil.UTC().Truncate(time.Second)
 	if retainUntil.IsZero() || !retainUntil.After(time.Now().UTC()) {
 		return ImmutableReceipt{}, errors.New("immutable object retention must be in the future")
 	}
@@ -84,12 +89,27 @@ func (s *s3Store) VerifyImmutable(ctx context.Context, receipt ImmutableReceipt)
 	if out.ObjectLockMode != types.ObjectLockModeCompliance || out.ObjectLockRetainUntilDate == nil || out.ObjectLockRetainUntilDate.Before(receipt.RetainUntil) {
 		return errors.New("s3 object-lock compliance retention proof is missing or weaker than receipt")
 	}
-	if out.ChecksumSHA256 == nil {
-		return errors.New("s3 immutable object checksum proof is missing")
+	if out.ChecksumSHA256 != nil {
+		digest, err := hex.DecodeString(receipt.SHA256)
+		if err != nil || base64.StdEncoding.EncodeToString(digest) != *out.ChecksumSHA256 {
+			return errors.New("s3 immutable object checksum proof does not match receipt")
+		}
+		return nil
 	}
-	digest, err := hex.DecodeString(receipt.SHA256)
-	if err != nil || base64.StdEncoding.EncodeToString(digest) != *out.ChecksumSHA256 {
-		return errors.New("s3 immutable object checksum proof does not match receipt")
+	// Some S3-compatible targets (including MinIO versions without checksum
+	// response headers) accept a checksum on PUT but omit it from HEAD. Read the
+	// retained version and hash the bytes as a portable integrity fallback.
+	got, err := s.client.GetObject(ctx, &s3.GetObjectInput{Bucket: &s.bucket, Key: &key, VersionId: &receipt.VersionID})
+	if err != nil {
+		return fmt.Errorf("s3 immutable checksum fallback get: %w", err)
+	}
+	defer func() { _ = got.Body.Close() }()
+	h := sha256.New()
+	if _, err := io.Copy(h, got.Body); err != nil {
+		return fmt.Errorf("s3 immutable checksum fallback read: %w", err)
+	}
+	if hex.EncodeToString(h.Sum(nil)) != receipt.SHA256 {
+		return errors.New("s3 immutable object checksum fallback does not match receipt")
 	}
 	return nil
 }

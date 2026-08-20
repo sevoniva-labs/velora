@@ -11,7 +11,7 @@ GO_ENV = GOPROXY=$(GOPROXY) GOSUMDB='$(GOSUMDB)'
 TOOL_RUN = $(GO_ENV) go run -modfile=tools/go.mod
 PROTO_TOOLS = .tools/bin/buf .tools/bin/protoc-gen-go .tools/bin/protoc-gen-go-grpc .tools/bin/protoc-gen-go-http .tools/bin/protoc-gen-openapi
 
-.PHONY: help run worker migrate storage-check storage-contract-check pitr-check pitr-check-test test fmt tidy web-install web-api-generate web-api-check web-dev web-build web-budget web-e2e-install-cn build check contract module-boundaries proto-tools proto-lint proto-generate proto-breaking proto-check offline-check disaster-check disaster-check-certified docker-build compose-up compose-down init ai-governance apisix-policy ci-policy ci-go ci-web ci-web-e2e ci-deploy security-tools supply-chain-evidence release-evidence verify
+.PHONY: help run worker migrate storage-check storage-contract-check crypto-rotation-check audit-worm-check pitr-check pitr-check-test test fmt tidy web-install web-api-generate web-api-check web-dev web-build web-budget web-e2e-install-cn build check contract module-boundaries proto-tools proto-lint proto-generate proto-breaking proto-check offline-check disaster-check disaster-check-certified docker-build compose-up compose-down init ai-governance apisix-policy ci-policy ci-go ci-web ci-web-e2e ci-deploy security-tools supply-chain-evidence release-evidence verify
 
 help:
 	@echo "Velora"
@@ -20,6 +20,8 @@ help:
 	@echo "  make migrate       Run one-shot database migrations"
 	@echo "  make storage-check Read-only object-store ping and capability report"
 	@echo "  make storage-contract-check  Run target-specific S3 capability evidence test"
+	@echo "  make crypto-rotation-check  Exercise dual-control and crypto adapter fail-closed contract"
+	@echo "  make audit-worm-check  Verify immutable audit archive and retained-version delete refusal"
 	@echo "  make pitr-check    Read-only PostgreSQL PITR prerequisite check"
 	@echo "  make web-dev       Run frontend"
 	@echo "  make web-budget    Enforce production frontend bundle budgets"
@@ -51,6 +53,12 @@ storage-check:
 
 storage-contract-check:
 	go run ./cmd/storage-contract-check
+
+crypto-rotation-check:
+	go run ./cmd/crypto-rotation-check
+
+audit-worm-check:
+	go run ./cmd/audit-worm-check
 
 pitr-check:
 	bash ../scripts/check-pitr-config.sh
@@ -138,6 +146,8 @@ build: web-build
 	CGO_ENABLED=0 go build -trimpath -ldflags "-s -w -X main.version=$${VERSION:-dev}" -o bin/velora-example-settlement ./cmd/example-settlement-service
 	CGO_ENABLED=0 go build -trimpath -ldflags "-s -w -X main.version=$${VERSION:-dev}" -o bin/velora-storage-check ./cmd/storage-check
 	CGO_ENABLED=0 go build -trimpath -ldflags "-s -w -X main.version=$${VERSION:-dev}" -o bin/velora-storage-contract-check ./cmd/storage-contract-check
+	CGO_ENABLED=0 go build -trimpath -ldflags "-s -w -X main.version=$${VERSION:-dev}" -o bin/velora-crypto-rotation-check ./cmd/crypto-rotation-check
+	CGO_ENABLED=0 go build -trimpath -ldflags "-s -w -X main.version=$${VERSION:-dev}" -o bin/velora-audit-worm-check ./cmd/audit-worm-check
 
 check: fmt contract
 	go vet ./...

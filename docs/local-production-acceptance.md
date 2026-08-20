@@ -60,3 +60,38 @@ VELORA_ACCEPTANCE_EVIDENCE_DIR=./artifacts/acceptance \
 ```
 
 `PITR_PORT=0` 表示自动分配端口。脚本结束会清理临时容器、卷和恢复数据库；本地通过不代表生产 RPO/RTO、跨可用区或跨地域灾备已认证，生产仍需按计划执行带业务流量的恢复演练。
+
+## KMS/HSM/国密密钥治理
+
+本地命令只验证密钥管理边界和失败闭环，不会生成、输出或持久化生产密钥：
+
+```bash
+cd server
+VELORA_ACCEPTANCE_EVIDENCE_DIR=../artifacts/acceptance \
+go run ./cmd/crypto-rotation-check
+```
+
+验收覆盖：同一操作员不能完成轮换、审批拒绝不会激活新版本、两个不同操作员批准后才激活；`gm` 软件实现完成 SM3/SM4 算法回环，未安装的 `kms`/`hsm`/`pkcs11` 适配器必须失败闭环。软件国密仅是算法接口和回环证据，不是商用密码产品认证；正式上线前必须接入经批准的 KMS/HSM/密码设备适配器、密钥策略、审计和双人审批，并完成机构要求的国密合规证明。
+
+## WORM 审计归档与 SIEM 转发
+
+在 MinIO Object Lock 契约通过后，执行真实归档、校验和保留版本删除拒绝：
+
+```bash
+cd server
+VELORA_CONFIG=configs/minimal.yaml \
+VELORA_DATABASE_DSN='postgres://velora:velora@127.0.0.1:5433/velora?sslmode=disable' \
+VELORA_STORAGE_PROVIDER=minio \
+VELORA_STORAGE_ENDPOINT=http://127.0.0.1:9000 \
+VELORA_STORAGE_REGION=us-east-1 \
+VELORA_STORAGE_BUCKET=velora-worm \
+VELORA_STORAGE_PATH_STYLE=true \
+VELORA_STORAGE_TLS=false \
+VELORA_STORAGE_ACCESS_KEY=minioadmin \
+VELORA_STORAGE_SECRET_KEY='仅本地契约环境使用' \
+VELORA_STORAGE_CAPABILITY_CONTRACT_FILE=../artifacts/acceptance/minio-storage-contract.json \
+VELORA_ACCEPTANCE_EVIDENCE_DIR=../artifacts/acceptance \
+go run ./cmd/audit-worm-check
+```
+
+验收覆盖：审计批次摘要、Object Lock Compliance retention、版本级删除拒绝和删除后收据复核；可靠转发器使用持久消息表作为 SIEM 出站队列。外部 SIEM 地址、网络隔离、告警规则、长期留存与合规审批仍必须在生产环境联调并留存证据，不能以本地通过替代。

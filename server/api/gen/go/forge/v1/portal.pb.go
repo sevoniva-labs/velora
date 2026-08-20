@@ -580,6 +580,126 @@ func (x *ListPortalApplicationsRequest) GetLimit() int32 {
 	return 0
 }
 
+type AuthorizePortalApplicationRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	ApplicationId string                 `protobuf:"bytes,1,opt,name=application_id,json=applicationId,proto3" json:"application_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AuthorizePortalApplicationRequest) Reset() {
+	*x = AuthorizePortalApplicationRequest{}
+	mi := &file_forge_v1_portal_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AuthorizePortalApplicationRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AuthorizePortalApplicationRequest) ProtoMessage() {}
+
+func (x *AuthorizePortalApplicationRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_forge_v1_portal_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AuthorizePortalApplicationRequest.ProtoReflect.Descriptor instead.
+func (*AuthorizePortalApplicationRequest) Descriptor() ([]byte, []int) {
+	return file_forge_v1_portal_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *AuthorizePortalApplicationRequest) GetApplicationId() string {
+	if x != nil {
+		return x.ApplicationId
+	}
+	return ""
+}
+
+type AuthorizePortalApplicationResponse struct {
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	ApplicationId  string                 `protobuf:"bytes,1,opt,name=application_id,json=applicationId,proto3" json:"application_id,omitempty"`
+	UserId         string                 `protobuf:"bytes,2,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	LoginName      string                 `protobuf:"bytes,3,opt,name=login_name,json=loginName,proto3" json:"login_name,omitempty"`
+	OrganizationId string                 `protobuf:"bytes,4,opt,name=organization_id,json=organizationId,proto3" json:"organization_id,omitempty"`
+	DisplayName    string                 `protobuf:"bytes,5,opt,name=display_name,json=displayName,proto3" json:"display_name,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *AuthorizePortalApplicationResponse) Reset() {
+	*x = AuthorizePortalApplicationResponse{}
+	mi := &file_forge_v1_portal_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AuthorizePortalApplicationResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AuthorizePortalApplicationResponse) ProtoMessage() {}
+
+func (x *AuthorizePortalApplicationResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_forge_v1_portal_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AuthorizePortalApplicationResponse.ProtoReflect.Descriptor instead.
+func (*AuthorizePortalApplicationResponse) Descriptor() ([]byte, []int) {
+	return file_forge_v1_portal_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *AuthorizePortalApplicationResponse) GetApplicationId() string {
+	if x != nil {
+		return x.ApplicationId
+	}
+	return ""
+}
+
+func (x *AuthorizePortalApplicationResponse) GetUserId() string {
+	if x != nil {
+		return x.UserId
+	}
+	return ""
+}
+
+func (x *AuthorizePortalApplicationResponse) GetLoginName() string {
+	if x != nil {
+		return x.LoginName
+	}
+	return ""
+}
+
+func (x *AuthorizePortalApplicationResponse) GetOrganizationId() string {
+	if x != nil {
+		return x.OrganizationId
+	}
+	return ""
+}
+
+func (x *AuthorizePortalApplicationResponse) GetDisplayName() string {
+	if x != nil {
+		return x.DisplayName
+	}
+	return ""
+}
+
 type ListPortalApplicationsResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Applications  []*PortalApplication   `protobuf:"bytes,1,rep,name=applications,proto3" json:"applications,omitempty"`
@@ -589,7 +709,7 @@ type ListPortalApplicationsResponse struct {
 
 func (x *ListPortalApplicationsResponse) Reset() {
 	*x = ListPortalApplicationsResponse{}
-	mi := &file_forge_v1_portal_proto_msgTypes[5]
+	mi := &file_forge_v1_portal_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -601,7 +721,7 @@ func (x *ListPortalApplicationsResponse) String() string {
 func (*ListPortalApplicationsResponse) ProtoMessage() {}
 
 func (x *ListPortalApplicationsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_forge_v1_portal_proto_msgTypes[5]
+	mi := &file_forge_v1_portal_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -614,7 +734,7 @@ func (x *ListPortalApplicationsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListPortalApplicationsResponse.ProtoReflect.Descriptor instead.
 func (*ListPortalApplicationsResponse) Descriptor() ([]byte, []int) {
-	return file_forge_v1_portal_proto_rawDescGZIP(), []int{5}
+	return file_forge_v1_portal_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *ListPortalApplicationsResponse) GetApplications() []*PortalApplication {
@@ -633,7 +753,7 @@ type GetPortalApplicationRequest struct {
 
 func (x *GetPortalApplicationRequest) Reset() {
 	*x = GetPortalApplicationRequest{}
-	mi := &file_forge_v1_portal_proto_msgTypes[6]
+	mi := &file_forge_v1_portal_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -645,7 +765,7 @@ func (x *GetPortalApplicationRequest) String() string {
 func (*GetPortalApplicationRequest) ProtoMessage() {}
 
 func (x *GetPortalApplicationRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_forge_v1_portal_proto_msgTypes[6]
+	mi := &file_forge_v1_portal_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -658,7 +778,7 @@ func (x *GetPortalApplicationRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetPortalApplicationRequest.ProtoReflect.Descriptor instead.
 func (*GetPortalApplicationRequest) Descriptor() ([]byte, []int) {
-	return file_forge_v1_portal_proto_rawDescGZIP(), []int{6}
+	return file_forge_v1_portal_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *GetPortalApplicationRequest) GetApplicationId() string {
@@ -677,7 +797,7 @@ type GetPortalApplicationResponse struct {
 
 func (x *GetPortalApplicationResponse) Reset() {
 	*x = GetPortalApplicationResponse{}
-	mi := &file_forge_v1_portal_proto_msgTypes[7]
+	mi := &file_forge_v1_portal_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -689,7 +809,7 @@ func (x *GetPortalApplicationResponse) String() string {
 func (*GetPortalApplicationResponse) ProtoMessage() {}
 
 func (x *GetPortalApplicationResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_forge_v1_portal_proto_msgTypes[7]
+	mi := &file_forge_v1_portal_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -702,7 +822,7 @@ func (x *GetPortalApplicationResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetPortalApplicationResponse.ProtoReflect.Descriptor instead.
 func (*GetPortalApplicationResponse) Descriptor() ([]byte, []int) {
-	return file_forge_v1_portal_proto_rawDescGZIP(), []int{7}
+	return file_forge_v1_portal_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *GetPortalApplicationResponse) GetApplication() *PortalApplication {
@@ -721,7 +841,7 @@ type LaunchPortalApplicationRequest struct {
 
 func (x *LaunchPortalApplicationRequest) Reset() {
 	*x = LaunchPortalApplicationRequest{}
-	mi := &file_forge_v1_portal_proto_msgTypes[8]
+	mi := &file_forge_v1_portal_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -733,7 +853,7 @@ func (x *LaunchPortalApplicationRequest) String() string {
 func (*LaunchPortalApplicationRequest) ProtoMessage() {}
 
 func (x *LaunchPortalApplicationRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_forge_v1_portal_proto_msgTypes[8]
+	mi := &file_forge_v1_portal_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -746,7 +866,7 @@ func (x *LaunchPortalApplicationRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LaunchPortalApplicationRequest.ProtoReflect.Descriptor instead.
 func (*LaunchPortalApplicationRequest) Descriptor() ([]byte, []int) {
-	return file_forge_v1_portal_proto_rawDescGZIP(), []int{8}
+	return file_forge_v1_portal_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *LaunchPortalApplicationRequest) GetApplicationId() string {
@@ -766,7 +886,7 @@ type LaunchPortalApplicationResponse struct {
 
 func (x *LaunchPortalApplicationResponse) Reset() {
 	*x = LaunchPortalApplicationResponse{}
-	mi := &file_forge_v1_portal_proto_msgTypes[9]
+	mi := &file_forge_v1_portal_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -778,7 +898,7 @@ func (x *LaunchPortalApplicationResponse) String() string {
 func (*LaunchPortalApplicationResponse) ProtoMessage() {}
 
 func (x *LaunchPortalApplicationResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_forge_v1_portal_proto_msgTypes[9]
+	mi := &file_forge_v1_portal_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -791,7 +911,7 @@ func (x *LaunchPortalApplicationResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LaunchPortalApplicationResponse.ProtoReflect.Descriptor instead.
 func (*LaunchPortalApplicationResponse) Descriptor() ([]byte, []int) {
-	return file_forge_v1_portal_proto_rawDescGZIP(), []int{9}
+	return file_forge_v1_portal_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *LaunchPortalApplicationResponse) GetApplication() *PortalApplication {
@@ -817,7 +937,7 @@ type ListPortalFavoritesRequest struct {
 
 func (x *ListPortalFavoritesRequest) Reset() {
 	*x = ListPortalFavoritesRequest{}
-	mi := &file_forge_v1_portal_proto_msgTypes[10]
+	mi := &file_forge_v1_portal_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -829,7 +949,7 @@ func (x *ListPortalFavoritesRequest) String() string {
 func (*ListPortalFavoritesRequest) ProtoMessage() {}
 
 func (x *ListPortalFavoritesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_forge_v1_portal_proto_msgTypes[10]
+	mi := &file_forge_v1_portal_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -842,7 +962,7 @@ func (x *ListPortalFavoritesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListPortalFavoritesRequest.ProtoReflect.Descriptor instead.
 func (*ListPortalFavoritesRequest) Descriptor() ([]byte, []int) {
-	return file_forge_v1_portal_proto_rawDescGZIP(), []int{10}
+	return file_forge_v1_portal_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *ListPortalFavoritesRequest) GetLimit() int32 {
@@ -861,7 +981,7 @@ type ListPortalFavoritesResponse struct {
 
 func (x *ListPortalFavoritesResponse) Reset() {
 	*x = ListPortalFavoritesResponse{}
-	mi := &file_forge_v1_portal_proto_msgTypes[11]
+	mi := &file_forge_v1_portal_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -873,7 +993,7 @@ func (x *ListPortalFavoritesResponse) String() string {
 func (*ListPortalFavoritesResponse) ProtoMessage() {}
 
 func (x *ListPortalFavoritesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_forge_v1_portal_proto_msgTypes[11]
+	mi := &file_forge_v1_portal_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -886,7 +1006,7 @@ func (x *ListPortalFavoritesResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListPortalFavoritesResponse.ProtoReflect.Descriptor instead.
 func (*ListPortalFavoritesResponse) Descriptor() ([]byte, []int) {
-	return file_forge_v1_portal_proto_rawDescGZIP(), []int{11}
+	return file_forge_v1_portal_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *ListPortalFavoritesResponse) GetApplications() []*PortalApplication {
@@ -905,7 +1025,7 @@ type AddPortalFavoriteRequest struct {
 
 func (x *AddPortalFavoriteRequest) Reset() {
 	*x = AddPortalFavoriteRequest{}
-	mi := &file_forge_v1_portal_proto_msgTypes[12]
+	mi := &file_forge_v1_portal_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -917,7 +1037,7 @@ func (x *AddPortalFavoriteRequest) String() string {
 func (*AddPortalFavoriteRequest) ProtoMessage() {}
 
 func (x *AddPortalFavoriteRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_forge_v1_portal_proto_msgTypes[12]
+	mi := &file_forge_v1_portal_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -930,7 +1050,7 @@ func (x *AddPortalFavoriteRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AddPortalFavoriteRequest.ProtoReflect.Descriptor instead.
 func (*AddPortalFavoriteRequest) Descriptor() ([]byte, []int) {
-	return file_forge_v1_portal_proto_rawDescGZIP(), []int{12}
+	return file_forge_v1_portal_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *AddPortalFavoriteRequest) GetApplicationId() string {
@@ -949,7 +1069,7 @@ type AddPortalFavoriteResponse struct {
 
 func (x *AddPortalFavoriteResponse) Reset() {
 	*x = AddPortalFavoriteResponse{}
-	mi := &file_forge_v1_portal_proto_msgTypes[13]
+	mi := &file_forge_v1_portal_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -961,7 +1081,7 @@ func (x *AddPortalFavoriteResponse) String() string {
 func (*AddPortalFavoriteResponse) ProtoMessage() {}
 
 func (x *AddPortalFavoriteResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_forge_v1_portal_proto_msgTypes[13]
+	mi := &file_forge_v1_portal_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -974,7 +1094,7 @@ func (x *AddPortalFavoriteResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AddPortalFavoriteResponse.ProtoReflect.Descriptor instead.
 func (*AddPortalFavoriteResponse) Descriptor() ([]byte, []int) {
-	return file_forge_v1_portal_proto_rawDescGZIP(), []int{13}
+	return file_forge_v1_portal_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *AddPortalFavoriteResponse) GetApplication() *PortalApplication {
@@ -993,7 +1113,7 @@ type RemovePortalFavoriteRequest struct {
 
 func (x *RemovePortalFavoriteRequest) Reset() {
 	*x = RemovePortalFavoriteRequest{}
-	mi := &file_forge_v1_portal_proto_msgTypes[14]
+	mi := &file_forge_v1_portal_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1005,7 +1125,7 @@ func (x *RemovePortalFavoriteRequest) String() string {
 func (*RemovePortalFavoriteRequest) ProtoMessage() {}
 
 func (x *RemovePortalFavoriteRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_forge_v1_portal_proto_msgTypes[14]
+	mi := &file_forge_v1_portal_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1018,7 +1138,7 @@ func (x *RemovePortalFavoriteRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RemovePortalFavoriteRequest.ProtoReflect.Descriptor instead.
 func (*RemovePortalFavoriteRequest) Descriptor() ([]byte, []int) {
-	return file_forge_v1_portal_proto_rawDescGZIP(), []int{14}
+	return file_forge_v1_portal_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *RemovePortalFavoriteRequest) GetApplicationId() string {
@@ -1036,7 +1156,7 @@ type RemovePortalFavoriteResponse struct {
 
 func (x *RemovePortalFavoriteResponse) Reset() {
 	*x = RemovePortalFavoriteResponse{}
-	mi := &file_forge_v1_portal_proto_msgTypes[15]
+	mi := &file_forge_v1_portal_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1048,7 +1168,7 @@ func (x *RemovePortalFavoriteResponse) String() string {
 func (*RemovePortalFavoriteResponse) ProtoMessage() {}
 
 func (x *RemovePortalFavoriteResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_forge_v1_portal_proto_msgTypes[15]
+	mi := &file_forge_v1_portal_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1061,7 +1181,7 @@ func (x *RemovePortalFavoriteResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RemovePortalFavoriteResponse.ProtoReflect.Descriptor instead.
 func (*RemovePortalFavoriteResponse) Descriptor() ([]byte, []int) {
-	return file_forge_v1_portal_proto_rawDescGZIP(), []int{15}
+	return file_forge_v1_portal_proto_rawDescGZIP(), []int{17}
 }
 
 type ListRecentPortalApplicationsRequest struct {
@@ -1073,7 +1193,7 @@ type ListRecentPortalApplicationsRequest struct {
 
 func (x *ListRecentPortalApplicationsRequest) Reset() {
 	*x = ListRecentPortalApplicationsRequest{}
-	mi := &file_forge_v1_portal_proto_msgTypes[16]
+	mi := &file_forge_v1_portal_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1085,7 +1205,7 @@ func (x *ListRecentPortalApplicationsRequest) String() string {
 func (*ListRecentPortalApplicationsRequest) ProtoMessage() {}
 
 func (x *ListRecentPortalApplicationsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_forge_v1_portal_proto_msgTypes[16]
+	mi := &file_forge_v1_portal_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1098,7 +1218,7 @@ func (x *ListRecentPortalApplicationsRequest) ProtoReflect() protoreflect.Messag
 
 // Deprecated: Use ListRecentPortalApplicationsRequest.ProtoReflect.Descriptor instead.
 func (*ListRecentPortalApplicationsRequest) Descriptor() ([]byte, []int) {
-	return file_forge_v1_portal_proto_rawDescGZIP(), []int{16}
+	return file_forge_v1_portal_proto_rawDescGZIP(), []int{18}
 }
 
 func (x *ListRecentPortalApplicationsRequest) GetLimit() int32 {
@@ -1117,7 +1237,7 @@ type ListRecentPortalApplicationsResponse struct {
 
 func (x *ListRecentPortalApplicationsResponse) Reset() {
 	*x = ListRecentPortalApplicationsResponse{}
-	mi := &file_forge_v1_portal_proto_msgTypes[17]
+	mi := &file_forge_v1_portal_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1129,7 +1249,7 @@ func (x *ListRecentPortalApplicationsResponse) String() string {
 func (*ListRecentPortalApplicationsResponse) ProtoMessage() {}
 
 func (x *ListRecentPortalApplicationsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_forge_v1_portal_proto_msgTypes[17]
+	mi := &file_forge_v1_portal_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1142,7 +1262,7 @@ func (x *ListRecentPortalApplicationsResponse) ProtoReflect() protoreflect.Messa
 
 // Deprecated: Use ListRecentPortalApplicationsResponse.ProtoReflect.Descriptor instead.
 func (*ListRecentPortalApplicationsResponse) Descriptor() ([]byte, []int) {
-	return file_forge_v1_portal_proto_rawDescGZIP(), []int{17}
+	return file_forge_v1_portal_proto_rawDescGZIP(), []int{19}
 }
 
 func (x *ListRecentPortalApplicationsResponse) GetApplications() []*PortalApplication {
@@ -1160,7 +1280,7 @@ type ListPortalCategoriesRequest struct {
 
 func (x *ListPortalCategoriesRequest) Reset() {
 	*x = ListPortalCategoriesRequest{}
-	mi := &file_forge_v1_portal_proto_msgTypes[18]
+	mi := &file_forge_v1_portal_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1172,7 +1292,7 @@ func (x *ListPortalCategoriesRequest) String() string {
 func (*ListPortalCategoriesRequest) ProtoMessage() {}
 
 func (x *ListPortalCategoriesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_forge_v1_portal_proto_msgTypes[18]
+	mi := &file_forge_v1_portal_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1185,7 +1305,7 @@ func (x *ListPortalCategoriesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListPortalCategoriesRequest.ProtoReflect.Descriptor instead.
 func (*ListPortalCategoriesRequest) Descriptor() ([]byte, []int) {
-	return file_forge_v1_portal_proto_rawDescGZIP(), []int{18}
+	return file_forge_v1_portal_proto_rawDescGZIP(), []int{20}
 }
 
 type ListPortalCategoriesResponse struct {
@@ -1197,7 +1317,7 @@ type ListPortalCategoriesResponse struct {
 
 func (x *ListPortalCategoriesResponse) Reset() {
 	*x = ListPortalCategoriesResponse{}
-	mi := &file_forge_v1_portal_proto_msgTypes[19]
+	mi := &file_forge_v1_portal_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1209,7 +1329,7 @@ func (x *ListPortalCategoriesResponse) String() string {
 func (*ListPortalCategoriesResponse) ProtoMessage() {}
 
 func (x *ListPortalCategoriesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_forge_v1_portal_proto_msgTypes[19]
+	mi := &file_forge_v1_portal_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1222,7 +1342,7 @@ func (x *ListPortalCategoriesResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListPortalCategoriesResponse.ProtoReflect.Descriptor instead.
 func (*ListPortalCategoriesResponse) Descriptor() ([]byte, []int) {
-	return file_forge_v1_portal_proto_rawDescGZIP(), []int{19}
+	return file_forge_v1_portal_proto_rawDescGZIP(), []int{21}
 }
 
 func (x *ListPortalCategoriesResponse) GetCategories() []*PortalCategory {
@@ -1240,7 +1360,7 @@ type ListPortalTagsRequest struct {
 
 func (x *ListPortalTagsRequest) Reset() {
 	*x = ListPortalTagsRequest{}
-	mi := &file_forge_v1_portal_proto_msgTypes[20]
+	mi := &file_forge_v1_portal_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1252,7 +1372,7 @@ func (x *ListPortalTagsRequest) String() string {
 func (*ListPortalTagsRequest) ProtoMessage() {}
 
 func (x *ListPortalTagsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_forge_v1_portal_proto_msgTypes[20]
+	mi := &file_forge_v1_portal_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1265,7 +1385,7 @@ func (x *ListPortalTagsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListPortalTagsRequest.ProtoReflect.Descriptor instead.
 func (*ListPortalTagsRequest) Descriptor() ([]byte, []int) {
-	return file_forge_v1_portal_proto_rawDescGZIP(), []int{20}
+	return file_forge_v1_portal_proto_rawDescGZIP(), []int{22}
 }
 
 type ListPortalTagsResponse struct {
@@ -1277,7 +1397,7 @@ type ListPortalTagsResponse struct {
 
 func (x *ListPortalTagsResponse) Reset() {
 	*x = ListPortalTagsResponse{}
-	mi := &file_forge_v1_portal_proto_msgTypes[21]
+	mi := &file_forge_v1_portal_proto_msgTypes[23]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1289,7 +1409,7 @@ func (x *ListPortalTagsResponse) String() string {
 func (*ListPortalTagsResponse) ProtoMessage() {}
 
 func (x *ListPortalTagsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_forge_v1_portal_proto_msgTypes[21]
+	mi := &file_forge_v1_portal_proto_msgTypes[23]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1302,7 +1422,7 @@ func (x *ListPortalTagsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListPortalTagsResponse.ProtoReflect.Descriptor instead.
 func (*ListPortalTagsResponse) Descriptor() ([]byte, []int) {
-	return file_forge_v1_portal_proto_rawDescGZIP(), []int{21}
+	return file_forge_v1_portal_proto_rawDescGZIP(), []int{23}
 }
 
 func (x *ListPortalTagsResponse) GetTags() []*PortalTag {
@@ -1321,7 +1441,7 @@ type ListAdminPortalApplicationsRequest struct {
 
 func (x *ListAdminPortalApplicationsRequest) Reset() {
 	*x = ListAdminPortalApplicationsRequest{}
-	mi := &file_forge_v1_portal_proto_msgTypes[22]
+	mi := &file_forge_v1_portal_proto_msgTypes[24]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1333,7 +1453,7 @@ func (x *ListAdminPortalApplicationsRequest) String() string {
 func (*ListAdminPortalApplicationsRequest) ProtoMessage() {}
 
 func (x *ListAdminPortalApplicationsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_forge_v1_portal_proto_msgTypes[22]
+	mi := &file_forge_v1_portal_proto_msgTypes[24]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1346,7 +1466,7 @@ func (x *ListAdminPortalApplicationsRequest) ProtoReflect() protoreflect.Message
 
 // Deprecated: Use ListAdminPortalApplicationsRequest.ProtoReflect.Descriptor instead.
 func (*ListAdminPortalApplicationsRequest) Descriptor() ([]byte, []int) {
-	return file_forge_v1_portal_proto_rawDescGZIP(), []int{22}
+	return file_forge_v1_portal_proto_rawDescGZIP(), []int{24}
 }
 
 func (x *ListAdminPortalApplicationsRequest) GetLimit() int32 {
@@ -1365,7 +1485,7 @@ type ListAdminPortalApplicationsResponse struct {
 
 func (x *ListAdminPortalApplicationsResponse) Reset() {
 	*x = ListAdminPortalApplicationsResponse{}
-	mi := &file_forge_v1_portal_proto_msgTypes[23]
+	mi := &file_forge_v1_portal_proto_msgTypes[25]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1377,7 +1497,7 @@ func (x *ListAdminPortalApplicationsResponse) String() string {
 func (*ListAdminPortalApplicationsResponse) ProtoMessage() {}
 
 func (x *ListAdminPortalApplicationsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_forge_v1_portal_proto_msgTypes[23]
+	mi := &file_forge_v1_portal_proto_msgTypes[25]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1390,7 +1510,7 @@ func (x *ListAdminPortalApplicationsResponse) ProtoReflect() protoreflect.Messag
 
 // Deprecated: Use ListAdminPortalApplicationsResponse.ProtoReflect.Descriptor instead.
 func (*ListAdminPortalApplicationsResponse) Descriptor() ([]byte, []int) {
-	return file_forge_v1_portal_proto_rawDescGZIP(), []int{23}
+	return file_forge_v1_portal_proto_rawDescGZIP(), []int{25}
 }
 
 func (x *ListAdminPortalApplicationsResponse) GetApplications() []*PortalApplication {
@@ -1420,7 +1540,7 @@ type CreatePortalApplicationRequest struct {
 
 func (x *CreatePortalApplicationRequest) Reset() {
 	*x = CreatePortalApplicationRequest{}
-	mi := &file_forge_v1_portal_proto_msgTypes[24]
+	mi := &file_forge_v1_portal_proto_msgTypes[26]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1432,7 +1552,7 @@ func (x *CreatePortalApplicationRequest) String() string {
 func (*CreatePortalApplicationRequest) ProtoMessage() {}
 
 func (x *CreatePortalApplicationRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_forge_v1_portal_proto_msgTypes[24]
+	mi := &file_forge_v1_portal_proto_msgTypes[26]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1445,7 +1565,7 @@ func (x *CreatePortalApplicationRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreatePortalApplicationRequest.ProtoReflect.Descriptor instead.
 func (*CreatePortalApplicationRequest) Descriptor() ([]byte, []int) {
-	return file_forge_v1_portal_proto_rawDescGZIP(), []int{24}
+	return file_forge_v1_portal_proto_rawDescGZIP(), []int{26}
 }
 
 func (x *CreatePortalApplicationRequest) GetCode() string {
@@ -1541,7 +1661,7 @@ type CreatePortalApplicationResponse struct {
 
 func (x *CreatePortalApplicationResponse) Reset() {
 	*x = CreatePortalApplicationResponse{}
-	mi := &file_forge_v1_portal_proto_msgTypes[25]
+	mi := &file_forge_v1_portal_proto_msgTypes[27]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1553,7 +1673,7 @@ func (x *CreatePortalApplicationResponse) String() string {
 func (*CreatePortalApplicationResponse) ProtoMessage() {}
 
 func (x *CreatePortalApplicationResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_forge_v1_portal_proto_msgTypes[25]
+	mi := &file_forge_v1_portal_proto_msgTypes[27]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1566,7 +1686,7 @@ func (x *CreatePortalApplicationResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreatePortalApplicationResponse.ProtoReflect.Descriptor instead.
 func (*CreatePortalApplicationResponse) Descriptor() ([]byte, []int) {
-	return file_forge_v1_portal_proto_rawDescGZIP(), []int{25}
+	return file_forge_v1_portal_proto_rawDescGZIP(), []int{27}
 }
 
 func (x *CreatePortalApplicationResponse) GetApplication() *PortalApplication {
@@ -1596,7 +1716,7 @@ type UpdatePortalApplicationRequest struct {
 
 func (x *UpdatePortalApplicationRequest) Reset() {
 	*x = UpdatePortalApplicationRequest{}
-	mi := &file_forge_v1_portal_proto_msgTypes[26]
+	mi := &file_forge_v1_portal_proto_msgTypes[28]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1608,7 +1728,7 @@ func (x *UpdatePortalApplicationRequest) String() string {
 func (*UpdatePortalApplicationRequest) ProtoMessage() {}
 
 func (x *UpdatePortalApplicationRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_forge_v1_portal_proto_msgTypes[26]
+	mi := &file_forge_v1_portal_proto_msgTypes[28]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1621,7 +1741,7 @@ func (x *UpdatePortalApplicationRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdatePortalApplicationRequest.ProtoReflect.Descriptor instead.
 func (*UpdatePortalApplicationRequest) Descriptor() ([]byte, []int) {
-	return file_forge_v1_portal_proto_rawDescGZIP(), []int{26}
+	return file_forge_v1_portal_proto_rawDescGZIP(), []int{28}
 }
 
 func (x *UpdatePortalApplicationRequest) GetApplicationId() string {
@@ -1717,7 +1837,7 @@ type UpdatePortalApplicationResponse struct {
 
 func (x *UpdatePortalApplicationResponse) Reset() {
 	*x = UpdatePortalApplicationResponse{}
-	mi := &file_forge_v1_portal_proto_msgTypes[27]
+	mi := &file_forge_v1_portal_proto_msgTypes[29]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1729,7 +1849,7 @@ func (x *UpdatePortalApplicationResponse) String() string {
 func (*UpdatePortalApplicationResponse) ProtoMessage() {}
 
 func (x *UpdatePortalApplicationResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_forge_v1_portal_proto_msgTypes[27]
+	mi := &file_forge_v1_portal_proto_msgTypes[29]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1742,7 +1862,7 @@ func (x *UpdatePortalApplicationResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdatePortalApplicationResponse.ProtoReflect.Descriptor instead.
 func (*UpdatePortalApplicationResponse) Descriptor() ([]byte, []int) {
-	return file_forge_v1_portal_proto_rawDescGZIP(), []int{27}
+	return file_forge_v1_portal_proto_rawDescGZIP(), []int{29}
 }
 
 func (x *UpdatePortalApplicationResponse) GetApplication() *PortalApplication {
@@ -1761,7 +1881,7 @@ type DeletePortalApplicationRequest struct {
 
 func (x *DeletePortalApplicationRequest) Reset() {
 	*x = DeletePortalApplicationRequest{}
-	mi := &file_forge_v1_portal_proto_msgTypes[28]
+	mi := &file_forge_v1_portal_proto_msgTypes[30]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1773,7 +1893,7 @@ func (x *DeletePortalApplicationRequest) String() string {
 func (*DeletePortalApplicationRequest) ProtoMessage() {}
 
 func (x *DeletePortalApplicationRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_forge_v1_portal_proto_msgTypes[28]
+	mi := &file_forge_v1_portal_proto_msgTypes[30]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1786,7 +1906,7 @@ func (x *DeletePortalApplicationRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeletePortalApplicationRequest.ProtoReflect.Descriptor instead.
 func (*DeletePortalApplicationRequest) Descriptor() ([]byte, []int) {
-	return file_forge_v1_portal_proto_rawDescGZIP(), []int{28}
+	return file_forge_v1_portal_proto_rawDescGZIP(), []int{30}
 }
 
 func (x *DeletePortalApplicationRequest) GetApplicationId() string {
@@ -1804,7 +1924,7 @@ type DeletePortalApplicationResponse struct {
 
 func (x *DeletePortalApplicationResponse) Reset() {
 	*x = DeletePortalApplicationResponse{}
-	mi := &file_forge_v1_portal_proto_msgTypes[29]
+	mi := &file_forge_v1_portal_proto_msgTypes[31]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1816,7 +1936,7 @@ func (x *DeletePortalApplicationResponse) String() string {
 func (*DeletePortalApplicationResponse) ProtoMessage() {}
 
 func (x *DeletePortalApplicationResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_forge_v1_portal_proto_msgTypes[29]
+	mi := &file_forge_v1_portal_proto_msgTypes[31]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1829,7 +1949,7 @@ func (x *DeletePortalApplicationResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeletePortalApplicationResponse.ProtoReflect.Descriptor instead.
 func (*DeletePortalApplicationResponse) Descriptor() ([]byte, []int) {
-	return file_forge_v1_portal_proto_rawDescGZIP(), []int{29}
+	return file_forge_v1_portal_proto_rawDescGZIP(), []int{31}
 }
 
 type CreatePortalCategoryRequest struct {
@@ -1845,7 +1965,7 @@ type CreatePortalCategoryRequest struct {
 
 func (x *CreatePortalCategoryRequest) Reset() {
 	*x = CreatePortalCategoryRequest{}
-	mi := &file_forge_v1_portal_proto_msgTypes[30]
+	mi := &file_forge_v1_portal_proto_msgTypes[32]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1857,7 +1977,7 @@ func (x *CreatePortalCategoryRequest) String() string {
 func (*CreatePortalCategoryRequest) ProtoMessage() {}
 
 func (x *CreatePortalCategoryRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_forge_v1_portal_proto_msgTypes[30]
+	mi := &file_forge_v1_portal_proto_msgTypes[32]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1870,7 +1990,7 @@ func (x *CreatePortalCategoryRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreatePortalCategoryRequest.ProtoReflect.Descriptor instead.
 func (*CreatePortalCategoryRequest) Descriptor() ([]byte, []int) {
-	return file_forge_v1_portal_proto_rawDescGZIP(), []int{30}
+	return file_forge_v1_portal_proto_rawDescGZIP(), []int{32}
 }
 
 func (x *CreatePortalCategoryRequest) GetCategoryKey() string {
@@ -1917,7 +2037,7 @@ type CreatePortalCategoryResponse struct {
 
 func (x *CreatePortalCategoryResponse) Reset() {
 	*x = CreatePortalCategoryResponse{}
-	mi := &file_forge_v1_portal_proto_msgTypes[31]
+	mi := &file_forge_v1_portal_proto_msgTypes[33]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1929,7 +2049,7 @@ func (x *CreatePortalCategoryResponse) String() string {
 func (*CreatePortalCategoryResponse) ProtoMessage() {}
 
 func (x *CreatePortalCategoryResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_forge_v1_portal_proto_msgTypes[31]
+	mi := &file_forge_v1_portal_proto_msgTypes[33]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1942,7 +2062,7 @@ func (x *CreatePortalCategoryResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreatePortalCategoryResponse.ProtoReflect.Descriptor instead.
 func (*CreatePortalCategoryResponse) Descriptor() ([]byte, []int) {
-	return file_forge_v1_portal_proto_rawDescGZIP(), []int{31}
+	return file_forge_v1_portal_proto_rawDescGZIP(), []int{33}
 }
 
 func (x *CreatePortalCategoryResponse) GetCategory() *PortalCategory {
@@ -1965,7 +2085,7 @@ type UpdatePortalCategoryRequest struct {
 
 func (x *UpdatePortalCategoryRequest) Reset() {
 	*x = UpdatePortalCategoryRequest{}
-	mi := &file_forge_v1_portal_proto_msgTypes[32]
+	mi := &file_forge_v1_portal_proto_msgTypes[34]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1977,7 +2097,7 @@ func (x *UpdatePortalCategoryRequest) String() string {
 func (*UpdatePortalCategoryRequest) ProtoMessage() {}
 
 func (x *UpdatePortalCategoryRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_forge_v1_portal_proto_msgTypes[32]
+	mi := &file_forge_v1_portal_proto_msgTypes[34]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1990,7 +2110,7 @@ func (x *UpdatePortalCategoryRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdatePortalCategoryRequest.ProtoReflect.Descriptor instead.
 func (*UpdatePortalCategoryRequest) Descriptor() ([]byte, []int) {
-	return file_forge_v1_portal_proto_rawDescGZIP(), []int{32}
+	return file_forge_v1_portal_proto_rawDescGZIP(), []int{34}
 }
 
 func (x *UpdatePortalCategoryRequest) GetCategoryId() string {
@@ -2037,7 +2157,7 @@ type UpdatePortalCategoryResponse struct {
 
 func (x *UpdatePortalCategoryResponse) Reset() {
 	*x = UpdatePortalCategoryResponse{}
-	mi := &file_forge_v1_portal_proto_msgTypes[33]
+	mi := &file_forge_v1_portal_proto_msgTypes[35]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2049,7 +2169,7 @@ func (x *UpdatePortalCategoryResponse) String() string {
 func (*UpdatePortalCategoryResponse) ProtoMessage() {}
 
 func (x *UpdatePortalCategoryResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_forge_v1_portal_proto_msgTypes[33]
+	mi := &file_forge_v1_portal_proto_msgTypes[35]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2062,7 +2182,7 @@ func (x *UpdatePortalCategoryResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdatePortalCategoryResponse.ProtoReflect.Descriptor instead.
 func (*UpdatePortalCategoryResponse) Descriptor() ([]byte, []int) {
-	return file_forge_v1_portal_proto_rawDescGZIP(), []int{33}
+	return file_forge_v1_portal_proto_rawDescGZIP(), []int{35}
 }
 
 func (x *UpdatePortalCategoryResponse) GetCategory() *PortalCategory {
@@ -2081,7 +2201,7 @@ type DeletePortalCategoryRequest struct {
 
 func (x *DeletePortalCategoryRequest) Reset() {
 	*x = DeletePortalCategoryRequest{}
-	mi := &file_forge_v1_portal_proto_msgTypes[34]
+	mi := &file_forge_v1_portal_proto_msgTypes[36]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2093,7 +2213,7 @@ func (x *DeletePortalCategoryRequest) String() string {
 func (*DeletePortalCategoryRequest) ProtoMessage() {}
 
 func (x *DeletePortalCategoryRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_forge_v1_portal_proto_msgTypes[34]
+	mi := &file_forge_v1_portal_proto_msgTypes[36]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2106,7 +2226,7 @@ func (x *DeletePortalCategoryRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeletePortalCategoryRequest.ProtoReflect.Descriptor instead.
 func (*DeletePortalCategoryRequest) Descriptor() ([]byte, []int) {
-	return file_forge_v1_portal_proto_rawDescGZIP(), []int{34}
+	return file_forge_v1_portal_proto_rawDescGZIP(), []int{36}
 }
 
 func (x *DeletePortalCategoryRequest) GetCategoryId() string {
@@ -2124,7 +2244,7 @@ type DeletePortalCategoryResponse struct {
 
 func (x *DeletePortalCategoryResponse) Reset() {
 	*x = DeletePortalCategoryResponse{}
-	mi := &file_forge_v1_portal_proto_msgTypes[35]
+	mi := &file_forge_v1_portal_proto_msgTypes[37]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2136,7 +2256,7 @@ func (x *DeletePortalCategoryResponse) String() string {
 func (*DeletePortalCategoryResponse) ProtoMessage() {}
 
 func (x *DeletePortalCategoryResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_forge_v1_portal_proto_msgTypes[35]
+	mi := &file_forge_v1_portal_proto_msgTypes[37]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2149,7 +2269,7 @@ func (x *DeletePortalCategoryResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeletePortalCategoryResponse.ProtoReflect.Descriptor instead.
 func (*DeletePortalCategoryResponse) Descriptor() ([]byte, []int) {
-	return file_forge_v1_portal_proto_rawDescGZIP(), []int{35}
+	return file_forge_v1_portal_proto_rawDescGZIP(), []int{37}
 }
 
 type CreatePortalTagRequest struct {
@@ -2163,7 +2283,7 @@ type CreatePortalTagRequest struct {
 
 func (x *CreatePortalTagRequest) Reset() {
 	*x = CreatePortalTagRequest{}
-	mi := &file_forge_v1_portal_proto_msgTypes[36]
+	mi := &file_forge_v1_portal_proto_msgTypes[38]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2175,7 +2295,7 @@ func (x *CreatePortalTagRequest) String() string {
 func (*CreatePortalTagRequest) ProtoMessage() {}
 
 func (x *CreatePortalTagRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_forge_v1_portal_proto_msgTypes[36]
+	mi := &file_forge_v1_portal_proto_msgTypes[38]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2188,7 +2308,7 @@ func (x *CreatePortalTagRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreatePortalTagRequest.ProtoReflect.Descriptor instead.
 func (*CreatePortalTagRequest) Descriptor() ([]byte, []int) {
-	return file_forge_v1_portal_proto_rawDescGZIP(), []int{36}
+	return file_forge_v1_portal_proto_rawDescGZIP(), []int{38}
 }
 
 func (x *CreatePortalTagRequest) GetTagKey() string {
@@ -2221,7 +2341,7 @@ type CreatePortalTagResponse struct {
 
 func (x *CreatePortalTagResponse) Reset() {
 	*x = CreatePortalTagResponse{}
-	mi := &file_forge_v1_portal_proto_msgTypes[37]
+	mi := &file_forge_v1_portal_proto_msgTypes[39]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2233,7 +2353,7 @@ func (x *CreatePortalTagResponse) String() string {
 func (*CreatePortalTagResponse) ProtoMessage() {}
 
 func (x *CreatePortalTagResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_forge_v1_portal_proto_msgTypes[37]
+	mi := &file_forge_v1_portal_proto_msgTypes[39]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2246,7 +2366,7 @@ func (x *CreatePortalTagResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreatePortalTagResponse.ProtoReflect.Descriptor instead.
 func (*CreatePortalTagResponse) Descriptor() ([]byte, []int) {
-	return file_forge_v1_portal_proto_rawDescGZIP(), []int{37}
+	return file_forge_v1_portal_proto_rawDescGZIP(), []int{39}
 }
 
 func (x *CreatePortalTagResponse) GetTag() *PortalTag {
@@ -2267,7 +2387,7 @@ type UpdatePortalTagRequest struct {
 
 func (x *UpdatePortalTagRequest) Reset() {
 	*x = UpdatePortalTagRequest{}
-	mi := &file_forge_v1_portal_proto_msgTypes[38]
+	mi := &file_forge_v1_portal_proto_msgTypes[40]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2279,7 +2399,7 @@ func (x *UpdatePortalTagRequest) String() string {
 func (*UpdatePortalTagRequest) ProtoMessage() {}
 
 func (x *UpdatePortalTagRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_forge_v1_portal_proto_msgTypes[38]
+	mi := &file_forge_v1_portal_proto_msgTypes[40]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2292,7 +2412,7 @@ func (x *UpdatePortalTagRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdatePortalTagRequest.ProtoReflect.Descriptor instead.
 func (*UpdatePortalTagRequest) Descriptor() ([]byte, []int) {
-	return file_forge_v1_portal_proto_rawDescGZIP(), []int{38}
+	return file_forge_v1_portal_proto_rawDescGZIP(), []int{40}
 }
 
 func (x *UpdatePortalTagRequest) GetTagId() string {
@@ -2325,7 +2445,7 @@ type UpdatePortalTagResponse struct {
 
 func (x *UpdatePortalTagResponse) Reset() {
 	*x = UpdatePortalTagResponse{}
-	mi := &file_forge_v1_portal_proto_msgTypes[39]
+	mi := &file_forge_v1_portal_proto_msgTypes[41]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2337,7 +2457,7 @@ func (x *UpdatePortalTagResponse) String() string {
 func (*UpdatePortalTagResponse) ProtoMessage() {}
 
 func (x *UpdatePortalTagResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_forge_v1_portal_proto_msgTypes[39]
+	mi := &file_forge_v1_portal_proto_msgTypes[41]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2350,7 +2470,7 @@ func (x *UpdatePortalTagResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdatePortalTagResponse.ProtoReflect.Descriptor instead.
 func (*UpdatePortalTagResponse) Descriptor() ([]byte, []int) {
-	return file_forge_v1_portal_proto_rawDescGZIP(), []int{39}
+	return file_forge_v1_portal_proto_rawDescGZIP(), []int{41}
 }
 
 func (x *UpdatePortalTagResponse) GetTag() *PortalTag {
@@ -2369,7 +2489,7 @@ type DeletePortalTagRequest struct {
 
 func (x *DeletePortalTagRequest) Reset() {
 	*x = DeletePortalTagRequest{}
-	mi := &file_forge_v1_portal_proto_msgTypes[40]
+	mi := &file_forge_v1_portal_proto_msgTypes[42]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2381,7 +2501,7 @@ func (x *DeletePortalTagRequest) String() string {
 func (*DeletePortalTagRequest) ProtoMessage() {}
 
 func (x *DeletePortalTagRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_forge_v1_portal_proto_msgTypes[40]
+	mi := &file_forge_v1_portal_proto_msgTypes[42]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2394,7 +2514,7 @@ func (x *DeletePortalTagRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeletePortalTagRequest.ProtoReflect.Descriptor instead.
 func (*DeletePortalTagRequest) Descriptor() ([]byte, []int) {
-	return file_forge_v1_portal_proto_rawDescGZIP(), []int{40}
+	return file_forge_v1_portal_proto_rawDescGZIP(), []int{42}
 }
 
 func (x *DeletePortalTagRequest) GetTagId() string {
@@ -2412,7 +2532,7 @@ type DeletePortalTagResponse struct {
 
 func (x *DeletePortalTagResponse) Reset() {
 	*x = DeletePortalTagResponse{}
-	mi := &file_forge_v1_portal_proto_msgTypes[41]
+	mi := &file_forge_v1_portal_proto_msgTypes[43]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2424,7 +2544,7 @@ func (x *DeletePortalTagResponse) String() string {
 func (*DeletePortalTagResponse) ProtoMessage() {}
 
 func (x *DeletePortalTagResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_forge_v1_portal_proto_msgTypes[41]
+	mi := &file_forge_v1_portal_proto_msgTypes[43]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2437,7 +2557,7 @@ func (x *DeletePortalTagResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeletePortalTagResponse.ProtoReflect.Descriptor instead.
 func (*DeletePortalTagResponse) Descriptor() ([]byte, []int) {
-	return file_forge_v1_portal_proto_rawDescGZIP(), []int{41}
+	return file_forge_v1_portal_proto_rawDescGZIP(), []int{43}
 }
 
 type ReplacePortalApplicationPoliciesRequest struct {
@@ -2450,7 +2570,7 @@ type ReplacePortalApplicationPoliciesRequest struct {
 
 func (x *ReplacePortalApplicationPoliciesRequest) Reset() {
 	*x = ReplacePortalApplicationPoliciesRequest{}
-	mi := &file_forge_v1_portal_proto_msgTypes[42]
+	mi := &file_forge_v1_portal_proto_msgTypes[44]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2462,7 +2582,7 @@ func (x *ReplacePortalApplicationPoliciesRequest) String() string {
 func (*ReplacePortalApplicationPoliciesRequest) ProtoMessage() {}
 
 func (x *ReplacePortalApplicationPoliciesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_forge_v1_portal_proto_msgTypes[42]
+	mi := &file_forge_v1_portal_proto_msgTypes[44]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2475,7 +2595,7 @@ func (x *ReplacePortalApplicationPoliciesRequest) ProtoReflect() protoreflect.Me
 
 // Deprecated: Use ReplacePortalApplicationPoliciesRequest.ProtoReflect.Descriptor instead.
 func (*ReplacePortalApplicationPoliciesRequest) Descriptor() ([]byte, []int) {
-	return file_forge_v1_portal_proto_rawDescGZIP(), []int{42}
+	return file_forge_v1_portal_proto_rawDescGZIP(), []int{44}
 }
 
 func (x *ReplacePortalApplicationPoliciesRequest) GetApplicationId() string {
@@ -2501,7 +2621,7 @@ type ReplacePortalApplicationPoliciesResponse struct {
 
 func (x *ReplacePortalApplicationPoliciesResponse) Reset() {
 	*x = ReplacePortalApplicationPoliciesResponse{}
-	mi := &file_forge_v1_portal_proto_msgTypes[43]
+	mi := &file_forge_v1_portal_proto_msgTypes[45]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2513,7 +2633,7 @@ func (x *ReplacePortalApplicationPoliciesResponse) String() string {
 func (*ReplacePortalApplicationPoliciesResponse) ProtoMessage() {}
 
 func (x *ReplacePortalApplicationPoliciesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_forge_v1_portal_proto_msgTypes[43]
+	mi := &file_forge_v1_portal_proto_msgTypes[45]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2526,7 +2646,7 @@ func (x *ReplacePortalApplicationPoliciesResponse) ProtoReflect() protoreflect.M
 
 // Deprecated: Use ReplacePortalApplicationPoliciesResponse.ProtoReflect.Descriptor instead.
 func (*ReplacePortalApplicationPoliciesResponse) Descriptor() ([]byte, []int) {
-	return file_forge_v1_portal_proto_rawDescGZIP(), []int{43}
+	return file_forge_v1_portal_proto_rawDescGZIP(), []int{45}
 }
 
 func (x *ReplacePortalApplicationPoliciesResponse) GetPolicies() []*PortalAccessPolicy {
@@ -2610,7 +2730,16 @@ const file_forge_v1_portal_proto_rawDesc = "" +
 	"categoryId\x12\x15\n" +
 	"\x06tag_id\x18\x03 \x01(\tR\x05tagId\x12%\n" +
 	"\x0efavorites_only\x18\x04 \x01(\bR\rfavoritesOnly\x12\x14\n" +
-	"\x05limit\x18\x05 \x01(\x05R\x05limit\"a\n" +
+	"\x05limit\x18\x05 \x01(\x05R\x05limit\"J\n" +
+	"!AuthorizePortalApplicationRequest\x12%\n" +
+	"\x0eapplication_id\x18\x01 \x01(\tR\rapplicationId\"\xcf\x01\n" +
+	"\"AuthorizePortalApplicationResponse\x12%\n" +
+	"\x0eapplication_id\x18\x01 \x01(\tR\rapplicationId\x12\x17\n" +
+	"\auser_id\x18\x02 \x01(\tR\x06userId\x12\x1d\n" +
+	"\n" +
+	"login_name\x18\x03 \x01(\tR\tloginName\x12'\n" +
+	"\x0forganization_id\x18\x04 \x01(\tR\x0eorganizationId\x12!\n" +
+	"\fdisplay_name\x18\x05 \x01(\tR\vdisplayName\"a\n" +
 	"\x1eListPortalApplicationsResponse\x12?\n" +
 	"\fapplications\x18\x01 \x03(\v2\x1b.forge.v1.PortalApplicationR\fapplications\"D\n" +
 	"\x1bGetPortalApplicationRequest\x12%\n" +
@@ -2737,8 +2866,14 @@ const file_forge_v1_portal_proto_rawDesc = "" +
 	"\x0eapplication_id\x18\x01 \x01(\tR\rapplicationId\x128\n" +
 	"\bpolicies\x18\x02 \x03(\v2\x1c.forge.v1.PortalAccessPolicyR\bpolicies\"d\n" +
 	"(ReplacePortalApplicationPoliciesResponse\x128\n" +
-	"\bpolicies\x18\x01 \x03(\v2\x1c.forge.v1.PortalAccessPolicyR\bpolicies2\x98 \n" +
-	"\rPortalService\x12\xba\x01\n" +
+	"\bpolicies\x18\x01 \x03(\v2\x1c.forge.v1.PortalAccessPolicyR\bpolicies2\xeb!\n" +
+	"\rPortalService\x12\xd0\x01\n" +
+	"\x1aAuthorizePortalApplication\x12+.forge.v1.AuthorizePortalApplicationRequest\x1a,.forge.v1.AuthorizePortalApplicationResponse\"W\xbaG'Z\x13\n" +
+	"\x11\n" +
+	"\rSessionCookie\x12\x00Z\x10\n" +
+	"\x0e\n" +
+	"\n" +
+	"BearerAuth\x12\x00\x82\xd3\xe4\x93\x02'\x12%/api/v1/auth/forward/{application_id}\x12\xba\x01\n" +
 	"\x16ListPortalApplications\x12'.forge.v1.ListPortalApplicationsRequest\x1a(.forge.v1.ListPortalApplicationsResponse\"M\xbaG'Z\x13\n" +
 	"\x11\n" +
 	"\rSessionCookie\x12\x00Z\x10\n" +
@@ -2898,65 +3033,67 @@ func file_forge_v1_portal_proto_rawDescGZIP() []byte {
 	return file_forge_v1_portal_proto_rawDescData
 }
 
-var file_forge_v1_portal_proto_msgTypes = make([]protoimpl.MessageInfo, 44)
+var file_forge_v1_portal_proto_msgTypes = make([]protoimpl.MessageInfo, 46)
 var file_forge_v1_portal_proto_goTypes = []any{
 	(*PortalApplication)(nil),                        // 0: forge.v1.PortalApplication
 	(*PortalCategory)(nil),                           // 1: forge.v1.PortalCategory
 	(*PortalTag)(nil),                                // 2: forge.v1.PortalTag
 	(*PortalAccessPolicy)(nil),                       // 3: forge.v1.PortalAccessPolicy
 	(*ListPortalApplicationsRequest)(nil),            // 4: forge.v1.ListPortalApplicationsRequest
-	(*ListPortalApplicationsResponse)(nil),           // 5: forge.v1.ListPortalApplicationsResponse
-	(*GetPortalApplicationRequest)(nil),              // 6: forge.v1.GetPortalApplicationRequest
-	(*GetPortalApplicationResponse)(nil),             // 7: forge.v1.GetPortalApplicationResponse
-	(*LaunchPortalApplicationRequest)(nil),           // 8: forge.v1.LaunchPortalApplicationRequest
-	(*LaunchPortalApplicationResponse)(nil),          // 9: forge.v1.LaunchPortalApplicationResponse
-	(*ListPortalFavoritesRequest)(nil),               // 10: forge.v1.ListPortalFavoritesRequest
-	(*ListPortalFavoritesResponse)(nil),              // 11: forge.v1.ListPortalFavoritesResponse
-	(*AddPortalFavoriteRequest)(nil),                 // 12: forge.v1.AddPortalFavoriteRequest
-	(*AddPortalFavoriteResponse)(nil),                // 13: forge.v1.AddPortalFavoriteResponse
-	(*RemovePortalFavoriteRequest)(nil),              // 14: forge.v1.RemovePortalFavoriteRequest
-	(*RemovePortalFavoriteResponse)(nil),             // 15: forge.v1.RemovePortalFavoriteResponse
-	(*ListRecentPortalApplicationsRequest)(nil),      // 16: forge.v1.ListRecentPortalApplicationsRequest
-	(*ListRecentPortalApplicationsResponse)(nil),     // 17: forge.v1.ListRecentPortalApplicationsResponse
-	(*ListPortalCategoriesRequest)(nil),              // 18: forge.v1.ListPortalCategoriesRequest
-	(*ListPortalCategoriesResponse)(nil),             // 19: forge.v1.ListPortalCategoriesResponse
-	(*ListPortalTagsRequest)(nil),                    // 20: forge.v1.ListPortalTagsRequest
-	(*ListPortalTagsResponse)(nil),                   // 21: forge.v1.ListPortalTagsResponse
-	(*ListAdminPortalApplicationsRequest)(nil),       // 22: forge.v1.ListAdminPortalApplicationsRequest
-	(*ListAdminPortalApplicationsResponse)(nil),      // 23: forge.v1.ListAdminPortalApplicationsResponse
-	(*CreatePortalApplicationRequest)(nil),           // 24: forge.v1.CreatePortalApplicationRequest
-	(*CreatePortalApplicationResponse)(nil),          // 25: forge.v1.CreatePortalApplicationResponse
-	(*UpdatePortalApplicationRequest)(nil),           // 26: forge.v1.UpdatePortalApplicationRequest
-	(*UpdatePortalApplicationResponse)(nil),          // 27: forge.v1.UpdatePortalApplicationResponse
-	(*DeletePortalApplicationRequest)(nil),           // 28: forge.v1.DeletePortalApplicationRequest
-	(*DeletePortalApplicationResponse)(nil),          // 29: forge.v1.DeletePortalApplicationResponse
-	(*CreatePortalCategoryRequest)(nil),              // 30: forge.v1.CreatePortalCategoryRequest
-	(*CreatePortalCategoryResponse)(nil),             // 31: forge.v1.CreatePortalCategoryResponse
-	(*UpdatePortalCategoryRequest)(nil),              // 32: forge.v1.UpdatePortalCategoryRequest
-	(*UpdatePortalCategoryResponse)(nil),             // 33: forge.v1.UpdatePortalCategoryResponse
-	(*DeletePortalCategoryRequest)(nil),              // 34: forge.v1.DeletePortalCategoryRequest
-	(*DeletePortalCategoryResponse)(nil),             // 35: forge.v1.DeletePortalCategoryResponse
-	(*CreatePortalTagRequest)(nil),                   // 36: forge.v1.CreatePortalTagRequest
-	(*CreatePortalTagResponse)(nil),                  // 37: forge.v1.CreatePortalTagResponse
-	(*UpdatePortalTagRequest)(nil),                   // 38: forge.v1.UpdatePortalTagRequest
-	(*UpdatePortalTagResponse)(nil),                  // 39: forge.v1.UpdatePortalTagResponse
-	(*DeletePortalTagRequest)(nil),                   // 40: forge.v1.DeletePortalTagRequest
-	(*DeletePortalTagResponse)(nil),                  // 41: forge.v1.DeletePortalTagResponse
-	(*ReplacePortalApplicationPoliciesRequest)(nil),  // 42: forge.v1.ReplacePortalApplicationPoliciesRequest
-	(*ReplacePortalApplicationPoliciesResponse)(nil), // 43: forge.v1.ReplacePortalApplicationPoliciesResponse
-	(*timestamppb.Timestamp)(nil),                    // 44: google.protobuf.Timestamp
+	(*AuthorizePortalApplicationRequest)(nil),        // 5: forge.v1.AuthorizePortalApplicationRequest
+	(*AuthorizePortalApplicationResponse)(nil),       // 6: forge.v1.AuthorizePortalApplicationResponse
+	(*ListPortalApplicationsResponse)(nil),           // 7: forge.v1.ListPortalApplicationsResponse
+	(*GetPortalApplicationRequest)(nil),              // 8: forge.v1.GetPortalApplicationRequest
+	(*GetPortalApplicationResponse)(nil),             // 9: forge.v1.GetPortalApplicationResponse
+	(*LaunchPortalApplicationRequest)(nil),           // 10: forge.v1.LaunchPortalApplicationRequest
+	(*LaunchPortalApplicationResponse)(nil),          // 11: forge.v1.LaunchPortalApplicationResponse
+	(*ListPortalFavoritesRequest)(nil),               // 12: forge.v1.ListPortalFavoritesRequest
+	(*ListPortalFavoritesResponse)(nil),              // 13: forge.v1.ListPortalFavoritesResponse
+	(*AddPortalFavoriteRequest)(nil),                 // 14: forge.v1.AddPortalFavoriteRequest
+	(*AddPortalFavoriteResponse)(nil),                // 15: forge.v1.AddPortalFavoriteResponse
+	(*RemovePortalFavoriteRequest)(nil),              // 16: forge.v1.RemovePortalFavoriteRequest
+	(*RemovePortalFavoriteResponse)(nil),             // 17: forge.v1.RemovePortalFavoriteResponse
+	(*ListRecentPortalApplicationsRequest)(nil),      // 18: forge.v1.ListRecentPortalApplicationsRequest
+	(*ListRecentPortalApplicationsResponse)(nil),     // 19: forge.v1.ListRecentPortalApplicationsResponse
+	(*ListPortalCategoriesRequest)(nil),              // 20: forge.v1.ListPortalCategoriesRequest
+	(*ListPortalCategoriesResponse)(nil),             // 21: forge.v1.ListPortalCategoriesResponse
+	(*ListPortalTagsRequest)(nil),                    // 22: forge.v1.ListPortalTagsRequest
+	(*ListPortalTagsResponse)(nil),                   // 23: forge.v1.ListPortalTagsResponse
+	(*ListAdminPortalApplicationsRequest)(nil),       // 24: forge.v1.ListAdminPortalApplicationsRequest
+	(*ListAdminPortalApplicationsResponse)(nil),      // 25: forge.v1.ListAdminPortalApplicationsResponse
+	(*CreatePortalApplicationRequest)(nil),           // 26: forge.v1.CreatePortalApplicationRequest
+	(*CreatePortalApplicationResponse)(nil),          // 27: forge.v1.CreatePortalApplicationResponse
+	(*UpdatePortalApplicationRequest)(nil),           // 28: forge.v1.UpdatePortalApplicationRequest
+	(*UpdatePortalApplicationResponse)(nil),          // 29: forge.v1.UpdatePortalApplicationResponse
+	(*DeletePortalApplicationRequest)(nil),           // 30: forge.v1.DeletePortalApplicationRequest
+	(*DeletePortalApplicationResponse)(nil),          // 31: forge.v1.DeletePortalApplicationResponse
+	(*CreatePortalCategoryRequest)(nil),              // 32: forge.v1.CreatePortalCategoryRequest
+	(*CreatePortalCategoryResponse)(nil),             // 33: forge.v1.CreatePortalCategoryResponse
+	(*UpdatePortalCategoryRequest)(nil),              // 34: forge.v1.UpdatePortalCategoryRequest
+	(*UpdatePortalCategoryResponse)(nil),             // 35: forge.v1.UpdatePortalCategoryResponse
+	(*DeletePortalCategoryRequest)(nil),              // 36: forge.v1.DeletePortalCategoryRequest
+	(*DeletePortalCategoryResponse)(nil),             // 37: forge.v1.DeletePortalCategoryResponse
+	(*CreatePortalTagRequest)(nil),                   // 38: forge.v1.CreatePortalTagRequest
+	(*CreatePortalTagResponse)(nil),                  // 39: forge.v1.CreatePortalTagResponse
+	(*UpdatePortalTagRequest)(nil),                   // 40: forge.v1.UpdatePortalTagRequest
+	(*UpdatePortalTagResponse)(nil),                  // 41: forge.v1.UpdatePortalTagResponse
+	(*DeletePortalTagRequest)(nil),                   // 42: forge.v1.DeletePortalTagRequest
+	(*DeletePortalTagResponse)(nil),                  // 43: forge.v1.DeletePortalTagResponse
+	(*ReplacePortalApplicationPoliciesRequest)(nil),  // 44: forge.v1.ReplacePortalApplicationPoliciesRequest
+	(*ReplacePortalApplicationPoliciesResponse)(nil), // 45: forge.v1.ReplacePortalApplicationPoliciesResponse
+	(*timestamppb.Timestamp)(nil),                    // 46: google.protobuf.Timestamp
 }
 var file_forge_v1_portal_proto_depIdxs = []int32{
 	2,  // 0: forge.v1.PortalApplication.tags:type_name -> forge.v1.PortalTag
 	3,  // 1: forge.v1.PortalApplication.policies:type_name -> forge.v1.PortalAccessPolicy
-	44, // 2: forge.v1.PortalApplication.created_at:type_name -> google.protobuf.Timestamp
-	44, // 3: forge.v1.PortalApplication.updated_at:type_name -> google.protobuf.Timestamp
-	44, // 4: forge.v1.PortalCategory.created_at:type_name -> google.protobuf.Timestamp
-	44, // 5: forge.v1.PortalCategory.updated_at:type_name -> google.protobuf.Timestamp
-	44, // 6: forge.v1.PortalTag.created_at:type_name -> google.protobuf.Timestamp
-	44, // 7: forge.v1.PortalTag.updated_at:type_name -> google.protobuf.Timestamp
-	44, // 8: forge.v1.PortalAccessPolicy.created_at:type_name -> google.protobuf.Timestamp
-	44, // 9: forge.v1.PortalAccessPolicy.updated_at:type_name -> google.protobuf.Timestamp
+	46, // 2: forge.v1.PortalApplication.created_at:type_name -> google.protobuf.Timestamp
+	46, // 3: forge.v1.PortalApplication.updated_at:type_name -> google.protobuf.Timestamp
+	46, // 4: forge.v1.PortalCategory.created_at:type_name -> google.protobuf.Timestamp
+	46, // 5: forge.v1.PortalCategory.updated_at:type_name -> google.protobuf.Timestamp
+	46, // 6: forge.v1.PortalTag.created_at:type_name -> google.protobuf.Timestamp
+	46, // 7: forge.v1.PortalTag.updated_at:type_name -> google.protobuf.Timestamp
+	46, // 8: forge.v1.PortalAccessPolicy.created_at:type_name -> google.protobuf.Timestamp
+	46, // 9: forge.v1.PortalAccessPolicy.updated_at:type_name -> google.protobuf.Timestamp
 	0,  // 10: forge.v1.ListPortalApplicationsResponse.applications:type_name -> forge.v1.PortalApplication
 	0,  // 11: forge.v1.GetPortalApplicationResponse.application:type_name -> forge.v1.PortalApplication
 	0,  // 12: forge.v1.LaunchPortalApplicationResponse.application:type_name -> forge.v1.PortalApplication
@@ -2974,48 +3111,50 @@ var file_forge_v1_portal_proto_depIdxs = []int32{
 	2,  // 24: forge.v1.UpdatePortalTagResponse.tag:type_name -> forge.v1.PortalTag
 	3,  // 25: forge.v1.ReplacePortalApplicationPoliciesRequest.policies:type_name -> forge.v1.PortalAccessPolicy
 	3,  // 26: forge.v1.ReplacePortalApplicationPoliciesResponse.policies:type_name -> forge.v1.PortalAccessPolicy
-	4,  // 27: forge.v1.PortalService.ListPortalApplications:input_type -> forge.v1.ListPortalApplicationsRequest
-	6,  // 28: forge.v1.PortalService.GetPortalApplication:input_type -> forge.v1.GetPortalApplicationRequest
-	8,  // 29: forge.v1.PortalService.LaunchPortalApplication:input_type -> forge.v1.LaunchPortalApplicationRequest
-	10, // 30: forge.v1.PortalService.ListPortalFavorites:input_type -> forge.v1.ListPortalFavoritesRequest
-	12, // 31: forge.v1.PortalService.AddPortalFavorite:input_type -> forge.v1.AddPortalFavoriteRequest
-	14, // 32: forge.v1.PortalService.RemovePortalFavorite:input_type -> forge.v1.RemovePortalFavoriteRequest
-	16, // 33: forge.v1.PortalService.ListRecentPortalApplications:input_type -> forge.v1.ListRecentPortalApplicationsRequest
-	18, // 34: forge.v1.PortalService.ListPortalCategories:input_type -> forge.v1.ListPortalCategoriesRequest
-	20, // 35: forge.v1.PortalService.ListPortalTags:input_type -> forge.v1.ListPortalTagsRequest
-	22, // 36: forge.v1.PortalService.ListAdminPortalApplications:input_type -> forge.v1.ListAdminPortalApplicationsRequest
-	24, // 37: forge.v1.PortalService.CreatePortalApplication:input_type -> forge.v1.CreatePortalApplicationRequest
-	26, // 38: forge.v1.PortalService.UpdatePortalApplication:input_type -> forge.v1.UpdatePortalApplicationRequest
-	28, // 39: forge.v1.PortalService.DeletePortalApplication:input_type -> forge.v1.DeletePortalApplicationRequest
-	30, // 40: forge.v1.PortalService.CreatePortalCategory:input_type -> forge.v1.CreatePortalCategoryRequest
-	32, // 41: forge.v1.PortalService.UpdatePortalCategory:input_type -> forge.v1.UpdatePortalCategoryRequest
-	34, // 42: forge.v1.PortalService.DeletePortalCategory:input_type -> forge.v1.DeletePortalCategoryRequest
-	36, // 43: forge.v1.PortalService.CreatePortalTag:input_type -> forge.v1.CreatePortalTagRequest
-	38, // 44: forge.v1.PortalService.UpdatePortalTag:input_type -> forge.v1.UpdatePortalTagRequest
-	40, // 45: forge.v1.PortalService.DeletePortalTag:input_type -> forge.v1.DeletePortalTagRequest
-	42, // 46: forge.v1.PortalService.ReplacePortalApplicationPolicies:input_type -> forge.v1.ReplacePortalApplicationPoliciesRequest
-	5,  // 47: forge.v1.PortalService.ListPortalApplications:output_type -> forge.v1.ListPortalApplicationsResponse
-	7,  // 48: forge.v1.PortalService.GetPortalApplication:output_type -> forge.v1.GetPortalApplicationResponse
-	9,  // 49: forge.v1.PortalService.LaunchPortalApplication:output_type -> forge.v1.LaunchPortalApplicationResponse
-	11, // 50: forge.v1.PortalService.ListPortalFavorites:output_type -> forge.v1.ListPortalFavoritesResponse
-	13, // 51: forge.v1.PortalService.AddPortalFavorite:output_type -> forge.v1.AddPortalFavoriteResponse
-	15, // 52: forge.v1.PortalService.RemovePortalFavorite:output_type -> forge.v1.RemovePortalFavoriteResponse
-	17, // 53: forge.v1.PortalService.ListRecentPortalApplications:output_type -> forge.v1.ListRecentPortalApplicationsResponse
-	19, // 54: forge.v1.PortalService.ListPortalCategories:output_type -> forge.v1.ListPortalCategoriesResponse
-	21, // 55: forge.v1.PortalService.ListPortalTags:output_type -> forge.v1.ListPortalTagsResponse
-	23, // 56: forge.v1.PortalService.ListAdminPortalApplications:output_type -> forge.v1.ListAdminPortalApplicationsResponse
-	25, // 57: forge.v1.PortalService.CreatePortalApplication:output_type -> forge.v1.CreatePortalApplicationResponse
-	27, // 58: forge.v1.PortalService.UpdatePortalApplication:output_type -> forge.v1.UpdatePortalApplicationResponse
-	29, // 59: forge.v1.PortalService.DeletePortalApplication:output_type -> forge.v1.DeletePortalApplicationResponse
-	31, // 60: forge.v1.PortalService.CreatePortalCategory:output_type -> forge.v1.CreatePortalCategoryResponse
-	33, // 61: forge.v1.PortalService.UpdatePortalCategory:output_type -> forge.v1.UpdatePortalCategoryResponse
-	35, // 62: forge.v1.PortalService.DeletePortalCategory:output_type -> forge.v1.DeletePortalCategoryResponse
-	37, // 63: forge.v1.PortalService.CreatePortalTag:output_type -> forge.v1.CreatePortalTagResponse
-	39, // 64: forge.v1.PortalService.UpdatePortalTag:output_type -> forge.v1.UpdatePortalTagResponse
-	41, // 65: forge.v1.PortalService.DeletePortalTag:output_type -> forge.v1.DeletePortalTagResponse
-	43, // 66: forge.v1.PortalService.ReplacePortalApplicationPolicies:output_type -> forge.v1.ReplacePortalApplicationPoliciesResponse
-	47, // [47:67] is the sub-list for method output_type
-	27, // [27:47] is the sub-list for method input_type
+	5,  // 27: forge.v1.PortalService.AuthorizePortalApplication:input_type -> forge.v1.AuthorizePortalApplicationRequest
+	4,  // 28: forge.v1.PortalService.ListPortalApplications:input_type -> forge.v1.ListPortalApplicationsRequest
+	8,  // 29: forge.v1.PortalService.GetPortalApplication:input_type -> forge.v1.GetPortalApplicationRequest
+	10, // 30: forge.v1.PortalService.LaunchPortalApplication:input_type -> forge.v1.LaunchPortalApplicationRequest
+	12, // 31: forge.v1.PortalService.ListPortalFavorites:input_type -> forge.v1.ListPortalFavoritesRequest
+	14, // 32: forge.v1.PortalService.AddPortalFavorite:input_type -> forge.v1.AddPortalFavoriteRequest
+	16, // 33: forge.v1.PortalService.RemovePortalFavorite:input_type -> forge.v1.RemovePortalFavoriteRequest
+	18, // 34: forge.v1.PortalService.ListRecentPortalApplications:input_type -> forge.v1.ListRecentPortalApplicationsRequest
+	20, // 35: forge.v1.PortalService.ListPortalCategories:input_type -> forge.v1.ListPortalCategoriesRequest
+	22, // 36: forge.v1.PortalService.ListPortalTags:input_type -> forge.v1.ListPortalTagsRequest
+	24, // 37: forge.v1.PortalService.ListAdminPortalApplications:input_type -> forge.v1.ListAdminPortalApplicationsRequest
+	26, // 38: forge.v1.PortalService.CreatePortalApplication:input_type -> forge.v1.CreatePortalApplicationRequest
+	28, // 39: forge.v1.PortalService.UpdatePortalApplication:input_type -> forge.v1.UpdatePortalApplicationRequest
+	30, // 40: forge.v1.PortalService.DeletePortalApplication:input_type -> forge.v1.DeletePortalApplicationRequest
+	32, // 41: forge.v1.PortalService.CreatePortalCategory:input_type -> forge.v1.CreatePortalCategoryRequest
+	34, // 42: forge.v1.PortalService.UpdatePortalCategory:input_type -> forge.v1.UpdatePortalCategoryRequest
+	36, // 43: forge.v1.PortalService.DeletePortalCategory:input_type -> forge.v1.DeletePortalCategoryRequest
+	38, // 44: forge.v1.PortalService.CreatePortalTag:input_type -> forge.v1.CreatePortalTagRequest
+	40, // 45: forge.v1.PortalService.UpdatePortalTag:input_type -> forge.v1.UpdatePortalTagRequest
+	42, // 46: forge.v1.PortalService.DeletePortalTag:input_type -> forge.v1.DeletePortalTagRequest
+	44, // 47: forge.v1.PortalService.ReplacePortalApplicationPolicies:input_type -> forge.v1.ReplacePortalApplicationPoliciesRequest
+	6,  // 48: forge.v1.PortalService.AuthorizePortalApplication:output_type -> forge.v1.AuthorizePortalApplicationResponse
+	7,  // 49: forge.v1.PortalService.ListPortalApplications:output_type -> forge.v1.ListPortalApplicationsResponse
+	9,  // 50: forge.v1.PortalService.GetPortalApplication:output_type -> forge.v1.GetPortalApplicationResponse
+	11, // 51: forge.v1.PortalService.LaunchPortalApplication:output_type -> forge.v1.LaunchPortalApplicationResponse
+	13, // 52: forge.v1.PortalService.ListPortalFavorites:output_type -> forge.v1.ListPortalFavoritesResponse
+	15, // 53: forge.v1.PortalService.AddPortalFavorite:output_type -> forge.v1.AddPortalFavoriteResponse
+	17, // 54: forge.v1.PortalService.RemovePortalFavorite:output_type -> forge.v1.RemovePortalFavoriteResponse
+	19, // 55: forge.v1.PortalService.ListRecentPortalApplications:output_type -> forge.v1.ListRecentPortalApplicationsResponse
+	21, // 56: forge.v1.PortalService.ListPortalCategories:output_type -> forge.v1.ListPortalCategoriesResponse
+	23, // 57: forge.v1.PortalService.ListPortalTags:output_type -> forge.v1.ListPortalTagsResponse
+	25, // 58: forge.v1.PortalService.ListAdminPortalApplications:output_type -> forge.v1.ListAdminPortalApplicationsResponse
+	27, // 59: forge.v1.PortalService.CreatePortalApplication:output_type -> forge.v1.CreatePortalApplicationResponse
+	29, // 60: forge.v1.PortalService.UpdatePortalApplication:output_type -> forge.v1.UpdatePortalApplicationResponse
+	31, // 61: forge.v1.PortalService.DeletePortalApplication:output_type -> forge.v1.DeletePortalApplicationResponse
+	33, // 62: forge.v1.PortalService.CreatePortalCategory:output_type -> forge.v1.CreatePortalCategoryResponse
+	35, // 63: forge.v1.PortalService.UpdatePortalCategory:output_type -> forge.v1.UpdatePortalCategoryResponse
+	37, // 64: forge.v1.PortalService.DeletePortalCategory:output_type -> forge.v1.DeletePortalCategoryResponse
+	39, // 65: forge.v1.PortalService.CreatePortalTag:output_type -> forge.v1.CreatePortalTagResponse
+	41, // 66: forge.v1.PortalService.UpdatePortalTag:output_type -> forge.v1.UpdatePortalTagResponse
+	43, // 67: forge.v1.PortalService.DeletePortalTag:output_type -> forge.v1.DeletePortalTagResponse
+	45, // 68: forge.v1.PortalService.ReplacePortalApplicationPolicies:output_type -> forge.v1.ReplacePortalApplicationPoliciesResponse
+	48, // [48:69] is the sub-list for method output_type
+	27, // [27:48] is the sub-list for method input_type
 	27, // [27:27] is the sub-list for extension type_name
 	27, // [27:27] is the sub-list for extension extendee
 	0,  // [0:27] is the sub-list for field type_name
@@ -3032,7 +3171,7 @@ func file_forge_v1_portal_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_forge_v1_portal_proto_rawDesc), len(file_forge_v1_portal_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   44,
+			NumMessages:   46,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

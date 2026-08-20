@@ -19,6 +19,7 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
+	PortalService_AuthorizePortalApplication_FullMethodName       = "/forge.v1.PortalService/AuthorizePortalApplication"
 	PortalService_ListPortalApplications_FullMethodName           = "/forge.v1.PortalService/ListPortalApplications"
 	PortalService_GetPortalApplication_FullMethodName             = "/forge.v1.PortalService/GetPortalApplication"
 	PortalService_LaunchPortalApplication_FullMethodName          = "/forge.v1.PortalService/LaunchPortalApplication"
@@ -45,6 +46,7 @@ const (
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type PortalServiceClient interface {
+	AuthorizePortalApplication(ctx context.Context, in *AuthorizePortalApplicationRequest, opts ...grpc.CallOption) (*AuthorizePortalApplicationResponse, error)
 	ListPortalApplications(ctx context.Context, in *ListPortalApplicationsRequest, opts ...grpc.CallOption) (*ListPortalApplicationsResponse, error)
 	GetPortalApplication(ctx context.Context, in *GetPortalApplicationRequest, opts ...grpc.CallOption) (*GetPortalApplicationResponse, error)
 	LaunchPortalApplication(ctx context.Context, in *LaunchPortalApplicationRequest, opts ...grpc.CallOption) (*LaunchPortalApplicationResponse, error)
@@ -73,6 +75,16 @@ type portalServiceClient struct {
 
 func NewPortalServiceClient(cc grpc.ClientConnInterface) PortalServiceClient {
 	return &portalServiceClient{cc}
+}
+
+func (c *portalServiceClient) AuthorizePortalApplication(ctx context.Context, in *AuthorizePortalApplicationRequest, opts ...grpc.CallOption) (*AuthorizePortalApplicationResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(AuthorizePortalApplicationResponse)
+	err := c.cc.Invoke(ctx, PortalService_AuthorizePortalApplication_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
 }
 
 func (c *portalServiceClient) ListPortalApplications(ctx context.Context, in *ListPortalApplicationsRequest, opts ...grpc.CallOption) (*ListPortalApplicationsResponse, error) {
@@ -279,6 +291,7 @@ func (c *portalServiceClient) ReplacePortalApplicationPolicies(ctx context.Conte
 // All implementations must embed UnimplementedPortalServiceServer
 // for forward compatibility.
 type PortalServiceServer interface {
+	AuthorizePortalApplication(context.Context, *AuthorizePortalApplicationRequest) (*AuthorizePortalApplicationResponse, error)
 	ListPortalApplications(context.Context, *ListPortalApplicationsRequest) (*ListPortalApplicationsResponse, error)
 	GetPortalApplication(context.Context, *GetPortalApplicationRequest) (*GetPortalApplicationResponse, error)
 	LaunchPortalApplication(context.Context, *LaunchPortalApplicationRequest) (*LaunchPortalApplicationResponse, error)
@@ -309,6 +322,9 @@ type PortalServiceServer interface {
 // pointer dereference when methods are called.
 type UnimplementedPortalServiceServer struct{}
 
+func (UnimplementedPortalServiceServer) AuthorizePortalApplication(context.Context, *AuthorizePortalApplicationRequest) (*AuthorizePortalApplicationResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method AuthorizePortalApplication not implemented")
+}
 func (UnimplementedPortalServiceServer) ListPortalApplications(context.Context, *ListPortalApplicationsRequest) (*ListPortalApplicationsResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ListPortalApplications not implemented")
 }
@@ -388,6 +404,24 @@ func RegisterPortalServiceServer(s grpc.ServiceRegistrar, srv PortalServiceServe
 		t.testEmbeddedByValue()
 	}
 	s.RegisterService(&PortalService_ServiceDesc, srv)
+}
+
+func _PortalService_AuthorizePortalApplication_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AuthorizePortalApplicationRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PortalServiceServer).AuthorizePortalApplication(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: PortalService_AuthorizePortalApplication_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PortalServiceServer).AuthorizePortalApplication(ctx, req.(*AuthorizePortalApplicationRequest))
+	}
+	return interceptor(ctx, in, info, handler)
 }
 
 func _PortalService_ListPortalApplications_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
@@ -757,6 +791,10 @@ var PortalService_ServiceDesc = grpc.ServiceDesc{
 	ServiceName: "forge.v1.PortalService",
 	HandlerType: (*PortalServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "AuthorizePortalApplication",
+			Handler:    _PortalService_AuthorizePortalApplication_Handler,
+		},
 		{
 			MethodName: "ListPortalApplications",
 			Handler:    _PortalService_ListPortalApplications_Handler,

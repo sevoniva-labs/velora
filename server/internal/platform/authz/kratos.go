@@ -120,6 +120,7 @@ func PlatformRules() map[string][]string {
 
 func PortalRules() map[string][]string {
 	return map[string][]string{
+		forgev1.OperationPortalServiceAuthorizePortalApplication:       {"portal.application.read"},
 		forgev1.OperationPortalServiceListPortalApplications:           {"portal.application.read"},
 		forgev1.OperationPortalServiceGetPortalApplication:             {"portal.application.read"},
 		forgev1.OperationPortalServiceLaunchPortalApplication:          {"portal.application.read"},

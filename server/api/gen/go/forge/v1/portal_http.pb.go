@@ -20,6 +20,7 @@ var _ = binding.EncodeURL
 const _ = http.SupportPackageIsVersion1
 
 const OperationPortalServiceAddPortalFavorite = "/forge.v1.PortalService/AddPortalFavorite"
+const OperationPortalServiceAuthorizePortalApplication = "/forge.v1.PortalService/AuthorizePortalApplication"
 const OperationPortalServiceCreatePortalApplication = "/forge.v1.PortalService/CreatePortalApplication"
 const OperationPortalServiceCreatePortalCategory = "/forge.v1.PortalService/CreatePortalCategory"
 const OperationPortalServiceCreatePortalTag = "/forge.v1.PortalService/CreatePortalTag"
@@ -42,6 +43,7 @@ const OperationPortalServiceUpdatePortalTag = "/forge.v1.PortalService/UpdatePor
 
 type PortalServiceHTTPServer interface {
 	AddPortalFavorite(context.Context, *AddPortalFavoriteRequest) (*AddPortalFavoriteResponse, error)
+	AuthorizePortalApplication(context.Context, *AuthorizePortalApplicationRequest) (*AuthorizePortalApplicationResponse, error)
 	CreatePortalApplication(context.Context, *CreatePortalApplicationRequest) (*CreatePortalApplicationResponse, error)
 	CreatePortalCategory(context.Context, *CreatePortalCategoryRequest) (*CreatePortalCategoryResponse, error)
 	CreatePortalTag(context.Context, *CreatePortalTagRequest) (*CreatePortalTagResponse, error)
@@ -65,6 +67,7 @@ type PortalServiceHTTPServer interface {
 
 func RegisterPortalServiceHTTPServer(s *http.Server, srv PortalServiceHTTPServer) {
 	r := s.Route("/")
+	r.GET("/api/v1/auth/forward/{application_id}", _PortalService_AuthorizePortalApplication0_HTTP_Handler(srv))
 	r.GET("/api/v1/portal/applications", _PortalService_ListPortalApplications0_HTTP_Handler(srv))
 	r.GET("/api/v1/portal/applications/{application_id}", _PortalService_GetPortalApplication0_HTTP_Handler(srv))
 	r.POST("/api/v1/portal/applications/{application_id}/launch", _PortalService_LaunchPortalApplication0_HTTP_Handler(srv))
@@ -85,6 +88,28 @@ func RegisterPortalServiceHTTPServer(s *http.Server, srv PortalServiceHTTPServer
 	r.PATCH("/api/v1/admin/portal/tags/{tag_id}", _PortalService_UpdatePortalTag0_HTTP_Handler(srv))
 	r.DELETE("/api/v1/admin/portal/tags/{tag_id}", _PortalService_DeletePortalTag0_HTTP_Handler(srv))
 	r.PUT("/api/v1/admin/portal/applications/{application_id}/policies", _PortalService_ReplacePortalApplicationPolicies0_HTTP_Handler(srv))
+}
+
+func _PortalService_AuthorizePortalApplication0_HTTP_Handler(srv PortalServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in AuthorizePortalApplicationRequest
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindVars(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationPortalServiceAuthorizePortalApplication)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.AuthorizePortalApplication(ctx, req.(*AuthorizePortalApplicationRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*AuthorizePortalApplicationResponse)
+		return ctx.Result(200, reply)
+	}
 }
 
 func _PortalService_ListPortalApplications0_HTTP_Handler(srv PortalServiceHTTPServer) func(ctx http.Context) error {
@@ -526,6 +551,7 @@ func _PortalService_ReplacePortalApplicationPolicies0_HTTP_Handler(srv PortalSer
 
 type PortalServiceHTTPClient interface {
 	AddPortalFavorite(ctx context.Context, req *AddPortalFavoriteRequest, opts ...http.CallOption) (rsp *AddPortalFavoriteResponse, err error)
+	AuthorizePortalApplication(ctx context.Context, req *AuthorizePortalApplicationRequest, opts ...http.CallOption) (rsp *AuthorizePortalApplicationResponse, err error)
 	CreatePortalApplication(ctx context.Context, req *CreatePortalApplicationRequest, opts ...http.CallOption) (rsp *CreatePortalApplicationResponse, err error)
 	CreatePortalCategory(ctx context.Context, req *CreatePortalCategoryRequest, opts ...http.CallOption) (rsp *CreatePortalCategoryResponse, err error)
 	CreatePortalTag(ctx context.Context, req *CreatePortalTagRequest, opts ...http.CallOption) (rsp *CreatePortalTagResponse, err error)
@@ -562,6 +588,19 @@ func (c *PortalServiceHTTPClientImpl) AddPortalFavorite(ctx context.Context, in 
 	opts = append(opts, http.Operation(OperationPortalServiceAddPortalFavorite))
 	opts = append(opts, http.PathTemplate(pattern))
 	err := c.cc.Invoke(ctx, "POST", path, in, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+func (c *PortalServiceHTTPClientImpl) AuthorizePortalApplication(ctx context.Context, in *AuthorizePortalApplicationRequest, opts ...http.CallOption) (*AuthorizePortalApplicationResponse, error) {
+	var out AuthorizePortalApplicationResponse
+	pattern := "/api/v1/auth/forward/{application_id}"
+	path := binding.EncodeURL(pattern, in, true)
+	opts = append(opts, http.Operation(OperationPortalServiceAuthorizePortalApplication))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "GET", path, nil, &out, opts...)
 	if err != nil {
 		return nil, err
 	}

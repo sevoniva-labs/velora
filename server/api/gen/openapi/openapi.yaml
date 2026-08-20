@@ -1783,6 +1783,27 @@ paths:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/forge.v1.CompleteOIDCLoginResponse'
+    /api/v1/auth/forward/{applicationId}:
+        get:
+            tags:
+                - PortalService
+            operationId: PortalService_AuthorizePortalApplication
+            parameters:
+                - name: applicationId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/forge.v1.AuthorizePortalApplicationResponse'
+            security:
+                - SessionCookie: []
+                - BearerAuth: []
     /api/v1/auth/login:
         post:
             tags:
@@ -2438,6 +2459,19 @@ components:
                 purpose:
                     type: string
                 watermark:
+                    type: string
+        forge.v1.AuthorizePortalApplicationResponse:
+            type: object
+            properties:
+                applicationId:
+                    type: string
+                userId:
+                    type: string
+                loginName:
+                    type: string
+                organizationId:
+                    type: string
+                displayName:
                     type: string
         forge.v1.BeginMFAEnrollmentRequest:
             type: object

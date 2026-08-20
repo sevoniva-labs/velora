@@ -58,6 +58,7 @@ A05xxx SYSTEM      系统 / 参数 / 数据库
 - 数据模型：`application_access_policies`（EVERYONE / ORGANIZATION / ROLE / GROUP / USER，OR 语义，空策略 = 全员可见）。
 - 前端：列表按策略过滤展示（隐藏无权应用）。
 - 后端：`CanAccess` 在 List / Get / Launch / Favorite 全链路强制校验，直接调 API 返回 403。
+- ForwardAuth：老系统调用 `GET /api/v1/auth/forward/{application_id}`，后端从可信路由参数加载应用并执行同一 `CanAccess`；网关必须剥离入站 `X-Velora-*` 头，只转发后端响应头，不能把客户端 app-id/Host 当授权依据。
 - 管理员：持有 `VELORA_ADMIN_ROLE`（默认 `velora_admin`，来自 Casdoor 角色）可管理应用/分类/标签/策略/审计。
 
 ## 5. Launch 安全

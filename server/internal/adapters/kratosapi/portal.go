@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 
+	"github.com/go-kratos/kratos/v2/transport"
 	forgev1 "github.com/sevoniva-labs/velora/server/api/gen/go/forge/v1"
 	"github.com/sevoniva-labs/velora/server/internal/adapters/repository"
 	"github.com/sevoniva-labs/velora/server/internal/app/audit"
@@ -33,6 +34,37 @@ func (s *PortalService) audited(ctx context.Context, event *audit.Event, operati
 		}
 		return s.audit.Write(txCtx, *event)
 	})
+}
+
+// AuthorizePortalApplication is the trusted ForwardAuth boundary for legacy
+// applications. The application ID is taken only from the authenticated
+// request route and is checked through the same CanAccess path as the portal.
+// Gateways must strip inbound X-Velora-* headers and copy only response
+// headers emitted by this endpoint to the upstream application.
+func (s *PortalService) AuthorizePortalApplication(ctx context.Context, req *forgev1.AuthorizePortalApplicationRequest) (*forgev1.AuthorizePortalApplicationResponse, error) {
+	principal, err := requiredPrincipal(ctx)
+	if err != nil {
+		return nil, err
+	}
+	item, err := s.portal.GetApplication(ctx, principal, req.GetApplicationId())
+	if err != nil {
+		return nil, serviceError(err)
+	}
+	if tr, ok := transport.FromServerContext(ctx); ok {
+		h := tr.ReplyHeader()
+		h.Set("X-Velora-Authenticated", "true")
+		h.Set("X-Velora-Application-ID", item.ID)
+		h.Set("X-Velora-User-ID", principal.UserID)
+		h.Set("X-Velora-Login-Name", principal.LoginName)
+		h.Set("X-Velora-Organization-ID", principal.OrganizationID)
+	}
+	return &forgev1.AuthorizePortalApplicationResponse{
+		ApplicationId:  item.ID,
+		UserId:         principal.UserID,
+		LoginName:      principal.LoginName,
+		OrganizationId: principal.OrganizationID,
+		DisplayName:    principal.DisplayName,
+	}, nil
 }
 
 func (s *PortalService) ListPortalApplications(ctx context.Context, req *forgev1.ListPortalApplicationsRequest) (*forgev1.ListPortalApplicationsResponse, error) {

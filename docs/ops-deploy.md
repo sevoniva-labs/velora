@@ -53,6 +53,22 @@ curl -sI https://$VELORA_EXTERNAL_URL/ | grep -i strict   # 启用 HSTS 后应�
 - HSTS：`velora-https.conf.template` 中注释，确认证书链可信后取消注释并重载。
 - 证书轮换：覆盖 certs/ 下同名文件 → `docker compose restart web`（nginx 自动重载）。
 
+## 3.1 ForwardAuth 网关接入（老系统）
+
+老系统只允许通过已登记的 `application_id` 访问 ForwardAuth：
+
+```text
+GET /api/v1/auth/forward/{application_id}
+```
+
+网关必须把浏览器的 Velora Session Cookie（或受控 Bearer Token）转发到该端点，并仅将后端响应中的以下头复制给上游：
+`X-Velora-Authenticated`、`X-Velora-Application-ID`、`X-Velora-User-ID`、
+`X-Velora-Login-Name`、`X-Velora-Organization-ID`。网关须在转发前删除所有入站
+`X-Velora-*` 头；客户端提供的 app-id、Host 或身份头永远不可信。未知、禁用或未通过
+`CanAccess` 的应用统一返回 401/403，不得回退到门户隐藏或仅校验“已登录”。
+
+生产上线验收必须覆盖：伪造 header、未知 app、禁用应用、撤销角色后旧会话四类直接绕过测试。
+
 ## 4. 密钥和生产配置强制校验（fail-fast）
 
 独立生产 Compose 使用 `${VAR:?}` 语法，缺失即拒绝解析；后端启动还会校验 TLS、OIDC、ObjectStore 和 CryptoProvider：

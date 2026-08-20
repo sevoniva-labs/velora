@@ -9,6 +9,10 @@ import "openapiv3/annotations.proto";
 option go_package = "github.com/sevoniva-labs/velora/server/api/gen/go/forge/v1;forgev1";
 
 service PortalService {
+  rpc AuthorizePortalApplication(AuthorizePortalApplicationRequest) returns (AuthorizePortalApplicationResponse) {
+    option (google.api.http) = {get: "/api/v1/auth/forward/{application_id}"};
+    option (openapi.v3.operation) = {security: [{additional_properties: [{name: "SessionCookie" value: {value: []}}]}, {additional_properties: [{name: "BearerAuth" value: {value: []}}]}]};
+  }
   rpc ListPortalApplications(ListPortalApplicationsRequest) returns (ListPortalApplicationsResponse) {
     option (google.api.http) = {get: "/api/v1/portal/applications"};
     option (openapi.v3.operation) = {security: [{additional_properties: [{name: "SessionCookie" value: {value: []}}]}, {additional_properties: [{name: "BearerAuth" value: {value: []}}]}]};
@@ -151,6 +155,14 @@ message ListPortalApplicationsRequest {
   string tag_id = 3;
   bool favorites_only = 4;
   int32 limit = 5;
+}
+message AuthorizePortalApplicationRequest { string application_id = 1; }
+message AuthorizePortalApplicationResponse {
+  string application_id = 1;
+  string user_id = 2;
+  string login_name = 3;
+  string organization_id = 4;
+  string display_name = 5;
 }
 message ListPortalApplicationsResponse { repeated PortalApplication applications = 1; }
 message GetPortalApplicationRequest { string application_id = 1; }

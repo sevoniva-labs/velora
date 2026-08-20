@@ -63,6 +63,12 @@ remote_config:
   provider: disabled
   group: DEFAULT_GROUP
 security:
+  auth_mode: oidc
+  oidc_name: casdoor
+  oidc_issuer: "https://casdoor.example.internal"
+  oidc_client_id: "velora-portal"
+  oidc_redirect_url: "https://velora.example.com/api/v1/auth/federated/oidc/casdoor/callback"
+  casdoor_account_url: "https://casdoor.example.internal/account"
   session_ttl: 8h
   secure_cookies: true
   same_site: lax

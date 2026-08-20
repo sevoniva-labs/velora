@@ -37,6 +37,7 @@ storage:
 discovery: { provider: disabled }
 remote_config: { provider: disabled }
 security:
+  auth_mode: password
   session_ttl: 12h
   secure_cookies: false
   same_site: lax

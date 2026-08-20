@@ -86,7 +86,7 @@ func New(ctx context.Context, opts Options) (*App, error) {
 			}
 		}
 	}
-	oidcProviders, ldapProviders, err := newFederatedIdentityProviders(ctx)
+	oidcProviders, ldapProviders, err := newFederatedIdentityProviders(ctx, cfg)
 	if err != nil {
 		return nil, err
 	}
@@ -248,6 +248,7 @@ func New(ctx context.Context, opts Options) (*App, error) {
 	platformService := kratosapi.NewPlatformService(identitySvc, approvalSvc, configChangeSvc, dataPolicySvc, auditWriter, db)
 	portalService := kratosapi.NewPortalService(portalSvc, auditWriter, db)
 	identityService := kratosapi.NewIdentityService(identitySvc, auditWriter, db, ratelimit.New(c), cfg.Security.SecureCookies, cfg.Security.SameSite)
+	identityService.ConfigureAuthMode(cfg.Security.AuthMode)
 	identityService.ConfigureFederatedLogin(kratosapi.FederatedLoginOptions{Cache: c, OIDC: oidcProviders, LDAP: ldapProviders})
 	approvalService := kratosapi.NewApprovalService(approvalSvc, auditWriter, db)
 	forgev1.RegisterSystemServiceHTTPServer(httpServer, systemService)

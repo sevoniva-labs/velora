@@ -143,10 +143,14 @@ type Storage struct {
 	Endpoint      string `yaml:"endpoint"`
 	Region        string `yaml:"region"`
 	Bucket        string `yaml:"bucket"`
+	Prefix        string `yaml:"prefix"`
 	AccessKey     string `yaml:"-"`
 	SecretKey     string `yaml:"-"`
+	SessionToken  string `yaml:"-"`
 	PathStyle     bool   `yaml:"path_style"`
 	TLS           bool   `yaml:"tls"`
+	SSEMode       string `yaml:"sse_mode"` // none | s3 | kms
+	SSEKMSKeyID   string `yaml:"sse_kms_key_id"`
 	TLSCAFile     string `yaml:"tls_ca_file"`
 	TLSCertFile   string `yaml:"tls_cert_file"`
 	TLSKeyFile    string `yaml:"tls_key_file"`
@@ -192,6 +196,7 @@ type RemoteConfig struct {
 }
 
 type Security struct {
+	AuthMode          string        `yaml:"auth_mode"` // oidc | password (development only)
 	SessionTTL        time.Duration `yaml:"session_ttl"`
 	SecureCookies     bool          `yaml:"secure_cookies"`
 	SameSite          string        `yaml:"same_site"`
@@ -207,6 +212,12 @@ type Security struct {
 	CryptoProvider    string        `yaml:"crypto_provider"` // standard | gm
 	CryptoKey         string        `yaml:"-"`
 	CryptoKeyVersion  string        `yaml:"crypto_key_version"`
+	OIDCIssuer        string        `yaml:"oidc_issuer"`
+	OIDCName          string        `yaml:"oidc_name"`
+	OIDCClientID      string        `yaml:"oidc_client_id"`
+	OIDCClientSecret  string        `yaml:"-"`
+	OIDCRedirectURL   string        `yaml:"oidc_redirect_url"`
+	CasdoorAccountURL string        `yaml:"casdoor_account_url"`
 	AllowedOrigins    []string      `yaml:"allowed_origins"`
 	TrustedProxies    []string      `yaml:"trusted_proxies"`
 }
@@ -270,7 +281,7 @@ func Default() Config {
 		Discovery:    Discovery{Provider: "disabled", Group: "DEFAULT_GROUP", Cluster: "DEFAULT", Weight: 1, Metadata: map[string]string{}},
 		RemoteConfig: RemoteConfig{Provider: "disabled", Group: "DEFAULT_GROUP"},
 		Security: Security{
-			SessionTTL: 12 * time.Hour, SameSite: "lax", PasswordMinLength: 12,
+			AuthMode: "password", SessionTTL: 12 * time.Hour, SameSite: "lax", PasswordMinLength: 12,
 			PasswordUpper: true, PasswordLower: true, PasswordDigit: true, PasswordSymbol: true,
 			PasswordHistory: 5, PasswordMaxAgeDay: 90, LoginMaxFailures: 5, LoginLockDuration: 30 * time.Minute,
 			CryptoProvider: "standard", CryptoKeyVersion: "v1",
@@ -297,6 +308,9 @@ func Load() (Config, error) {
 	}
 	ApplyEnvironment(&cfg)
 	if err := cfg.Validate(); err != nil {
+		return cfg, err
+	}
+	if err := cfg.ValidateProductionAuth(); err != nil {
 		return cfg, err
 	}
 	return cfg, nil
@@ -364,7 +378,10 @@ func MergeYAML(cfg *Config, raw []byte) error {
 		return fmt.Errorf("remote config parse: %w", err)
 	}
 	ApplyEnvironment(cfg) // local secret/env always wins over remote config
-	return cfg.Validate()
+	if err := cfg.Validate(); err != nil {
+		return err
+	}
+	return cfg.ValidateProductionAuth()
 }
 
 // ApplyEnvironment makes deployment/runtime values authoritative over YAML/Nacos.
@@ -381,11 +398,13 @@ func ApplyEnvironment(cfg *Config) {
 	cfg.Search.Password = secret("VELORA_SEARCH_PASSWORD")
 	cfg.Storage.AccessKey = secret("VELORA_STORAGE_ACCESS_KEY")
 	cfg.Storage.SecretKey = secret("VELORA_STORAGE_SECRET_KEY")
+	cfg.Storage.SessionToken = secret("VELORA_STORAGE_SESSION_TOKEN")
 	cfg.Discovery.Username = secret("VELORA_NACOS_USERNAME")
 	cfg.Discovery.Password = secret("VELORA_NACOS_PASSWORD")
 	cfg.RemoteConfig.Username = secret("VELORA_NACOS_USERNAME")
 	cfg.RemoteConfig.Password = secret("VELORA_NACOS_PASSWORD")
 	cfg.Security.CryptoKey = secret("VELORA_CRYPTO_KEY")
+	cfg.Security.OIDCClientSecret = secret("VELORA_OIDC_CLIENT_SECRET")
 
 	overrideString(&cfg.App.Name, "VELORA_APP_NAME")
 	overrideString(&cfg.App.Environment, "VELORA_ENV")
@@ -463,14 +482,16 @@ func ApplyEnvironment(cfg *Config) {
 	overrideString(&cfg.Storage.Endpoint, "VELORA_STORAGE_ENDPOINT")
 	overrideString(&cfg.Storage.Region, "VELORA_STORAGE_REGION")
 	overrideString(&cfg.Storage.Bucket, "VELORA_STORAGE_BUCKET")
+	overrideString(&cfg.Storage.Prefix, "VELORA_STORAGE_PREFIX")
 	overrideString(&cfg.Storage.LocalRoot, "VELORA_STORAGE_LOCAL_ROOT")
 	overrideBool(&cfg.Storage.PathStyle, "VELORA_STORAGE_PATH_STYLE")
 	overrideBool(&cfg.Storage.TLS, "VELORA_STORAGE_TLS")
+	overrideString(&cfg.Storage.SSEMode, "VELORA_STORAGE_SSE_MODE")
+	overrideString(&cfg.Storage.SSEKMSKeyID, "VELORA_STORAGE_SSE_KMS_KEY_ID")
 	overrideString(&cfg.Storage.TLSCAFile, "VELORA_STORAGE_TLS_CA_FILE")
 	overrideString(&cfg.Storage.TLSCertFile, "VELORA_STORAGE_TLS_CERT_FILE")
 	overrideString(&cfg.Storage.TLSKeyFile, "VELORA_STORAGE_TLS_KEY_FILE")
 	overrideString(&cfg.Storage.TLSServerName, "VELORA_STORAGE_TLS_SERVER_NAME")
-	cfg.Storage.Provider = normalizeStorageProvider(cfg.Storage.Provider)
 
 	overrideString(&cfg.Discovery.Provider, "VELORA_DISCOVERY_PROVIDER")
 	overrideCSV(&cfg.Discovery.Servers, "VELORA_NACOS_SERVERS")
@@ -512,6 +533,12 @@ func ApplyEnvironment(cfg *Config) {
 	overrideDuration(&cfg.Security.LoginLockDuration, "VELORA_LOGIN_LOCK_DURATION")
 	overrideString(&cfg.Security.CryptoProvider, "VELORA_CRYPTO_PROVIDER")
 	overrideString(&cfg.Security.CryptoKeyVersion, "VELORA_CRYPTO_KEY_VERSION")
+	overrideString(&cfg.Security.AuthMode, "VELORA_AUTH_MODE")
+	overrideString(&cfg.Security.OIDCIssuer, "VELORA_OIDC_ISSUER")
+	overrideString(&cfg.Security.OIDCName, "VELORA_OIDC_NAME")
+	overrideString(&cfg.Security.OIDCClientID, "VELORA_OIDC_CLIENT_ID")
+	overrideString(&cfg.Security.OIDCRedirectURL, "VELORA_OIDC_REDIRECT_URL")
+	overrideString(&cfg.Security.CasdoorAccountURL, "VELORA_CASDOOR_ACCOUNT_URL")
 	overrideBool(&cfg.Security.SecureCookies, "VELORA_SECURE_COOKIES")
 	overrideString(&cfg.Security.SameSite, "VELORA_SAME_SITE")
 	overrideCSV(&cfg.Security.AllowedOrigins, "VELORA_ALLOWED_ORIGINS")
@@ -656,6 +683,14 @@ func (c Config) Validate() error {
 	if normalizeStorageProvider(c.Storage.Provider) == "local" && strings.TrimSpace(c.Storage.LocalRoot) == "" {
 		errs = append(errs, "storage.local_root required for local storage")
 	}
+	switch strings.ToLower(strings.TrimSpace(c.Storage.SSEMode)) {
+	case "", "none", "s3", "kms":
+	default:
+		errs = append(errs, "storage.sse_mode must be none|s3|kms")
+	}
+	if strings.EqualFold(strings.TrimSpace(c.Storage.SSEMode), "kms") && strings.TrimSpace(c.Storage.SSEKMSKeyID) == "" {
+		errs = append(errs, "storage.sse_kms_key_id is required for sse_mode=kms")
+	}
 	switch c.Discovery.Provider {
 	case "disabled", "nacos":
 	default:
@@ -690,6 +725,11 @@ func (c Config) Validate() error {
 	case "standard", "gm":
 	default:
 		errs = append(errs, "security.crypto_provider must be standard|gm")
+	}
+	switch strings.ToLower(strings.TrimSpace(c.Security.AuthMode)) {
+	case "oidc", "password":
+	default:
+		errs = append(errs, "security.auth_mode must be oidc|password")
 	}
 	if strings.EqualFold(c.Security.SameSite, "none") && !c.Security.SecureCookies {
 		errs = append(errs, "security.same_site=none requires secure_cookies=true")
@@ -772,6 +812,39 @@ func (c Config) Validate() error {
 	}
 	if isProduction(c.App.Environment) && c.Database.AutoMigrate {
 		errs = append(errs, "database.auto_migrate must be false in production; run velora-migrate as a one-shot release job")
+	}
+	if len(errs) > 0 {
+		return errors.New(strings.Join(errs, "; "))
+	}
+	return nil
+}
+
+// ValidateProductionAuth is kept separate from the structural validator so
+// unit tests can validate individual production controls without having to
+// provide deployment secrets and IdP endpoints. Runtime startup always calls
+// this gate after environment and remote configuration are merged.
+func (c Config) ValidateProductionAuth() error {
+	if !isProduction(c.App.Environment) {
+		return nil
+	}
+	var errs []string
+	if strings.ToLower(strings.TrimSpace(c.Security.AuthMode)) != "oidc" {
+		errs = append(errs, "security.auth_mode must be oidc in production")
+	}
+	if strings.TrimSpace(c.Security.OIDCIssuer) == "" || !isHTTPSURL(c.Security.OIDCIssuer) {
+		errs = append(errs, "security.oidc_issuer must be an https URL in production")
+	}
+	if strings.TrimSpace(c.Security.OIDCClientID) == "" {
+		errs = append(errs, "security.oidc_client_id is required in production")
+	}
+	if strings.TrimSpace(c.Security.OIDCClientSecret) == "" {
+		errs = append(errs, "VELORA_OIDC_CLIENT_SECRET is required in production")
+	}
+	if strings.TrimSpace(c.Security.OIDCRedirectURL) == "" || !isHTTPSURL(c.Security.OIDCRedirectURL) {
+		errs = append(errs, "security.oidc_redirect_url must be an https URL in production")
+	}
+	if strings.TrimSpace(c.Security.CasdoorAccountURL) == "" || !isHTTPSURL(c.Security.CasdoorAccountURL) {
+		errs = append(errs, "security.casdoor_account_url must be an https URL in production")
 	}
 	if len(errs) > 0 {
 		return errors.New(strings.Join(errs, "; "))

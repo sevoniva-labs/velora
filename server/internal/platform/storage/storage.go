@@ -115,10 +115,11 @@ func NewWithCapabilityContract(ctx context.Context, c appcfg.Storage, contract C
 type local struct{ root string }
 
 func (l *local) path(key string) (string, error) {
-	clean := filepath.Clean(key)
-	if clean == "." || filepath.IsAbs(clean) || clean == ".." || strings.HasPrefix(clean, ".."+string(filepath.Separator)) {
-		return "", errors.New("invalid key")
+	clean, err := normalizeObjectKey("", key)
+	if err != nil {
+		return "", err
 	}
+	clean = filepath.Clean(clean)
 	return clean, nil
 }
 func (l *local) Put(_ context.Context, key string, r io.Reader) error {
@@ -190,6 +191,9 @@ type s3Store struct {
 	client   *s3.Client
 	presign  *s3.PresignClient
 	bucket   string
+	prefix   string
+	sseMode  string
+	sseKMSID string
 	profile  ProviderProfile
 	contract CapabilityContract
 }
@@ -211,7 +215,7 @@ func newS3(ctx context.Context, c appcfg.Storage, profile ProviderProfile, contr
 		opts = append(opts, config.WithHTTPClient(&http.Client{Transport: tr}))
 	}
 	if c.AccessKey != "" {
-		opts = append(opts, config.WithCredentialsProvider(credentials.NewStaticCredentialsProvider(c.AccessKey, c.SecretKey, "")))
+		opts = append(opts, config.WithCredentialsProvider(credentials.NewStaticCredentialsProvider(c.AccessKey, c.SecretKey, c.SessionToken)))
 	}
 	cfg, e := config.LoadDefaultConfig(ctx, opts...)
 	if e != nil {
@@ -223,13 +227,25 @@ func newS3(ctx context.Context, c appcfg.Storage, profile ProviderProfile, contr
 			o.BaseEndpoint = aws.String(c.Endpoint)
 		}
 	})
-	return &s3Store{client: cli, presign: s3.NewPresignClient(cli), bucket: c.Bucket, profile: profile, contract: contract}, nil
+	prefix, err := normalizePrefix(c.Prefix)
+	if err != nil {
+		return nil, err
+	}
+	return &s3Store{client: cli, presign: s3.NewPresignClient(cli), bucket: c.Bucket, prefix: prefix, sseMode: strings.ToLower(strings.TrimSpace(c.SSEMode)), sseKMSID: strings.TrimSpace(c.SSEKMSKeyID), profile: profile, contract: contract}, nil
 }
 func (s *s3Store) Put(ctx context.Context, key string, r io.Reader) error {
+	key, err := s.objectKey(key)
+	if err != nil {
+		return err
+	}
 	_, e := s.client.PutObject(ctx, &s3.PutObjectInput{Bucket: &s.bucket, Key: &key, Body: r})
 	return e
 }
 func (s *s3Store) Get(ctx context.Context, key string) (io.ReadCloser, error) {
+	key, err := s.objectKey(key)
+	if err != nil {
+		return nil, err
+	}
 	o, e := s.client.GetObject(ctx, &s3.GetObjectInput{Bucket: &s.bucket, Key: &key})
 	if e != nil {
 		return nil, e
@@ -237,6 +253,10 @@ func (s *s3Store) Get(ctx context.Context, key string) (io.ReadCloser, error) {
 	return o.Body, nil
 }
 func (s *s3Store) Delete(ctx context.Context, key string) error {
+	key, err := s.objectKey(key)
+	if err != nil {
+		return err
+	}
 	_, e := s.client.DeleteObject(ctx, &s3.DeleteObjectInput{Bucket: &s.bucket, Key: &key})
 	return e
 }
@@ -256,6 +276,10 @@ func (s *s3Store) CapabilityContract() CapabilityContract {
 }
 func (s *s3Store) Capabilities() map[Capability]CapabilityStatus {
 	return cloneCapabilities(s.contract.Capabilities)
+}
+
+func (s *s3Store) objectKey(key string) (string, error) {
+	return normalizeObjectKey(s.prefix, key)
 }
 
 func cloneCapabilities(input map[Capability]CapabilityStatus) map[Capability]CapabilityStatus {

@@ -11,28 +11,48 @@ x-logging: &default-logging
 
 x-app-env: &app-env
   VELORA_ENV: production
-  LOG_LEVEL: "${LOG_LEVEL:-info}"
-  VELORA_PORT: "8080"
-  PUBLIC_BASE_URL: "https://${VELORA_EXTERNAL_URL:?VELORA_EXTERNAL_URL is required}"
-  DATABASE_URL: "${VELORA_DATABASE_URL:?VELORA_DATABASE_URL is required}"
-  CASDOOR_ISSUER: "https://${VELORA_EXTERNAL_URL:?VELORA_EXTERNAL_URL is required}/casdoor"
-  CASDOOR_CLIENT_ID: "${CASDOOR_CLIENT_ID:?CASDOOR_CLIENT_ID is required}"
-  CASDOOR_CLIENT_SECRET: "${CASDOOR_CLIENT_SECRET:?CASDOOR_CLIENT_SECRET is required}"
-  CASDOOR_REDIRECT_URI: "https://${VELORA_EXTERNAL_URL:?VELORA_EXTERNAL_URL is required}/api/v1/auth/oidc/callback"
-  CASDOOR_DEFAULT_REDIRECT: "${CASDOOR_DEFAULT_REDIRECT:-/home}"
-  SESSION_SECRET: "${SESSION_SECRET:?SESSION_SECRET is required}"
-  SESSION_TTL_HOURS: "${SESSION_TTL_HOURS:-1}"
-  COOKIE_SECURE: "true"
-  COOKIE_DOMAIN: "${VELORA_COOKIE_DOMAIN:-}"
-  CORS_ALLOWED_ORIGINS: "${CORS_ALLOWED_ORIGINS:-}"
-  TRUSTED_PROXIES: "${TRUSTED_PROXIES:?TRUSTED_PROXIES is required}"
-  REDIS_URL: "${REDIS_URL:?REDIS_URL is required}"
-  MAIL_CREDENTIAL_KEY: "${MAIL_CREDENTIAL_KEY:?MAIL_CREDENTIAL_KEY is required}"
-  MAIL_SYNC_INTERVAL_MINUTES: "${MAIL_SYNC_INTERVAL_MINUTES:-10}"
-  HEALTH_CHECK_TIMEOUT_SECONDS: "${HEALTH_CHECK_TIMEOUT_SECONDS:-5}"
-  VELORA_ADMIN_ROLE: "${VELORA_ADMIN_ROLE:-velora_admin}"
-  TURNSTILE_SITE_KEY: "${TURNSTILE_SITE_KEY:-}"
-  TURNSTILE_SECRET_KEY: "${TURNSTILE_SECRET_KEY:-}"
+  VELORA_APP_NAME: Velora
+  VELORA_PUBLIC_URL: "https://${VELORA_EXTERNAL_URL:?VELORA_EXTERNAL_URL is required}"
+  VELORA_DATABASE_PROVIDER: postgres
+  VELORA_DATABASE_DSN: "${VELORA_DATABASE_DSN:?VELORA_DATABASE_DSN is required}"
+  VELORA_CACHE_PROVIDER: redis
+  VELORA_REDIS_ADDRESSES: redis:6379
+  VELORA_REDIS_PASSWORD: "${REDIS_PASSWORD:?REDIS_PASSWORD is required}"
+  VELORA_REDIS_TLS: "true"
+  VELORA_REDIS_TLS_CA_FILE: /run/secrets/redis_tls_ca
+  VELORA_REDIS_TLS_CERT_FILE: /run/secrets/redis_tls_cert
+  VELORA_REDIS_TLS_KEY_FILE: /run/secrets/redis_tls_key
+  VELORA_REDIS_TLS_SERVER_NAME: redis
+  VELORA_STORAGE_PROVIDER: "${VELORA_STORAGE_PROVIDER:?VELORA_STORAGE_PROVIDER is required}"
+  VELORA_STORAGE_ENDPOINT: "${VELORA_STORAGE_ENDPOINT:?VELORA_STORAGE_ENDPOINT is required}"
+  VELORA_STORAGE_REGION: "${VELORA_STORAGE_REGION:?VELORA_STORAGE_REGION is required}"
+  VELORA_STORAGE_BUCKET: "${VELORA_STORAGE_BUCKET:?VELORA_STORAGE_BUCKET is required}"
+  VELORA_STORAGE_PREFIX: "${VELORA_STORAGE_PREFIX:?VELORA_STORAGE_PREFIX is required}"
+  VELORA_STORAGE_PATH_STYLE: "${VELORA_STORAGE_PATH_STYLE:?VELORA_STORAGE_PATH_STYLE is required}"
+  VELORA_STORAGE_TLS: "true"
+  VELORA_STORAGE_ACCESS_KEY: "${VELORA_STORAGE_ACCESS_KEY:?VELORA_STORAGE_ACCESS_KEY is required}"
+  VELORA_STORAGE_SECRET_KEY: "${VELORA_STORAGE_SECRET_KEY:?VELORA_STORAGE_SECRET_KEY is required}"
+  VELORA_STORAGE_SSE_MODE: "${VELORA_STORAGE_SSE_MODE:?VELORA_STORAGE_SSE_MODE is required}"
+  VELORA_STORAGE_SSE_KMS_KEY_ID: "${VELORA_STORAGE_SSE_KMS_KEY_ID:-}"
+  VELORA_CRYPTO_PROVIDER: "${VELORA_CRYPTO_PROVIDER:?VELORA_CRYPTO_PROVIDER is required}"
+  VELORA_CRYPTO_KEY_FILE: /run/secrets/velora_crypto_key
+  VELORA_CRYPTO_KEY_VERSION: "${VELORA_CRYPTO_KEY_VERSION:?VELORA_CRYPTO_KEY_VERSION is required}"
+  VELORA_AUTH_MODE: oidc
+  VELORA_OIDC_NAME: casdoor
+  VELORA_OIDC_ISSUER: "${VELORA_OIDC_ISSUER:?VELORA_OIDC_ISSUER is required}"
+  VELORA_OIDC_CLIENT_ID: "${VELORA_OIDC_CLIENT_ID:?VELORA_OIDC_CLIENT_ID is required}"
+  VELORA_OIDC_CLIENT_SECRET_FILE: /run/secrets/casdoor_oidc_client_secret
+  VELORA_OIDC_REDIRECT_URL: "${VELORA_OIDC_REDIRECT_URL:?VELORA_OIDC_REDIRECT_URL is required}"
+  VELORA_CASDOOR_ACCOUNT_URL: "${VELORA_CASDOOR_ACCOUNT_URL:?VELORA_CASDOOR_ACCOUNT_URL is required}"
+  VELORA_BOOTSTRAP_ADMIN: "${VELORA_BOOTSTRAP_ADMIN:?VELORA_BOOTSTRAP_ADMIN is required}"
+  VELORA_BOOTSTRAP_PASSWORD_FILE: /run/secrets/velora_bootstrap_password
+  VELORA_ALLOWED_ORIGINS: "${VELORA_ALLOWED_ORIGINS:?VELORA_ALLOWED_ORIGINS is required}"
+  VELORA_TRUSTED_PROXIES: "${TRUSTED_PROXIES:?TRUSTED_PROXIES is required}"
+  VELORA_SECURE_COOKIES: "true"
+  VELORA_SAME_SITE: lax
+  VELORA_COMPLIANCE_PROFILE: financial
+  VELORA_LOG_LEVEL: "${LOG_LEVEL:-info}"
+  VELORA_WEB_DIR: /app/web
 
 services:
   postgres:
@@ -66,17 +86,21 @@ services:
     container_name: velora-prod-redis
     restart: unless-stopped
     logging: *default-logging
-    command: ["redis-server", "--appendonly", "yes", "--requirepass", "${REDIS_PASSWORD:?REDIS_PASSWORD is required}"]
+    command: ["redis-server", "--port", "0", "--tls-port", "6379", "--tls-cert-file", "/run/secrets/redis_tls_cert", "--tls-key-file", "/run/secrets/redis_tls_key", "--tls-ca-cert-file", "/run/secrets/redis_tls_ca", "--tls-auth-clients", "no", "--appendonly", "yes", "--requirepass", "${REDIS_PASSWORD:?REDIS_PASSWORD is required}"]
     environment:
       REDIS_PASSWORD: "${REDIS_PASSWORD:?REDIS_PASSWORD is required}"
     volumes:
       - velora-prod-redisdata:/data
+    secrets:
+      - redis_tls_ca
+      - redis_tls_cert
+      - redis_tls_key
     expose:
       - "6379"
     networks:
       - app
     healthcheck:
-      test: ["CMD-SHELL", "redis-cli -a \"$$REDIS_PASSWORD\" ping | grep -q PONG"]
+      test: ["CMD-SHELL", "redis-cli --tls --cacert /run/secrets/redis_tls_ca -a \"$$REDIS_PASSWORD\" ping | grep -q PONG"]
       interval: 5s
       timeout: 3s
       retries: 20
@@ -125,15 +149,42 @@ services:
       redis:
         condition: service_healthy
     environment: *app-env
+    secrets:
+      - redis_tls_ca
+      - redis_tls_cert
+      - redis_tls_key
+      - velora_crypto_key
+      - velora_bootstrap_password
+      - casdoor_oidc_client_secret
     expose:
       - "8080"
     networks:
       - app
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8080/healthz >/dev/null 2>&1 || exit 1"]
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8080/api/v1/system/health >/dev/null 2>&1 || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 12
+
+  migrate:
+    container_name: velora-prod-migrate
+    build:
+      context: ../..
+      dockerfile: deployments/docker/Dockerfile.server
+      args:
+        DOCKER_REGISTRY: "${DOCKER_REGISTRY:-docker.io}"
+        GOPROXY: "${GOPROXY:-https://proxy.golang.org,direct}"
+    profiles: [release]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: ["/usr/local/bin/velora-migrate"]
+    environment:
+      VELORA_ENV: production
+      VELORA_DATABASE_PROVIDER: postgres
+      VELORA_DATABASE_DSN: "${VELORA_DATABASE_DSN:?VELORA_DATABASE_DSN is required}"
+    networks:
+      - app
 
   web:
     container_name: velora-prod-web
@@ -209,6 +260,20 @@ volumes:
   velora-prod-redisdata:
   velora-prod-promdata:
   velora-prod-grafanadata:
+
+secrets:
+  redis_tls_ca:
+    file: "${REDIS_TLS_CA_FILE:?REDIS_TLS_CA_FILE is required}"
+  redis_tls_cert:
+    file: "${REDIS_TLS_CERT_FILE:?REDIS_TLS_CERT_FILE is required}"
+  redis_tls_key:
+    file: "${REDIS_TLS_KEY_FILE:?REDIS_TLS_KEY_FILE is required}"
+  velora_crypto_key:
+    file: "${VELORA_CRYPTO_KEY_FILE:?VELORA_CRYPTO_KEY_FILE is required}"
+  velora_bootstrap_password:
+    file: "${VELORA_BOOTSTRAP_PASSWORD_FILE:?VELORA_BOOTSTRAP_PASSWORD_FILE is required}"
+  casdoor_oidc_client_secret:
+    file: "${CASDOOR_OIDC_CLIENT_SECRET_FILE:?CASDOOR_OIDC_CLIENT_SECRET_FILE is required}"
 
 networks:
   edge:

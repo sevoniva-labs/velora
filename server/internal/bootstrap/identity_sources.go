@@ -8,18 +8,27 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/sevoniva-labs/velora/server/internal/platform/config"
 	"github.com/sevoniva-labs/velora/server/internal/platform/identitysource"
 )
 
-func newFederatedIdentityProviders(ctx context.Context) (map[string]*identitysource.OIDCProvider, map[string]*identitysource.LDAPProvider, error) {
+func newFederatedIdentityProviders(ctx context.Context, cfg config.Config) (map[string]*identitysource.OIDCProvider, map[string]*identitysource.LDAPProvider, error) {
 	oidcProviders := make(map[string]*identitysource.OIDCProvider)
 	ldapProviders := make(map[string]*identitysource.LDAPProvider)
-	if issuer := strings.TrimSpace(os.Getenv("VELORA_OIDC_ISSUER")); issuer != "" {
-		name := strings.ToLower(env("VELORA_OIDC_NAME", "oidc"))
+	authMode := strings.ToLower(strings.TrimSpace(cfg.Security.AuthMode))
+	issuer := strings.TrimSpace(cfg.Security.OIDCIssuer)
+	if authMode == "oidc" && issuer == "" {
+		return nil, nil, fmt.Errorf("OIDC auth mode requires VELORA_OIDC_ISSUER")
+	}
+	if issuer != "" {
+		name := strings.ToLower(strings.TrimSpace(cfg.Security.OIDCName))
+		if name == "" {
+			name = strings.ToLower(env("VELORA_OIDC_NAME", "oidc"))
+		}
 		allowHTTP, _ := strconv.ParseBool(env("VELORA_OIDC_ALLOW_HTTP", "false"))
 		provider, err := identitysource.NewOIDCProvider(ctx, http.DefaultClient, identitysource.OIDCConfig{
-			Name: name, Issuer: issuer, ClientID: strings.TrimSpace(os.Getenv("VELORA_OIDC_CLIENT_ID")), ClientSecret: secret("VELORA_OIDC_CLIENT_SECRET"),
-			RedirectURL: strings.TrimSpace(os.Getenv("VELORA_OIDC_REDIRECT_URL")), AllowHTTP: allowHTTP,
+			Name: name, Issuer: issuer, ClientID: strings.TrimSpace(cfg.Security.OIDCClientID), ClientSecret: cfg.Security.OIDCClientSecret,
+			RedirectURL: strings.TrimSpace(cfg.Security.OIDCRedirectURL), AllowHTTP: allowHTTP,
 		})
 		if err != nil {
 			return nil, nil, fmt.Errorf("OIDC provider %q: %w", name, err)

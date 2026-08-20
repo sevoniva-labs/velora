@@ -3,13 +3,18 @@ package kratosapi
 import (
 	"context"
 	"crypto/rand"
+	"crypto/sha256"
+	"crypto/subtle"
+	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"net/http"
 	"strings"
 	"time"
 
 	kerrors "github.com/go-kratos/kratos/v2/errors"
+	"github.com/go-kratos/kratos/v2/transport"
 	forgev1 "github.com/sevoniva-labs/velora/server/api/gen/go/forge/v1"
 	appidentity "github.com/sevoniva-labs/velora/server/internal/app/identity"
 	domain "github.com/sevoniva-labs/velora/server/internal/domain/identity"
@@ -28,6 +33,8 @@ type FederatedLogin struct {
 	oidc  map[string]*identitysource.OIDCProvider
 	ldap  map[string]*identitysource.LDAPProvider
 }
+
+const oidcTransactionCookieName = "velora_oidc_tx"
 
 func (s *IdentityService) ConfigureFederatedLogin(options FederatedLoginOptions) {
 	s.federated = &FederatedLogin{cache: options.Cache, oidc: options.OIDC, ldap: options.LDAP}
@@ -58,14 +65,20 @@ func (s *IdentityService) BeginOIDCLogin(ctx context.Context, req *forgev1.Begin
 	if organization == "" {
 		organization = "default"
 	}
-	payload, err := json.Marshal(map[string]string{"provider": providerName, "organization": organization, "nonce": nonce})
+	verifier, err := randomPKCEVerifier()
+	if err != nil {
+		return nil, federatedUnavailable()
+	}
+	challenge := pkceChallenge(verifier)
+	payload, err := json.Marshal(map[string]string{"provider": providerName, "organization": organization, "nonce": nonce, "verifier": verifier})
 	if err != nil {
 		return nil, federatedUnavailable()
 	}
 	if err := s.federated.cache.Set(ctx, "oidc:state:"+state, string(payload), 5*time.Minute); err != nil {
 		return nil, federatedUnavailable()
 	}
-	return &forgev1.BeginOIDCLoginResponse{RedirectUrl: provider.AuthorizationURL(state, nonce)}, nil
+	setOIDCTransactionCookie(ctx, state, s.secure)
+	return &forgev1.BeginOIDCLoginResponse{RedirectUrl: provider.AuthorizationURL(state, nonce, challenge)}, nil
 }
 
 func (s *IdentityService) CompleteOIDCLogin(ctx context.Context, req *forgev1.CompleteOIDCLoginRequest) (*forgev1.CompleteOIDCLoginResponse, error) {
@@ -83,7 +96,13 @@ func (s *IdentityService) CompleteOIDCLogin(ctx context.Context, req *forgev1.Co
 	}
 	state := strings.TrimSpace(req.GetState())
 	if state == "" || strings.TrimSpace(req.GetCode()) == "" {
+		clearOIDCTransactionCookie(ctx, s.secure)
 		return nil, kerrors.Unauthorized("FEDERATED_LOGIN_FAILED", "federated login failed")
+	}
+	defer clearOIDCTransactionCookie(ctx, s.secure)
+	cookieState := requestCookie(ctx, oidcTransactionCookieName)
+	if cookieState == "" || subtle.ConstantTimeCompare([]byte(cookieState), []byte(state)) != 1 {
+		return nil, kerrors.Unauthorized("FEDERATED_LOGIN_FAILED", "federated login transaction is invalid")
 	}
 	key := "oidc:state:" + state
 	payload, err := s.federated.cache.Get(ctx, key)
@@ -94,15 +113,16 @@ func (s *IdentityService) CompleteOIDCLogin(ctx context.Context, req *forgev1.Co
 		Provider     string `json:"provider"`
 		Organization string `json:"organization"`
 		Nonce        string `json:"nonce"`
+		Verifier     string `json:"verifier"`
 	}
-	if json.Unmarshal([]byte(payload), &stateData) != nil || stateData.Provider != providerName || stateData.Organization == "" || stateData.Nonce == "" {
+	if json.Unmarshal([]byte(payload), &stateData) != nil || stateData.Provider != providerName || stateData.Organization == "" || stateData.Nonce == "" || stateData.Verifier == "" {
 		return nil, kerrors.Unauthorized("FEDERATED_LOGIN_FAILED", "federated login failed")
 	}
 	consumed, err := s.federated.cache.CompareAndDelete(ctx, key, payload)
 	if err != nil || !consumed {
 		return nil, kerrors.Unauthorized("FEDERATED_LOGIN_FAILED", "federated login state was already used")
 	}
-	federated, err := provider.AuthenticateCode(ctx, req.GetCode(), stateData.Nonce)
+	federated, err := provider.AuthenticateCode(ctx, req.GetCode(), stateData.Nonce, stateData.Verifier)
 	if err != nil || federated.Provider != providerName || federated.Subject == "" {
 		return nil, kerrors.Unauthorized("FEDERATED_LOGIN_FAILED", "federated login failed")
 	}
@@ -115,6 +135,9 @@ func (s *IdentityService) CompleteOIDCLogin(ctx context.Context, req *forgev1.Co
 }
 
 func (s *IdentityService) LoginLDAP(ctx context.Context, req *forgev1.LoginLDAPRequest) (*forgev1.LoginLDAPResponse, error) {
+	if !s.passwordLoginEnabled {
+		return nil, kerrors.ServiceUnavailable("PASSWORD_LOGIN_DISABLED", "password login is disabled; use the configured OIDC provider")
+	}
 	if s.federated == nil {
 		return nil, federatedUnavailable()
 	}
@@ -186,6 +209,37 @@ func randomFederatedValue() (string, error) {
 		return "", err
 	}
 	return hex.EncodeToString(buf), nil
+}
+
+func randomPKCEVerifier() (string, error) {
+	buf := make([]byte, 32)
+	if _, err := rand.Read(buf); err != nil {
+		return "", err
+	}
+	return base64.RawURLEncoding.EncodeToString(buf), nil
+}
+
+func pkceChallenge(verifier string) string {
+	sum := sha256.Sum256([]byte(verifier))
+	return base64.RawURLEncoding.EncodeToString(sum[:])
+}
+
+func setOIDCTransactionCookie(ctx context.Context, state string, secure bool) {
+	tr, ok := transport.FromServerContext(ctx)
+	if !ok || tr.Kind() != transport.KindHTTP {
+		return
+	}
+	// #nosec G124 -- state is one-time, HttpOnly and SameSite protected; Secure is enforced in production config.
+	tr.ReplyHeader().Add("Set-Cookie", (&http.Cookie{Name: oidcTransactionCookieName, Value: state, Path: "/api/v1/auth/federated/oidc", MaxAge: 300, HttpOnly: true, Secure: secure, SameSite: http.SameSiteLaxMode}).String())
+}
+
+func clearOIDCTransactionCookie(ctx context.Context, secure bool) {
+	tr, ok := transport.FromServerContext(ctx)
+	if !ok || tr.Kind() != transport.KindHTTP {
+		return
+	}
+	// #nosec G124 -- deletion cookie mirrors the validated runtime policy.
+	tr.ReplyHeader().Add("Set-Cookie", (&http.Cookie{Name: oidcTransactionCookieName, Path: "/api/v1/auth/federated/oidc", MaxAge: -1, Expires: time.Unix(0, 0), HttpOnly: true, Secure: secure, SameSite: http.SameSiteLaxMode}).String())
 }
 
 func federatedUnavailable() error {

@@ -60,6 +60,35 @@ func TestLocalStoreRoundTripUsesPrivateFileMode(t *testing.T) {
 	}
 }
 
+func TestObjectStoreContractNormalizesAndRejectsUnsafeKeys(t *testing.T) {
+	root := t.TempDir()
+	legacy, err := New(context.Background(), config.Storage{Provider: "local", LocalRoot: root})
+	if err != nil {
+		t.Fatal(err)
+	}
+	store, err := NewObjectStore(legacy)
+	if err != nil {
+		t.Fatal(err)
+	}
+	ctx := context.Background()
+	if _, err := store.Put(ctx, "tenant/a.txt", strings.NewReader("ok"), 2, PutOptions{ContentType: "text/plain"}); err != nil {
+		t.Fatal(err)
+	}
+	body, info, err := store.Get(ctx, "tenant/a.txt")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = body.Close() }()
+	if info.Size != 2 {
+		t.Fatalf("object size = %d, want 2", info.Size)
+	}
+	for _, key := range []string{"../escape", "a/../b", `a\\b`, "/absolute"} {
+		if _, err := store.Put(ctx, key, strings.NewReader("x"), 1, PutOptions{}); err == nil {
+			t.Fatalf("unsafe object key %q was accepted", key)
+		}
+	}
+}
+
 func TestStorageCapabilitiesFailClosedUntilContractEvidenceExists(t *testing.T) {
 	store, err := New(context.Background(), config.Storage{Provider: "s3", Endpoint: "https://s3.example", Region: "cn-beijing", Bucket: "documents", TLS: true})
 	if err != nil {

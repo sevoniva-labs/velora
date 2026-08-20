@@ -6,29 +6,29 @@
 
 > **Casdoor manages identity. Velora manages the workspace.**
 
-- Casdoor：身份 / IAM / SSO（OIDC Provider）。
-- Velora：门户 / 工作台 / 应用枢纽。
+- Casdoor：唯一身份 / IAM / SSO（外部 OIDC Provider）。
+- Velora：OIDC Client/Relying Party、门户 / 工作台 / 应用枢纽。
+- Velora 不签发 OIDC Token，不注册 `/oidc/*`，也不接收 Casdoor 密码。
 - Velora **永不**直连 Casdoor 数据库；只通过 OIDC（登录）、Casdoor API（后续扩展）消费身份。
 - 数据库隔离：同一 PostgreSQL Server，独立 database `casdoor` / `velora`。
 
 ## 2. 登录流（OIDC Authorization Code + PKCE）
 
 ```text
-访问 Velora → GET /api/v1/me 401 → /login
-→ GET /api/v1/auth/oidc/login?redirect=/home
-   （生成 HMAC 签名 state：{redirect, code_verifier, nonce, exp}）
-→ 302 Casdoor authorize?code_challenge=...
-→ Casdoor 认证 → 302 回调 /api/v1/auth/oidc/callback?code&state
-→ 校验 state（签名 + 过期）→ code+verifier 换 token
-→ 校验 id_token（签名 + nonce）→ UserInfo
-→ 建立 HttpOnly Session Cookie（HMAC 签名，无状态）
-→ 302 回站内 redirect
+访问 Velora → GET /api/v1/me 401 → 登录按钮
+→ GET /api/v1/auth/federated/oidc/casdoor/begin
+   （服务端保存一次性 state、PKCE verifier、nonce、组织和 5 分钟 TTL）
+→ 设置 HttpOnly/Secure/SameSite=Lax 交易 cookie
+→ 302 Casdoor authorize?code_challenge=...&code_challenge_method=S256
+→ Casdoor 认证 → 302 回调 /api/v1/auth/federated/oidc/casdoor/callback?code&state
+→ 校验 state、交易 cookie、issuer、nonce、PKCE 和一次性消费
+→ code 换 token，校验 ID Token，建立可撤销服务端 session
 ```
 
 安全要点：
 
-- state 无状态自包含（HMAC + 过期），不依赖服务端存储；
-- nonce 校验防重放；PKCE verifier 随 state 传递；
+- state、nonce、PKCE verifier 只保存在服务端短时交易中；
+- nonce 校验防重放，state 使用 CompareAndDelete 一次性消费；
 - redirect 仅允许站内相对路径（防 Open Redirect）；
 - Session Cookie：`HttpOnly` + `Secure`（配置）+ `SameSite`，`SESSION_SECRET` 签名。
 
@@ -63,20 +63,18 @@ A05xxx SYSTEM      系统 / 参数 / 数据库
 ## 5. Launch 安全
 
 - 不接受客户端 URL（`POST /applications/:id/launch`，服务端读库）。
-- `LaunchProvider` 扩展点：`URL`（受信配置地址，校验 http/https + host）、`OIDC`（Casdoor 为该应用签发跳转）。
+- `LaunchProvider`：`URL` 仅允许管理员配置的 HTTPS 地址；`OIDC` 的 `launch_url` 是目标应用自己的登录发起 URL/首页，不由 Velora 拼装 authorize、state 或 verifier。
 - `SAML` / `CAS` / `FORWARD_AUTH` 仅保留模型与扩展点，未实现时明确报错（不做假实现）。
 
 ## 6. 模块边界
 
 ```text
-cmd/velora        serve / migrate / seed
-internal/auth      OIDC + Session（审计通过回调注入，避免包循环）
-internal/application  应用域（模型 / 可见性 / Launch / 健康检查）
-internal/category|tag|favorite|visit   独立领域
-internal/permission   管理员中间件（公共）
-internal/audit        审计服务（不依赖 auth）
-internal/portal       门户设置与统计
-internal/platform     config / db / errs / response / httpserver
+cmd/server|worker|migrate
+internal/domain       业务不变量（identity / portal / approval）
+internal/app           应用服务与事务边界
+internal/adapters      PostgreSQL repository 与 Kratos transport
+internal/platform      config / cache / database / storage / crypto / authn / authz
+internal/bootstrap     依赖组装、迁移和健康检查
 ```
 
 ## 7. 前端复用 Spectra 的边界
@@ -92,9 +90,9 @@ internal/platform     config / db / errs / response / httpserver
 
 ## 9. 已知权衡（Phase 1 明示）
 
-- **无状态会话**：Session Cookie 为 HMAC 签名、无服务端存储。角色变更（如管理员回收）最长延迟一个 `SESSION_TTL_HOURS`（默认 168h，可按需调小）；登出只清除本地 Cookie，被盗 Cookie 无法主动作废（生产可引入服务端会话/黑名单，属 Phase 2）。
-- **PKCE verifier 随 state 传递**：stateless state 内包含 code_verifier，会出现在回调 URL 中（浏览器历史/Referrer）。OIDC 库对 verifier 的时效敏感且 code 一次性，风险有限；如需更强隔离，可改为服务端短时存储 state（Phase 2 选项）。
-- **列表过滤在内存完成**：`ListPublic` 先查库再按访问策略过滤+内存分页。应用量小时简单可靠；量大后应将策略过滤下沉到 SQL（Phase 2 优化）。
+- **会话可撤销**：会话记录位于 Velora 数据库，角色/停用/全部下线可立即撤销。
+- **服务端 OIDC 交易**：state、nonce、PKCE verifier 和交易 cookie 均短时、一次性、失败即失效，不出现在 URL 中。
+- **Portal 访问控制**：列表、详情、启动、收藏均调用统一 `CanAccess`；管理员策略修改写可靠审计。
 
 ## 10. 中国大陆开发环境
 

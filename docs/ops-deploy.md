@@ -1,7 +1,6 @@
 # 生产部署手册（TLS / 独立 Compose / 一键部署）
 
-> Phase A1/A4 配套文档。目标：生产环境全链路 HTTPS、Casdoor 隐藏在 Velora 域名下、
-> 密钥不落盘、一键可复现部署。
+> 生产部署使用脚手架生成的 Kratos 后端；Casdoor 只作为外部 OIDC IdP，Velora 不实现 OIDC Provider。
 
 ## 1. 目录结构
 
@@ -21,9 +20,9 @@ deployments/env/
 ```bash
 # 0) 准备环境变量（不入 git）：复制生产模板并填入 Secret Manager 注入的值
 cp deployments/env/prod/.env.example /secure/velora-prod.env
-#    必填：VELORA_EXTERNAL_URL / VELORA_DATABASE_URL / CASDOOR_DATA_SOURCE_NAME
-#          CASDOOR_CLIENT_ID / CASDOOR_CLIENT_SECRET / SESSION_SECRET
-#          MAIL_CREDENTIAL_KEY / REDIS_URL / REDIS_PASSWORD / TRUSTED_PROXIES
+#    必填：VELORA_EXTERNAL_URL / VELORA_DATABASE_DSN / CASDOOR_DATA_SOURCE_NAME
+#          VELORA_OIDC_ISSUER / VELORA_OIDC_CLIENT_ID / VELORA_OIDC_REDIRECT_URL
+#          VELORA_CASDOOR_ACCOUNT_URL / Redis TLS / ObjectStore / CryptoProvider Secret 文件
 #          PostgreSQL 首次初始化账号（POSTGRES_*）
 
 # 1) 证书：将权威/内网 CA 签发的证书放入 deployments/env/prod/certs/
@@ -32,7 +31,8 @@ cp deployments/env/prod/.env.example /secure/velora-prod.env
 # 2) 先执行静态配置门禁（不启动容器）
 make check-prod-config
 
-# 3) 启动独立生产编排（不合并开发 Compose）
+# 3) 先执行一次 release migration，再启动应用（不合并开发 Compose）
+docker compose --env-file /secure/velora-prod.env -f deployments/env/prod/docker-compose.yml --profile release run --rm migrate
 docker compose --env-file /secure/velora-prod.env \
   -f deployments/env/prod/docker-compose.yml up -d --build
 
@@ -48,24 +48,22 @@ curl -sI https://$VELORA_EXTERNAL_URL/ | grep -i strict   # 启用 HSTS 后应�
 ## 3. TLS 说明
 
 - Web 容器 `VELORA_TLS_ENABLED=true` 时：80 → 301 → 443，443 挂载 `certs/velora.crt|key`。
-- 入口拓扑：`浏览器 → 443 (nginx) → /api → server:8080`；`/casdoor/ → casdoor:8000`。
-- Casdoor 侧 `origin=https://$URL/casdoor`：**用户永远看不到 Casdoor 真实地址**，登录页
-  位于 Velora 域名下，符合"Casdoor 藏在后面"目标。
+- 入口拓扑：`浏览器 → 443 (nginx) → /api → server:8080`；Casdoor 作为配置的 OIDC issuer。
+- Velora 不代理或改造 Casdoor 源码；OIDC discovery、授权和账号自助页地址由生产配置提供。
 - HSTS：`velora-https.conf.template` 中注释，确认证书链可信后取消注释并重载。
 - 证书轮换：覆盖 certs/ 下同名文件 → `docker compose restart web`（nginx 自动重载）。
 
 ## 4. 密钥和生产配置强制校验（fail-fast）
 
-独立生产 Compose 使用 `${VAR:?}` 语法，缺失即拒绝解析；后端启动还会校验 URL、host、Redis 和邮件密钥：
+独立生产 Compose 使用 `${VAR:?}` 语法，缺失即拒绝解析；后端启动还会校验 TLS、OIDC、ObjectStore 和 CryptoProvider：
 
 ```text
-SESSION_SECRET         必填（≥32 字节随机）
-CASDOOR_CLIENT_SECRET  必填
-MAIL_CREDENTIAL_KEY    必填（base64 32 字节，独立于 SESSION_SECRET）
+VELORA_OIDC_CLIENT_SECRET_FILE  必填，只读 Secret 文件
+VELORA_CRYPTO_KEY_FILE          必填，只读 Secret 文件
 VELORA_EXTERNAL_URL    必须是外部 HTTPS host
-VELORA_DATABASE_URL    必须使用独立 Velora 数据库账号
+VELORA_DATABASE_DSN    必须使用独立 Velora 数据库账号且 sslmode=verify-full
 CASDOOR_DATA_SOURCE_NAME  必须使用独立 Casdoor 数据库账号
-REDIS_URL / REDIS_PASSWORD  必填，生产禁止内存降级
+Redis TLS 证书/密钥、REDIS_PASSWORD 必填，生产禁止内存降级
 TRUSTED_PROXIES        必须显式配置网关网段
 ```
 

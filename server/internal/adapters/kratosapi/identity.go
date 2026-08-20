@@ -24,20 +24,31 @@ const (
 
 type IdentityService struct {
 	forgev1.UnimplementedIdentityServiceServer
-	identity  *appidentity.Service
-	audit     *audit.Writer
-	db        *database.DB
-	limiter   *ratelimit.Limiter
-	secure    bool
-	sameSite  http.SameSite
-	federated *FederatedLogin
+	identity             *appidentity.Service
+	audit                *audit.Writer
+	db                   *database.DB
+	limiter              *ratelimit.Limiter
+	secure               bool
+	sameSite             http.SameSite
+	passwordLoginEnabled bool
+	federated            *FederatedLogin
 }
 
 func NewIdentityService(identity *appidentity.Service, auditWriter *audit.Writer, db *database.DB, limiter *ratelimit.Limiter, secureCookies bool, sameSite string) *IdentityService {
-	return &IdentityService{identity: identity, audit: auditWriter, db: db, limiter: limiter, secure: secureCookies, sameSite: parseSameSite(sameSite)}
+	return &IdentityService{identity: identity, audit: auditWriter, db: db, limiter: limiter, secure: secureCookies, sameSite: parseSameSite(sameSite), passwordLoginEnabled: true}
+}
+
+// ConfigureAuthMode disables password entry in production OIDC mode. Local
+// development keeps the password flow available for bootstrap and testing.
+func (s *IdentityService) ConfigureAuthMode(mode string) {
+	mode = strings.TrimSpace(mode)
+	s.passwordLoginEnabled = mode == "" || strings.EqualFold(mode, "password")
 }
 
 func (s *IdentityService) Login(ctx context.Context, req *forgev1.LoginRequest) (*forgev1.LoginResponse, error) {
+	if !s.passwordLoginEnabled {
+		return nil, kerrors.ServiceUnavailable("PASSWORD_LOGIN_DISABLED", "password login is disabled; use the configured OIDC provider")
+	}
 	attempt := domain.Principal{LoginName: strings.TrimSpace(req.GetLoginName())}
 	event := newAuditEvent(ctx, attempt, "auth.login", "session", "", nil)
 	event.Result = "FAILED"

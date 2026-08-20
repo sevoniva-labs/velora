@@ -11,7 +11,8 @@ ENV GOPROXY=${GOPROXY}
 COPY server/go.mod server/go.sum ./
 RUN go mod download
 COPY server/ .
-RUN CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags="-s -w" -o /out/velora ./cmd/server
+RUN CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags="-s -w" -o /out/velora ./cmd/server \
+    && CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags="-s -w" -o /out/velora-migrate ./cmd/migrate
 
 FROM ${DOCKER_REGISTRY}/library/alpine:3.21
 RUN apk add --no-cache ca-certificates tzdata wget \
@@ -19,5 +20,6 @@ RUN apk add --no-cache ca-certificates tzdata wget \
 USER velora
 WORKDIR /app
 COPY --from=builder /out/velora /usr/local/bin/velora
+COPY --from=builder /out/velora-migrate /usr/local/bin/velora-migrate
 EXPOSE 8080
 ENTRYPOINT ["velora"]

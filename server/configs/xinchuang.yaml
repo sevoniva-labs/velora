@@ -73,6 +73,12 @@ remote_config:
   data_id: velora-prod.yaml
   fail_fast: true
 security:
+  auth_mode: oidc
+  oidc_name: casdoor
+  oidc_issuer: "https://casdoor.example.cn"
+  oidc_client_id: "velora-portal"
+  oidc_redirect_url: "https://velora.example.cn/api/v1/auth/federated/oidc/casdoor/callback"
+  casdoor_account_url: "https://casdoor.example.cn/account"
   session_ttl: 8h
   secure_cookies: true
   same_site: lax

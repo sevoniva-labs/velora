@@ -7,19 +7,48 @@ COMPOSE_FILE="deployments/env/prod/docker-compose.yml"
 tmp_dir="$(mktemp -d)"
 trap 'rm -rf "$tmp_dir"' EXIT
 : >"$tmp_dir/empty.env"
+printf 'dummy\n' >"$tmp_dir/redis-ca.pem"
+printf 'dummy\n' >"$tmp_dir/redis-cert.pem"
+printf 'dummy\n' >"$tmp_dir/redis-key.pem"
+printf 'dummy-crypto-key-material-32-bytes\n' >"$tmp_dir/crypto.key"
+printf 'dummy-bootstrap-password\n' >"$tmp_dir/bootstrap.password"
+printf 'dummy-client-secret\n' >"$tmp_dir/oidc-client.secret"
 
 config_json="$tmp_dir/config.json"
 env \
   DOCKER_REGISTRY=docker.io \
   VELORA_EXTERNAL_URL=velora.example.com \
-  VELORA_DATABASE_URL='postgres://velora_app:dummy@postgres:5432/velora?sslmode=require' \
+  VELORA_DATABASE_DSN='postgres://velora_app:dummy@postgres:5432/velora?sslmode=verify-full' \
+  VELORA_STORAGE_PROVIDER=s3-compatible \
+  VELORA_STORAGE_ENDPOINT=https://objects.example.internal \
+  VELORA_STORAGE_REGION=cn-north-1 \
+  VELORA_STORAGE_BUCKET=velora-prod \
+  VELORA_STORAGE_PREFIX=velora-prod \
+  VELORA_STORAGE_PATH_STYLE=true \
+  VELORA_STORAGE_ACCESS_KEY=dummy-storage-access \
+  VELORA_STORAGE_SECRET_KEY=dummy-storage-secret \
+  VELORA_STORAGE_SSE_MODE=none \
+  VELORA_CRYPTO_PROVIDER=standard \
+  VELORA_CRYPTO_KEY_VERSION=v1 \
+  VELORA_CRYPTO_KEY_FILE="$tmp_dir/crypto.key" \
+  VELORA_AUTH_MODE=oidc \
+  VELORA_OIDC_ISSUER=https://casdoor.example.com \
+  VELORA_OIDC_CLIENT_ID=velora \
+  VELORA_OIDC_REDIRECT_URL=https://velora.example.com/api/v1/auth/federated/oidc/casdoor/callback \
+  VELORA_CASDOOR_ACCOUNT_URL=https://casdoor.example.com/account \
+  VELORA_BOOTSTRAP_ADMIN=break-glass \
+  VELORA_BOOTSTRAP_PASSWORD_FILE="$tmp_dir/bootstrap.password" \
+  VELORA_ALLOWED_ORIGINS=https://velora.example.com \
   CASDOOR_DATA_SOURCE_NAME='user=casdoor_app password=dummy host=postgres port=5432 sslmode=require dbname=casdoor' \
   CASDOOR_CLIENT_ID=velora \
   CASDOOR_CLIENT_SECRET=dummy-client-secret \
   SESSION_SECRET=dummy-session-secret-32-bytes-minimum-000 \
   MAIL_CREDENTIAL_KEY='MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDA=' \
   REDIS_PASSWORD=dummy-redis-password \
-  REDIS_URL='redis://:dummy-redis-password@redis:6379/0' \
+  REDIS_TLS_CA_FILE="$tmp_dir/redis-ca.pem" \
+  REDIS_TLS_CERT_FILE="$tmp_dir/redis-cert.pem" \
+  REDIS_TLS_KEY_FILE="$tmp_dir/redis-key.pem" \
+  CASDOOR_OIDC_CLIENT_SECRET_FILE="$tmp_dir/oidc-client.secret" \
   TRUSTED_PROXIES=10.0.0.0/8 \
   POSTGRES_SUPERUSER=postgres_bootstrap \
   POSTGRES_SUPERUSER_PASSWORD=dummy-postgres-password \

@@ -77,15 +77,26 @@ func NewOIDCProvider(ctx context.Context, client *http.Client, cfg OIDCConfig) (
 
 func (p *OIDCProvider) Name() string { return p.name }
 
-func (p *OIDCProvider) AuthorizationURL(state, nonce string) string {
-	return p.config.AuthCodeURL(state, oauth2.SetAuthURLParam("nonce", nonce))
+func (p *OIDCProvider) AuthorizationURL(state, nonce string, codeChallenge ...string) string {
+	options := []oauth2.AuthCodeOption{oauth2.SetAuthURLParam("nonce", nonce)}
+	if len(codeChallenge) > 0 && strings.TrimSpace(codeChallenge[0]) != "" {
+		options = append(options,
+			oauth2.SetAuthURLParam("code_challenge", codeChallenge[0]),
+			oauth2.SetAuthURLParam("code_challenge_method", "S256"),
+		)
+	}
+	return p.config.AuthCodeURL(state, options...)
 }
 
-func (p *OIDCProvider) AuthenticateCode(ctx context.Context, code, nonce string) (FederatedIdentity, error) {
+func (p *OIDCProvider) AuthenticateCode(ctx context.Context, code, nonce string, codeVerifier ...string) (FederatedIdentity, error) {
 	if strings.TrimSpace(code) == "" || strings.TrimSpace(nonce) == "" {
 		return FederatedIdentity{}, ErrAuthenticationFailed
 	}
-	token, err := p.config.Exchange(ctx, code)
+	var options []oauth2.AuthCodeOption
+	if len(codeVerifier) > 0 && strings.TrimSpace(codeVerifier[0]) != "" {
+		options = append(options, oauth2.SetAuthURLParam("code_verifier", codeVerifier[0]))
+	}
+	token, err := p.config.Exchange(ctx, code, options...)
 	if err != nil {
 		return FederatedIdentity{}, ErrAuthenticationFailed
 	}

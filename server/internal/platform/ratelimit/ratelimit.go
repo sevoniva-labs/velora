@@ -16,6 +16,9 @@ type Limiter struct {
 	mu    sync.Mutex
 	local map[string]entry
 }
+
+const maxLocalEntries = 10_000
+
 type entry struct {
 	count int
 	until time.Time
@@ -42,6 +45,22 @@ func (l *Limiter) Allow(ctx context.Context, key string, limit int, window time.
 	}
 	l.mu.Lock()
 	defer l.mu.Unlock()
+	if len(l.local) >= maxLocalEntries {
+		var oldestKey string
+		var oldestUntil time.Time
+		for k, v := range l.local {
+			if now.After(v.until) {
+				delete(l.local, k)
+				continue
+			}
+			if oldestKey == "" || v.until.Before(oldestUntil) {
+				oldestKey, oldestUntil = k, v.until
+			}
+		}
+		if len(l.local) >= maxLocalEntries && oldestKey != "" {
+			delete(l.local, oldestKey)
+		}
+	}
 	e := l.local[key]
 	if now.After(e.until) {
 		e = entry{until: now.Add(window)}

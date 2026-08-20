@@ -1,0 +1,5 @@
+[allowlist]
+description = "Deterministic non-secret token fixture retained in the settlement authentication test history"
+commits = ["9e53cc5ffb0587f778b9b0e8fe834a3ffc9fe21d"]
+paths = ['''^examples/settlement/transport/token_authenticator_test\.go$''']
+regexes = ['''token := "0123456789abcdef0123456789abcdef"''']

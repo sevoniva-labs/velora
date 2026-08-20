@@ -1,0 +1,48 @@
+{{- if .Values.enabled }}
+apiVersion: apisix.apache.org/v2
+kind: ApisixRoute
+metadata:
+  name: {{ .Values.service.name }}-routes
+  annotations:
+    velora.sevoniva.cn/change-approval-ref: {{ .Values.governance.changeApprovalRef | quote }}
+    velora.sevoniva.cn/apisix-ingress-controller-version: {{ .Values.compatibility.ingressControllerVersion | quote }}
+spec:
+  ingressClassName: {{ .Values.ingressClassName | quote }}
+  http:
+    - name: velora-api
+      priority: 100
+      match:
+        hosts:
+          - {{ .Values.hosts.web | quote }}
+        paths:
+          - /api/*
+      backends:
+        - serviceName: {{ .Values.service.name }}
+          servicePort: {{ .Values.service.httpPort }}
+          resolveGranularity: endpoint
+      plugin_config_name: {{ .Values.service.name }}-gateway-plugins
+    - name: velora-web
+      priority: 10
+      match:
+        hosts:
+          - {{ .Values.hosts.web | quote }}
+        paths:
+          - /*
+      backends:
+        - serviceName: {{ .Values.service.name }}
+          servicePort: {{ .Values.service.httpPort }}
+          resolveGranularity: endpoint
+      plugin_config_name: {{ .Values.service.name }}-gateway-plugins
+    - name: velora-grpc
+      priority: 100
+      match:
+        hosts:
+          - {{ .Values.hosts.grpc | quote }}
+        paths:
+          - /*
+      backends:
+        - serviceName: {{ .Values.service.name }}
+          servicePort: {{ .Values.service.grpcPort }}
+          resolveGranularity: endpoint
+      plugin_config_name: {{ .Values.service.name }}-gateway-plugins
+{{- end }}

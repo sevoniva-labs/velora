@@ -1,0 +1,78 @@
+app:
+  name: Velora
+  environment: development
+  region: local
+  zone: local-a
+server:
+  listen_addr: ":8080"
+  grpc_listen_addr: ":9090"
+  public_url: "http://localhost:8080"
+  web_dir: "web/dist"
+  web_csp_frame_sources: []
+  web_csp_connect_sources: []
+  web_csp_wujie_enabled: false
+  web_csp_wujie_approval_ref: ""
+  read_timeout: 30s
+  write_timeout: 30s
+  idle_timeout: 60s
+  shutdown_timeout: 15s
+  max_body_bytes: 8388608
+database:
+  provider: postgres
+  max_open_conns: 20
+  max_idle_conns: 5
+  max_lifetime: 30m
+  query_timeout: 10s
+  auto_migrate: true
+cache:
+  provider: memory
+  mode: standalone
+  prefix: "velora:"
+  default_ttl: 10m
+messaging: { provider: disabled }
+search: { provider: disabled }
+storage:
+  provider: local
+  local_root: "./data/files"
+discovery: { provider: disabled }
+remote_config: { provider: disabled }
+security:
+  session_ttl: 12h
+  secure_cookies: false
+  same_site: lax
+  password_min_length: 12
+  password_require_upper: true
+  password_require_lower: true
+  password_require_digit: true
+  password_require_symbol: true
+  password_history: 5
+  password_max_age_days: 90
+  login_max_failures: 5
+  login_lock_duration: 15m
+  crypto_provider: standard
+  crypto_key_version: v1
+  allowed_origins: ["http://localhost:5173"]
+  trusted_proxies: []
+observability:
+  log_level: info
+  log_format: json
+  metrics_enabled: true
+  metrics_path: /metrics
+  tracing_enabled: false
+  otlp_endpoint: ""
+  pprof_enabled: false
+resilience:
+  dependency_timeout: 10s
+  retry_max_attempts: 3
+  retry_base_delay: 100ms
+  circuit_failure_threshold: 5
+  circuit_open_duration: 30s
+  bulkhead_concurrency: 100
+compliance:
+  profile: standard
+  audit_retention_days: 365
+  network_log_retention_days: 183
+  sensitive_data_masking: true
+  disable_debug_endpoints: true
+features:
+  flags: {}

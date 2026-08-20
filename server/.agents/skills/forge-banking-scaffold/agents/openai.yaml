@@ -1,0 +1,4 @@
+interface:
+  display_name: "Forge Banking Scaffold"
+  short_description: "Enforce banking scaffold engineering gates"
+  default_prompt: "Use $forge-banking-scaffold to implement this change under the repository banking engineering gates."

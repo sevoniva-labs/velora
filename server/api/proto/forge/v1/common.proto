@@ -1,0 +1,164 @@
+syntax = "proto3";
+
+package forge.v1;
+
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/sevoniva-labs/velora/server/api/gen/go/forge/v1;forgev1";
+
+message User {
+  string id = 1;
+  string organization_id = 2;
+  string login_name = 3;
+  string display_name = 4;
+  string status = 5;
+  bool must_change_password = 6;
+  google.protobuf.Timestamp locked_until = 7;
+  google.protobuf.Timestamp password_changed_at = 8;
+  google.protobuf.Timestamp created_at = 9;
+  repeated string roles = 10;
+  repeated string permissions = 11;
+  EffectiveDataScope data_scope = 12;
+  string authentication_level = 13;
+  google.protobuf.Timestamp mfa_verified_at = 14;
+}
+
+message EffectiveDataScope {
+  bool organization_wide = 1;
+  bool self = 2;
+  repeated string department_ids = 3;
+}
+
+message Organization {
+  string id = 1;
+  string organization_key = 2;
+  string name = 3;
+  string description = 4;
+  string status = 5;
+  int64 max_users = 6;
+  int64 max_active_sessions = 7;
+  google.protobuf.Timestamp created_at = 8;
+  google.protobuf.Timestamp updated_at = 9;
+}
+
+message Department {
+  string id = 1;
+  string organization_id = 2;
+  string parent_id = 3;
+  string department_key = 4;
+  string name = 5;
+  string status = 6;
+  int64 sort_order = 7;
+  google.protobuf.Timestamp created_at = 8;
+  google.protobuf.Timestamp updated_at = 9;
+}
+
+message Position {
+  string id = 1;
+  string organization_id = 2;
+  string department_id = 3;
+  string position_key = 4;
+  string name = 5;
+  string description = 6;
+  string status = 7;
+  int64 sort_order = 8;
+  google.protobuf.Timestamp created_at = 9;
+  google.protobuf.Timestamp updated_at = 10;
+}
+
+message UserGroup {
+  string id = 1;
+  string organization_id = 2;
+  string group_key = 3;
+  string name = 4;
+  string description = 5;
+  string status = 6;
+  repeated string roles = 7;
+  repeated string member_ids = 8;
+  int64 member_count = 9;
+  google.protobuf.Timestamp created_at = 10;
+  google.protobuf.Timestamp updated_at = 11;
+}
+
+message UserAssignment {
+  string id = 1;
+  string organization_id = 2;
+  string user_id = 3;
+  string department_id = 4;
+  string position_id = 5;
+  bool primary = 6;
+  google.protobuf.Timestamp valid_from = 7;
+  google.protobuf.Timestamp valid_until = 8;
+  google.protobuf.Timestamp created_at = 9;
+}
+
+message SecurityPolicy {
+  int64 password_min_length = 1;
+  bool password_require_upper = 2;
+  bool password_require_lower = 3;
+  bool password_require_digit = 4;
+  bool password_require_symbol = 5;
+  int64 password_history = 6;
+  int64 password_max_age_days = 7;
+  int64 login_max_failures = 8;
+  int64 login_lock_duration_seconds = 9;
+  int64 session_ttl_seconds = 10;
+  int64 max_active_sessions = 11;
+}
+
+message Role {
+  string key = 1;
+  string name = 2;
+  string description = 3;
+  string data_scope = 4;
+  repeated string permissions = 5;
+  repeated string data_scope_department_ids = 6;
+}
+
+message Permission {
+  string key = 1;
+  string name = 2;
+  string description = 3;
+  string resource = 4;
+  string action = 5;
+}
+
+message Session {
+  string id = 1;
+  string user_id = 2;
+  string login_name = 3;
+  string client_ip = 4;
+  string user_agent = 5;
+  google.protobuf.Timestamp created_at = 6;
+  google.protobuf.Timestamp expires_at = 7;
+  google.protobuf.Timestamp last_seen_at = 8;
+  bool current = 9;
+}
+
+message ApiToken {
+  string id = 1;
+  string name = 2;
+  repeated string scopes = 3;
+  google.protobuf.Timestamp created_at = 4;
+  google.protobuf.Timestamp expires_at = 5;
+  google.protobuf.Timestamp last_used_at = 6;
+  string prefix = 7;
+}
+
+message AuditEvent {
+  string id = 1;
+  google.protobuf.Timestamp occurred_at = 2;
+  string request_id = 3;
+  string organization_id = 4;
+  string actor_id = 5;
+  string actor_name = 6;
+  string action = 7;
+  string resource_type = 8;
+  string resource_id = 9;
+  string result = 10;
+  string client_ip = 11;
+  string details_json = 12;
+  int64 sequence_no = 13;
+  string prev_hash = 14;
+  string event_hash = 15;
+}

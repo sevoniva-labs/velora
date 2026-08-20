@@ -1,0 +1,1380 @@
+syntax = "proto3";
+
+package forge.v1;
+
+import "forge/v1/common.proto";
+import "google/api/annotations.proto";
+import "google/protobuf/timestamp.proto";
+import "openapiv3/annotations.proto";
+
+option go_package = "github.com/sevoniva-labs/velora/server/api/gen/go/forge/v1;forgev1";
+
+service PlatformService {
+  rpc ListUsers(ListUsersRequest) returns (ListUsersResponse) {
+    option (google.api.http) = {get: "/api/v1/admin/users"};
+    option (openapi.v3.operation) = {
+      security: [
+        {
+          additional_properties: [
+            {
+              name: "SessionCookie"
+              value: {
+                value: []
+              }
+            }
+          ]
+        },
+        {
+          additional_properties: [
+            {
+              name: "BearerAuth"
+              value: {
+                value: []
+              }
+            }
+          ]
+        }
+      ]
+    };
+  }
+  rpc CreateUser(CreateUserRequest) returns (CreateUserResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/admin/users"
+      body: "*"
+    };
+    option (openapi.v3.operation) = {
+      security: [
+        {
+          additional_properties: [
+            {
+              name: "SessionCookie"
+              value: {
+                value: []
+              }
+            },
+            {
+              name: "CsrfToken"
+              value: {
+                value: []
+              }
+            }
+          ]
+        },
+        {
+          additional_properties: [
+            {
+              name: "BearerAuth"
+              value: {
+                value: []
+              }
+            }
+          ]
+        }
+      ]
+    };
+  }
+  rpc ListDepartments(ListDepartmentsRequest) returns (ListDepartmentsResponse) {
+    option (google.api.http) = {get: "/api/v1/admin/departments"};
+    option (openapi.v3.operation) = {
+      security: [
+        {
+          additional_properties: [
+            {
+              name: "SessionCookie"
+              value: {value: []}
+            }
+          ]
+        },
+        {
+          additional_properties: [
+            {
+              name: "BearerAuth"
+              value: {value: []}
+            }
+          ]
+        }
+      ]
+    };
+  }
+  rpc CreateDepartment(CreateDepartmentRequest) returns (CreateDepartmentResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/admin/departments"
+      body: "*"
+    };
+    option (openapi.v3.operation) = {
+      security: [
+        {
+          additional_properties: [
+            {
+              name: "SessionCookie"
+              value: {value: []}
+            },
+            {
+              name: "CsrfToken"
+              value: {value: []}
+            }
+          ]
+        },
+        {
+          additional_properties: [
+            {
+              name: "BearerAuth"
+              value: {value: []}
+            }
+          ]
+        }
+      ]
+    };
+  }
+  rpc UpdateDepartment(UpdateDepartmentRequest) returns (UpdateDepartmentResponse) {
+    option (google.api.http) = {
+      patch: "/api/v1/admin/departments/{department_id}"
+      body: "*"
+    };
+    option (openapi.v3.operation) = {
+      security: [
+        {
+          additional_properties: [
+            {
+              name: "SessionCookie"
+              value: {value: []}
+            },
+            {
+              name: "CsrfToken"
+              value: {value: []}
+            }
+          ]
+        },
+        {
+          additional_properties: [
+            {
+              name: "BearerAuth"
+              value: {value: []}
+            }
+          ]
+        }
+      ]
+    };
+  }
+  rpc ListPositions(ListPositionsRequest) returns (ListPositionsResponse) {
+    option (google.api.http) = {get: "/api/v1/admin/positions"};
+    option (openapi.v3.operation) = {
+      security: [
+        {additional_properties: [{name: "SessionCookie" value: {value: []}}]},
+        {additional_properties: [{name: "BearerAuth" value: {value: []}}]}
+      ]
+    };
+  }
+  rpc CreatePosition(CreatePositionRequest) returns (CreatePositionResponse) {
+    option (google.api.http) = {post: "/api/v1/admin/positions" body: "*"};
+    option (openapi.v3.operation) = {
+      security: [
+        {additional_properties: [{name: "SessionCookie" value: {value: []}}, {name: "CsrfToken" value: {value: []}}]},
+        {additional_properties: [{name: "BearerAuth" value: {value: []}}]}
+      ]
+    };
+  }
+  rpc UpdatePosition(UpdatePositionRequest) returns (UpdatePositionResponse) {
+    option (google.api.http) = {patch: "/api/v1/admin/positions/{position_id}" body: "*"};
+    option (openapi.v3.operation) = {
+      security: [
+        {additional_properties: [{name: "SessionCookie" value: {value: []}}, {name: "CsrfToken" value: {value: []}}]},
+        {additional_properties: [{name: "BearerAuth" value: {value: []}}]}
+      ]
+    };
+  }
+  rpc ListUserGroups(ListUserGroupsRequest) returns (ListUserGroupsResponse) {
+    option (google.api.http) = {get: "/api/v1/admin/user-groups"};
+    option (openapi.v3.operation) = {security: [{additional_properties: [{name: "SessionCookie" value: {value: []}}]}, {additional_properties: [{name: "BearerAuth" value: {value: []}}]}]};
+  }
+  rpc CreateUserGroup(CreateUserGroupRequest) returns (CreateUserGroupResponse) {
+    option (google.api.http) = {post: "/api/v1/admin/user-groups" body: "*"};
+    option (openapi.v3.operation) = {security: [{additional_properties: [{name: "SessionCookie" value: {value: []}}, {name: "CsrfToken" value: {value: []}}]}, {additional_properties: [{name: "BearerAuth" value: {value: []}}]}]};
+  }
+  rpc UpdateUserGroup(UpdateUserGroupRequest) returns (UpdateUserGroupResponse) {
+    option (google.api.http) = {patch: "/api/v1/admin/user-groups/{group_id}" body: "*"};
+    option (openapi.v3.operation) = {security: [{additional_properties: [{name: "SessionCookie" value: {value: []}}, {name: "CsrfToken" value: {value: []}}]}, {additional_properties: [{name: "BearerAuth" value: {value: []}}]}]};
+  }
+  rpc UpdateUserGroupMembers(UpdateUserGroupMembersRequest) returns (UpdateUserGroupMembersResponse) {
+    option (google.api.http) = {put: "/api/v1/admin/user-groups/{group_id}/members" body: "*"};
+    option (openapi.v3.operation) = {security: [{additional_properties: [{name: "SessionCookie" value: {value: []}}, {name: "CsrfToken" value: {value: []}}]}, {additional_properties: [{name: "BearerAuth" value: {value: []}}]}]};
+  }
+  rpc UpdateUserGroupRoles(UpdateUserGroupRolesRequest) returns (UpdateUserGroupRolesResponse) {
+    option (google.api.http) = {put: "/api/v1/admin/user-groups/{group_id}/roles" body: "*"};
+    option (openapi.v3.operation) = {security: [{additional_properties: [{name: "SessionCookie" value: {value: []}}, {name: "CsrfToken" value: {value: []}}]}, {additional_properties: [{name: "BearerAuth" value: {value: []}}]}]};
+  }
+  rpc ListUserAssignments(ListUserAssignmentsRequest) returns (ListUserAssignmentsResponse) {
+    option (google.api.http) = {get: "/api/v1/admin/users/{user_id}/assignments"};
+    option (openapi.v3.operation) = {security: [{additional_properties: [{name: "SessionCookie" value: {value: []}}]}, {additional_properties: [{name: "BearerAuth" value: {value: []}}]}]};
+  }
+  rpc ReplaceUserAssignments(ReplaceUserAssignmentsRequest) returns (ReplaceUserAssignmentsResponse) {
+    option (google.api.http) = {put: "/api/v1/admin/users/{user_id}/assignments" body: "*"};
+    option (openapi.v3.operation) = {security: [{additional_properties: [{name: "SessionCookie" value: {value: []}}, {name: "CsrfToken" value: {value: []}}]}, {additional_properties: [{name: "BearerAuth" value: {value: []}}]}]};
+  }
+  rpc GetOrganization(GetOrganizationRequest) returns (GetOrganizationResponse) {
+    option (google.api.http) = {get: "/api/v1/admin/organization"};
+    option (openapi.v3.operation) = {
+      security: [
+        {
+          additional_properties: [
+            {
+              name: "SessionCookie"
+              value: {
+                value: []
+              }
+            }
+          ]
+        },
+        {
+          additional_properties: [
+            {
+              name: "BearerAuth"
+              value: {
+                value: []
+              }
+            }
+          ]
+        }
+      ]
+    };
+  }
+  rpc UpdateOrganization(UpdateOrganizationRequest) returns (UpdateOrganizationResponse) {
+    option (google.api.http) = {
+      patch: "/api/v1/admin/organization"
+      body: "*"
+    };
+    option (openapi.v3.operation) = {
+      security: [
+        {
+          additional_properties: [
+            {
+              name: "SessionCookie"
+              value: {
+                value: []
+              }
+            },
+            {
+              name: "CsrfToken"
+              value: {
+                value: []
+              }
+            }
+          ]
+        },
+        {
+          additional_properties: [
+            {
+              name: "BearerAuth"
+              value: {
+                value: []
+              }
+            }
+          ]
+        }
+      ]
+    };
+  }
+  rpc GetSecurityPolicy(GetSecurityPolicyRequest) returns (GetSecurityPolicyResponse) {
+    option (google.api.http) = {get: "/api/v1/admin/security-config"};
+    option (openapi.v3.operation) = {
+      security: [
+        {
+          additional_properties: [
+            {
+              name: "SessionCookie"
+              value: {
+                value: []
+              }
+            }
+          ]
+        },
+        {
+          additional_properties: [
+            {
+              name: "BearerAuth"
+              value: {
+                value: []
+              }
+            }
+          ]
+        }
+      ]
+    };
+  }
+  rpc UpdateSecurityPolicy(UpdateSecurityPolicyRequest) returns (UpdateSecurityPolicyResponse) {
+    option (google.api.http) = {
+      put: "/api/v1/admin/security-config"
+      body: "policy"
+    };
+    option (openapi.v3.operation) = {
+      security: [
+        {
+          additional_properties: [
+            {
+              name: "SessionCookie"
+              value: {
+                value: []
+              }
+            },
+            {
+              name: "CsrfToken"
+              value: {
+                value: []
+              }
+            }
+          ]
+        },
+        {
+          additional_properties: [
+            {
+              name: "BearerAuth"
+              value: {
+                value: []
+              }
+            }
+          ]
+        }
+      ]
+    };
+  }
+  rpc ListRoles(ListRolesRequest) returns (ListRolesResponse) {
+    option (google.api.http) = {get: "/api/v1/admin/roles"};
+    option (openapi.v3.operation) = {
+      security: [
+        {
+          additional_properties: [
+            {
+              name: "SessionCookie"
+              value: {
+                value: []
+              }
+            }
+          ]
+        },
+        {
+          additional_properties: [
+            {
+              name: "BearerAuth"
+              value: {
+                value: []
+              }
+            }
+          ]
+        }
+      ]
+    };
+  }
+  rpc ListPermissions(ListPermissionsRequest) returns (ListPermissionsResponse) {
+    option (google.api.http) = {get: "/api/v1/admin/permissions"};
+    option (openapi.v3.operation) = {
+      security: [
+        {
+          additional_properties: [
+            {
+              name: "SessionCookie"
+              value: {
+                value: []
+              }
+            }
+          ]
+        },
+        {
+          additional_properties: [
+            {
+              name: "BearerAuth"
+              value: {
+                value: []
+              }
+            }
+          ]
+        }
+      ]
+    };
+  }
+  rpc ListMenus(ListMenusRequest) returns (ListMenusResponse) {
+    option (google.api.http) = {get: "/api/v1/admin/menus"};
+    option (openapi.v3.operation) = {
+      security: [
+        {additional_properties: [{name: "SessionCookie" value: {value: []}}]},
+        {additional_properties: [{name: "BearerAuth" value: {value: []}}]}
+      ]
+    };
+  }
+  rpc UpdateMenu(UpdateMenuRequest) returns (UpdateMenuResponse) {
+    option (google.api.http) = {
+      patch: "/api/v1/admin/menus/{menu_key}"
+      body: "*"
+    };
+    option (openapi.v3.operation) = {
+      security: [
+        {
+          additional_properties: [
+            {
+              name: "SessionCookie"
+              value: {
+                value: []
+              }
+            },
+            {
+              name: "CsrfToken"
+              value: {
+                value: []
+              }
+            }
+          ]
+        },
+        {
+          additional_properties: [
+            {
+              name: "BearerAuth"
+              value: {
+                value: []
+              }
+            }
+          ]
+        }
+      ]
+    };
+  }
+  rpc ListDataFieldPolicies(ListDataFieldPoliciesRequest) returns (ListDataFieldPoliciesResponse) {
+    option (google.api.http) = {get: "/api/v1/admin/data-policies"};
+    option (openapi.v3.operation) = {
+      security: [
+        {additional_properties: [{name: "SessionCookie" value: {value: []}}]},
+        {additional_properties: [{name: "BearerAuth" value: {value: []}}]}
+      ]
+    };
+  }
+  rpc UpsertDataFieldPolicy(UpsertDataFieldPolicyRequest) returns (UpsertDataFieldPolicyResponse) {
+    option (google.api.http) = {
+      put: "/api/v1/admin/data-policies/{policy.field_key}"
+      body: "*"
+    };
+    option (openapi.v3.operation) = {
+      security: [
+        {
+          additional_properties: [
+            {name: "SessionCookie" value: {value: []}},
+            {name: "CsrfToken" value: {value: []}}
+          ]
+        },
+        {additional_properties: [{name: "BearerAuth" value: {value: []}}]}
+      ]
+    };
+  }
+  rpc AuthorizeDataExport(AuthorizeDataExportRequest) returns (AuthorizeDataExportResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/admin/data-exports/authorize"
+      body: "*"
+    };
+    option (openapi.v3.operation) = {
+      security: [
+        {
+          additional_properties: [
+            {name: "SessionCookie" value: {value: []}},
+            {name: "CsrfToken" value: {value: []}}
+          ]
+        },
+        {additional_properties: [{name: "BearerAuth" value: {value: []}}]}
+      ]
+    };
+  }
+  rpc ListDataDeletionEvidence(ListDataDeletionEvidenceRequest) returns (ListDataDeletionEvidenceResponse) {
+    option (google.api.http) = {get: "/api/v1/admin/data-retention/evidence"};
+    option (openapi.v3.operation) = {
+      security: [
+        {additional_properties: [{name: "SessionCookie" value: {value: []}}]},
+        {additional_properties: [{name: "BearerAuth" value: {value: []}}]}
+      ]
+    };
+  }
+  rpc RecordDataDeletionEvidence(RecordDataDeletionEvidenceRequest) returns (RecordDataDeletionEvidenceResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/admin/data-retention/evidence"
+      body: "*"
+    };
+    option (openapi.v3.operation) = {
+      security: [
+        {
+          additional_properties: [
+            {name: "SessionCookie" value: {value: []}},
+            {name: "CsrfToken" value: {value: []}}
+          ]
+        },
+        {additional_properties: [{name: "BearerAuth" value: {value: []}}]}
+      ]
+    };
+  }
+  rpc UpdateRoleDataScope(UpdateRoleDataScopeRequest) returns (UpdateRoleDataScopeResponse) {
+    option (google.api.http) = {
+      put: "/api/v1/admin/roles/{role_key}/data-scope"
+      body: "*"
+    };
+    option (openapi.v3.operation) = {
+      security: [
+        {
+          additional_properties: [
+            {
+              name: "SessionCookie"
+              value: {
+                value: []
+              }
+            },
+            {
+              name: "CsrfToken"
+              value: {
+                value: []
+              }
+            }
+          ]
+        },
+        {
+          additional_properties: [
+            {
+              name: "BearerAuth"
+              value: {
+                value: []
+              }
+            }
+          ]
+        }
+      ]
+    };
+  }
+  rpc UpdateRolePermissions(UpdateRolePermissionsRequest) returns (UpdateRolePermissionsResponse) {
+    option (google.api.http) = {
+      put: "/api/v1/admin/roles/{role_key}/permissions"
+      body: "*"
+    };
+    option (openapi.v3.operation) = {
+      security: [
+        {
+          additional_properties: [
+            {
+              name: "SessionCookie"
+              value: {
+                value: []
+              }
+            },
+            {
+              name: "CsrfToken"
+              value: {
+                value: []
+              }
+            }
+          ]
+        },
+        {
+          additional_properties: [
+            {
+              name: "BearerAuth"
+              value: {
+                value: []
+              }
+            }
+          ]
+        }
+      ]
+    };
+  }
+  rpc UpdateUserRoles(UpdateUserRolesRequest) returns (UpdateUserRolesResponse) {
+    option (google.api.http) = {
+      patch: "/api/v1/admin/users/{user_id}/roles"
+      body: "*"
+    };
+    option (openapi.v3.operation) = {
+      security: [
+        {
+          additional_properties: [
+            {
+              name: "SessionCookie"
+              value: {
+                value: []
+              }
+            },
+            {
+              name: "CsrfToken"
+              value: {
+                value: []
+              }
+            }
+          ]
+        },
+        {
+          additional_properties: [
+            {
+              name: "BearerAuth"
+              value: {
+                value: []
+              }
+            }
+          ]
+        }
+      ]
+    };
+  }
+  rpc UpdateUserStatus(UpdateUserStatusRequest) returns (UpdateUserStatusResponse) {
+    option (google.api.http) = {
+      patch: "/api/v1/admin/users/{user_id}/status"
+      body: "*"
+    };
+    option (openapi.v3.operation) = {
+      security: [
+        {
+          additional_properties: [
+            {
+              name: "SessionCookie"
+              value: {
+                value: []
+              }
+            },
+            {
+              name: "CsrfToken"
+              value: {
+                value: []
+              }
+            }
+          ]
+        },
+        {
+          additional_properties: [
+            {
+              name: "BearerAuth"
+              value: {
+                value: []
+              }
+            }
+          ]
+        }
+      ]
+    };
+  }
+  rpc UnlockUser(UnlockUserRequest) returns (UnlockUserResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/admin/users/{user_id}/unlock"
+      body: "*"
+    };
+    option (openapi.v3.operation) = {
+      security: [
+        {
+          additional_properties: [
+            {
+              name: "SessionCookie"
+              value: {
+                value: []
+              }
+            },
+            {
+              name: "CsrfToken"
+              value: {
+                value: []
+              }
+            }
+          ]
+        },
+        {
+          additional_properties: [
+            {
+              name: "BearerAuth"
+              value: {
+                value: []
+              }
+            }
+          ]
+        }
+      ]
+    };
+  }
+  rpc ResetUserPassword(ResetUserPasswordRequest) returns (ResetUserPasswordResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/admin/users/{user_id}/reset-password"
+      body: "*"
+    };
+    option (openapi.v3.operation) = {
+      security: [
+        {
+          additional_properties: [
+            {
+              name: "SessionCookie"
+              value: {
+                value: []
+              }
+            },
+            {
+              name: "CsrfToken"
+              value: {
+                value: []
+              }
+            }
+          ]
+        },
+        {
+          additional_properties: [
+            {
+              name: "BearerAuth"
+              value: {
+                value: []
+              }
+            }
+          ]
+        }
+      ]
+    };
+  }
+  rpc ListSessions(ListSessionsRequest) returns (ListSessionsResponse) {
+    option (google.api.http) = {get: "/api/v1/admin/sessions"};
+    option (openapi.v3.operation) = {
+      security: [
+        {
+          additional_properties: [
+            {
+              name: "SessionCookie"
+              value: {
+                value: []
+              }
+            }
+          ]
+        },
+        {
+          additional_properties: [
+            {
+              name: "BearerAuth"
+              value: {
+                value: []
+              }
+            }
+          ]
+        }
+      ]
+    };
+  }
+  rpc RevokeSession(RevokeSessionRequest) returns (RevokeSessionResponse) {
+    option (google.api.http) = {delete: "/api/v1/admin/sessions/{session_id}"};
+    option (openapi.v3.operation) = {
+      security: [
+        {
+          additional_properties: [
+            {
+              name: "SessionCookie"
+              value: {
+                value: []
+              }
+            },
+            {
+              name: "CsrfToken"
+              value: {
+                value: []
+              }
+            }
+          ]
+        },
+        {
+          additional_properties: [
+            {
+              name: "BearerAuth"
+              value: {
+                value: []
+              }
+            }
+          ]
+        }
+      ]
+    };
+  }
+  rpc ListAuditLogs(ListAuditLogsRequest) returns (ListAuditLogsResponse) {
+    option (google.api.http) = {get: "/api/v1/admin/audit-logs"};
+    option (openapi.v3.operation) = {
+      security: [
+        {
+          additional_properties: [
+            {
+              name: "SessionCookie"
+              value: {
+                value: []
+              }
+            }
+          ]
+        },
+        {
+          additional_properties: [
+            {
+              name: "BearerAuth"
+              value: {
+                value: []
+              }
+            }
+          ]
+        }
+      ]
+    };
+  }
+  rpc VerifyAuditIntegrity(VerifyAuditIntegrityRequest) returns (VerifyAuditIntegrityResponse) {
+    option (google.api.http) = {get: "/api/v1/admin/audit-logs/integrity"};
+    option (openapi.v3.operation) = {security: [{additional_properties: [{name: "SessionCookie" value: {value: []}}]}, {additional_properties: [{name: "BearerAuth" value: {value: []}}]}]};
+  }
+  rpc ExportAuditLogs(ExportAuditLogsRequest) returns (ExportAuditLogsResponse) {
+    option (google.api.http) = {get: "/api/v1/admin/audit-logs/export"};
+    option (openapi.v3.operation) = {
+      security: [
+        {
+          additional_properties: [
+            {
+              name: "SessionCookie"
+              value: {
+                value: []
+              }
+            },
+            {
+              name: "CsrfToken"
+              value: {
+                value: []
+              }
+            }
+          ]
+        },
+        {
+          additional_properties: [
+            {
+              name: "BearerAuth"
+              value: {
+                value: []
+              }
+            }
+          ]
+        }
+      ]
+    };
+  }
+  rpc ListTemporaryRoleGrants(ListTemporaryRoleGrantsRequest) returns (ListTemporaryRoleGrantsResponse) {
+    option (google.api.http) = {get: "/api/v1/admin/temporary-role-grants"};
+    option (openapi.v3.operation) = {security: [{additional_properties: [{name: "SessionCookie" value: {value: []}}]}, {additional_properties: [{name: "BearerAuth" value: {value: []}}]}]};
+  }
+  rpc CreateTemporaryRoleGrant(CreateTemporaryRoleGrantRequest) returns (CreateTemporaryRoleGrantResponse) {
+    option (google.api.http) = {post: "/api/v1/admin/temporary-role-grants" body: "*"};
+    option (openapi.v3.operation) = {security: [{additional_properties: [{name: "SessionCookie" value: {value: []}}, {name: "CsrfToken" value: {value: []}}]}]};
+  }
+  rpc RevokeTemporaryRoleGrant(RevokeTemporaryRoleGrantRequest) returns (RevokeTemporaryRoleGrantResponse) {
+    option (google.api.http) = {post: "/api/v1/admin/temporary-role-grants/{grant_id}:revoke" body: "*"};
+    option (openapi.v3.operation) = {security: [{additional_properties: [{name: "SessionCookie" value: {value: []}}, {name: "CsrfToken" value: {value: []}}]}]};
+  }
+  rpc ListFederatedIdentityLinks(ListFederatedIdentityLinksRequest) returns (ListFederatedIdentityLinksResponse) {
+    option (google.api.http) = {get: "/api/v1/admin/identity-mappings"};
+    option (openapi.v3.operation) = {security: [{additional_properties: [{name: "SessionCookie" value: {value: []}}]}, {additional_properties: [{name: "BearerAuth" value: {value: []}}]}]};
+  }
+  rpc LinkFederatedIdentity(LinkFederatedIdentityRequest) returns (LinkFederatedIdentityResponse) {
+    option (google.api.http) = {post: "/api/v1/admin/identity-mappings" body: "*"};
+    option (openapi.v3.operation) = {security: [{additional_properties: [{name: "SessionCookie" value: {value: []}}, {name: "CsrfToken" value: {value: []}}]}, {additional_properties: [{name: "BearerAuth" value: {value: []}}]}]};
+  }
+  rpc UnlinkFederatedIdentity(UnlinkFederatedIdentityRequest) returns (UnlinkFederatedIdentityResponse) {
+    option (google.api.http) = {post: "/api/v1/admin/identity-mappings/{link_id}:unlink" body: "*"};
+    option (openapi.v3.operation) = {security: [{additional_properties: [{name: "SessionCookie" value: {value: []}}, {name: "CsrfToken" value: {value: []}}]}, {additional_properties: [{name: "BearerAuth" value: {value: []}}]}]};
+  }
+  rpc ListAccessReviews(ListAccessReviewsRequest) returns (ListAccessReviewsResponse) {
+    option (google.api.http) = {get: "/api/v1/admin/access-reviews"};
+    option (openapi.v3.operation) = {security: [{additional_properties: [{name: "SessionCookie" value: {value: []}}]}, {additional_properties: [{name: "BearerAuth" value: {value: []}}]}]};
+  }
+  rpc CreateAccessReview(CreateAccessReviewRequest) returns (CreateAccessReviewResponse) {
+    option (google.api.http) = {post: "/api/v1/admin/access-reviews" body: "*"};
+    option (openapi.v3.operation) = {security: [{additional_properties: [{name: "SessionCookie" value: {value: []}}, {name: "CsrfToken" value: {value: []}}]}, {additional_properties: [{name: "BearerAuth" value: {value: []}}]}]};
+  }
+  rpc ListAccessReviewItems(ListAccessReviewItemsRequest) returns (ListAccessReviewItemsResponse) {
+    option (google.api.http) = {get: "/api/v1/admin/access-reviews/{review_id}/items"};
+    option (openapi.v3.operation) = {security: [{additional_properties: [{name: "SessionCookie" value: {value: []}}]}, {additional_properties: [{name: "BearerAuth" value: {value: []}}]}]};
+  }
+  rpc DecideAccessReviewItem(DecideAccessReviewItemRequest) returns (DecideAccessReviewItemResponse) {
+    option (google.api.http) = {post: "/api/v1/admin/access-reviews/{review_id}/items/{item_id}/decisions" body: "*"};
+    option (openapi.v3.operation) = {security: [{additional_properties: [{name: "SessionCookie" value: {value: []}}, {name: "CsrfToken" value: {value: []}}]}, {additional_properties: [{name: "BearerAuth" value: {value: []}}]}]};
+  }
+  rpc ListConfigChanges(ListConfigChangesRequest) returns (ListConfigChangesResponse) {
+    option (google.api.http) = {get: "/api/v1/admin/config-changes"};
+    option (openapi.v3.operation) = {security: [{additional_properties: [{name: "SessionCookie" value: {value: []}}]}, {additional_properties: [{name: "BearerAuth" value: {value: []}}]}]};
+  }
+  rpc CreateConfigChange(CreateConfigChangeRequest) returns (CreateConfigChangeResponse) {
+    option (google.api.http) = {post: "/api/v1/admin/config-changes" body: "*"};
+    option (openapi.v3.operation) = {security: [{additional_properties: [{name: "SessionCookie" value: {value: []}}, {name: "CsrfToken" value: {value: []}}]}, {additional_properties: [{name: "BearerAuth" value: {value: []}}]}]};
+  }
+  rpc ApproveConfigChange(ApproveConfigChangeRequest) returns (ApproveConfigChangeResponse) {
+    option (google.api.http) = {post: "/api/v1/admin/config-changes/{change_id}/approve" body: "*"};
+    option (openapi.v3.operation) = {security: [{additional_properties: [{name: "SessionCookie" value: {value: []}}, {name: "CsrfToken" value: {value: []}}]}, {additional_properties: [{name: "BearerAuth" value: {value: []}}]}]};
+  }
+  rpc PublishConfigChange(PublishConfigChangeRequest) returns (PublishConfigChangeResponse) {
+    option (google.api.http) = {post: "/api/v1/admin/config-changes/{change_id}/publish" body: "*"};
+    option (openapi.v3.operation) = {security: [{additional_properties: [{name: "SessionCookie" value: {value: []}}, {name: "CsrfToken" value: {value: []}}]}, {additional_properties: [{name: "BearerAuth" value: {value: []}}]}]};
+  }
+  rpc RequestConfigRollback(RequestConfigRollbackRequest) returns (RequestConfigRollbackResponse) {
+    option (google.api.http) = {post: "/api/v1/admin/config-changes/{change_id}/rollback-request" body: "*"};
+    option (openapi.v3.operation) = {security: [{additional_properties: [{name: "SessionCookie" value: {value: []}}, {name: "CsrfToken" value: {value: []}}]}, {additional_properties: [{name: "BearerAuth" value: {value: []}}]}]};
+  }
+  rpc RollbackConfigChange(RollbackConfigChangeRequest) returns (RollbackConfigChangeResponse) {
+    option (google.api.http) = {post: "/api/v1/admin/config-changes/{change_id}/rollback" body: "*"};
+    option (openapi.v3.operation) = {security: [{additional_properties: [{name: "SessionCookie" value: {value: []}}, {name: "CsrfToken" value: {value: []}}]}, {additional_properties: [{name: "BearerAuth" value: {value: []}}]}]};
+  }
+}
+
+message ListUsersRequest {
+  int32 limit = 1;
+}
+message ListUsersResponse {
+  repeated User users = 1;
+}
+
+message CreateUserRequest {
+  string login_name = 1;
+  string display_name = 2;
+  string password = 3;
+  repeated string roles = 4;
+}
+message CreateUserResponse {
+  User user = 1;
+}
+
+message ListDepartmentsRequest {}
+message ListDepartmentsResponse {
+  repeated Department departments = 1;
+}
+message CreateDepartmentRequest {
+  string department_key = 1;
+  string name = 2;
+  string parent_id = 3;
+  string status = 4;
+  int64 sort_order = 5;
+}
+message CreateDepartmentResponse {
+  Department department = 1;
+}
+message UpdateDepartmentRequest {
+  string department_id = 1;
+  string name = 2;
+  string parent_id = 3;
+  string status = 4;
+  int64 sort_order = 5;
+}
+message UpdateDepartmentResponse {
+  Department department = 1;
+}
+
+message ListPositionsRequest {}
+message ListPositionsResponse {
+  repeated Position positions = 1;
+}
+message CreatePositionRequest {
+  string position_key = 1;
+  string name = 2;
+  string description = 3;
+  string department_id = 4;
+  string status = 5;
+  int64 sort_order = 6;
+}
+message CreatePositionResponse {
+  Position position = 1;
+}
+message UpdatePositionRequest {
+  string position_id = 1;
+  string name = 2;
+  string description = 3;
+  string department_id = 4;
+  string status = 5;
+  int64 sort_order = 6;
+}
+message UpdatePositionResponse {
+  Position position = 1;
+}
+
+message ListUserGroupsRequest {}
+message ListUserGroupsResponse {
+  repeated UserGroup user_groups = 1;
+}
+message CreateUserGroupRequest {
+  string group_key = 1;
+  string name = 2;
+  string description = 3;
+  string status = 4;
+}
+message CreateUserGroupResponse {
+  UserGroup user_group = 1;
+}
+message UpdateUserGroupRequest {
+  string group_id = 1;
+  string name = 2;
+  string description = 3;
+  string status = 4;
+}
+message UpdateUserGroupResponse {
+  UserGroup user_group = 1;
+}
+message UpdateUserGroupMembersRequest {
+  string group_id = 1;
+  repeated string user_ids = 2;
+}
+message UpdateUserGroupMembersResponse {}
+message UpdateUserGroupRolesRequest {
+  string group_id = 1;
+  repeated string roles = 2;
+}
+message UpdateUserGroupRolesResponse {}
+
+message ListUserAssignmentsRequest {
+  string user_id = 1;
+}
+message ListUserAssignmentsResponse {
+  repeated UserAssignment assignments = 1;
+}
+message ReplaceUserAssignmentsRequest {
+  string user_id = 1;
+  repeated UserAssignment assignments = 2;
+}
+message ReplaceUserAssignmentsResponse {}
+
+message GetOrganizationRequest {}
+message GetOrganizationResponse {
+  Organization organization = 1;
+}
+
+message UpdateOrganizationRequest {
+  string name = 1;
+  string description = 2;
+  string status = 3;
+  int64 max_users = 4;
+  int64 max_active_sessions = 5;
+}
+message UpdateOrganizationResponse {
+  Organization organization = 1;
+}
+
+message GetSecurityPolicyRequest {}
+message GetSecurityPolicyResponse {
+  SecurityPolicy policy = 1;
+}
+message UpdateSecurityPolicyRequest {
+  SecurityPolicy policy = 1;
+  string approval_id = 2;
+}
+message UpdateSecurityPolicyResponse {
+  SecurityPolicy policy = 1;
+}
+
+message ListRolesRequest {}
+message ListRolesResponse {
+  repeated Role roles = 1;
+}
+message ListPermissionsRequest {}
+message ListPermissionsResponse {
+  repeated Permission permissions = 1;
+}
+
+message ListMenusRequest {}
+message ListMenusResponse {
+  repeated Menu menus = 1;
+}
+
+message Menu {
+  string id = 1;
+  string organization_id = 2;
+  string key = 3;
+  string parent_key = 4;
+  string name = 5;
+  string route = 6;
+  string icon = 7;
+  string permission_key = 8;
+  int32 sort_order = 9;
+  string status = 10;
+}
+
+message UpdateMenuRequest {
+  string menu_key = 1;
+  string parent_key = 2;
+  string name = 3;
+  string route = 4;
+  string icon = 5;
+  string permission_key = 6;
+  int32 sort_order = 7;
+  string status = 8;
+  string approval_id = 9;
+}
+message UpdateMenuResponse {
+  Menu menu = 1;
+}
+
+message ListDataFieldPoliciesRequest {}
+message ListDataFieldPoliciesResponse {
+  repeated DataFieldPolicy policies = 1;
+}
+
+message DataFieldPolicy {
+  string id = 1;
+  string organization_id = 2;
+  string field_key = 3;
+  string classification = 4;
+  string owner = 5;
+  string purpose = 6;
+  string residency = 7;
+  int64 retention_days = 8;
+  repeated string tags = 9;
+  string mask_strategy = 10;
+  bool export_approval = 11;
+  bool watermark = 12;
+  google.protobuf.Timestamp created_at = 13;
+  google.protobuf.Timestamp updated_at = 14;
+}
+
+message UpsertDataFieldPolicyRequest {
+  DataFieldPolicy policy = 1;
+  string approval_id = 2;
+}
+message UpsertDataFieldPolicyResponse {
+  DataFieldPolicy policy = 1;
+}
+
+message AuthorizeDataExportRequest {
+  repeated string field_keys = 1;
+  string purpose = 2;
+  string approval_id = 3;
+  string watermark = 4;
+}
+message AuthorizeDataExportResponse {
+  bool authorized = 1;
+  string purpose = 2;
+  string watermark = 3;
+}
+
+message ListDataDeletionEvidenceRequest {}
+message ListDataDeletionEvidenceResponse {
+  repeated DataDeletionEvidence evidence = 1;
+}
+
+message DataDeletionEvidence {
+  string id = 1;
+  string organization_id = 2;
+  string resource_type = 3;
+  string resource_digest = 4;
+  repeated string field_keys = 5;
+  string reason = 6;
+  int64 records_deleted = 7;
+  google.protobuf.Timestamp deleted_at = 8;
+  string evidence_hash = 9;
+  google.protobuf.Timestamp created_at = 10;
+}
+
+message RecordDataDeletionEvidenceRequest {
+  string resource_type = 1;
+  string resource_digest = 2;
+  repeated string field_keys = 3;
+  string reason = 4;
+  int64 records_deleted = 5;
+  google.protobuf.Timestamp deleted_at = 6;
+  string approval_id = 7;
+}
+message RecordDataDeletionEvidenceResponse {
+  DataDeletionEvidence evidence = 1;
+}
+
+message ListConfigChangesRequest {}
+message ListConfigChangesResponse { repeated ConfigChange changes = 1; }
+message ConfigChange {
+  string id = 1;
+  string organization_id = 2;
+  string namespace = 3;
+  string group = 4;
+  string data_id = 5;
+  uint64 version = 6;
+  uint64 expected_previous_version = 7;
+  string value_digest = 8;
+  string value_ref = 9;
+  bool sensitive = 10;
+  string created_by = 11;
+  string approved_by = 12;
+  string approval_id = 13;
+  string state = 14;
+  google.protobuf.Timestamp updated_at = 15;
+}
+message CreateConfigChangeRequest {
+  string namespace = 1;
+  string group = 2;
+  string data_id = 3;
+  uint64 version = 4;
+  uint64 expected_previous_version = 5;
+  string value_digest = 6;
+  string value_ref = 7;
+  bool sensitive = 8;
+}
+message CreateConfigChangeResponse { ConfigChange change = 1; }
+message ApproveConfigChangeRequest { string change_id = 1; string approval_id = 2; }
+message ApproveConfigChangeResponse { ConfigChange change = 1; }
+message PublishConfigChangeRequest { string change_id = 1; string approval_id = 2; }
+message PublishConfigChangeResponse { ConfigChange change = 1; }
+message RequestConfigRollbackRequest { string change_id = 1; string approval_id = 2; }
+message RequestConfigRollbackResponse { ConfigChange change = 1; }
+message RollbackConfigChangeRequest { string change_id = 1; string approval_id = 2; }
+message RollbackConfigChangeResponse { ConfigChange change = 1; }
+
+message UpdateRolePermissionsRequest {
+  string role_key = 1;
+  repeated string permissions = 2;
+  string approval_id = 3;
+}
+message UpdateRolePermissionsResponse {
+  Role role = 1;
+}
+
+message UpdateRoleDataScopeRequest {
+  string role_key = 1;
+  string data_scope = 2;
+  repeated string department_ids = 3;
+  string approval_id = 4;
+}
+message UpdateRoleDataScopeResponse {
+  Role role = 1;
+}
+
+message UpdateUserRolesRequest {
+  string user_id = 1;
+  repeated string roles = 2;
+  string approval_id = 3;
+}
+message UpdateUserRolesResponse {
+  User user = 1;
+}
+
+message UpdateUserStatusRequest {
+  string user_id = 1;
+  string status = 2;
+}
+message UpdateUserStatusResponse {
+  User user = 1;
+}
+
+message UnlockUserRequest {
+  string user_id = 1;
+}
+message UnlockUserResponse {
+  User user = 1;
+}
+
+message ResetUserPasswordRequest {
+  string user_id = 1;
+  string password = 2;
+  string approval_id = 3;
+}
+message ResetUserPasswordResponse {}
+
+message ListSessionsRequest {
+  int32 limit = 1;
+}
+message ListSessionsResponse {
+  repeated Session sessions = 1;
+}
+message RevokeSessionRequest {
+  string session_id = 1;
+}
+message RevokeSessionResponse {}
+
+message ListAuditLogsRequest {
+  int32 limit = 1;
+}
+message ListAuditLogsResponse {
+  repeated AuditEvent events = 1;
+}
+message VerifyAuditIntegrityRequest {}
+message VerifyAuditIntegrityResponse { bool verified = 1; }
+
+message ExportAuditLogsRequest {
+  string format = 1;
+  int32 limit = 2;
+  string approval_id = 3;
+}
+message ExportAuditLogsResponse {
+  bytes content = 1;
+  string content_type = 2;
+  string filename = 3;
+}
+
+message TemporaryRoleGrant {
+  string id = 1;
+  string organization_id = 2;
+  string user_id = 3;
+  string role_key = 4;
+  string requested_by = 5;
+  string approval_id = 6;
+  string reason = 7;
+  string status = 8;
+  google.protobuf.Timestamp valid_from = 9;
+  google.protobuf.Timestamp valid_until = 10;
+  google.protobuf.Timestamp revoked_at = 11;
+  string revoked_by = 12;
+  string revoke_reason = 13;
+  google.protobuf.Timestamp created_at = 14;
+}
+
+message ListTemporaryRoleGrantsRequest {}
+message ListTemporaryRoleGrantsResponse { repeated TemporaryRoleGrant grants = 1; }
+message CreateTemporaryRoleGrantRequest {
+  string user_id = 1;
+  string role_key = 2;
+  string reason = 3;
+  google.protobuf.Timestamp valid_from = 4;
+  google.protobuf.Timestamp valid_until = 5;
+  string approval_id = 6;
+}
+message CreateTemporaryRoleGrantResponse { TemporaryRoleGrant grant = 1; }
+message RevokeTemporaryRoleGrantRequest {
+  string grant_id = 1;
+  string reason = 2;
+}
+message RevokeTemporaryRoleGrantResponse {}
+
+message FederatedIdentityLink {
+  string id = 1;
+  string organization_id = 2;
+  string provider = 3;
+  string subject = 4;
+  string user_id = 5;
+  string login_name = 6;
+  string created_by = 7;
+  string approval_id = 8;
+  google.protobuf.Timestamp created_at = 9;
+  google.protobuf.Timestamp last_authenticated_at = 10;
+}
+message ListFederatedIdentityLinksRequest {}
+message ListFederatedIdentityLinksResponse { repeated FederatedIdentityLink links = 1; }
+message LinkFederatedIdentityRequest {
+  string provider = 1;
+  string subject = 2;
+  string user_id = 3;
+  string approval_id = 4;
+}
+message LinkFederatedIdentityResponse { FederatedIdentityLink link = 1; }
+message UnlinkFederatedIdentityRequest { string link_id = 1; }
+message UnlinkFederatedIdentityResponse {}
+
+message AccessReview {
+  string id = 1;
+  string organization_id = 2;
+  string reviewer_id = 3;
+  string reviewer_name = 4;
+  string status = 5;
+  google.protobuf.Timestamp due_at = 6;
+  string created_by = 7;
+  google.protobuf.Timestamp created_at = 8;
+  google.protobuf.Timestamp completed_at = 9;
+}
+message AccessReviewItem {
+  string id = 1;
+  string review_id = 2;
+  string organization_id = 3;
+  string user_id = 4;
+  string login_name = 5;
+  string role_key = 6;
+  string decision = 7;
+  string reason = 8;
+  string decided_by = 9;
+  google.protobuf.Timestamp decided_at = 10;
+  google.protobuf.Timestamp created_at = 11;
+}
+message ListAccessReviewsRequest {}
+message ListAccessReviewsResponse { repeated AccessReview reviews = 1; }
+message CreateAccessReviewRequest { string reviewer_id = 1; google.protobuf.Timestamp due_at = 2; }
+message CreateAccessReviewResponse { AccessReview review = 1; }
+message ListAccessReviewItemsRequest { string review_id = 1; }
+message ListAccessReviewItemsResponse { repeated AccessReviewItem items = 1; }
+message DecideAccessReviewItemRequest { string review_id = 1; string item_id = 2; string decision = 3; string reason = 4; }
+message DecideAccessReviewItemResponse {}

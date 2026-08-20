@@ -1,0 +1,52 @@
+.DS_Store
+Thumbs.db
+
+# Go build artifacts
+/bin/
+/tmp/
+*.test
+
+
+# Frontend build artifacts
+/web/dist/
+/web/**/dist/
+/web/apps/shell/public/microapps/
+/web/packages/e2e/playwright-report/
+/web/packages/e2e/test-results/
+/.evidence/
+__pycache__/
+/.tools/
+/web/node_modules/
+/web/**/node_modules/
+/web/.next/
+
+
+# Logs / runtime artifacts
+*.log
+coverage/
+coverage.out
+
+# Editor/IDE/project files
+.idea/
+.vscode/
+*.swp
+*.swo
+*.iml
+
+# Environment files
+.env
+
+# Optional local Kubernetes/Helm outputs
+*.tgz
+
+# Local architecture/security plans
+/docs/banking-production-feasibility-plan.local.md
+/docs/banking-production-goal-prompt.local.md
+
+# pnpm workspace and TypeScript build cache
+/node_modules/
+*.tsbuildinfo
+/web/vite.config.js
+/web/vite.config.d.ts
+/web/apps/*/vite.config.js
+/web/apps/*/vite.config.d.ts

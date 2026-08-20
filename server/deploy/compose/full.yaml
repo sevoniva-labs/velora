@@ -1,0 +1,187 @@
+# DEVELOPMENT ONLY. Production uses external HA database/cache/RocketMQ/Search/S3
+# services with TLS, ACL, backup, monitoring and organization-approved images.
+services:
+  postgres:
+    image: ${POSTGRES_IMAGE:?set POSTGRES_IMAGE to an internal Harbor digest}
+    environment:
+      POSTGRES_DB: velora
+      POSTGRES_USER: velora
+      POSTGRES_PASSWORD: velora_dev
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U velora -d velora"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    volumes: ["postgres_data:/var/lib/postgresql/data"]
+
+  redis:
+    image: ${REDIS_IMAGE:?set REDIS_IMAGE to an internal Harbor digest}
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    volumes: ["redis_data:/data"]
+
+  rocketmq-namesrv:
+    image: ${ROCKETMQ_IMAGE:?set ROCKETMQ_IMAGE to an internal Harbor digest}
+    command: ["sh", "mqnamesrv"]
+    healthcheck:
+      test: ["CMD-SHELL", "sh mqadmin clusterList -n localhost:9876 >/dev/null 2>&1"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+
+  rocketmq:
+    image: ${ROCKETMQ_IMAGE:?set ROCKETMQ_IMAGE to an internal Harbor digest}
+    command: ["sh", "mqbroker", "-n", "rocketmq-namesrv:9876", "--enable-proxy"]
+    environment:
+      NAMESRV_ADDR: rocketmq-namesrv:9876
+      JAVA_OPT_EXT: -Xms512m -Xmx512m -Xmn256m
+    depends_on:
+      rocketmq-namesrv: { condition: service_healthy }
+    healthcheck:
+      test: ["CMD-SHELL", "sh mqadmin clusterList -n rocketmq-namesrv:9876 >/dev/null 2>&1"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+    ports: ["8081:8081"]
+    volumes: ["rocketmq_store:/home/rocketmq/store"]
+
+  elasticsearch:
+    image: ${ELASTICSEARCH_IMAGE:?set ELASTICSEARCH_IMAGE to an internal Harbor digest}
+    environment:
+      discovery.type: single-node
+      xpack.security.enabled: "false"
+      ES_JAVA_OPTS: -Xms512m -Xmx512m
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:9200 >/dev/null"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+    volumes: ["es_data:/usr/share/elasticsearch/data"]
+
+  s3:
+    image: ${S3_IMAGE:?set S3_IMAGE to an internal Harbor digest}
+    command: server /data --console-address :9001
+    environment:
+      MINIO_ROOT_USER: ${VELORA_STORAGE_ACCESS_KEY:?set VELORA_STORAGE_ACCESS_KEY in .env}
+      MINIO_ROOT_PASSWORD: ${VELORA_STORAGE_SECRET_KEY:?set VELORA_STORAGE_SECRET_KEY in .env}
+    volumes: ["s3_data:/data"]
+
+  s3-init:
+    image: ${S3_MC_IMAGE:?set S3_MC_IMAGE to an internal Harbor digest}
+    environment:
+      VELORA_STORAGE_ENDPOINT: ${VELORA_STORAGE_ENDPOINT:-http://s3:9000}
+      VELORA_STORAGE_BUCKET: ${VELORA_STORAGE_BUCKET:-velora}
+      MINIO_ROOT_USER: ${VELORA_STORAGE_ACCESS_KEY:?set VELORA_STORAGE_ACCESS_KEY in .env}
+      MINIO_ROOT_PASSWORD: ${VELORA_STORAGE_SECRET_KEY:?set VELORA_STORAGE_SECRET_KEY in .env}
+      S3_BUCKET_AUTO_CREATE: ${S3_BUCKET_AUTO_CREATE:-true}
+    depends_on: [s3]
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - >-
+        if [ "${S3_BUCKET_AUTO_CREATE:-true}" != "true" ]; then
+          echo "S3 bucket auto-create disabled. Ensure bucket exists on target storage endpoint."
+          exit 0
+        fi
+        until mc alias set local ${VELORA_STORAGE_ENDPOINT:-http://s3:9000} "$$MINIO_ROOT_USER" "$$MINIO_ROOT_PASSWORD"; do sleep 2; done;
+        mc mb --ignore-existing local/$$VELORA_STORAGE_BUCKET
+    restart: "no"
+
+  velora:
+    build:
+      context: ../..
+      dockerfile: deploy/docker/Dockerfile
+      args:
+        NODE_IMAGE: ${VELORA_NODE_IMAGE:?set internal Node image digest}
+        GO_IMAGE: ${VELORA_GO_IMAGE:?set internal Go image digest}
+        RUNTIME_IMAGE: ${VELORA_RUNTIME_IMAGE:?set internal runtime image digest}
+    ports: ["8080:8080"]
+    volumes: ["../../configs/full.yaml:/app/config.yaml:ro"]
+    environment:
+      VELORA_CONFIG: /app/config.yaml
+      VELORA_ENV: development
+      VELORA_DATABASE_DSN: postgres://velora:velora_dev@postgres:5432/velora?sslmode=disable
+      VELORA_REDIS_ADDRESS: redis:6379
+      VELORA_REDIS_TLS: "false"
+      VELORA_MESSAGING_PROVIDER: rocketmq
+      VELORA_ROCKETMQ_ENDPOINT: rocketmq:8081
+      VELORA_ROCKETMQ_GROUP: velora-business-consumer
+      VELORA_ROCKETMQ_NAMESPACE: velora
+      VELORA_ROCKETMQ_TOPICS: velora-business-events
+      VELORA_ROCKETMQ_ACCESS_KEY: ${VELORA_ROCKETMQ_ACCESS_KEY:?set VELORA_ROCKETMQ_ACCESS_KEY in .env}
+      VELORA_ROCKETMQ_SECRET_KEY: ${VELORA_ROCKETMQ_SECRET_KEY:?set VELORA_ROCKETMQ_SECRET_KEY in .env}
+      VELORA_ROCKETMQ_TLS: "false"
+      VELORA_STREAMING_PROVIDER: disabled
+      VELORA_SEARCH_URLS: http://elasticsearch:9200
+      VELORA_SEARCH_TLS: "false"
+      VELORA_STORAGE_PROVIDER: s3
+      VELORA_STORAGE_ENDPOINT: ${VELORA_STORAGE_ENDPOINT:-http://s3:9000}
+      VELORA_STORAGE_REGION: ${VELORA_STORAGE_REGION:-us-east-1}
+      VELORA_STORAGE_BUCKET: ${VELORA_STORAGE_BUCKET:-velora}
+      VELORA_STORAGE_PATH_STYLE: ${VELORA_STORAGE_PATH_STYLE:-true}
+      VELORA_STORAGE_TLS: ${VELORA_STORAGE_TLS:-false}
+      VELORA_STORAGE_ACCESS_KEY: ${VELORA_STORAGE_ACCESS_KEY:?set VELORA_STORAGE_ACCESS_KEY in .env}
+      VELORA_STORAGE_SECRET_KEY: ${VELORA_STORAGE_SECRET_KEY:?set VELORA_STORAGE_SECRET_KEY in .env}
+      VELORA_CRYPTO_KEY: ${VELORA_CRYPTO_KEY:?set VELORA_CRYPTO_KEY in .env}
+      VELORA_SECURE_COOKIES: "false"
+      VELORA_PUBLIC_URL: http://localhost:8080
+      VELORA_TRACING_ENABLED: "false"
+      VELORA_BOOTSTRAP_ADMIN: ${VELORA_BOOTSTRAP_ADMIN:-admin}
+      VELORA_BOOTSTRAP_PASSWORD: ${VELORA_BOOTSTRAP_PASSWORD:?set VELORA_BOOTSTRAP_PASSWORD in .env}
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+      rocketmq: { condition: service_healthy }
+      elasticsearch: { condition: service_healthy }
+      s3-init: { condition: service_completed_successfully }
+
+  velora-worker:
+    build:
+      context: ../..
+      dockerfile: deploy/docker/Dockerfile
+      args:
+        NODE_IMAGE: ${VELORA_NODE_IMAGE:?set internal Node image digest}
+        GO_IMAGE: ${VELORA_GO_IMAGE:?set internal Go image digest}
+        RUNTIME_IMAGE: ${VELORA_RUNTIME_IMAGE:?set internal runtime image digest}
+    entrypoint: ["/app/velora-worker"]
+    volumes: ["../../configs/full.yaml:/app/config.yaml:ro"]
+    environment:
+      VELORA_CONFIG: /app/config.yaml
+      VELORA_ENV: development
+      VELORA_DATABASE_DSN: postgres://velora:velora_dev@postgres:5432/velora?sslmode=disable
+      VELORA_REDIS_ADDRESS: redis:6379
+      VELORA_REDIS_TLS: "false"
+      VELORA_MESSAGING_PROVIDER: rocketmq
+      VELORA_ROCKETMQ_ENDPOINT: rocketmq:8081
+      VELORA_ROCKETMQ_GROUP: velora-business-consumer
+      VELORA_ROCKETMQ_NAMESPACE: velora
+      VELORA_ROCKETMQ_TOPICS: velora-business-events
+      VELORA_ROCKETMQ_ACCESS_KEY: ${VELORA_ROCKETMQ_ACCESS_KEY:?set VELORA_ROCKETMQ_ACCESS_KEY in .env}
+      VELORA_ROCKETMQ_SECRET_KEY: ${VELORA_ROCKETMQ_SECRET_KEY:?set VELORA_ROCKETMQ_SECRET_KEY in .env}
+      VELORA_ROCKETMQ_TLS: "false"
+      VELORA_STREAMING_PROVIDER: disabled
+      VELORA_SEARCH_URLS: http://elasticsearch:9200
+      VELORA_SEARCH_TLS: "false"
+      VELORA_STORAGE_PROVIDER: s3
+      VELORA_STORAGE_ENDPOINT: ${VELORA_STORAGE_ENDPOINT:-http://s3:9000}
+      VELORA_STORAGE_REGION: ${VELORA_STORAGE_REGION:-us-east-1}
+      VELORA_STORAGE_BUCKET: ${VELORA_STORAGE_BUCKET:-velora}
+      VELORA_STORAGE_PATH_STYLE: ${VELORA_STORAGE_PATH_STYLE:-true}
+      VELORA_STORAGE_TLS: ${VELORA_STORAGE_TLS:-false}
+      VELORA_STORAGE_ACCESS_KEY: ${VELORA_STORAGE_ACCESS_KEY:?set VELORA_STORAGE_ACCESS_KEY in .env}
+      VELORA_STORAGE_SECRET_KEY: ${VELORA_STORAGE_SECRET_KEY:?set VELORA_STORAGE_SECRET_KEY in .env}
+      VELORA_CRYPTO_KEY: ${VELORA_CRYPTO_KEY:?set VELORA_CRYPTO_KEY in .env}
+      VELORA_TRACING_ENABLED: "false"
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+      rocketmq: { condition: service_healthy }
+
+volumes:
+  postgres_data:
+  redis_data:
+  rocketmq_store:
+  es_data:
+  s3_data:

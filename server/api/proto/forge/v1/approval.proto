@@ -1,0 +1,90 @@
+syntax = "proto3";
+
+package forge.v1;
+
+import "google/api/annotations.proto";
+import "google/protobuf/timestamp.proto";
+import "openapiv3/annotations.proto";
+
+option go_package = "github.com/sevoniva-labs/velora/server/api/gen/go/forge/v1;forgev1";
+
+service ApprovalService {
+  rpc CreateApproval(CreateApprovalRequest) returns (CreateApprovalResponse) {
+    option (google.api.http) = {post: "/api/v1/approvals" body: "*"};
+    option (openapi.v3.operation) = {security: [{additional_properties: [{name: "SessionCookie" value: {value: []}}, {name: "CsrfToken" value: {value: []}}]}]};
+  }
+  rpc GetApproval(GetApprovalRequest) returns (GetApprovalResponse) {
+    option (google.api.http) = {get: "/api/v1/approvals/{approval_id}"};
+    option (openapi.v3.operation) = {security: [{additional_properties: [{name: "SessionCookie" value: {value: []}}]}]};
+  }
+  rpc ListApprovals(ListApprovalsRequest) returns (ListApprovalsResponse) {
+    option (google.api.http) = {get: "/api/v1/approvals"};
+    option (openapi.v3.operation) = {security: [{additional_properties: [{name: "SessionCookie" value: {value: []}}]}]};
+  }
+  rpc DecideApproval(DecideApprovalRequest) returns (DecideApprovalResponse) {
+    option (google.api.http) = {post: "/api/v1/approvals/{approval_id}/decisions" body: "*"};
+    option (openapi.v3.operation) = {security: [{additional_properties: [{name: "SessionCookie" value: {value: []}}, {name: "CsrfToken" value: {value: []}}]}]};
+  }
+  rpc TransferApproval(TransferApprovalRequest) returns (TransferApprovalResponse) {
+    option (google.api.http) = {post: "/api/v1/approvals/{approval_id}/transfer" body: "*"};
+    option (openapi.v3.operation) = {security: [{additional_properties: [{name: "SessionCookie" value: {value: []}}, {name: "CsrfToken" value: {value: []}}]}]};
+  }
+  rpc WithdrawApproval(WithdrawApprovalRequest) returns (WithdrawApprovalResponse) {
+    option (google.api.http) = {post: "/api/v1/approvals/{approval_id}/withdraw" body: "*"};
+    option (openapi.v3.operation) = {security: [{additional_properties: [{name: "SessionCookie" value: {value: []}}, {name: "CsrfToken" value: {value: []}}]}]};
+  }
+}
+
+message ApprovalTask {
+  string id = 1;
+  string assignee_id = 2;
+  string status = 3;
+  string decision = 4;
+  string comment = 5;
+  string transferred_from = 6;
+  google.protobuf.Timestamp decided_at = 7;
+}
+
+message ApprovalRequest {
+  string id = 1;
+  string organization_id = 2;
+  string request_type = 3;
+  string action = 4;
+  string resource = 5;
+  string resource_id = 6;
+  string summary = 7;
+  string request_digest = 8;
+  string applicant_id = 9;
+  string mode = 10;
+  int32 required_approvals = 11;
+  string status = 12;
+  google.protobuf.Timestamp expires_at = 13;
+  google.protobuf.Timestamp created_at = 14;
+  google.protobuf.Timestamp updated_at = 15;
+  repeated ApprovalTask tasks = 16;
+  string payload_json = 17;
+}
+
+message CreateApprovalRequest {
+  string request_type = 1;
+  string action = 2;
+  string resource = 3;
+  string resource_id = 4;
+  string summary = 5;
+  string payload_json = 6;
+  string mode = 7;
+  int32 required_approvals = 8;
+  repeated string approver_ids = 9;
+  int64 expires_in_seconds = 10;
+}
+message CreateApprovalResponse { ApprovalRequest approval = 1; }
+message GetApprovalRequest { string approval_id = 1; }
+message GetApprovalResponse { ApprovalRequest approval = 1; }
+message ListApprovalsRequest {}
+message ListApprovalsResponse { repeated ApprovalRequest approvals = 1; }
+message DecideApprovalRequest { string approval_id = 1; string decision = 2; string comment = 3; }
+message DecideApprovalResponse { ApprovalRequest approval = 1; }
+message TransferApprovalRequest { string approval_id = 1; string new_assignee_id = 2; string comment = 3; }
+message TransferApprovalResponse { ApprovalRequest approval = 1; }
+message WithdrawApprovalRequest { string approval_id = 1; string comment = 2; }
+message WithdrawApprovalResponse { ApprovalRequest approval = 1; }

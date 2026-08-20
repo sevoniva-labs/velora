@@ -1,0 +1,21 @@
+window.__VELORA_CONFIG__ = {
+  appName: 'Your Enterprise Application',
+  appShortName: 'App',
+  description: 'Enterprise application',
+  environment: 'PROD',
+  apiBaseUrl: '/api/v1',
+  localLoginEnabled: true,
+  showOrganizationField: false,
+  defaultOrganization: 'default',
+  oidcLoginUrl: '',
+  helpUrl: '',
+  logoUrl: '',
+  primaryColor: '#1677FF',
+  defaultTheme: 'light',
+  compactMode: false,
+  layoutMode: 'mix',
+  pageTabs: true,
+  showEnvironmentBadge: true,
+  componentPlayground: false,
+  footerText: ''
+}

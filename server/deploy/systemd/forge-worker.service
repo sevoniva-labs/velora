@@ -1,0 +1,34 @@
+[Unit]
+Description=Velora Background Worker
+After=network-online.target velora.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=velora
+Group=velora
+WorkingDirectory=/opt/velora
+Environment=VELORA_CONFIG=/etc/velora/config.yaml
+EnvironmentFile=-/etc/velora/velora.env
+ExecStart=/opt/velora/velora-worker
+Restart=on-failure
+RestartSec=5
+UMask=0027
+LimitNOFILE=65535
+NoNewPrivileges=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectKernelLogs=true
+ProtectControlGroups=true
+ProtectClock=true
+RestrictSUIDSGID=true
+LockPersonality=true
+MemoryDenyWriteExecute=true
+RestrictRealtime=true
+
+[Install]
+WantedBy=multi-user.target

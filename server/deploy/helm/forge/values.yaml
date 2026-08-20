@@ -1,0 +1,294 @@
+replicaCount: 1
+revisionHistoryLimit: 5
+
+image:
+  repository: registry.example.cn/sevoniva/velora
+  tag: "0.2.0"
+  digest: ""
+  pullPolicy: IfNotPresent
+
+imagePullSecrets: []
+
+serviceAccount:
+  create: true
+  name: ""
+  annotations: {}
+
+podAnnotations:
+  prometheus.io/scrape: "true"
+  prometheus.io/path: /metrics
+  prometheus.io/port: "8080"
+podLabels: {}
+
+service:
+  type: ClusterIP
+  port: 8080
+  grpcPort: 9090
+  annotations: {}
+
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  tls: []
+  hosts:
+    - host: velora.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: "1"
+    memory: 512Mi
+
+startupProbe:
+  enabled: true
+  failureThreshold: 30
+  periodSeconds: 5
+readinessProbe:
+  initialDelaySeconds: 3
+  periodSeconds: 10
+  timeoutSeconds: 3
+  failureThreshold: 3
+livenessProbe:
+  initialDelaySeconds: 10
+  periodSeconds: 20
+  timeoutSeconds: 3
+  failureThreshold: 3
+terminationGracePeriodSeconds: 30
+
+autoscaling:
+  enabled: false
+  minReplicas: 2
+  maxReplicas: 8
+  targetCPUUtilizationPercentage: 70
+  targetMemoryUtilizationPercentage: 80
+
+podDisruptionBudget:
+  enabled: false
+  minAvailable: 1
+
+networkPolicy:
+  enabled: false
+  ingressFrom: []
+  # Leave empty until environment-specific DB/Redis/RocketMQ/Kafka-stream/Search/S3/Nacos targets are known.
+  # An empty egressRules list denies all egress when the policy is enabled.
+  egressRules: []
+
+persistence:
+  # Only used by storage.provider=local. For multi-replica production use S3-compatible storage.
+  enabled: false
+  storageClass: ""
+  accessModes: [ReadWriteOnce]
+  size: 10Gi
+
+worker:
+  enabled: false
+  replicaCount: 1
+  resources:
+    requests: { cpu: 50m, memory: 96Mi }
+    limits: { cpu: "1", memory: 384Mi }
+
+serviceMonitor:
+  enabled: false
+  interval: 30s
+  scrapeTimeout: 10s
+  additionalLabels: {}
+
+topologySpreadConstraints: []
+nodeSelector: {}
+tolerations: []
+affinity: {}
+priorityClassName: ""
+
+webRuntime:
+  appName: Velora
+  appShortName: Forge
+  description: Enterprise Go + React Application Foundation
+  environment: PROD
+  apiBaseUrl: /api/v1
+  localLoginEnabled: true
+  showOrganizationField: false
+  defaultOrganization: default
+  oidcLoginUrl: ""
+  helpUrl: ""
+  logoUrl: ""
+  primaryColor: "#1677FF"
+  defaultTheme: light
+  compactMode: false
+  layoutMode: mix
+  pageTabs: true
+  showEnvironmentBadge: true
+  componentPlayground: false
+  footerText: ""
+
+config:
+  appName: Velora
+  environment: production
+  region: cn-north
+  zone: zone-a
+  publicURL: https://velora.example.com
+  webDir: /app/web
+  # Comma-separated exact iframe origins. Production origins must use HTTPS.
+  webCSPFrameSources: ""
+  # Comma-separated exact remote API/health-check origins. Production origins must use HTTPS.
+  webCSPConnectSources: ""
+  # Wujie relaxes inline script/style CSP and is disabled unless separately approved.
+  webCSPWujieEnabled: false
+  webCSPWujieApprovalRef: ""
+
+  databaseProvider: postgres
+  databaseMaxOpenConns: "50"
+  databaseMaxIdleConns: "10"
+  databaseMaxLifetime: 30m
+  databaseQueryTimeout: 10s
+  databaseAutoMigrate: "false"
+
+  cacheProvider: memory
+  redisMode: standalone
+  redisAddresses: ""
+  redisMasterName: ""
+  redisTLS: "false"
+  redisTLSCAFile: ""
+  redisTLSCertFile: ""
+  redisTLSKeyFile: ""
+  redisTLSServerName: ""
+  cacheDefaultTTL: 10m
+
+  messagingProvider: disabled
+  rocketmqEndpoint: ""
+  rocketmqGroup: velora-business-consumer
+  rocketmqNamespace: ""
+  rocketmqTopics: ""
+  rocketmqTLS: "true"
+  rocketmqTLSCAFile: ""
+  rocketmqTLSCertFile: ""
+  rocketmqTLSKeyFile: ""
+  rocketmqTLSServerName: ""
+  rocketmqBatchSize: "16"
+  rocketmqInvisibleDuration: 30s
+  rocketmqAwaitDuration: 5s
+
+  streamingProvider: disabled
+  kafkaBrokers: ""
+  kafkaClientID: velora
+  kafkaTLS: "false"
+  kafkaTLSCAFile: ""
+  kafkaTLSCertFile: ""
+  kafkaTLSKeyFile: ""
+  kafkaTLSServerName: ""
+
+  searchProvider: disabled
+  searchURLs: ""
+  searchTLS: "false"
+  searchTLSCAFile: ""
+  searchTLSCertFile: ""
+  searchTLSKeyFile: ""
+  searchTLSServerName: ""
+
+  storageProvider: local
+  storageLocalRoot: /app/data/files
+  storageEndpoint: ""
+  storageRegion: us-east-1
+  storageBucket: ""
+  storagePathStyle: "false"
+  storageTLS: "true"
+  storageTLSCAFile: ""
+  storageTLSCertFile: ""
+  storageTLSKeyFile: ""
+  storageTLSServerName: ""
+
+  discoveryProvider: disabled
+  discoveryServiceName: velora-http
+  discoveryGRPCServiceName: velora-grpc
+  discoveryAdvertiseIP: ""
+  discoveryAdvertisePort: "8080"
+  discoveryAdvertiseGRPCPort: "9090"
+  nacosServers: ""
+  nacosNamespace: ""
+  nacosGroup: DEFAULT_GROUP
+  nacosCluster: DEFAULT
+  nacosTLSRequired: "false"
+  nacosTLSCAFile: ""
+  nacosTLSCertFile: ""
+  nacosTLSKeyFile: ""
+  nacosTLSServerName: ""
+  remoteConfigProvider: disabled
+  nacosConfigGroup: DEFAULT_GROUP
+  nacosConfigDataID: ""
+  remoteConfigFailFast: "true"
+
+  sessionTTL: 8h
+  passwordMinLength: "14"
+  passwordRequireUpper: "true"
+  passwordRequireLower: "true"
+  passwordRequireDigit: "true"
+  passwordRequireSymbol: "true"
+  passwordHistory: "8"
+  passwordMaxAgeDays: "90"
+  loginMaxFailures: "5"
+  loginLockDuration: 30m
+  cryptoProvider: standard
+  cryptoKeyVersion: v1
+  secureCookies: "true"
+  sameSite: lax
+  allowedOrigins: ""
+  trustedProxies: ""
+
+  logLevel: info
+  logFormat: json
+  metricsEnabled: "true"
+  metricsPath: /metrics
+  tracingEnabled: "false"
+  otlpEndpoint: ""
+  otlpTLS: "true"
+  otlpTLSCAFile: ""
+  otlpTLSCertFile: ""
+  otlpTLSKeyFile: ""
+  otlpTLSServerName: ""
+  pprofEnabled: "false"
+
+  dependencyTimeout: 8s
+  retryMaxAttempts: "3"
+  retryBaseDelay: 100ms
+  circuitFailureThreshold: "5"
+  circuitOpenDuration: 30s
+  bulkheadConcurrency: "200"
+
+  complianceProfile: mlps3
+  auditRetentionDays: "365"
+  networkLogRetentionDays: "183"
+  sensitiveDataMasking: "true"
+  disableDebugEndpoints: "true"
+
+secretEnv:
+  # Production should usually point at a Secret created by External Secrets / CSI / platform secret management.
+  existingSecret: ""
+  databaseDSN: ""
+  databaseReadOnlyDSN: ""
+  cryptoKey: ""
+  redisUsername: ""
+  redisPassword: ""
+  kafkaUsername: ""
+  kafkaPassword: ""
+  searchUsername: ""
+  searchPassword: ""
+  storageAccessKey: ""
+  storageSecretKey: ""
+  nacosUsername: ""
+  nacosPassword: ""
+  rocketmqAccessKey: ""
+  rocketmqSecretKey: ""
+  bootstrapAdmin: ""
+  bootstrapPassword: ""
+
+# Additional environment variables, e.g. Downward API or CSI/ExternalSecret references.
+extraEnv: []
+
+# Mount enterprise CA/client certificates, CSI SecretStore, KMS/HSM sockets/config, etc.
+extraVolumes: []
+extraVolumeMounts: []

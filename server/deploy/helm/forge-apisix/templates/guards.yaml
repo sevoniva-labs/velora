@@ -1,0 +1,25 @@
+{{- if .Values.enabled }}
+{{- if ne .Values.compatibility.ingressControllerVersion "2.1.0" }}
+{{- fail "compatibility.ingressControllerVersion must remain pinned to the reviewed 2.1.0 contract" }}
+{{- end }}
+{{- if ne .Values.compatibility.minimumKubernetesVersion "1.31" }}
+{{- fail "compatibility.minimumKubernetesVersion must remain pinned to the reviewed 1.31 prerequisite" }}
+{{- end }}
+{{- if eq .Values.hosts.web .Values.hosts.grpc }}
+{{- fail "hosts.web and hosts.grpc must use separate hostnames" }}
+{{- end }}
+{{- if eq .Values.profile "production" }}
+{{- if not (regexMatch "^(CHG|RFC|SEC)-[A-Za-z0-9._/-]{3,128}$" .Values.governance.changeApprovalRef) }}
+{{- fail "governance.changeApprovalRef must contain an approved CHG/RFC/SEC reference in production" }}
+{{- end }}
+{{- if or (contains ".example." .Values.hosts.web) (contains ".example." .Values.hosts.grpc) }}
+{{- fail "placeholder APISIX hostnames are forbidden in production" }}
+{{- end }}
+{{- if not .Values.upstream.tls }}
+{{- fail "upstream.tls must be true in production" }}
+{{- end }}
+{{- if not .Values.tls.grpcClientMTLS.enabled }}
+{{- fail "tls.grpcClientMTLS.enabled must be true in production" }}
+{{- end }}
+{{- end }}
+{{- end }}

@@ -1,0 +1,42 @@
+enabled: false
+profile: production
+ingressClassName: apisix
+
+compatibility:
+  ingressControllerVersion: "2.1.0"
+  minimumKubernetesVersion: "1.31"
+
+governance:
+  # Required when the production profile is enabled, for example CHG-20260817-001.
+  changeApprovalRef: ""
+
+service:
+  name: velora
+  httpPort: 8080
+  grpcPort: 9090
+
+hosts:
+  web: velora.example.cn
+  grpc: grpc.velora.example.cn
+
+tls:
+  webSecretName: velora-ingress-tls
+  grpcSecretName: velora-grpc-ingress-tls
+  grpcClientMTLS:
+    enabled: true
+    caSecretName: velora-grpc-client-ca
+    verifyDepth: 3
+
+upstream:
+  tls: true
+  clientCertificateSecretName: velora-upstream-client-tls
+  connectTimeout: 5s
+  sendTimeout: 30s
+  readTimeout: 30s
+
+rateLimit:
+  rate: 100
+  burst: 200
+  # Local counters are per APISIX instance. Cluster-wide quotas require a separately
+  # approved Redis-backed plugin configuration with credentials outside Helm values.
+  policy: local

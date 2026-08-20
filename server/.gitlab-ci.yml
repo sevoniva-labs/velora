@@ -1,0 +1,50 @@
+stages:
+  - policy
+  - backend
+  - frontend
+  - deploy
+  - security
+
+default:
+  tags: [domestic-offline]
+  interruptible: true
+  before_script:
+    - export GOPROXY="${GOPROXY:-https://goproxy.cn}"
+    - export GOSUMDB="${GOSUMDB:-sum.golang.google.cn}"
+    - export npm_config_registry="${NPM_REGISTRY:-https://registry.npmmirror.com}"
+
+variables:
+  GOPROXY: "https://goproxy.cn"
+  GOSUMDB: "sum.golang.google.cn"
+  NPM_REGISTRY: "https://registry.npmmirror.com"
+
+policy:
+  stage: policy
+  script:
+    - make ci-policy
+
+backend:
+  stage: backend
+  script:
+    - make ci-go
+
+frontend:
+  stage: frontend
+  script:
+    - make ci-web
+
+deploy:
+  stage: deploy
+  script:
+    - make ci-deploy
+
+security:
+  stage: security
+  script:
+    - make security-tools
+    - make supply-chain-evidence
+  artifacts:
+    when: always
+    expire_in: 90 days
+    paths:
+      - .evidence/

@@ -1,0 +1,36 @@
+{{- $environment := lower (default "development" .Values.config.environment) -}}
+{{- $production := or (eq $environment "production") (eq $environment "prod") -}}
+{{- if and $production (not .Values.networkPolicy.enabled) -}}
+{{- fail "networkPolicy.enabled must be true in production" -}}
+{{- end -}}
+{{- if and $production (empty .Values.networkPolicy.ingressFrom) -}}
+{{- fail "networkPolicy.ingressFrom must be explicit in production" -}}
+{{- end -}}
+{{- if and $production (empty .Values.networkPolicy.egressRules) -}}
+{{- fail "networkPolicy.egressRules must be explicit in production" -}}
+{{- end -}}
+{{- if .Values.networkPolicy.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "velora.fullname" . }}
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "velora.selectorLabels" . | nindent 6 }}
+  policyTypes: [Ingress, Egress]
+  ingress:
+    - ports:
+        - { protocol: TCP, port: 8080 }
+        - { protocol: TCP, port: 9090 }
+      {{- with .Values.networkPolicy.ingressFrom }}
+      from:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+  {{- if .Values.networkPolicy.egressRules }}
+  egress:
+    {{- toYaml .Values.networkPolicy.egressRules | nindent 4 }}
+  {{- else }}
+  egress: []
+  {{- end }}
+{{- end }}

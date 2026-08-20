@@ -1,0 +1,118 @@
+package authz
+
+import (
+	"context"
+	"strings"
+
+	kratoserrors "github.com/go-kratos/kratos/v2/errors"
+	"github.com/go-kratos/kratos/v2/middleware"
+	"github.com/go-kratos/kratos/v2/transport"
+	forgev1 "github.com/sevoniva-labs/velora/server/api/gen/go/forge/v1"
+	"github.com/sevoniva-labs/velora/server/internal/platform/authn"
+)
+
+const platformOperationPrefix = "/forge.v1.PlatformService/"
+const approvalOperationPrefix = "/forge.v1.ApprovalService/"
+
+func Server(rules map[string][]string) middleware.Middleware {
+	return func(next middleware.Handler) middleware.Handler {
+		return func(ctx context.Context, req any) (any, error) {
+			tr, ok := transport.FromServerContext(ctx)
+			if !ok {
+				return nil, kratoserrors.Forbidden("PERMISSION_DENIED", "transport context is required")
+			}
+			principal, authenticated := authn.Principal(ctx)
+			if authenticated && principal.MustChangePassword && !allowedBeforePasswordChange(tr.Operation()) {
+				return nil, kratoserrors.Forbidden("PASSWORD_CHANGE_REQUIRED", "password change is required")
+			}
+			required, registered := rules[tr.Operation()]
+			if !registered {
+				if strings.HasPrefix(tr.Operation(), platformOperationPrefix) || strings.HasPrefix(tr.Operation(), approvalOperationPrefix) {
+					return nil, kratoserrors.Forbidden("PERMISSION_DENIED", "operation has no authorization policy")
+				}
+				return next(ctx, req)
+			}
+			if !authenticated || !principal.HasPermission(required...) {
+				return nil, kratoserrors.Forbidden("PERMISSION_DENIED", "permission denied")
+			}
+			return next(ctx, req)
+		}
+	}
+}
+
+func allowedBeforePasswordChange(operation string) bool {
+	switch operation {
+	case forgev1.OperationIdentityServiceGetCurrentUser,
+		forgev1.OperationIdentityServiceChangePassword,
+		forgev1.OperationIdentityServiceLogout:
+		return true
+	default:
+		return false
+	}
+}
+
+func PlatformRules() map[string][]string {
+	return map[string][]string{
+		forgev1.OperationPlatformServiceListUsers:                  {"system.user.read"},
+		forgev1.OperationPlatformServiceCreateUser:                 {"system.user.create"},
+		forgev1.OperationPlatformServiceListDepartments:            {"system.department.read"},
+		forgev1.OperationPlatformServiceCreateDepartment:           {"system.department.manage"},
+		forgev1.OperationPlatformServiceUpdateDepartment:           {"system.department.manage"},
+		forgev1.OperationPlatformServiceListPositions:              {"system.position.read"},
+		forgev1.OperationPlatformServiceCreatePosition:             {"system.position.manage"},
+		forgev1.OperationPlatformServiceUpdatePosition:             {"system.position.manage"},
+		forgev1.OperationPlatformServiceListUserGroups:             {"system.user_group.read"},
+		forgev1.OperationPlatformServiceCreateUserGroup:            {"system.user_group.manage"},
+		forgev1.OperationPlatformServiceUpdateUserGroup:            {"system.user_group.manage"},
+		forgev1.OperationPlatformServiceUpdateUserGroupMembers:     {"system.user_group.manage"},
+		forgev1.OperationPlatformServiceUpdateUserGroupRoles:       {"system.user_group.manage"},
+		forgev1.OperationPlatformServiceListUserAssignments:        {"system.user.assignment.read"},
+		forgev1.OperationPlatformServiceReplaceUserAssignments:     {"system.user.assignment.manage"},
+		forgev1.OperationPlatformServiceGetOrganization:            {"system.organization.read"},
+		forgev1.OperationPlatformServiceUpdateOrganization:         {"system.organization.manage"},
+		forgev1.OperationPlatformServiceGetSecurityPolicy:          {"system.config.read"},
+		forgev1.OperationPlatformServiceUpdateSecurityPolicy:       {"system.security.manage"},
+		forgev1.OperationPlatformServiceListRoles:                  {"system.role.read"},
+		forgev1.OperationPlatformServiceListPermissions:            {"system.role.read"},
+		forgev1.OperationPlatformServiceListMenus:                  {"system.menu.read"},
+		forgev1.OperationPlatformServiceUpdateMenu:                 {"system.menu.manage"},
+		forgev1.OperationPlatformServiceListDataFieldPolicies:      {"system.data_policy.read"},
+		forgev1.OperationPlatformServiceUpsertDataFieldPolicy:      {"system.data_policy.manage"},
+		forgev1.OperationPlatformServiceAuthorizeDataExport:        {"system.data.export"},
+		forgev1.OperationPlatformServiceListDataDeletionEvidence:   {"system.data.retention.read"},
+		forgev1.OperationPlatformServiceRecordDataDeletionEvidence: {"system.data.retention.manage"},
+		forgev1.OperationPlatformServiceUpdateRolePermissions:      {"system.role.manage"},
+		forgev1.OperationPlatformServiceUpdateRoleDataScope:        {"system.role.manage"},
+		forgev1.OperationPlatformServiceUpdateUserRoles:            {"system.user.role.manage"},
+		forgev1.OperationPlatformServiceUpdateUserStatus:           {"system.user.update"},
+		forgev1.OperationPlatformServiceUnlockUser:                 {"system.user.update"},
+		forgev1.OperationPlatformServiceResetUserPassword:          {"system.user.update"},
+		forgev1.OperationPlatformServiceListSessions:               {"system.session.read"},
+		forgev1.OperationPlatformServiceRevokeSession:              {"system.session.revoke"},
+		forgev1.OperationPlatformServiceListAuditLogs:              {"system.audit.read"},
+		forgev1.OperationPlatformServiceExportAuditLogs:            {"system.audit.export"},
+		forgev1.OperationPlatformServiceVerifyAuditIntegrity:       {"system.audit.verify"},
+		forgev1.OperationPlatformServiceListTemporaryRoleGrants:    {"system.temporary_grant.read"},
+		forgev1.OperationPlatformServiceCreateTemporaryRoleGrant:   {"system.temporary_grant.manage"},
+		forgev1.OperationPlatformServiceRevokeTemporaryRoleGrant:   {"system.temporary_grant.manage"},
+		forgev1.OperationPlatformServiceListFederatedIdentityLinks: {"system.identity_mapping.read"},
+		forgev1.OperationPlatformServiceLinkFederatedIdentity:      {"system.identity_mapping.manage"},
+		forgev1.OperationPlatformServiceUnlinkFederatedIdentity:    {"system.identity_mapping.manage"},
+		forgev1.OperationPlatformServiceListAccessReviews:          {"system.access_review.read"},
+		forgev1.OperationPlatformServiceCreateAccessReview:         {"system.access_review.manage"},
+		forgev1.OperationPlatformServiceListAccessReviewItems:      {"system.access_review.read"},
+		forgev1.OperationPlatformServiceDecideAccessReviewItem:     {"system.access_review.manage"},
+		forgev1.OperationPlatformServiceListConfigChanges:          {"system.config.read"},
+		forgev1.OperationPlatformServiceCreateConfigChange:         {"system.config.manage"},
+		forgev1.OperationPlatformServiceApproveConfigChange:        {"system.config.manage"},
+		forgev1.OperationPlatformServicePublishConfigChange:        {"system.config.manage"},
+		forgev1.OperationPlatformServiceRequestConfigRollback:      {"system.config.manage"},
+		forgev1.OperationPlatformServiceRollbackConfigChange:       {"system.config.manage"},
+		forgev1.OperationApprovalServiceCreateApproval:             {"approval.request.create"},
+		forgev1.OperationApprovalServiceGetApproval:                {"approval.request.read"},
+		forgev1.OperationApprovalServiceListApprovals:              {"approval.request.read"},
+		forgev1.OperationApprovalServiceDecideApproval:             {"approval.task.decide"},
+		forgev1.OperationApprovalServiceTransferApproval:           {"approval.task.transfer"},
+		forgev1.OperationApprovalServiceWithdrawApproval:           {"approval.request.withdraw"},
+	}
+}

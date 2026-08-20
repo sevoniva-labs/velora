@@ -1,0 +1,15 @@
+# Local observability overlay. Production is expected to connect Forge to the
+# organization's Prometheus/OTel/log platform rather than deploy this stack per app.
+services:
+  prometheus:
+    image: ${PROMETHEUS_IMAGE:?set PROMETHEUS_IMAGE to an internal Harbor digest}
+    command: ["--config.file=/etc/prometheus/prometheus.yml"]
+    volumes:
+      - ../observability/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    ports: ["9090:9090"]
+  otel-collector:
+    image: ${OTEL_COLLECTOR_IMAGE:?set OTEL_COLLECTOR_IMAGE to an internal Harbor digest}
+    command: ["--config=/etc/otelcol/config.yaml"]
+    volumes:
+      - ../observability/otel-collector.yaml:/etc/otelcol/config.yaml:ro
+    ports: ["4317:4317", "4318:4318"]

@@ -1,0 +1,128 @@
+syntax = "proto3";
+
+package forge.v1;
+
+import "google/api/annotations.proto";
+import "openapiv3/annotations.proto";
+
+option go_package = "github.com/sevoniva-labs/velora/server/api/gen/go/forge/v1;forgev1";
+option (openapi.v3.document) = {
+  info: {
+    title: "Velora API"
+    version: "1.0.0"
+    description: "Contract-first HTTP API for the Forge enterprise and financial scaffold."
+  }
+  components: {
+    security_schemes: {
+      additional_properties: [
+        {
+          name: "SessionCookie"
+          value: {
+            security_scheme: {
+              type: "apiKey"
+              in: "cookie"
+              name: "velora_session"
+              description: "Interactive browser session. Mutating operations also require CsrfToken."
+            }
+          }
+        },
+        {
+          name: "BearerAuth"
+          value: {
+            security_scheme: {
+              type: "http"
+              scheme: "bearer"
+              bearer_format: "Forge API Token"
+              description: "API token constrained by both account permissions and token scopes."
+            }
+          }
+        },
+        {
+          name: "CsrfToken"
+          value: {
+            security_scheme: {
+              type: "apiKey"
+              in: "header"
+              name: "X-CSRF-Token"
+              description: "Double-submit token matching the velora_csrf cookie."
+            }
+          }
+        }
+      ]
+    }
+  }
+};
+
+// SystemService exposes liveness, readiness, and immutable build metadata.
+service SystemService {
+  // Health reports process liveness without checking remote dependencies.
+  rpc Health(HealthRequest) returns (HealthResponse) {
+    option (google.api.http) = {get: "/api/v1/system/health"};
+  }
+
+  // Readiness reports whether required dependencies can serve traffic.
+  rpc Readiness(ReadinessRequest) returns (ReadinessResponse) {
+    option (google.api.http) = {get: "/api/v1/system/ready"};
+  }
+
+  // GetSystemInfo returns authenticated runtime and provider metadata.
+  rpc GetSystemInfo(GetSystemInfoRequest) returns (GetSystemInfoResponse) {
+    option (google.api.http) = {get: "/api/v1/system/info"};
+    option (openapi.v3.operation) = {
+      security: [
+        {
+          additional_properties: [
+            {
+              name: "SessionCookie"
+              value: {
+                value: []
+              }
+            }
+          ]
+        },
+        {
+          additional_properties: [
+            {
+              name: "BearerAuth"
+              value: {
+                value: []
+              }
+            }
+          ]
+        }
+      ]
+    };
+  }
+}
+
+message HealthRequest {}
+
+message HealthResponse {
+  string status = 1;
+  string service = 2;
+  string version = 3;
+}
+
+message ReadinessRequest {}
+
+message DependencyStatus {
+  string name = 1;
+  string status = 2;
+  string message = 3;
+}
+
+message ReadinessResponse {
+  string status = 1;
+  repeated DependencyStatus dependencies = 2;
+}
+
+message GetSystemInfoRequest {}
+
+message GetSystemInfoResponse {
+  string service = 1;
+  string version = 2;
+  string environment = 3;
+  string region = 4;
+  string zone = 5;
+  map<string, string> providers = 6;
+}

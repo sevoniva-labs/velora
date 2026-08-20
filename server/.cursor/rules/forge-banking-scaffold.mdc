@@ -1,0 +1,15 @@
+---
+description: Mandatory Forge banking scaffold architecture, security, evidence, source, and Git policy
+globs:
+alwaysApply: true
+---
+
+# Mandatory Forge banking scaffold rule
+
+Before reading or changing implementation files, read and follow:
+
+- `AGENTS.md`
+- `.agents/skills/forge-banking-scaffold/SKILL.md`
+- `docs/ai-engineering-governance.md`
+
+Do not bypass their architecture, backend authorization, approval, audit, evidence, domestic-source, validation, or small-commit requirements. If user intent and a protected invariant conflict, pause and explain the exact tradeoff before changing the invariant.

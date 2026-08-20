@@ -1,0 +1,20 @@
+groups:
+  - name: velora-http
+    rules:
+      - alert: ForgeHigh5xxRatio
+        expr: |
+          sum(rate(velora_http_requests_total{status=~"5.."}[5m]))
+          /
+          clamp_min(sum(rate(velora_http_requests_total[5m])), 0.001) > 0.02
+        for: 10m
+        labels: { severity: warning }
+        annotations:
+          summary: Forge HTTP 5xx ratio is above 2%
+      - alert: ForgeHighP95Latency
+        expr: |
+          histogram_quantile(0.95,
+            sum by (le) (rate(velora_http_request_duration_seconds_bucket[5m]))) > 1
+        for: 10m
+        labels: { severity: warning }
+        annotations:
+          summary: Forge HTTP p95 latency is above 1 second

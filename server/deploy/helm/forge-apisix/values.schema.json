@@ -1,0 +1,99 @@
+{
+  "$schema": "https://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "enabled",
+    "profile",
+    "ingressClassName",
+    "compatibility",
+    "governance",
+    "service",
+    "hosts",
+    "tls",
+    "upstream",
+    "rateLimit"
+  ],
+  "properties": {
+    "enabled": { "type": "boolean" },
+    "profile": { "type": "string", "enum": ["development", "production"] },
+    "ingressClassName": { "type": "string", "pattern": "^[a-z0-9]([a-z0-9.-]*[a-z0-9])?$", "maxLength": 253 },
+    "compatibility": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["ingressControllerVersion", "minimumKubernetesVersion"],
+      "properties": {
+        "ingressControllerVersion": { "const": "2.1.0" },
+        "minimumKubernetesVersion": { "const": "1.31" }
+      }
+    },
+    "governance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["changeApprovalRef"],
+      "properties": {
+        "changeApprovalRef": { "type": "string", "maxLength": 160 }
+      }
+    },
+    "service": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "httpPort", "grpcPort"],
+      "properties": {
+        "name": { "type": "string", "pattern": "^[a-z0-9]([-a-z0-9]*[a-z0-9])?$", "maxLength": 63 },
+        "httpPort": { "type": "integer", "minimum": 1, "maximum": 65535 },
+        "grpcPort": { "type": "integer", "minimum": 1, "maximum": 65535 }
+      }
+    },
+    "hosts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["web", "grpc"],
+      "properties": {
+        "web": { "type": "string", "pattern": "^[a-z0-9]([a-z0-9.-]*[a-z0-9])$", "maxLength": 253 },
+        "grpc": { "type": "string", "pattern": "^[a-z0-9]([a-z0-9.-]*[a-z0-9])$", "maxLength": 253 }
+      }
+    },
+    "tls": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["webSecretName", "grpcSecretName", "grpcClientMTLS"],
+      "properties": {
+        "webSecretName": { "type": "string", "pattern": "^[a-z0-9]([-a-z0-9]*[a-z0-9])?$", "maxLength": 63 },
+        "grpcSecretName": { "type": "string", "pattern": "^[a-z0-9]([-a-z0-9]*[a-z0-9])?$", "maxLength": 63 },
+        "grpcClientMTLS": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["enabled", "caSecretName", "verifyDepth"],
+          "properties": {
+            "enabled": { "type": "boolean" },
+            "caSecretName": { "type": "string", "pattern": "^[a-z0-9]([-a-z0-9]*[a-z0-9])?$", "maxLength": 63 },
+            "verifyDepth": { "type": "integer", "minimum": 1, "maximum": 10 }
+          }
+        }
+      }
+    },
+    "upstream": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["tls", "clientCertificateSecretName", "connectTimeout", "sendTimeout", "readTimeout"],
+      "properties": {
+        "tls": { "type": "boolean" },
+        "clientCertificateSecretName": { "type": "string", "pattern": "^[a-z0-9]([-a-z0-9]*[a-z0-9])?$", "maxLength": 63 },
+        "connectTimeout": { "type": "string", "pattern": "^[1-9][0-9]*(ms|s|m)$" },
+        "sendTimeout": { "type": "string", "pattern": "^[1-9][0-9]*(ms|s|m)$" },
+        "readTimeout": { "type": "string", "pattern": "^[1-9][0-9]*(ms|s|m)$" }
+      }
+    },
+    "rateLimit": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["rate", "burst", "policy"],
+      "properties": {
+        "rate": { "type": "number", "exclusiveMinimum": 0 },
+        "burst": { "type": "number", "minimum": 0 },
+        "policy": { "const": "local" }
+      }
+    }
+  }
+}

@@ -94,6 +94,11 @@ func newROPCProvider(t *testing.T) *httptest.Server {
 
 // newTurnstileTestHandler 组装带 Turnstile 的认证 Handler（ROPC mock + 内存会话）。
 func newTurnstileTestHandler(t *testing.T, ts *mockTurnstile, siteKey string) (*gin.Engine, *mockTurnstile) {
+	return newTurnstileTestHandlerAudit(t, ts, siteKey, nil)
+}
+
+// newTurnstileTestHandlerAudit 额外允许注入 onLoginFailed 计数（审计断言用）。
+func newTurnstileTestHandlerAudit(t *testing.T, ts *mockTurnstile, siteKey string, auditCount *int) (*gin.Engine, *mockTurnstile) {
 	t.Helper()
 	gin.SetMode(gin.TestMode)
 	provider := newROPCProvider(t)
@@ -102,7 +107,12 @@ func newTurnstileTestHandler(t *testing.T, ts *mockTurnstile, siteKey string) (*
 	sessions, err := NewSessionStore("0123456789abcdef0123456789abcdef", time.Hour, false, "")
 	require.NoError(t, err)
 
-	h := NewHandler(oidc, sessions, "velora_admin", "/", nil, nil, nil, nil)
+	onFailed := func(c *gin.Context, username string) {
+		if auditCount != nil {
+			*auditCount++
+		}
+	}
+	h := NewHandler(oidc, sessions, "velora_admin", "/", nil, onFailed, onFailed, nil)
 	if ts != nil && ts.enabled {
 		h.WithTurnstile(ts, siteKey)
 	}
@@ -137,11 +147,13 @@ func TestLoginWithoutTurnstile(t *testing.T) {
 
 func TestLoginTurnstileMissingToken(t *testing.T) {
 	ts := &mockTurnstile{enabled: true, verifyOK: true}
-	r, _ := newTurnstileTestHandler(t, ts, "site-key-1")
+	audited := 0
+	r, _ := newTurnstileTestHandlerAudit(t, ts, "site-key-1", &audited)
 	w := doLogin(t, r, "")
 	assert.Equal(t, http.StatusForbidden, w.Code, "启用验证后缺 token 应拒绝")
 	assert.Contains(t, w.Body.String(), "A05007")
 	assert.Zero(t, ts.verifyCalls, "缺 token 不应触发服务端校验调用")
+	assert.Equal(t, 1, audited, "人机验证拒绝应入登录失败审计")
 }
 
 func TestLoginTurnstileInvalidToken(t *testing.T) {

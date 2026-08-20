@@ -49,11 +49,13 @@ export default function Login() {
   const [submitting, setSubmitting] = useState(false)
   // Cloudflare Turnstile 人机验证（登录防 bot；后端配置启用后必须通过验证才能登录）
   const [turnstileToken, setTurnstileToken] = useState('')
+  // Turnstile token 一次性有效：登录失败/过期后递增 key 强制重挂载 widget 获取新 token。
+  const [turnstileAttempt, setTurnstileAttempt] = useState(0)
   const { data: turnstile } = useQuery({
     queryKey: ['turnstile-config'],
     queryFn: getTurnstileConfig,
     retry: false,
-    staleTime: 10 * 60 * 1000,
+    // 不设 staleTime：登录页每次刷新实时读取，配置变更（启用/停用人机验证）立即生效。
   })
   const turnstileEnabled = turnstile?.enabled && !!turnstile.siteKey
 
@@ -88,6 +90,9 @@ export default function Login() {
       const msg = err instanceof Error ? err.message : '登录失败，请稍后再试'
       message.error(msg)
       setSubmitting(false)
+      // 人机验证 token 已被消费：重置 widget，下次提交需重新验证。
+      setTurnstileToken('')
+      setTurnstileAttempt((n) => n + 1)
     }
   }
 
@@ -203,6 +208,7 @@ export default function Login() {
             {turnstileEnabled && (
               <div style={{ marginTop: 16, marginBottom: 4 }}>
                 <TurnstileWidget
+                  key={turnstileAttempt}
                   siteKey={turnstile.siteKey}
                   onVerify={setTurnstileToken}
                   onExpire={() => setTurnstileToken('')}

@@ -88,6 +88,8 @@ func (h *Handler) RegisterPublic(r gin.IRouter) {
 
 // turnstileConfig 返回登录人机验证配置（未启用时 enabled=false，前端不渲染 widget）。
 func (h *Handler) turnstileConfig(c *gin.Context) {
+	// 配置可能动态变化：禁止中间层缓存（登录页每次实时读取）。
+	c.Header("Cache-Control", "no-store")
 	enabled := h.turnstile != nil && h.turnstile.Enabled() && h.turnstileSiteKey != ""
 	response.OK(c, gin.H{"enabled": enabled, "siteKey": h.turnstileSiteKey})
 }
@@ -162,21 +164,29 @@ func (h *Handler) LoginWithPassword(c *gin.Context) {
 
 	// Cloudflare Turnstile 人机验证（Phase：登录安全加固）：配置启用后强制校验，
 	// 防 bot 撞库/分布式暴力破解（IP 限流可被轮换 IP 绕过，验证码是可靠门禁）。
+	// 拒绝路径与登录失败同等对待：入审计（LOGIN_FAILED）+ 失败计数（安全事件统一口径）。
 	if h.turnstile != nil && h.turnstile.Enabled() {
+		reject := func(msg string) {
+			metrics.Emit("velora_auth_login_failure_total")
+			if h.onLoginFailed != nil {
+				h.onLoginFailed(c, body.Username)
+			}
+			response.ErrorWith(c, http.StatusForbidden, errs.CodeTurnstile, msg)
+		}
 		if strings.TrimSpace(body.TurnstileToken) == "" {
 			// 缺 token 直接拒绝，避免无谓的 siteverify 调用。
-			response.ErrorWith(c, http.StatusForbidden, errs.CodeTurnstile, "请完成人机验证后重试")
+			reject("请完成人机验证后重试")
 			return
 		}
 		ok, verr := h.turnstile.Verify(c.Request.Context(), body.TurnstileToken, c.ClientIP())
 		if verr != nil {
 			// 验证服务故障：拒绝登录（fail-closed），宁可误伤不放行 bot。
 			slog.Warn("人机验证服务异常，拒绝登录", "err", verr)
-			response.ErrorWith(c, http.StatusForbidden, errs.CodeTurnstile, "人机验证服务异常，请稍后重试")
+			reject("人机验证服务异常，请稍后重试")
 			return
 		}
 		if !ok {
-			response.ErrorWith(c, http.StatusForbidden, errs.CodeTurnstile, "请完成人机验证后重试")
+			reject("请完成人机验证后重试")
 			return
 		}
 	}

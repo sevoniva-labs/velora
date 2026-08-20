@@ -1,5 +1,5 @@
 # Velora Web Nginx 配置（HTTPS 服务块 · 生产形态）。
-# 证书挂载：/etc/nginx/certs/velora.crt + velora.key（compose 生产 overlay 挂载）。
+# 证书挂载：/etc/nginx/certs/velora.crt + velora.key（独立生产 Compose 挂载）。
 server {
     listen 443 ssl;
     server_name _;

@@ -13,11 +13,11 @@
 ## 2. 备份命令
 
 ```bash
-# 全量备份（读 .env 的 DATABASE_URL，输出到 ./backups/）
+# 全量备份（读 .env 的 DATABASE_URL，输出到 ./backups/；生产设置 POSTGRES_CONTAINER=velora-prod-postgres）
 ./scripts/backup-db.sh
 
 # 自定义目录 / 保留天数 / 对象存储上传
-BACKUP_DIR=/data/velora-backup BACKUP_RETENTION_DAYS=30 ./scripts/backup-db.sh
+BACKUP_DIR=/data/velora-backup BACKUP_RETENTION_DAYS=30 POSTGRES_CONTAINER=velora-prod-postgres ./scripts/backup-db.sh
 BACKUP_S3=s3://velora-backup-prod ./scripts/backup-db.sh   # 需 s5cmd 或 aws cli
 ```
 
@@ -37,7 +37,7 @@ BACKUP_S3=s3://velora-backup-prod ./scripts/backup-db.sh   # 需 s5cmd 或 aws c
 ./scripts/restore-db.sh backups/velora_full_20260101_020000.dump
 
 # 恢复到指定新库
-RESTORE_DB_URL='postgres://velora:velora@127.0.0.1:5433/velora?sslmode=disable' \
+RESTORE_DB_URL='postgres://velora:velora@127.0.0.1:5433/velora?sslmode=disable' POSTGRES_CONTAINER=velora-prod-postgres \
   ./scripts/restore-db.sh backups/velora_full_20260101_020000.dump
 ```
 
@@ -66,17 +66,17 @@ curl http://localhost:8080/api/v1/me      # 会话正常（需重新登录）
 ls -t backups/velora_full_*.dump | head -1
 
 # 2. 创建临时库并恢复（与 velora 库隔离，不触碰生产）
-docker exec velora-postgres psql -U postgres \
+docker exec velora-prod-postgres psql -U postgres \
   -c "CREATE DATABASE velora_drill OWNER postgres;"
-docker cp <备份文件> velora-postgres:/tmp/drill.dump
-docker exec velora-postgres pg_restore -U postgres -d velora_drill /tmp/drill.dump
+docker cp <备份文件> velora-prod-postgres:/tmp/drill.dump
+docker exec velora-prod-postgres pg_restore -U postgres -d velora_drill /tmp/drill.dump
 
 # 3. 校验数据完整性
-docker exec velora-postgres psql -U postgres -d velora_drill -tAc \
+docker exec velora-prod-postgres psql -U postgres -d velora_drill -tAc \
   "SELECT count(*) FROM applications;"
 
 # 4. 清理
-docker exec velora-postgres psql -U postgres -c "DROP DATABASE velora_drill;"
+docker exec velora-prod-postgres psql -U postgres -c "DROP DATABASE velora_drill;"
 ```
 
 演练记录模板（建议入 `docs/ops-runbook.md`）：日期 / 备份文件 / 恢复耗时 / 表数量 / 结论。
@@ -85,7 +85,7 @@ docker exec velora-postgres psql -U postgres -c "DROP DATABASE velora_drill;"
 
 | 问题 | 处理 |
 | --- | --- |
-| 本机无 pg_dump | 脚本自动回退到 `docker exec velora-postgres pg_dump`（compose 环境） |
+| 本机无 pg_dump | 脚本自动回退到 `docker exec $POSTGRES_CONTAINER pg_dump`（默认 `velora-postgres`，生产为 `velora-prod-postgres`） |
 | 恢复报"role does not exist" | 备份含 owner 信息，恢复时用 `--no-owner` 或确保同名角色存在 |
-| 备份文件为空 | 检查 DATABASE_URL 是否指向正确库；容器场景确认 `velora-postgres` 在运行 |
+| 备份文件为空 | 检查 DATABASE_URL 是否指向正确库；容器场景确认对应 `POSTGRES_CONTAINER` 在运行 |
 | 磁盘不足 | 备份目录与数据目录分离；开启 BACKUP_S3 异地备份 |

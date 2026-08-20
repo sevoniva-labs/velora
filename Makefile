@@ -12,9 +12,11 @@ SHELL := /bin/bash
 # Homebrew 工具链兜底（macOS 下 go 常位于此；该目录不存在时不影响其它平台）
 export PATH := /opt/homebrew/bin:$(PATH)
 DOCKER_REGISTRY ?= docker.m.daocloud.io
+PROD_ENV_FILE ?= deployments/env/prod/.env
 
 .PHONY: help init bootstrap dev dev-web dev-server test lint build \
-        docker-build docker-up docker-down migrate seed fmt vet
+        docker-build docker-up docker-down docker-up-prod docker-up-staging \
+        docker-up-monitoring check-prod-config migrate seed fmt vet
 
 help: ## 显示可用命令
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-14s\033[0m %s\n", $$1, $$2}'
@@ -60,14 +62,18 @@ docker-up: ## 启动全部服务（PostgreSQL + Casdoor + Server + Web）
 docker-down: ## 停止全部服务
 	docker compose down
 
-docker-up-prod: ## 生产部署（TLS + 密钥校验，见 docs/ops-deploy.md）
-	DOCKER_REGISTRY=$(DOCKER_REGISTRY) docker compose -f docker-compose.yml -f deployments/env/prod/docker-compose.prod.yml up -d --build
+docker-up-prod: ## 生产部署（独立 Compose、TLS + 密钥校验，见 docs/ops-deploy.md）
+	@test -f "$(PROD_ENV_FILE)" || { echo "错误：生产变量文件不存在：$(PROD_ENV_FILE)" >&2; exit 1; }
+	docker compose --env-file "$(PROD_ENV_FILE)" -f deployments/env/prod/docker-compose.yml up -d --build
 
 docker-up-staging: ## 预发部署（独立端口）
 	DOCKER_REGISTRY=$(DOCKER_REGISTRY) docker compose -f docker-compose.yml -f deployments/env/staging/docker-compose.staging.yml up -d --build
 
 docker-up-monitoring: ## 启动监控栈（Prometheus + Grafana）
 	DOCKER_REGISTRY=$(DOCKER_REGISTRY) docker compose --profile monitoring up -d
+
+check-prod-config: ## 仅校验生产 Compose，不启动容器
+	./scripts/check-production-config.sh
 
 backup: ## 数据库全量备份（见 docs/ops-backup.md）
 	./scripts/backup-db.sh

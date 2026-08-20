@@ -5,6 +5,7 @@ package config
 import (
 	"encoding/base64"
 	"fmt"
+	"net/url"
 	"os"
 	"strconv"
 	"strings"
@@ -40,7 +41,7 @@ type Config struct {
 	AdminRole string
 
 	// PublicBaseURL 对外访问地址（如 https://velora.example.com），
-	// 用作 OIDC Provider 的 issuer 与端点拼接；缺省回退到本地开发地址。
+	// 用于生产环境校验回调、Cookie 和网关外部地址一致性。
 	PublicBaseURL string
 
 	CORSAllowedOrigins []string
@@ -152,6 +153,27 @@ func (c *Config) validate() error {
 	// MAIL_CREDENTIAL_KEY 必须独立配置（禁止从 SESSION_SECRET 派生，
 	// 避免"单密钥泄露导致邮件凭证加密双保险同时失效"）。
 	if c.Env == "production" {
+		if err := validateProductionURL("PUBLIC_BASE_URL", c.PublicBaseURL, false); err != nil {
+			return err
+		}
+		if err := validateProductionURL("CASDOOR_ISSUER", c.CasdoorIssuer, true); err != nil {
+			return err
+		}
+		if err := validateProductionURL("CASDOOR_REDIRECT_URI", c.CasdoorRedirectURI, true); err != nil {
+			return err
+		}
+		publicURL, _ := url.Parse(c.PublicBaseURL)
+		issuerURL, _ := url.Parse(c.CasdoorIssuer)
+		redirectURL, _ := url.Parse(c.CasdoorRedirectURI)
+		if !strings.EqualFold(issuerURL.Host, publicURL.Host) || !strings.EqualFold(redirectURL.Host, publicURL.Host) {
+			return fmt.Errorf("生产环境 CASDOOR_ISSUER / CASDOOR_REDIRECT_URI 必须与 PUBLIC_BASE_URL 使用同一 host")
+		}
+		if strings.TrimSpace(c.RedisURL) == "" {
+			return fmt.Errorf("生产环境必须配置 REDIS_URL，禁止降级到内存限流/锁定")
+		}
+		if err := validateRedisURL(c.RedisURL); err != nil {
+			return err
+		}
 		if strings.TrimSpace(c.MailCredentialKey) == "" {
 			return fmt.Errorf("生产环境必须配置 MAIL_CREDENTIAL_KEY（base64 编码 32 字节独立密钥，勿用 SESSION_SECRET 派生）")
 		}
@@ -159,6 +181,33 @@ func (c *Config) validate() error {
 		if err != nil || len(raw) != 32 {
 			return fmt.Errorf("MAIL_CREDENTIAL_KEY 必须为 base64 编码的 32 字节密钥")
 		}
+	}
+	return nil
+}
+
+func validateProductionURL(name, raw string, allowPath bool) error {
+	u, err := url.Parse(strings.TrimSpace(raw))
+	if err != nil || u.Scheme != "https" || u.Host == "" || u.User != nil || u.Fragment != "" || u.RawQuery != "" {
+		return fmt.Errorf("生产环境 %s 必须是有效的 HTTPS URL，且不得包含用户信息或 fragment", name)
+	}
+	host := strings.ToLower(u.Hostname())
+	if host == "localhost" || host == "127.0.0.1" || host == "::1" || host == "0.0.0.0" || host == "::" {
+		return fmt.Errorf("生产环境 %s 不得指向 localhost 或回环地址", name)
+	}
+	if !allowPath && u.Path != "" && u.Path != "/" {
+		return fmt.Errorf("生产环境 %s 不得包含 path", name)
+	}
+	return nil
+}
+
+func validateRedisURL(raw string) error {
+	u, err := url.Parse(strings.TrimSpace(raw))
+	if err != nil || (u.Scheme != "redis" && u.Scheme != "rediss") || u.Hostname() == "" {
+		return fmt.Errorf("生产环境 REDIS_URL 必须是 redis:// 或 rediss:// URL")
+	}
+	host := strings.ToLower(u.Hostname())
+	if host == "localhost" || host == "127.0.0.1" || host == "::1" || host == "0.0.0.0" || host == "::" {
+		return fmt.Errorf("生产环境 REDIS_URL 不得指向 localhost 或回环地址")
 	}
 	return nil
 }

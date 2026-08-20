@@ -120,6 +120,9 @@ func serve(cfg *config.Config) error {
 		pingCtx, cancel := context.WithTimeout(ctx, 3*time.Second)
 		if err := redisClient.Ping(pingCtx).Err(); err != nil {
 			cancel()
+			if cfg.Env == "production" {
+				return fmt.Errorf("生产环境 Redis 连通性检查失败，拒绝降级到内存限流/锁定: %w", err)
+			}
 			slog.Warn("Redis 连接失败，降级内存限流/锁定", "err", err)
 			redisClient = nil
 		} else {

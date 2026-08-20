@@ -15,9 +15,14 @@ cd "$(dirname "$0")/.."
 RETENTION_DAYS="${AUDIT_RETENTION_DAYS:-180}"
 ARCHIVE_DIR="${AUDIT_ARCHIVE_DIR:-./backups/audit}"
 DATABASE_URL="${DATABASE_URL:-}"
+POSTGRES_CONTAINER="${POSTGRES_CONTAINER:-}"
 if [ -z "$DATABASE_URL" ] && [ -f .env ]; then
   DATABASE_URL="$(grep -E '^DATABASE_URL=' .env | head -1 | cut -d= -f2-)"
 fi
+if [ -z "$POSTGRES_CONTAINER" ] && [ -f .env ]; then
+  POSTGRES_CONTAINER="$(grep -E '^POSTGRES_CONTAINER=' .env | head -1 | cut -d= -f2-)"
+fi
+POSTGRES_CONTAINER="${POSTGRES_CONTAINER:-velora-postgres}"
 if [ -z "$DATABASE_URL" ]; then
   echo "错误：DATABASE_URL 未设置" >&2
   exit 1
@@ -31,7 +36,7 @@ CUTOFF="$(date -u -d "$RETENTION_DAYS days ago" +%Y-%m-%d)"
 # 容器模式连接串转换
 if ! command -v psql >/dev/null 2>&1; then
   echo "==> 本机无 psql，使用 docker exec"
-  PSQL="docker exec velora-postgres psql"
+  PSQL="docker exec $POSTGRES_CONTAINER psql"
   DATABASE_URL="$(echo "$DATABASE_URL" | sed -E 's#(postgres://[^@/]+@)[^:/]+(:[0-9]+)?/#\1postgres:5432/#')"
 else
   PSQL="psql"

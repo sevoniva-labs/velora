@@ -13,9 +13,14 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 
 RESTORE_DB_URL="${RESTORE_DB_URL:-}"
+POSTGRES_CONTAINER="${POSTGRES_CONTAINER:-}"
 if [ -z "$RESTORE_DB_URL" ] && [ -f .env ]; then
   RESTORE_DB_URL="$(grep -E '^DATABASE_URL=' .env | head -1 | cut -d= -f2-)"
 fi
+if [ -z "$POSTGRES_CONTAINER" ] && [ -f .env ]; then
+  POSTGRES_CONTAINER="$(grep -E '^POSTGRES_CONTAINER=' .env | head -1 | cut -d= -f2-)"
+fi
+POSTGRES_CONTAINER="${POSTGRES_CONTAINER:-velora-postgres}"
 
 if [ $# -lt 1 ]; then
   echo "用法：$0 <备份文件.dump> [RESTORE_DB_URL=...]" >&2
@@ -51,17 +56,17 @@ elif [ -x /opt/homebrew/bin/pg_restore ]; then
   PG_RESTORE="/opt/homebrew/bin/pg_restore"
 else
   echo "==> 本机无 pg_restore，尝试通过 docker compose 容器执行…"
-  PG_RESTORE="docker exec velora-postgres pg_restore"
+  PG_RESTORE="docker exec $POSTGRES_CONTAINER pg_restore"
   # 容器内连接串：host 换 compose 服务名，端口统一 5432
   RESTORE_DB_URL="$(echo "$RESTORE_DB_URL" | sed -E 's#(postgres://[^@/]+@)[^:/]+(:[0-9]+)?/#\1postgres:5432/#')"
 fi
 
 # 1. 终止目标库连接并重建空库（velora 库与 casdoor 库分离，只恢复业务库）
 echo "==> 重建空库 $DB_NAME …"
-docker exec velora-postgres psql -U postgres -c "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname='$DB_NAME' AND pid <> pg_backend_pid();" >/dev/null 2>&1 || true
+  docker exec "$POSTGRES_CONTAINER" psql -U postgres -c "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname='$DB_NAME' AND pid <> pg_backend_pid();" >/dev/null 2>&1 || true
 # 若目标为 velora 库（最常见），直接 DROP/CREATE
 if [ "$DB_NAME" = "velora" ]; then
-  docker exec velora-postgres psql -U postgres -c "DROP DATABASE IF EXISTS velora;" -c "CREATE DATABASE velora OWNER postgres;" || true
+  docker exec "$POSTGRES_CONTAINER" psql -U postgres -c "DROP DATABASE IF EXISTS velora;" -c "CREATE DATABASE velora OWNER postgres;" || true
 else
   echo "注意：目标库 $DB_NAME 非 velora，跳过重建（请自行处理）。"
 fi

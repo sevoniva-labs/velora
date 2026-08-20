@@ -2,7 +2,7 @@
 # 中国大陆加速：DOCKER_REGISTRY=docker.m.daocloud.io（默认）；官方源 DOCKER_REGISTRY=docker.io
 ARG DOCKER_REGISTRY=docker.m.daocloud.io
 
-FROM ${DOCKER_REGISTRY}/library/golang:1.25-alpine AS builder
+FROM ${DOCKER_REGISTRY}/library/golang:1.25.13-alpine AS builder
 WORKDIR /src
 # Go 模块代理：默认国内加速，官方源构建时传 GOPROXY=https://proxy.golang.org,direct
 ARG GOPROXY=https://goproxy.cn,direct
@@ -14,7 +14,7 @@ COPY server/ .
 RUN CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags="-s -w" -o /out/velora ./cmd/velora
 
 FROM ${DOCKER_REGISTRY}/library/alpine:3.21
-RUN apk add --no-cache ca-certificates tzdata \
+RUN apk add --no-cache ca-certificates tzdata wget \
     && adduser -D -u 10001 velora
 USER velora
 WORKDIR /app

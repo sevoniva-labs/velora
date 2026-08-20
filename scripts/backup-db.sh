@@ -20,11 +20,16 @@ cd "$(dirname "$0")/.."
 BACKUP_DIR="${BACKUP_DIR:-./backups}"
 RETENTION_DAYS="${BACKUP_RETENTION_DAYS:-30}"
 DATABASE_URL="${DATABASE_URL:-}"
+POSTGRES_CONTAINER="${POSTGRES_CONTAINER:-}"
 
 if [ -z "$DATABASE_URL" ] && [ -f .env ]; then
   # 仅提取 DATABASE_URL（避免 source .env 导致特殊字符问题）
   DATABASE_URL="$(grep -E '^DATABASE_URL=' .env | head -1 | cut -d= -f2-)"
 fi
+if [ -z "$POSTGRES_CONTAINER" ] && [ -f .env ]; then
+  POSTGRES_CONTAINER="$(grep -E '^POSTGRES_CONTAINER=' .env | head -1 | cut -d= -f2-)"
+fi
+POSTGRES_CONTAINER="${POSTGRES_CONTAINER:-velora-postgres}"
 if [ -z "$DATABASE_URL" ]; then
   echo "错误：DATABASE_URL 未设置（可在环境变量或 .env 中配置）" >&2
   exit 1
@@ -47,7 +52,7 @@ else
   # compose 环境：在 postgres 容器内执行（需容器名 velora-postgres 存在）
   echo "==> 本机无 pg_dump，尝试通过 docker compose 容器执行…"
   IN_CONTAINER=true
-  PG_DUMP="docker exec velora-postgres pg_dump"
+  PG_DUMP="docker exec $POSTGRES_CONTAINER pg_dump"
   # 容器内连接串：host 换 compose 服务名，端口统一 5432
   DATABASE_URL="$(echo "$DATABASE_URL" | sed -E 's#(postgres://[^@/]+@)[^:/]+(:[0-9]+)?/#\1postgres:5432/#')"
 fi
@@ -62,8 +67,8 @@ if $IN_CONTAINER; then
     exit 1
   fi
   rm -f /tmp/velora_pgdump_err.txt
-  docker cp "velora-postgres:$CONTAINER_TMP" "$TARGET"
-  docker exec velora-postgres rm -f "$CONTAINER_TMP"
+  docker cp "$POSTGRES_CONTAINER:$CONTAINER_TMP" "$TARGET"
+  docker exec "$POSTGRES_CONTAINER" rm -f "$CONTAINER_TMP"
 else
   $PG_DUMP "$DATABASE_URL" -Fc -f "$TARGET" -v 2> >(grep -v '^pg_dump:' >&2 || true)
 fi

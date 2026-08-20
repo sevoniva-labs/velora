@@ -1,12 +1,14 @@
 # Velora Web 构建 + Nginx 托管镜像。
 # 通过 docker-entrypoint.sh 用环境变量渲染 nginx 配置（TLS 开关 / API 反代目标 / Casdoor 反代）。
 ARG DOCKER_REGISTRY=docker.m.daocloud.io
+ARG NPM_CONFIG_REGISTRY=https://registry.npmjs.org/
 
 FROM ${DOCKER_REGISTRY}/library/node:22-alpine AS builder
 WORKDIR /app
 RUN corepack enable
 COPY web/package.json web/pnpm-lock.yaml* web/.npmrc ./
-RUN pnpm install --frozen-lockfile || pnpm install
+RUN pnpm config set registry "${NPM_CONFIG_REGISTRY}" \
+    && pnpm install --frozen-lockfile
 COPY web/ .
 RUN pnpm build
 

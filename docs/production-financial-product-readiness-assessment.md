@@ -1,7 +1,7 @@
 # Velora 生产级、金融级与产品级就绪度评估
 
 > 评估日期：2026-08-20
-> 评估版本：`e80d4dfbab3bbc1a459bb6d03a675e5f31754cab`
+> 评估版本：历史快照；当前代码证据以 `codex/velora-forge-backend-replacement` 的 `766c608` 及 [`production-implementation-status.md`](production-implementation-status.md) 为准。
 > 范围：本仓库源码、配置、容器编排、脚本、测试、运维文档及本地登录页
 > 结论性质：工程评估，不替代等保测评、渗透测试、法律意见或金融监管验收
 
@@ -39,6 +39,18 @@
 5. ForwardAuth 目标应用的可信 app-id/host 绑定和下游应用自身 OIDC 配置；门户隐藏按钮不是下游授权边界。
 
 因此当前判定为：**代码替换可实施，开发/隔离预发可继续；金融生产仍 NO-GO，必须完成上述目标环境证据后再 Go/No-Go。**
+
+### 当前整改映射（2026-08-21）
+
+本文后续 P0/P1 表格保留历史发现、原始行号和决策背景，不应直接当作当前未修复清单。当前代码侧已落地：
+
+- P0-01/P0-05/P0-06：独立生产 Compose、HTTPS/origin fail-fast、Casdoor Authorization Code + PKCE、生产关闭密码登录。
+- P0-03/P0-04/P0-08：生产关闭 Velora OIDC Provider；应用启动仅允许 HTTPS 目标 URL；ForwardAuth 按应用 ID 走统一 `CanAccess` 并要求网关剥离伪造头。
+- P0-07/PROD-01/PROD-02/PROD-03：迁移使用 session lock；生产 Redis/S3 fail-closed；新增 Velora/Casdoor 双库同时间戳备份编排；Nginx `/healthz` 代理 server readiness，依赖异常返回 503。
+- SEC-09/IAM-03：登录输入有界、限流状态有容量上限，生产 OIDC session TTL 不超过 1 小时；OIDC transaction cache key 使用 state 哈希。
+- P1/P2 产品范围：邮件、待办不在当前产品范围且生产 UI 不展示；门户设置页明确只读，不再提供必然失败的保存按钮。
+
+仍未关闭的是目标环境能力和外部证据：真实 Casdoor/MFA/撤权 E2E、MinIO/COS 契约、批准 KMS/HSM/国密适配器、PITR/异地不可变恢复、HA/容量/故障注入、WORM/SIEM、渗透测试和合规签字。它们不应通过继续修改页面或伪造测试结果标记为已完成。
 
 ## 1. 执行结论
 

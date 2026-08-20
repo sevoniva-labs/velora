@@ -1,6 +1,6 @@
 # Velora 生产级上线差距与实施方案
 
-> 评估基线：`codex/velora-forge-backend-replacement`，提交 `3a46cef`
+> 评估基线：`codex/velora-forge-backend-replacement`，提交 `766c608`
 >
 > 评估时间：2026-08-21
 >
@@ -14,9 +14,8 @@
 
 最关键的事实是：
 
-- 本地默认运行的是 `VELORA_AUTH_MODE=password`，登录页提交的是 Velora 本地 bootstrap 用户密码；这不是 Casdoor SSO。
-- 生产编排要求 `VELORA_AUTH_MODE=oidc`，后端会关闭密码登录，但当前前端登录页仍是账号密码表单，没有完整的 Casdoor 登录跳转、OIDC callback 页面和错误恢复流程。
-- 后端已有 OIDC Client 基础能力（state、nonce、PKCE、一次性事务 cookie），但真实 Casdoor 互操作、身份关联、claims/角色映射、撤权和登出还没有可审计的目标环境证据。
+- 开发环境仍可显式使用 `VELORA_AUTH_MODE=password`，但生产配置 fail-closed 为 `oidc`；生产登录页只显示 Casdoor 入口，不把密码提交给 Velora。
+- 前端已有 Casdoor Authorization Code + PKCE 跳转、SPA callback、错误恢复和 RP-initiated logout；后端校验 issuer、state、nonce、PKCE、一次性事务和本地 session 撤销。真实 Casdoor 互操作、身份关联、撤权和登出仍需目标环境证据。
 - 根目录 `docker-compose.yml` 是开发编排，仍含默认凭据和多项 host port；不能作为生产编排。`deployments/env/prod/docker-compose.yml` 的静态边界较好，但必须纳入 CI 门禁并完成真实运行验收。
 - 对象存储、国密 KMS/HSM、HA/灾备、不可篡改审计、监控告警、外部渗透和合规证据均未闭环。
 
@@ -24,12 +23,12 @@
 
 | 维度 | 当前状态 | 生产目标 | 差距 |
 |---|---:|---:|---:|
-| 业务接口与页面适配 | 60%–70% | 100% | P1：邮件、待办、共享设置等仍有未接入/降级能力 |
-| 身份认证与授权 | 30%–40% | 100% | P0：前端 OIDC 入口、身份关联、撤权、真实 Casdoor E2E |
-| 应用安全 | 35%–45% | 100% | P0/P1：信任边界、限流、SSRF、请求体、token 撤销 |
-| 部署与可靠性 | 30%–40% | 100% | P0：HA、TLS、备份恢复、故障切换、SLO |
-| 数据保护与金融控制 | 15%–25% | 100% | P0：KMS/HSM、WORM/SIEM、职责分离、外部证明 |
-| **综合判断** | **约 35%–45%** | **生产 Go** | **至少还需 8–14 人周技术整改，另需 2–4 周预发/安全/恢复验收** |
+| 业务接口与页面适配 | 85%–90% | 100% | P1：邮件/待办明确不在当前范围；共享设置已只读并需后续服务化 |
+| 身份认证与授权 | 70%–80% | 100% | P0：真实 Casdoor E2E、撤权时限、外部身份生命周期证据 |
+| 应用安全 | 70%–80% | 100% | P0/P1：真实网关、对象存储契约和外部测试证据 |
+| 部署与可靠性 | 55%–65% | 100% | P0：HA 依赖、PITR、故障切换、SLO 运行证据 |
+| 数据保护与金融控制 | 35%–45% | 100% | P0：批准 KMS/HSM、WORM/SIEM、职责分离、外部证明 |
+| **综合判断** | **约 60%–70%（代码侧）** | **生产 Go** | **仍需目标环境联调、恢复/安全验收和签字证据，不能仅凭代码门禁 Go** |
 
 以上比例是排期用的工程估计，不是合规评分。若平台将处理资金、账务或客户金融数据，还需要单独增加交易、对账、幂等、反欺诈/反洗钱等领域建设。
 
@@ -53,12 +52,12 @@
 
 这些不一定阻塞内部试点，但会阻塞“产品级完整上线”：
 
-1. 邮件、待办当前前端是空数据/明确未接入提示；如果产品范围包含这两个模块，必须完成真实 API、权限、分页、错误/空/慢状态和 E2E，否则应在生产 UI 中隐藏入口并写清范围。
-2. 部分设置使用浏览器 `localStorage`，不是多用户共享的服务端配置；生产要么增加鉴权后的配置服务和审计，要么移除该 UI。
+1. 邮件、待办当前不在 Wave 1 产品范围，生产 UI 不展示入口，API 适配层对写操作明确失败；若纳入产品范围，必须另立领域实现和 E2E。
+2. 门户设置当前只读，生产修改必须走版本化配置发布；如需在线修改，必须增加鉴权配置服务、审计和审批。
 3. MinIO 与腾讯云 COS 需要真实契约测试：multipart、checksum、私有 ACL、SSE-KMS、versioning、object-lock、presign、超时/重试；能力不支持必须显式降级或阻断。
 4. PostgreSQL/Redis 当前仍需多实例、连接池、迁移锁、滚动发布、容量基线、故障切换和限流状态一致性验证。
 5. 指标、日志、告警、SLO、合成监控和 runbook 需要真实通知链路；`/metrics` 只能内网访问，不能以固定 200 的网关健康页冒充业务就绪。
-6. 需要修复登录请求体无界、内存 lockout 无限增长、健康检查/IMAP SSRF、Todo URL 校验、邮件远程 CSS 追踪等安全问题。
+6. 登录请求体、限流容量、健康探针和启动 URL 的代码边界已加固；邮件/IMAP/Todo 仍未接入，不得以空实现宣称功能完成。
 7. 需要建立数据分类分级、保留/删除/导出、更正、事件响应、季度权限复核和职责分离流程，并保存证据。
 
 ### 安全基线快照
@@ -73,9 +72,9 @@
 
 ## 4. 推荐实施波次
 
-严格按现有 `docs/luna-production-hardening-prompt.md` 一次一个 Wave。当前只提交方案，未经确认不开始 Wave 2 或后续代码开发。
+原始 Wave 计划用于控制实施顺序。本轮已按用户授权完成代码侧 Wave 1–9 可落地整改；剩余项均是目标环境验收、供应商能力或合规证据，不应伪造为代码完成。
 
-### Wave 1：生产基座与供应链门禁（约 1–2 周）
+### Wave 1：生产基座与供应链门禁（代码侧已完成；目标环境验收待执行）
 
 - 固化独立生产 Compose，禁止开发 Compose 合并污染。
 - 强制 `VELORA_ENV=production`、HTTPS `PUBLIC_BASE_URL`、精确 `VELORA_ALLOWED_ORIGINS`、`TRUSTED_PROXIES`、Redis TLS、数据库 TLS。
@@ -85,7 +84,7 @@
 
 验收：`make test`、`go test -race ./...`、`go vet ./...`、`govulncheck ./...`、前端 lint/test/build、生产 Compose 最终配置检查、外部端口扫描、`git diff --check`。
 
-### Wave 2：Casdoor 标准 OIDC 登录与前端适配（约 1–2 周）
+### Wave 2：Casdoor 标准 OIDC 登录与前端适配（代码侧已完成；真实 Casdoor E2E 待执行）
 
 - 登录页根据生产能力只显示 Casdoor SSO；开发密码模式显式隔离，不能带入生产。
 - 增加 begin/callback 路由和前端 callback 页面；回跳只允许站内相对路径。
@@ -93,21 +92,21 @@
 - 用户资料、改密、MFA 跳转 Casdoor account；Velora 只清理本地 session 并执行标准登出。
 - 真实 Casdoor discovery、MFA、claims、logout、错误页和移动端浏览器 E2E。
 
-### Wave 3：身份授权与下游边界（约 1–2 周）
+### Wave 3：身份授权与下游边界（代码侧基线已完成；生命周期/撤权验收待执行）
 
 - 完成 identity link/首次登录/禁用/组织和角色映射。
 - 统一 `CanAccess` 用于门户、Launch、ForwardAuth 和所有下游授权边界。
 - 引入 session/token/revocation service；改密、停用、角色变更、全部下线必须可追踪撤销。
 - 生产关闭 Velora OIDC Provider，清理管理后台相关入口，保留 migration 兼容。
 
-### Wave 4：数据、对象存储、Crypto/KMS/HSM、备份审计（约 2–4 周）
+### Wave 4：数据、对象存储、Crypto/KMS/HSM、备份审计（代码侧基线已完成；供应商契约与恢复演练待执行）
 
 - S3-compatible adapter 用 MinIO 集成测试、COS 预发契约测试。
 - 接入经批准的 KMS/HSM/国密 provider；完成 envelope 版本化、双 key 解密、rewrap、密钥轮换。
 - Velora/Casdoor 统一备份、PITR、加密、签名、异地不可变存储和恢复演练。
 - 审计 outbox、HMAC/签名、WORM/SIEM 锚定、归档 manifest 和故障 fail-closed。
 
-### Wave 5：HA、可观测性、性能和外部证明（约 2–4 周）
+### Wave 5：HA、可观测性、性能和外部证明（部署基线已具备；运行/外部证明待执行）
 
 - 多实例、负载均衡、滚动发布、迁移 release job、Redis/PostgreSQL HA。
 - SLI/SLO、告警、证书/磁盘/DB/Redis/备份监控、runbook、合成监控。
@@ -156,8 +155,6 @@ VELORA_OIDC_PROVIDER_ENABLED=false
 
 ## 7. 最终判断
 
-现在的系统不是“全部完成”，而是“后端替换和本地开发链路已完成，生产闭环尚未完成”。
+当前状态是：**代码侧后端替换、前端接口适配和生产硬化已完成到可进隔离预发；正式金融生产仍 No-Go**。
 
-最先要解决的是：**生产 Casdoor OIDC 登录的前端适配 + 后端身份关联/撤权**。在这两项完成前，生产 `AUTH_MODE=oidc` 会导致当前账号密码登录页无法工作；在 KMS/HSM、恢复演练、授权边界、审计和外部安全证明完成前，仍不能称为金融生产级。
-
-建议下一步只执行 Wave 1；Wave 1 验收后停止，等待确认再进入 Wave 2。
+下一步不是继续堆“假完成”代码，而是使用目标 Casdoor、MinIO/COS、批准 KMS/HSM、生产网关和备份对象存储完成真实 E2E、恢复演练、故障注入、渗透测试与合规签字。任何一项 P0 证据未通过，都保持 No-Go。

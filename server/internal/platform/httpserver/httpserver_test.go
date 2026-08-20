@@ -114,6 +114,21 @@ func TestCORSDeniesUntrustedOriginAndAllowsSameOrigin(t *testing.T) {
 	}
 }
 
+func TestCORSAllowsComposeNginxLoopbackOrigins(t *testing.T) {
+	handler := cors([]string{"http://localhost:8443", "http://127.0.0.1:8443"})(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusNoContent)
+	}))
+	for _, origin := range []string{"http://localhost:8443", "http://127.0.0.1:8443"} {
+		request := httptest.NewRequest(http.MethodGet, "http://server:8080/api/v1/system/health", nil)
+		request.Header.Set("Origin", origin)
+		response := httptest.NewRecorder()
+		handler.ServeHTTP(response, request)
+		if response.Code != http.StatusNoContent || response.Header().Get("Access-Control-Allow-Origin") != origin {
+			t.Fatalf("origin %s was not allowed: status=%d allow=%q", origin, response.Code, response.Header().Get("Access-Control-Allow-Origin"))
+		}
+	}
+}
+
 func TestRequestIDReplacesUnsafeInput(t *testing.T) {
 	handler := requestID(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if RequestID(r.Context()) == "bad\r\nvalue" {

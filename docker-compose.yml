@@ -107,8 +107,8 @@ services:
       VELORA_BOOTSTRAP_ADMIN: ${VELORA_BOOTSTRAP_ADMIN:-admin}
       VELORA_BOOTSTRAP_PASSWORD: ${VELORA_BOOTSTRAP_PASSWORD:-change-me-development-only}
       VELORA_PUBLIC_URL: http://localhost:8080
-      # 本地 Web 通过 Nginx 访问 API 时会携带 Origin；显式允许 localhost 和 127.0.0.1 两种打开方式。
-      VELORA_ALLOWED_ORIGINS: ${VELORA_ALLOWED_ORIGINS:-http://localhost:5173,http://127.0.0.1:5173}
+      # 本地 Web 既支持 Vite 5173，也支持 Compose Nginx 8443；两种 loopback 主机名都显式允许。
+      VELORA_ALLOWED_ORIGINS: ${VELORA_ALLOWED_ORIGINS:-http://localhost:5173,http://127.0.0.1:5173,http://localhost:8443,http://127.0.0.1:8443}
       VELORA_SECURE_COOKIES: "false"
       VELORA_WEB_DIR: /app/web
     ports:

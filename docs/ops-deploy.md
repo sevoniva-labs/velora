@@ -52,7 +52,7 @@ curl -sI https://$VELORA_EXTERNAL_URL/ | grep -i strict   # 启用 HSTS 后应�
 - 入口拓扑：`浏览器 → 443 (nginx) → /api → server:8080`；Casdoor 作为配置的 OIDC issuer。
 - Velora 不代理或改造 Casdoor 源码；OIDC discovery、授权和账号自助页地址由生产配置提供。
 - 生产 OIDC session TTL 不得超过 1 小时。退出登录先撤销 Velora 服务端 session，再按 Casdoor discovery 的 `end_session_endpoint` 执行标准 RP-initiated logout；未提供该端点时仍完成本地撤销，但必须在 Casdoor 目标环境 E2E 中记录上游会话行为。
-- HSTS：`velora-https.conf.template` 中注释，确认证书链可信后取消注释并重载。
+- HSTS：生产 HTTPS 模板默认开启 `max-age=63072000; includeSubDomains; preload`；证书必须由受控 Secret Manager/发布流程轮换，不能通过关闭 HSTS 或降级 HTTP 绕过门禁。
 - 证书轮换：覆盖 certs/ 下同名文件 → `docker compose restart web`（nginx 自动重载）。
 
 ## 3.1 ForwardAuth 网关接入（老系统）

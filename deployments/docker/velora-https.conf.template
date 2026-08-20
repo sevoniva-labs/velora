@@ -14,8 +14,9 @@ server {
     ssl_session_cache shared:SSL:10m;
     ssl_session_timeout 1d;
 
-    # HSTS（确认证书链可信后启用）
-    # add_header Strict-Transport-Security "max-age=63072000; includeSubDomains; preload" always;
+    # 生产入口只接受已验证的 TLS 证书链，默认开启 HSTS；证书轮换仍由
+    # Secret Manager/发布流程负责，不能通过降级到 HTTP 绕过安全策略。
+    add_header Strict-Transport-Security "max-age=63072000; includeSubDomains; preload" always;
 
     root /usr/share/nginx/html;
     index index.html;

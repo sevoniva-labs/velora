@@ -90,6 +90,11 @@ if ! jq -e '(.services.web.ports | map(.published | tonumber) | sort) == [80, 44
   exit 1
 fi
 
+if ! jq -e '.services.web.environment.VELORA_TLS_ENABLED == "true" and (.services.web.volumes | any(.type == "bind" and .target == "/etc/nginx/certs" and .read_only == true))' "$config_json" >/dev/null; then
+  echo "错误：生产 Web 必须启用 TLS 并以只读方式挂载证书目录" >&2
+  exit 1
+fi
+
 if jq -e '.. | strings | select(test("postgres/postgres|admin/admin|admin/123|change-me|docker-compose-dev-secret"))' "$config_json" >/dev/null; then
   echo "错误：生产 Compose 中发现默认凭据或占位 Secret" >&2
   exit 1
@@ -126,5 +131,9 @@ for nginx_template in deployments/docker/velora-http.conf.template deployments/d
     exit 1
   fi
 done
+if ! rg -Fq 'Strict-Transport-Security' deployments/docker/velora-https.conf.template; then
+  echo "错误：生产 HTTPS 模板必须启用 HSTS" >&2
+  exit 1
+fi
 
 echo "生产 Compose 静态检查通过：仅 Web 发布 80/443，非 Web 服务无 host port，Casdoor initData=false，无默认凭据。"

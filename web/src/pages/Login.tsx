@@ -205,7 +205,7 @@ export default function Login() {
               onFinish={onFinish}
               requiredMark={false}
             >
-              <Form.Item name="username" rules={[{ required: true, message: '请输入账号' }]}>
+              <Form.Item label="账号" name="username" rules={[{ required: true, message: '请输入账号' }]}>
                 <Input
                   prefix={<UserOutlined style={{ color: '#98a2b3' }} />}
                   placeholder="账号 / 邮箱"
@@ -213,7 +213,7 @@ export default function Login() {
                   maxLength={64}
                 />
               </Form.Item>
-              <Form.Item name="password" rules={[{ required: true, message: '请输入密码' }]}>
+              <Form.Item label="密码" name="password" rules={[{ required: true, message: '请输入密码' }]}>
                 <Input.Password
                   prefix={<LockOutlined style={{ color: '#98a2b3' }} />}
                   placeholder="密码"

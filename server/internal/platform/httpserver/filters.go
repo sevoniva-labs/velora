@@ -161,7 +161,10 @@ func sameOrigin(origin string, request *http.Request) bool {
 		return false
 	}
 	scheme := "http"
-	if request.TLS != nil || strings.EqualFold(request.Header.Get("X-Forwarded-Proto"), "https") {
+	// Do not trust a client-supplied X-Forwarded-Proto header. Explicitly
+	// configured AllowedOrigins cover TLS-terminated proxy deployments; using
+	// the header here would let an untrusted caller forge same-origin status.
+	if request.TLS != nil {
 		scheme = "https"
 	}
 	return strings.EqualFold(parsed.Scheme, scheme) && strings.EqualFold(parsed.Host, request.Host)

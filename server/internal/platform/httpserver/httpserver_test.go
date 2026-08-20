@@ -114,6 +114,18 @@ func TestCORSDeniesUntrustedOriginAndAllowsSameOrigin(t *testing.T) {
 	}
 }
 
+func TestCORSDoesNotTrustForwardedProtoFromClient(t *testing.T) {
+	handler := cors(nil)(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(http.StatusNoContent) }))
+	request := httptest.NewRequest(http.MethodGet, "http://velora.example/api/v1/system/health", nil)
+	request.Header.Set("Origin", "https://velora.example")
+	request.Header.Set("X-Forwarded-Proto", "https")
+	response := httptest.NewRecorder()
+	handler.ServeHTTP(response, request)
+	if response.Code != http.StatusForbidden {
+		t.Fatalf("forged X-Forwarded-Proto bypassed CORS: status=%d", response.Code)
+	}
+}
+
 func TestCORSAllowsComposeNginxLoopbackOrigins(t *testing.T) {
 	handler := cors([]string{"http://localhost:8443", "http://127.0.0.1:8443"})(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusNoContent)

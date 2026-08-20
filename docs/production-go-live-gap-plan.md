@@ -6,6 +6,8 @@
 >
 > 结论性质：工程 Go/No-Go 评估，不替代等保、渗透测试、密码产品认证或监管验收。
 
+实施状态、已验证门禁和回滚说明见 [`production-implementation-status.md`](production-implementation-status.md)。
+
 ## 1. 结论先行
 
 当前项目**可以继续开发和做隔离预发，但不能正式生产上线（NO-GO）**。

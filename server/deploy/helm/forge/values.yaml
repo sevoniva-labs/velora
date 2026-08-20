@@ -233,6 +233,9 @@ config:
   loginMaxFailures: "5"
   loginLockDuration: 30m
   cryptoProvider: standard
+  # software is suitable for development only; production GM requires an
+  # approved KMS/HSM/PKCS#11 adapter and fails closed when it is unavailable.
+  cryptoAdapter: software
   cryptoKeyVersion: v1
   secureCookies: "true"
   sameSite: lax

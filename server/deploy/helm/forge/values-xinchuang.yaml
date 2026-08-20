@@ -81,6 +81,7 @@ config:
   remoteConfigFailFast: "true"
 
   cryptoProvider: gm
+  cryptoAdapter: hsm
   cryptoKeyVersion: v1
   tracingEnabled: "true"
   otlpEndpoint: "https://otel-collector.monitoring.svc:4318"

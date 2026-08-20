@@ -20,6 +20,10 @@
         "webCSPWujieApprovalRef": {
           "type": "string",
           "maxLength": 128
+        },
+        "cryptoAdapter": {
+          "type": "string",
+          "enum": ["software", "kms", "hsm", "pkcs11"]
         }
       },
       "allOf": [

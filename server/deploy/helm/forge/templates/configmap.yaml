@@ -113,6 +113,7 @@ data:
   VELORA_LOGIN_MAX_FAILURES: {{ .Values.config.loginMaxFailures | quote }}
   VELORA_LOGIN_LOCK_DURATION: {{ .Values.config.loginLockDuration | quote }}
   VELORA_CRYPTO_PROVIDER: {{ .Values.config.cryptoProvider | quote }}
+  VELORA_CRYPTO_ADAPTER: {{ .Values.config.cryptoAdapter | quote }}
   VELORA_CRYPTO_KEY_VERSION: {{ .Values.config.cryptoKeyVersion | quote }}
   VELORA_SECURE_COOKIES: {{ .Values.config.secureCookies | quote }}
   VELORA_SAME_SITE: {{ .Values.config.sameSite | quote }}

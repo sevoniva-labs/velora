@@ -73,6 +73,14 @@ curl http://localhost:8080/api/v1/me      # 会话正常（需重新登录）
 3. 恢复时 `pg_basebackup` + `pg_archivecleanup` 回放到目标时间点。
 4. 注意：casdoor 库与 velora 库同实例，PITR 会同时回放两者，需在恢复后检查 Casdoor 数据一致性。
 
+## 5.1 审计归档
+
+`scripts/audit-archive.sh` 只导出真实 `audit_logs` 字段并生成 CSV、SHA-256 清单和元数据，
+不会直接删除在线记录。删除必须由应用归档服务完成：它要先把批次写入支持 immutable/WORM
+retention 的对象存储，验证 receipt，再写 `audit_archive_receipts` 和
+`audit_chain_anchors`，最后在同一事务删除。若没有这套 receipt/anchor 证据，禁止手工
+`DELETE audit_logs`。
+
 ## 6. 每月恢复演练（必须执行）
 
 > 备份不可验证 = 没有备份。每月至少一次演练，记录结果。

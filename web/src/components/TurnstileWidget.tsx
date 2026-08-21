@@ -101,7 +101,7 @@ export default function TurnstileWidget({ siteKey, onVerify, onExpire, theme = '
   }, [siteKey])
 
   if (failed) {
-    return <div style={{ color: '#fa541c', fontSize: 13 }}>人机验证组件加载失败，请刷新页面重试</div>
+    return <div style={{ color: '#fa541c', fontSize: 13 }}>安全验证加载失败，请刷新页面后重试。</div>
   }
   return <div ref={containerRef} data-testid="turnstile-widget" style={{ minHeight: 65 }} />
 }

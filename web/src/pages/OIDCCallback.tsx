@@ -3,9 +3,17 @@ import { Button, Result, Spin } from 'antd'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { completeOIDCLogin, consumeOIDCRedirect } from '../api/api'
 
+function callbackErrorMessage(value: unknown): string {
+  const raw = value instanceof Error ? value.message : String(value || '')
+  const normalized = raw.toLowerCase()
+  if (normalized.includes('oidc') || normalized.includes('provider') || normalized.includes('identity')) {
+    return '统一登录暂不可用，请联系系统管理员。'
+  }
+  return '登录验证失败，请重新发起登录。'
+}
+
 /**
- * Casdoor redirect target. The authorization code is exchanged by the
- * backend; the browser never receives an access/refresh token.
+ * 统一身份登录回调页。授权码由后端完成交换，浏览器不会接收访问令牌。
  */
 export default function OIDCCallback() {
   const navigate = useNavigate()
@@ -19,7 +27,7 @@ export default function OIDCCallback() {
     const state = params.get('state') || ''
     const providerError = params.get('error_description') || params.get('error') || ''
     if (providerError || !code || !state) {
-      setError(providerError || '统一登录回调参数不完整')
+      setError('登录验证未完成，请重新发起登录。')
       return () => {
         cancelled = true
       }
@@ -29,7 +37,7 @@ export default function OIDCCallback() {
         if (!cancelled) navigate(consumeOIDCRedirect(), { replace: true })
       })
       .catch((reason: unknown) => {
-        if (!cancelled) setError(reason instanceof Error ? reason.message : '统一登录失败，请重新发起登录')
+        if (!cancelled) setError(callbackErrorMessage(reason))
       })
     return () => {
       cancelled = true
@@ -46,5 +54,5 @@ export default function OIDCCallback() {
       />
     )
   }
-  return <Spin fullscreen tip="正在完成统一登录…" />
+  return <Spin fullscreen tip="正在验证登录信息…" />
 }

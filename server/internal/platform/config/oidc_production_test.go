@@ -42,7 +42,27 @@ func TestValidateProductionAuthRejectsVeloraOIDCProvider(t *testing.T) {
 	}
 }
 
-func TestValidateProductionAuthRejectsPasswordForwarding(t *testing.T) {
+func TestValidateProductionAuthRejectsPasswordForwardingInFinancialProfile(t *testing.T) {
+	cfg := Default()
+	cfg.App.Environment = "production"
+	cfg.Security.AuthMode = "oidc"
+	cfg.Security.OIDCIssuer = "https://casdoor.example.test"
+	cfg.Security.OIDCClientID = "velora"
+	cfg.Security.OIDCClientSecret = "secret"
+	cfg.Security.OIDCRedirectURL = "https://velora.example.test/auth/callback"
+	cfg.Security.SessionTTL = time.Hour
+	cfg.Security.CasdoorAccountURL = "https://casdoor.example.test/account"
+	cfg.Security.CasdoorPasswordLoginEnabled = true
+	cfg.Compliance.Profile = "financial"
+	cfg.Security.TurnstileSiteKey = "site-key"
+	cfg.Security.TurnstileSecret = "secret"
+	cfg.Security.TurnstileHostnames = []string{"velora.example.test"}
+	if err := cfg.ValidateProductionAuth(); err == nil || !strings.Contains(err.Error(), "casdoor_password_login_enabled must be false in financial/mlps3") {
+		t.Fatalf("production password forwarding was not rejected: %v", err)
+	}
+}
+
+func TestValidateProductionAuthAllowsPasswordLoginInStandardProfile(t *testing.T) {
 	cfg := Default()
 	cfg.App.Environment = "production"
 	cfg.Security.AuthMode = "oidc"
@@ -56,8 +76,9 @@ func TestValidateProductionAuthRejectsPasswordForwarding(t *testing.T) {
 	cfg.Security.TurnstileSiteKey = "site-key"
 	cfg.Security.TurnstileSecret = "secret"
 	cfg.Security.TurnstileHostnames = []string{"velora.example.test"}
-	if err := cfg.ValidateProductionAuth(); err == nil || !strings.Contains(err.Error(), "casdoor_password_login_enabled must be false") {
-		t.Fatalf("production password forwarding was not rejected: %v", err)
+	cfg.Security.TrustedProxies = []string{"10.0.0.0/8"}
+	if err := cfg.ValidateProductionAuth(); err != nil {
+		t.Fatalf("standard password login configuration rejected: %v", err)
 	}
 }
 
@@ -105,6 +126,7 @@ func TestValidateProductionAuthRejectsSoftwareKeyStorage(t *testing.T) {
 	cfg.Security.OIDCRedirectURL = "https://velora.example.test/auth/callback"
 	cfg.Security.SessionTTL = time.Hour
 	cfg.Security.CasdoorAccountURL = "https://casdoor.example.test/account"
+	cfg.Compliance.Profile = "financial"
 	if err := cfg.ValidateProductionAuth(); err == nil || !strings.Contains(err.Error(), "crypto_adapter must be an approved KMS/HSM/PKCS#11 adapter") {
 		t.Fatalf("software key storage was not rejected: %v", err)
 	}

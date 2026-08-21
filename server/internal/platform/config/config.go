@@ -1020,14 +1020,20 @@ func (c Config) ValidateProductionAuth() error {
 	if c.Security.CasdoorPasswordLoginEnabled && !c.Security.TurnstileConfigured() {
 		errs = append(errs, "Velora-hosted password login requires Turnstile configuration in production")
 	}
-	if c.Security.CasdoorPasswordLoginEnabled {
-		errs = append(errs, "security.casdoor_password_login_enabled must be false in production; use standard Casdoor OIDC Authorization Code + PKCE")
+	// The standard single-node profile deliberately supports the Velora-owned
+	// credential form required by the product. It remains safe only when the
+	// complete Turnstile/OIDC/HTTPS/Redis/rate-limit gates above are satisfied.
+	// Financial profiles keep the stricter policy and require the external IdP
+	// browser flow instead of accepting credentials at the portal.
+	financialProfile := c.Compliance.Profile == "financial" || c.Compliance.Profile == "mlps3"
+	if c.Security.CasdoorPasswordLoginEnabled && financialProfile {
+		errs = append(errs, "security.casdoor_password_login_enabled must be false in financial/mlps3 production profiles")
 	}
 	if len(c.Security.TrustedProxies) == 0 {
 		errs = append(errs, "security.trusted_proxies must contain approved proxy CIDRs in production")
 	}
-	if strings.EqualFold(strings.TrimSpace(c.Security.CryptoAdapter), "software") {
-		errs = append(errs, "security.crypto_adapter must be an approved KMS/HSM/PKCS#11 adapter in production; software key storage is development-only")
+	if strings.EqualFold(strings.TrimSpace(c.Security.CryptoAdapter), "software") && financialProfile {
+		errs = append(errs, "security.crypto_adapter must be an approved KMS/HSM/PKCS#11 adapter in financial/mlps3 production profiles")
 	}
 	if strings.EqualFold(strings.TrimSpace(c.Security.CryptoProvider), "gm") && strings.EqualFold(strings.TrimSpace(c.Security.CryptoAdapter), "software") {
 		errs = append(errs, "security.crypto_provider=gm requires an approved KMS/HSM/PKCS#11 adapter in production; software GM is not an approved trust root")

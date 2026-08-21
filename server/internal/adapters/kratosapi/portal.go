@@ -722,8 +722,11 @@ func verificationsProto(items []portaldomain.Verification) []*forgev1.PortalAppl
 
 func safeIdentityAdminURL(raw string, allowedHosts []string) bool {
 	u, err := url.Parse(strings.TrimSpace(raw))
+	if err != nil || u == nil {
+		return false
+	}
 	localHTTP := strings.EqualFold(u.Scheme, "http") && (strings.EqualFold(u.Hostname(), "localhost") || u.Hostname() == "127.0.0.1" || u.Hostname() == "::1")
-	if err != nil || (!strings.EqualFold(u.Scheme, "https") && !localHTTP) || u.Hostname() == "" || u.User != nil || u.RawQuery != "" || u.Fragment != "" {
+	if (!strings.EqualFold(u.Scheme, "https") && !localHTTP) || u.Hostname() == "" || u.User != nil || u.RawQuery != "" || u.Fragment != "" {
 		return false
 	}
 	for _, host := range allowedHosts {

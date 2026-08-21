@@ -35,6 +35,7 @@ import (
 	"github.com/sevoniva-labs/velora/server/internal/platform/discovery"
 	"github.com/sevoniva-labs/velora/server/internal/platform/health"
 	"github.com/sevoniva-labs/velora/server/internal/platform/httpserver"
+	"github.com/sevoniva-labs/velora/server/internal/platform/idempotency"
 	"github.com/sevoniva-labs/velora/server/internal/platform/logx"
 	"github.com/sevoniva-labs/velora/server/internal/platform/messaging"
 	"github.com/sevoniva-labs/velora/server/internal/platform/metrics"
@@ -250,6 +251,7 @@ func New(ctx context.Context, opts Options) (*App, error) {
 	systemService := kratosapi.NewSystemService(cfg, opts.Version, checks, providers)
 	platformService := kratosapi.NewPlatformService(identitySvc, approvalSvc, configChangeSvc, dataPolicySvc, auditWriter, db)
 	portalService := kratosapi.NewPortalService(portalSvc, auditWriter, db)
+	portalService.ConfigureIdempotency(idempotency.New(db))
 	portalService.ConfigureIdentityBoundary(cfg.Security.CasdoorAdminURL, cfg.Security.OIDCIssuer, cfg.Security.OIDCInternalURL, cfg.Security.CasdoorAllowedHosts, cfg.Security.ApplicationOnboardingV2, cfg.Security.CasdoorAdminEntryEnabled)
 	casdoorAutomation, err := casdooradmin.New(casdooradmin.Config{BaseURL: cfg.Security.CasdoorAdminURL, Token: cfg.Security.CasdoorAutomationToken, Enabled: cfg.Security.CasdoorApplicationAutomationEnabled})
 	if err != nil {

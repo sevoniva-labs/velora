@@ -21,6 +21,8 @@ import (
 	"github.com/sevoniva-labs/velora/server/internal/platform/casdooradmin"
 	"github.com/sevoniva-labs/velora/server/internal/platform/database"
 	"github.com/sevoniva-labs/velora/server/internal/platform/httpserver"
+	"github.com/sevoniva-labs/velora/server/internal/platform/idempotency"
+	"google.golang.org/protobuf/proto"
 )
 
 type PortalService struct {
@@ -36,6 +38,7 @@ type PortalService struct {
 	identityAdminEntryEnabled bool
 	casdoorAutomation         *casdooradmin.Client
 	approval                  *approvalapp.Service
+	idem                      *idempotency.Store
 }
 
 func NewPortalService(portal *appportal.Service, auditWriter *audit.Writer, db *database.DB) *PortalService {
@@ -57,6 +60,10 @@ func (s *PortalService) ConfigureCasdoorAutomation(client *casdooradmin.Client) 
 
 func (s *PortalService) ConfigureApproval(service *approvalapp.Service) {
 	s.approval = service
+}
+
+func (s *PortalService) ConfigureIdempotency(store *idempotency.Store) {
+	s.idem = store
 }
 
 func (s *PortalService) audited(ctx context.Context, event *audit.Event, operation func(context.Context) error) error {
@@ -268,20 +275,25 @@ func (s *PortalService) CreatePortalApplication(ctx context.Context, req *forgev
 	if err != nil {
 		return nil, err
 	}
-	var item portaldomain.Application
-	event := newAuditEvent(ctx, principal, "portal.application.create", "portal_application", "", map[string]any{"code": req.GetCode()})
-	err = s.audited(ctx, event, func(txCtx context.Context) error {
-		var createErr error
-		item, createErr = s.portal.CreateApplication(txCtx, principal, applicationInput(req))
-		if createErr == nil {
-			event.ResourceID = item.ID
+	response, err := s.idempotent(ctx, principal, "portal.application.create", req, func() proto.Message { return &forgev1.CreatePortalApplicationResponse{} }, func() (proto.Message, error) {
+		var item portaldomain.Application
+		event := newAuditEvent(ctx, principal, "portal.application.create", "portal_application", "", map[string]any{"code": req.GetCode()})
+		if err := s.audited(ctx, event, func(txCtx context.Context) error {
+			var createErr error
+			item, createErr = s.portal.CreateApplication(txCtx, principal, applicationInput(req))
+			if createErr == nil {
+				event.ResourceID = item.ID
+			}
+			return createErr
+		}); err != nil {
+			return nil, serviceError(err)
 		}
-		return createErr
+		return &forgev1.CreatePortalApplicationResponse{Application: portalApplicationProto(item)}, nil
 	})
 	if err != nil {
-		return nil, serviceError(err)
+		return nil, err
 	}
-	return &forgev1.CreatePortalApplicationResponse{Application: portalApplicationProto(item)}, nil
+	return response.(*forgev1.CreatePortalApplicationResponse), nil
 }
 
 func (s *PortalService) UpdatePortalApplication(ctx context.Context, req *forgev1.UpdatePortalApplicationRequest) (*forgev1.UpdatePortalApplicationResponse, error) {
@@ -289,17 +301,22 @@ func (s *PortalService) UpdatePortalApplication(ctx context.Context, req *forgev
 	if err != nil {
 		return nil, err
 	}
-	var item portaldomain.Application
-	event := newAuditEvent(ctx, principal, "portal.application.update", "portal_application", req.GetApplicationId(), nil)
-	err = s.audited(ctx, event, func(txCtx context.Context) error {
-		var updateErr error
-		item, updateErr = s.portal.UpdateApplication(txCtx, principal, req.GetApplicationId(), repository.ApplicationInput{Name: req.GetName(), Description: req.GetDescription(), Icon: req.GetIcon(), CategoryID: req.GetCategoryId(), HomeURL: req.GetHomeUrl(), LaunchURL: req.GetLaunchUrl(), LaunchType: req.GetLaunchType(), Status: req.GetStatus(), SortOrder: int(req.GetSortOrder()), Featured: req.GetFeatured(), TagIDs: req.GetTagIds()})
-		return updateErr
+	response, err := s.idempotent(ctx, principal, "portal.application.update", req, func() proto.Message { return &forgev1.UpdatePortalApplicationResponse{} }, func() (proto.Message, error) {
+		var item portaldomain.Application
+		event := newAuditEvent(ctx, principal, "portal.application.update", "portal_application", req.GetApplicationId(), nil)
+		if err := s.audited(ctx, event, func(txCtx context.Context) error {
+			var updateErr error
+			item, updateErr = s.portal.UpdateApplication(txCtx, principal, req.GetApplicationId(), repository.ApplicationInput{Name: req.GetName(), Description: req.GetDescription(), Icon: req.GetIcon(), CategoryID: req.GetCategoryId(), HomeURL: req.GetHomeUrl(), LaunchURL: req.GetLaunchUrl(), LaunchType: req.GetLaunchType(), Status: req.GetStatus(), SortOrder: int(req.GetSortOrder()), Featured: req.GetFeatured(), TagIDs: req.GetTagIds()})
+			return updateErr
+		}); err != nil {
+			return nil, serviceError(err)
+		}
+		return &forgev1.UpdatePortalApplicationResponse{Application: portalApplicationProto(item)}, nil
 	})
 	if err != nil {
-		return nil, serviceError(err)
+		return nil, err
 	}
-	return &forgev1.UpdatePortalApplicationResponse{Application: portalApplicationProto(item)}, nil
+	return response.(*forgev1.UpdatePortalApplicationResponse), nil
 }
 
 func (s *PortalService) DeletePortalApplication(ctx context.Context, req *forgev1.DeletePortalApplicationRequest) (*forgev1.DeletePortalApplicationResponse, error) {
@@ -307,14 +324,19 @@ func (s *PortalService) DeletePortalApplication(ctx context.Context, req *forgev
 	if err != nil {
 		return nil, err
 	}
-	event := newAuditEvent(ctx, principal, "portal.application.delete", "portal_application", req.GetApplicationId(), nil)
-	err = s.audited(ctx, event, func(txCtx context.Context) error {
-		return s.portal.DeleteApplication(txCtx, principal, req.GetApplicationId())
+	response, err := s.idempotent(ctx, principal, "portal.application.delete", req, func() proto.Message { return &forgev1.DeletePortalApplicationResponse{} }, func() (proto.Message, error) {
+		event := newAuditEvent(ctx, principal, "portal.application.delete", "portal_application", req.GetApplicationId(), nil)
+		if err := s.audited(ctx, event, func(txCtx context.Context) error {
+			return s.portal.DeleteApplication(txCtx, principal, req.GetApplicationId())
+		}); err != nil {
+			return nil, serviceError(err)
+		}
+		return &forgev1.DeletePortalApplicationResponse{}, nil
 	})
 	if err != nil {
-		return nil, serviceError(err)
+		return nil, err
 	}
-	return &forgev1.DeletePortalApplicationResponse{}, nil
+	return response.(*forgev1.DeletePortalApplicationResponse), nil
 }
 
 func (s *PortalService) CreatePortalCategory(ctx context.Context, req *forgev1.CreatePortalCategoryRequest) (*forgev1.CreatePortalCategoryResponse, error) {
@@ -577,20 +599,25 @@ func (s *PortalService) VerifyApplicationIdentity(ctx context.Context, req *forg
 	if err != nil {
 		return nil, err
 	}
-	var binding portaldomain.IdentityBinding
-	var app portaldomain.Application
-	var verifications []portaldomain.Verification
-	var passed bool
-	event := newAuditEvent(ctx, principal, "iam.integration.verify", "portal_application", req.GetApplicationId(), nil)
-	err = s.audited(ctx, event, func(txCtx context.Context) error {
-		var operationErr error
-		binding, app, verifications, passed, operationErr = s.portal.VerifyApplicationIdentity(txCtx, principal, req.GetApplicationId(), req.GetExpectedConfigVersion())
-		return operationErr
+	response, err := s.idempotent(ctx, principal, "iam.integration.verify", req, func() proto.Message { return &forgev1.VerifyApplicationIdentityResponse{} }, func() (proto.Message, error) {
+		var binding portaldomain.IdentityBinding
+		var app portaldomain.Application
+		var verifications []portaldomain.Verification
+		var passed bool
+		event := newAuditEvent(ctx, principal, "iam.integration.verify", "portal_application", req.GetApplicationId(), nil)
+		if err := s.audited(ctx, event, func(txCtx context.Context) error {
+			var operationErr error
+			binding, app, verifications, passed, operationErr = s.portal.VerifyApplicationIdentity(txCtx, principal, req.GetApplicationId(), req.GetExpectedConfigVersion())
+			return operationErr
+		}); err != nil {
+			return nil, serviceError(err)
+		}
+		return &forgev1.VerifyApplicationIdentityResponse{Binding: identityBindingProto(binding), Application: portalApplicationProto(app), Verifications: verificationsProto(verifications), Passed: passed}, nil
 	})
 	if err != nil {
-		return nil, serviceError(err)
+		return nil, err
 	}
-	return &forgev1.VerifyApplicationIdentityResponse{Binding: identityBindingProto(binding), Application: portalApplicationProto(app), Verifications: verificationsProto(verifications), Passed: passed}, nil
+	return response.(*forgev1.VerifyApplicationIdentityResponse), nil
 }
 
 func (s *PortalService) SubmitApplicationPublish(ctx context.Context, req *forgev1.SubmitApplicationPublishRequest) (*forgev1.SubmitApplicationPublishResponse, error) {
@@ -601,17 +628,22 @@ func (s *PortalService) SubmitApplicationPublish(ctx context.Context, req *forge
 	if err != nil {
 		return nil, err
 	}
-	var app portaldomain.Application
-	event := newAuditEvent(ctx, principal, "portal.application.submit_publish", "portal_application", req.GetApplicationId(), nil)
-	err = s.audited(ctx, event, func(txCtx context.Context) error {
-		var operationErr error
-		app, operationErr = s.portal.SubmitApplicationPublish(txCtx, principal, req.GetApplicationId(), req.GetExpectedConfigVersion())
-		return operationErr
+	response, err := s.idempotent(ctx, principal, "portal.application.submit_publish", req, func() proto.Message { return &forgev1.SubmitApplicationPublishResponse{} }, func() (proto.Message, error) {
+		var app portaldomain.Application
+		event := newAuditEvent(ctx, principal, "portal.application.submit_publish", "portal_application", req.GetApplicationId(), nil)
+		if err := s.audited(ctx, event, func(txCtx context.Context) error {
+			var operationErr error
+			app, operationErr = s.portal.SubmitApplicationPublish(txCtx, principal, req.GetApplicationId(), req.GetExpectedConfigVersion())
+			return operationErr
+		}); err != nil {
+			return nil, serviceError(err)
+		}
+		return &forgev1.SubmitApplicationPublishResponse{Application: portalApplicationProto(app)}, nil
 	})
 	if err != nil {
-		return nil, serviceError(err)
+		return nil, err
 	}
-	return &forgev1.SubmitApplicationPublishResponse{Application: portalApplicationProto(app)}, nil
+	return response.(*forgev1.SubmitApplicationPublishResponse), nil
 }
 
 func (s *PortalService) PublishApplication(ctx context.Context, req *forgev1.PublishApplicationRequest) (*forgev1.PublishApplicationResponse, error) {
@@ -622,17 +654,22 @@ func (s *PortalService) PublishApplication(ctx context.Context, req *forgev1.Pub
 	if err != nil {
 		return nil, err
 	}
-	var app portaldomain.Application
-	event := newAuditEvent(ctx, principal, "portal.application.publish", "portal_application", req.GetApplicationId(), nil)
-	err = s.audited(ctx, event, func(txCtx context.Context) error {
-		var operationErr error
-		app, operationErr = s.portal.PublishApplication(txCtx, principal, req.GetApplicationId(), req.GetExpectedConfigVersion())
-		return operationErr
+	response, err := s.idempotent(ctx, principal, "portal.application.publish", req, func() proto.Message { return &forgev1.PublishApplicationResponse{} }, func() (proto.Message, error) {
+		var app portaldomain.Application
+		event := newAuditEvent(ctx, principal, "portal.application.publish", "portal_application", req.GetApplicationId(), nil)
+		if err := s.audited(ctx, event, func(txCtx context.Context) error {
+			var operationErr error
+			app, operationErr = s.portal.PublishApplication(txCtx, principal, req.GetApplicationId(), req.GetExpectedConfigVersion())
+			return operationErr
+		}); err != nil {
+			return nil, serviceError(err)
+		}
+		return &forgev1.PublishApplicationResponse{Application: portalApplicationProto(app)}, nil
 	})
 	if err != nil {
-		return nil, serviceError(err)
+		return nil, err
 	}
-	return &forgev1.PublishApplicationResponse{Application: portalApplicationProto(app)}, nil
+	return response.(*forgev1.PublishApplicationResponse), nil
 }
 
 func (s *PortalService) DisableApplication(ctx context.Context, req *forgev1.DisableApplicationRequest) (*forgev1.DisableApplicationResponse, error) {
@@ -662,22 +699,27 @@ func (s *PortalService) DisableApplication(ctx context.Context, req *forgev1.Dis
 			return nil, serviceError(err)
 		}
 	}
-	var app portaldomain.Application
-	event := newAuditEvent(ctx, principal, "portal.application.disable", "portal_application", req.GetApplicationId(), map[string]any{"approval_id": req.GetApprovalId(), "casdoor_automation": automationEnabled})
-	err = s.audited(ctx, event, func(txCtx context.Context) error {
-		var operationErr error
-		app, operationErr = s.portal.DisableApplication(txCtx, principal, req.GetApplicationId(), req.GetExpectedConfigVersion())
-		return operationErr
-	})
-	if err != nil {
-		return nil, serviceError(err)
-	}
-	if automationEnabled {
-		if err := s.casdoorAutomation.DisableApplication(ctx, binding.ProviderApplicationRef, req.GetApprovalId()); err != nil {
+	response, err := s.idempotent(ctx, principal, "portal.application.disable", req, func() proto.Message { return &forgev1.DisableApplicationResponse{} }, func() (proto.Message, error) {
+		var app portaldomain.Application
+		event := newAuditEvent(ctx, principal, "portal.application.disable", "portal_application", req.GetApplicationId(), map[string]any{"approval_id": req.GetApprovalId(), "casdoor_automation": automationEnabled})
+		if err := s.audited(ctx, event, func(txCtx context.Context) error {
+			var operationErr error
+			app, operationErr = s.portal.DisableApplication(txCtx, principal, req.GetApplicationId(), req.GetExpectedConfigVersion())
+			return operationErr
+		}); err != nil {
 			return nil, serviceError(err)
 		}
+		if automationEnabled {
+			if err := s.casdoorAutomation.DisableApplication(ctx, binding.ProviderApplicationRef, req.GetApprovalId()); err != nil {
+				return nil, serviceError(err)
+			}
+		}
+		return &forgev1.DisableApplicationResponse{Application: portalApplicationProto(app)}, nil
+	})
+	if err != nil {
+		return nil, err
 	}
-	return &forgev1.DisableApplicationResponse{Application: portalApplicationProto(app)}, nil
+	return response.(*forgev1.DisableApplicationResponse), nil
 }
 
 func (s *PortalService) identityOnboardingRequired() error {

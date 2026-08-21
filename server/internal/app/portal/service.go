@@ -187,7 +187,7 @@ func (s *Service) UpsertApplicationIdentityBinding(ctx context.Context, principa
 	return binding, app, err
 }
 
-func (s *Service) VerifyApplicationIdentity(ctx context.Context, principal domain.Principal, id string) (portaldomain.IdentityBinding, portaldomain.Application, []portaldomain.Verification, bool, error) {
+func (s *Service) VerifyApplicationIdentity(ctx context.Context, principal domain.Principal, id string, expectedVersion int64) (portaldomain.IdentityBinding, portaldomain.Application, []portaldomain.Verification, bool, error) {
 	app, binding, _, err := s.GetApplicationOnboarding(ctx, principal, id)
 	if err != nil {
 		return portaldomain.IdentityBinding{}, portaldomain.Application{}, nil, false, err
@@ -196,7 +196,7 @@ func (s *Service) VerifyApplicationIdentity(ctx context.Context, principal domai
 		return portaldomain.IdentityBinding{}, app, nil, false, portaldomain.ErrIdentityBindingRequired
 	}
 	passed, checkType, errorCode, evidence := verifyBinding(ctx, binding)
-	binding, _, err = s.repo.RecordIdentityVerification(ctx, principal.OrganizationID, principal.UserID, app.ID, passed, checkType, errorCode, evidence, requestID(ctx))
+	binding, _, err = s.repo.RecordIdentityVerification(ctx, principal.OrganizationID, principal.UserID, app.ID, passed, checkType, errorCode, evidence, requestID(ctx), expectedVersion)
 	if err != nil {
 		return portaldomain.IdentityBinding{}, portaldomain.Application{}, nil, false, err
 	}

@@ -607,18 +607,26 @@ func (r *PortalRepo) SetApplicationLifecycle(ctx context.Context, orgID, actorID
 	return item, err
 }
 
-func (r *PortalRepo) RecordIdentityVerification(ctx context.Context, orgID, actorID, appID string, passed bool, checkType, errorCode, evidence, requestID string) (portaldomain.IdentityBinding, portaldomain.Verification, error) {
-	b, err := r.GetIdentityBinding(ctx, orgID, appID)
-	if err != nil {
-		return portaldomain.IdentityBinding{}, portaldomain.Verification{}, err
-	}
+func (r *PortalRepo) RecordIdentityVerification(ctx context.Context, orgID, actorID, appID string, passed bool, checkType, errorCode, evidence, requestID string, expectedVersion int64) (portaldomain.IdentityBinding, portaldomain.Verification, error) {
 	now := time.Now().UTC()
 	result := portaldomain.VerificationFailed
 	if passed {
 		result = portaldomain.VerificationPassed
 	}
-	verification := portaldomain.Verification{ID: uuid.NewString(), OrganizationID: orgID, ApplicationID: appID, BindingID: b.ID, CheckType: checkType, Result: result, ErrorCode: errorCode, Evidence: evidence, VerifiedBy: actorID, OccurredAt: now, RequestID: requestID}
-	err = r.db.WithinTx(ctx, func(txCtx context.Context) error {
+	var verification portaldomain.Verification
+	err := r.db.WithinTx(ctx, func(txCtx context.Context) error {
+		var b portaldomain.IdentityBinding
+		var redirectJSON string
+		var version int64
+		if err := r.db.QueryRowContext(txCtx, r.db.Rebind(`SELECT id,organization_id,application_id,provider_key,protocol,provider_application_ref,public_client_id,issuer,redirect_uris_json,configuration_status,verification_status,verified_at,verified_by,verification_error,config_version,created_at,updated_at FROM portal_application_identity_bindings WHERE organization_id=? AND application_id=? FOR UPDATE`), orgID, appID).Scan(&b.ID, &b.OrganizationID, &b.ApplicationID, &b.ProviderKey, &b.Protocol, &b.ProviderApplicationRef, &b.PublicClientID, &b.Issuer, &redirectJSON, &b.ConfigurationStatus, &b.VerificationStatus, &b.VerifiedAt, &b.VerifiedBy, &b.VerificationError, &version, &b.CreatedAt, &b.UpdatedAt); err != nil {
+			return err
+		}
+		if expectedVersion > 0 && version != expectedVersion {
+			return portaldomain.ErrOptimisticConflict
+		}
+		b.ConfigVersion = version
+		b.RedirectURIs = portaldomain.DecodeRedirectURIs(redirectJSON)
+		verification = portaldomain.Verification{ID: uuid.NewString(), OrganizationID: orgID, ApplicationID: appID, BindingID: b.ID, CheckType: checkType, Result: result, ErrorCode: errorCode, Evidence: evidence, VerifiedBy: actorID, OccurredAt: now, RequestID: requestID}
 		if _, err := r.db.ExecContext(txCtx, r.db.Rebind(`INSERT INTO portal_application_verifications(id,organization_id,application_id,binding_id,check_type,result,error_code,evidence_json,verified_by,occurred_at,request_id) VALUES(?,?,?,?,?,?,?,?,?,?,?)`), verification.ID, orgID, appID, b.ID, checkType, result, errorCode, evidence, actorID, now, requestID); err != nil {
 			return err
 		}
@@ -628,7 +636,7 @@ func (r *PortalRepo) RecordIdentityVerification(ctx context.Context, orgID, acto
 			status = portaldomain.VerificationPassed
 			lifecycle = portaldomain.LifecycleReady
 		}
-		_, err := r.db.ExecContext(txCtx, r.db.Rebind(`UPDATE portal_application_identity_bindings SET verification_status=?,verified_at=?,verified_by=?,verification_error=?,config_version=config_version+1,updated_at=? WHERE organization_id=? AND application_id=?`), status, now, actorID, errorCode, now, orgID, appID)
+		_, err := r.db.ExecContext(txCtx, r.db.Rebind(`UPDATE portal_application_identity_bindings SET verification_status=?,verified_at=?,verified_by=?,verification_error=?,config_version=config_version+1,updated_at=? WHERE organization_id=? AND application_id=? AND config_version=?`), status, now, actorID, errorCode, now, orgID, appID, version)
 		if err != nil {
 			return err
 		}
@@ -638,7 +646,7 @@ func (r *PortalRepo) RecordIdentityVerification(ctx context.Context, orgID, acto
 	if err != nil {
 		return portaldomain.IdentityBinding{}, portaldomain.Verification{}, err
 	}
-	b, err = r.GetIdentityBinding(ctx, orgID, appID)
+	b, err := r.GetIdentityBinding(ctx, orgID, appID)
 	return b, verification, err
 }
 

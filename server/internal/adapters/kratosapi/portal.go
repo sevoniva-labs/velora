@@ -575,7 +575,7 @@ func (s *PortalService) VerifyApplicationIdentity(ctx context.Context, req *forg
 	event := newAuditEvent(ctx, principal, "iam.integration.verify", "portal_application", req.GetApplicationId(), nil)
 	err = s.audited(ctx, event, func(txCtx context.Context) error {
 		var operationErr error
-		binding, app, verifications, passed, operationErr = s.portal.VerifyApplicationIdentity(txCtx, principal, req.GetApplicationId())
+		binding, app, verifications, passed, operationErr = s.portal.VerifyApplicationIdentity(txCtx, principal, req.GetApplicationId(), req.GetExpectedConfigVersion())
 		return operationErr
 	})
 	if err != nil {

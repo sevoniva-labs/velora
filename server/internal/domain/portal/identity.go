@@ -95,7 +95,7 @@ func (b IdentityBindingInput) Validate() error {
 	}
 	if strings.TrimSpace(b.Issuer) != "" {
 		u, err := url.Parse(strings.TrimSpace(b.Issuer))
-		if err != nil || !strings.EqualFold(u.Scheme, "https") || u.Host == "" || u.User != nil || u.RawQuery != "" || u.Fragment != "" {
+		if err != nil || !validIdentityURL(u) {
 			return ErrInvalidIdentityBinding
 		}
 	}
@@ -104,11 +104,21 @@ func (b IdentityBindingInput) Validate() error {
 	}
 	for _, raw := range b.RedirectURIs {
 		u, err := url.Parse(strings.TrimSpace(raw))
-		if err != nil || !strings.EqualFold(u.Scheme, "https") || u.Host == "" || u.User != nil || u.RawQuery != "" || u.Fragment != "" {
+		if err != nil || !validIdentityURL(u) {
 			return ErrInvalidIdentityBinding
 		}
 	}
 	return nil
+}
+
+func validIdentityURL(u *url.URL) bool {
+	if u == nil || u.Host == "" || u.User != nil || u.RawQuery != "" || u.Fragment != "" {
+		return false
+	}
+	if strings.EqualFold(u.Scheme, "https") {
+		return true
+	}
+	return strings.EqualFold(u.Scheme, "http") && (strings.EqualFold(u.Hostname(), "localhost") || u.Hostname() == "127.0.0.1" || u.Hostname() == "::1")
 }
 
 func (b IdentityBinding) RedirectURIsJSON() string {

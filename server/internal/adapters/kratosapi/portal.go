@@ -340,7 +340,7 @@ func (s *PortalService) DeletePortalApplication(ctx context.Context, req *forgev
 }
 
 func (s *PortalService) CreatePortalCategory(ctx context.Context, req *forgev1.CreatePortalCategoryRequest) (*forgev1.CreatePortalCategoryResponse, error) {
-	return s.createCategory(ctx, repository.CategoryInput{Key: req.GetCategoryKey(), Name: req.GetName(), Description: req.GetDescription(), SortOrder: int(req.GetSortOrder()), Status: req.GetStatus()})
+	return s.createCategory(ctx, req)
 }
 
 func (s *PortalService) UpdatePortalCategory(ctx context.Context, req *forgev1.UpdatePortalCategoryRequest) (*forgev1.UpdatePortalCategoryResponse, error) {
@@ -348,21 +348,26 @@ func (s *PortalService) UpdatePortalCategory(ctx context.Context, req *forgev1.U
 	if err != nil {
 		return nil, err
 	}
-	var item portaldomain.Category
-	event := newAuditEvent(ctx, principal, "portal.category.update", "portal_category", req.GetCategoryId(), nil)
-	err = s.audited(ctx, event, func(txCtx context.Context) error {
-		var updateErr error
-		item, updateErr = s.portal.UpdateCategory(txCtx, principal, req.GetCategoryId(), repository.CategoryInput{Name: req.GetName(), Description: req.GetDescription(), SortOrder: int(req.GetSortOrder()), Status: req.GetStatus()})
-		return updateErr
+	response, err := s.idempotent(ctx, principal, "portal.category.update", req, func() proto.Message { return &forgev1.UpdatePortalCategoryResponse{} }, func() (proto.Message, error) {
+		var item portaldomain.Category
+		event := newAuditEvent(ctx, principal, "portal.category.update", "portal_category", req.GetCategoryId(), nil)
+		if err := s.audited(ctx, event, func(txCtx context.Context) error {
+			var updateErr error
+			item, updateErr = s.portal.UpdateCategory(txCtx, principal, req.GetCategoryId(), repository.CategoryInput{Name: req.GetName(), Description: req.GetDescription(), SortOrder: int(req.GetSortOrder()), Status: req.GetStatus()})
+			return updateErr
+		}); err != nil {
+			return nil, serviceError(err)
+		}
+		return &forgev1.UpdatePortalCategoryResponse{Category: portalCategoryProto(item)}, nil
 	})
 	if err != nil {
-		return nil, serviceError(err)
+		return nil, err
 	}
-	return &forgev1.UpdatePortalCategoryResponse{Category: portalCategoryProto(item)}, nil
+	return response.(*forgev1.UpdatePortalCategoryResponse), nil
 }
 
 func (s *PortalService) DeletePortalCategory(ctx context.Context, req *forgev1.DeletePortalCategoryRequest) (*forgev1.DeletePortalCategoryResponse, error) {
-	return s.deleteCategory(ctx, req.GetCategoryId())
+	return s.deleteCategory(ctx, req)
 }
 
 func (s *PortalService) CreatePortalTag(ctx context.Context, req *forgev1.CreatePortalTagRequest) (*forgev1.CreatePortalTagResponse, error) {
@@ -370,20 +375,25 @@ func (s *PortalService) CreatePortalTag(ctx context.Context, req *forgev1.Create
 	if err != nil {
 		return nil, err
 	}
-	var item portaldomain.Tag
-	event := newAuditEvent(ctx, principal, "portal.tag.create", "portal_tag", "", map[string]any{"tag_key": req.GetTagKey()})
-	err = s.audited(ctx, event, func(txCtx context.Context) error {
-		var createErr error
-		item, createErr = s.portal.CreateTag(txCtx, principal, repository.TagInput{Key: req.GetTagKey(), Name: req.GetName(), SortOrder: int(req.GetSortOrder())})
-		if createErr == nil {
-			event.ResourceID = item.ID
+	response, err := s.idempotent(ctx, principal, "portal.tag.create", req, func() proto.Message { return &forgev1.CreatePortalTagResponse{} }, func() (proto.Message, error) {
+		var item portaldomain.Tag
+		event := newAuditEvent(ctx, principal, "portal.tag.create", "portal_tag", "", map[string]any{"tag_key": req.GetTagKey()})
+		if err := s.audited(ctx, event, func(txCtx context.Context) error {
+			var createErr error
+			item, createErr = s.portal.CreateTag(txCtx, principal, repository.TagInput{Key: req.GetTagKey(), Name: req.GetName(), SortOrder: int(req.GetSortOrder())})
+			if createErr == nil {
+				event.ResourceID = item.ID
+			}
+			return createErr
+		}); err != nil {
+			return nil, serviceError(err)
 		}
-		return createErr
+		return &forgev1.CreatePortalTagResponse{Tag: portalTagProto(item)}, nil
 	})
 	if err != nil {
-		return nil, serviceError(err)
+		return nil, err
 	}
-	return &forgev1.CreatePortalTagResponse{Tag: portalTagProto(item)}, nil
+	return response.(*forgev1.CreatePortalTagResponse), nil
 }
 
 func (s *PortalService) UpdatePortalTag(ctx context.Context, req *forgev1.UpdatePortalTagRequest) (*forgev1.UpdatePortalTagResponse, error) {
@@ -391,17 +401,22 @@ func (s *PortalService) UpdatePortalTag(ctx context.Context, req *forgev1.Update
 	if err != nil {
 		return nil, err
 	}
-	var item portaldomain.Tag
-	event := newAuditEvent(ctx, principal, "portal.tag.update", "portal_tag", req.GetTagId(), nil)
-	err = s.audited(ctx, event, func(txCtx context.Context) error {
-		var updateErr error
-		item, updateErr = s.portal.UpdateTag(txCtx, principal, req.GetTagId(), repository.TagInput{Name: req.GetName(), SortOrder: int(req.GetSortOrder())})
-		return updateErr
+	response, err := s.idempotent(ctx, principal, "portal.tag.update", req, func() proto.Message { return &forgev1.UpdatePortalTagResponse{} }, func() (proto.Message, error) {
+		var item portaldomain.Tag
+		event := newAuditEvent(ctx, principal, "portal.tag.update", "portal_tag", req.GetTagId(), nil)
+		if err := s.audited(ctx, event, func(txCtx context.Context) error {
+			var updateErr error
+			item, updateErr = s.portal.UpdateTag(txCtx, principal, req.GetTagId(), repository.TagInput{Name: req.GetName(), SortOrder: int(req.GetSortOrder())})
+			return updateErr
+		}); err != nil {
+			return nil, serviceError(err)
+		}
+		return &forgev1.UpdatePortalTagResponse{Tag: portalTagProto(item)}, nil
 	})
 	if err != nil {
-		return nil, serviceError(err)
+		return nil, err
 	}
-	return &forgev1.UpdatePortalTagResponse{Tag: portalTagProto(item)}, nil
+	return response.(*forgev1.UpdatePortalTagResponse), nil
 }
 
 func (s *PortalService) DeletePortalTag(ctx context.Context, req *forgev1.DeletePortalTagRequest) (*forgev1.DeletePortalTagResponse, error) {
@@ -409,12 +424,17 @@ func (s *PortalService) DeletePortalTag(ctx context.Context, req *forgev1.Delete
 	if err != nil {
 		return nil, err
 	}
-	event := newAuditEvent(ctx, principal, "portal.tag.delete", "portal_tag", req.GetTagId(), nil)
-	err = s.audited(ctx, event, func(txCtx context.Context) error { return s.portal.DeleteTag(txCtx, principal, req.GetTagId()) })
+	response, err := s.idempotent(ctx, principal, "portal.tag.delete", req, func() proto.Message { return &forgev1.DeletePortalTagResponse{} }, func() (proto.Message, error) {
+		event := newAuditEvent(ctx, principal, "portal.tag.delete", "portal_tag", req.GetTagId(), nil)
+		if err := s.audited(ctx, event, func(txCtx context.Context) error { return s.portal.DeleteTag(txCtx, principal, req.GetTagId()) }); err != nil {
+			return nil, serviceError(err)
+		}
+		return &forgev1.DeletePortalTagResponse{}, nil
+	})
 	if err != nil {
-		return nil, serviceError(err)
+		return nil, err
 	}
-	return &forgev1.DeletePortalTagResponse{}, nil
+	return response.(*forgev1.DeletePortalTagResponse), nil
 }
 
 func (s *PortalService) ReplacePortalApplicationPolicies(ctx context.Context, req *forgev1.ReplacePortalApplicationPoliciesRequest) (*forgev1.ReplacePortalApplicationPoliciesResponse, error) {
@@ -422,23 +442,28 @@ func (s *PortalService) ReplacePortalApplicationPolicies(ctx context.Context, re
 	if err != nil {
 		return nil, err
 	}
-	policies := make([]portaldomain.AccessPolicy, 0, len(req.GetPolicies()))
-	for _, item := range req.GetPolicies() {
-		if item != nil {
-			policies = append(policies, portaldomain.AccessPolicy{Type: item.GetPolicyType(), Value: item.GetValue()})
+	response, err := s.idempotent(ctx, principal, "portal.policy.replace", req, func() proto.Message { return &forgev1.ReplacePortalApplicationPoliciesResponse{} }, func() (proto.Message, error) {
+		policies := make([]portaldomain.AccessPolicy, 0, len(req.GetPolicies()))
+		for _, item := range req.GetPolicies() {
+			if item != nil {
+				policies = append(policies, portaldomain.AccessPolicy{Type: item.GetPolicyType(), Value: item.GetValue()})
+			}
 		}
-	}
-	var out []portaldomain.AccessPolicy
-	event := newAuditEvent(ctx, principal, "portal.policy.replace", "portal_application", req.GetApplicationId(), map[string]any{"policy_count": len(policies)})
-	err = s.audited(ctx, event, func(txCtx context.Context) error {
-		var replaceErr error
-		out, replaceErr = s.portal.ReplacePolicies(txCtx, principal, req.GetApplicationId(), policies)
-		return replaceErr
+		var out []portaldomain.AccessPolicy
+		event := newAuditEvent(ctx, principal, "portal.policy.replace", "portal_application", req.GetApplicationId(), map[string]any{"policy_count": len(policies)})
+		if err := s.audited(ctx, event, func(txCtx context.Context) error {
+			var replaceErr error
+			out, replaceErr = s.portal.ReplacePolicies(txCtx, principal, req.GetApplicationId(), policies)
+			return replaceErr
+		}); err != nil {
+			return nil, serviceError(err)
+		}
+		return &forgev1.ReplacePortalApplicationPoliciesResponse{Policies: portalPoliciesProto(out)}, nil
 	})
 	if err != nil {
-		return nil, serviceError(err)
+		return nil, err
 	}
-	return &forgev1.ReplacePortalApplicationPoliciesResponse{Policies: portalPoliciesProto(out)}, nil
+	return response.(*forgev1.ReplacePortalApplicationPoliciesResponse), nil
 }
 
 func (s *PortalService) GetIdentityOverview(ctx context.Context, _ *forgev1.GetIdentityOverviewRequest) (*forgev1.GetIdentityOverviewResponse, error) {
@@ -746,38 +771,51 @@ func (s *PortalService) authorizeCasdoorAutomation(ctx context.Context, principa
 	})
 }
 
-func (s *PortalService) createCategory(ctx context.Context, input repository.CategoryInput) (*forgev1.CreatePortalCategoryResponse, error) {
+func (s *PortalService) createCategory(ctx context.Context, req *forgev1.CreatePortalCategoryRequest) (*forgev1.CreatePortalCategoryResponse, error) {
 	principal, err := requiredPrincipal(ctx)
 	if err != nil {
 		return nil, err
 	}
-	var item portaldomain.Category
-	event := newAuditEvent(ctx, principal, "portal.category.create", "portal_category", "", map[string]any{"category_key": input.Key})
-	err = s.audited(ctx, event, func(txCtx context.Context) error {
-		var createErr error
-		item, createErr = s.portal.CreateCategory(txCtx, principal, input)
-		if createErr == nil {
-			event.ResourceID = item.ID
+	response, err := s.idempotent(ctx, principal, "portal.category.create", req, func() proto.Message { return &forgev1.CreatePortalCategoryResponse{} }, func() (proto.Message, error) {
+		var item portaldomain.Category
+		input := repository.CategoryInput{Key: req.GetCategoryKey(), Name: req.GetName(), Description: req.GetDescription(), SortOrder: int(req.GetSortOrder()), Status: req.GetStatus()}
+		event := newAuditEvent(ctx, principal, "portal.category.create", "portal_category", "", map[string]any{"category_key": input.Key})
+		if err := s.audited(ctx, event, func(txCtx context.Context) error {
+			var createErr error
+			item, createErr = s.portal.CreateCategory(txCtx, principal, input)
+			if createErr == nil {
+				event.ResourceID = item.ID
+			}
+			return createErr
+		}); err != nil {
+			return nil, serviceError(err)
 		}
-		return createErr
+		return &forgev1.CreatePortalCategoryResponse{Category: portalCategoryProto(item)}, nil
 	})
 	if err != nil {
-		return nil, serviceError(err)
+		return nil, err
 	}
-	return &forgev1.CreatePortalCategoryResponse{Category: portalCategoryProto(item)}, nil
+	return response.(*forgev1.CreatePortalCategoryResponse), nil
 }
 
-func (s *PortalService) deleteCategory(ctx context.Context, id string) (*forgev1.DeletePortalCategoryResponse, error) {
+func (s *PortalService) deleteCategory(ctx context.Context, req *forgev1.DeletePortalCategoryRequest) (*forgev1.DeletePortalCategoryResponse, error) {
 	principal, err := requiredPrincipal(ctx)
 	if err != nil {
 		return nil, err
 	}
-	event := newAuditEvent(ctx, principal, "portal.category.delete", "portal_category", id, nil)
-	err = s.audited(ctx, event, func(txCtx context.Context) error { return s.portal.DeleteCategory(txCtx, principal, id) })
+	response, err := s.idempotent(ctx, principal, "portal.category.delete", req, func() proto.Message { return &forgev1.DeletePortalCategoryResponse{} }, func() (proto.Message, error) {
+		event := newAuditEvent(ctx, principal, "portal.category.delete", "portal_category", req.GetCategoryId(), nil)
+		if err := s.audited(ctx, event, func(txCtx context.Context) error {
+			return s.portal.DeleteCategory(txCtx, principal, req.GetCategoryId())
+		}); err != nil {
+			return nil, serviceError(err)
+		}
+		return &forgev1.DeletePortalCategoryResponse{}, nil
+	})
 	if err != nil {
-		return nil, serviceError(err)
+		return nil, err
 	}
-	return &forgev1.DeletePortalCategoryResponse{}, nil
+	return response.(*forgev1.DeletePortalCategoryResponse), nil
 }
 
 func applicationInput(req *forgev1.CreatePortalApplicationRequest) repository.ApplicationInput {

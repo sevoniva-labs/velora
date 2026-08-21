@@ -224,13 +224,6 @@ export async function listSessions(): Promise<SessionDevice[]> {
 export function revokeSession(sessionId: string): Promise<{ revoked: string }> { return apiFetch(`/admin/sessions/${encodeURIComponent(sessionId)}`, { method: 'DELETE' }).then(() => ({ revoked: sessionId })) }
 export async function revokeAllSessions(): Promise<{ status: string }> { const sessions = await listSessions(); await Promise.all(sessions.filter((session) => !session.current).map((session) => revokeSession(session.sessionId))); return { status: 'revoked' } }
 
-// 不自建 OIDC Provider；旧弹窗已被移除，保留类型和函数防止第三方代码编译断裂。
-export interface OIDCClient { clientId: string; name: string; redirectUris: string[]; grantTypes: string[]; scopes: string[]; createdAt: string }
-const unsupportedOIDC = () => Promise.reject<never>(new Error('当前后端未启用 Velora OIDC Provider'))
-export function listOIDCClients(_applicationId: string | number): Promise<OIDCClient[]> { return unsupportedOIDC() }
-export function createOIDCClient(_applicationId: string | number, _redirectUris: string[]): Promise<{ client: OIDCClient; clientSecret: string }> { return unsupportedOIDC() }
-export function revokeOIDCClient(_clientId: string): Promise<{ status: string }> { return unsupportedOIDC() }
-
 // --- API Token（替换旧 Integration Token 路由） ---
 
 export interface IntegrationToken { id: string | number; name: string; scopes: string[]; createdBy: string; expiresAt: string | null; lastUsedAt: string | null; revoked: boolean }
@@ -292,8 +285,6 @@ export async function verifyApplicationIdentity(id: string | number, expectedCon
 export async function submitApplicationPublish(id: string | number, expectedConfigVersion?: number): Promise<Application> { const data = record(await apiFetch<unknown>(`/admin/portal/applications/${encodeURIComponent(String(id))}/submit-publish`, { method: 'POST', body: { expectedConfigVersion } })); return mapApplication(record(data.application)) }
 export async function publishApplication(id: string | number, expectedConfigVersion?: number): Promise<Application> { const data = record(await apiFetch<unknown>(`/admin/portal/applications/${encodeURIComponent(String(id))}/publish`, { method: 'POST', body: { expectedConfigVersion } })); return mapApplication(record(data.application)) }
 export async function disableApplication(id: string | number, expectedConfigVersion?: number, approvalId?: string): Promise<Application> { const data = record(await apiFetch<unknown>(`/admin/portal/applications/${encodeURIComponent(String(id))}/disable`, { method: 'POST', body: { expectedConfigVersion, approvalId } })); return mapApplication(record(data.application)) }
-// Casdoor 同步属于旧后端能力，当前基座不提供该路由；UI 不再展示入口。
-export function adminSyncApplications(): Promise<{ total: number; created: number; updated: number }> { return Promise.reject(unavailable('Casdoor 应用同步')) }
 export async function adminSetPolicies(id: string | number, policies: { policyType: string; value: string }[]): Promise<unknown> { return apiFetch(`/admin/portal/applications/${encodeURIComponent(String(id))}/policies`, { method: 'PUT', body: { policies } }) }
 export async function adminCreateCategory(input: Partial<Category>): Promise<Category> { const data = await apiFetch<unknown>('/admin/portal/categories', { method: 'POST', body: { categoryKey: input.code ?? '', name: input.name ?? '', description: input.description ?? '', sortOrder: input.sort ?? 0, status: 'ACTIVE' } }); return mapCategory(record(data).category ?? data) }
 export async function adminUpdateCategory(id: string | number, input: Partial<Category>): Promise<Category> { const data = await apiFetch<unknown>(`/admin/portal/categories/${encodeURIComponent(String(id))}`, { method: 'PATCH', body: { name: input.name ?? '', description: input.description ?? '', sortOrder: input.sort ?? 0, status: 'ACTIVE' } }); return mapCategory(record(data).category ?? data) }

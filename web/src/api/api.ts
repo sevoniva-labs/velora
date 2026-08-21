@@ -53,7 +53,10 @@ function mapUser(value: unknown): CurrentUser {
     avatar: String(user.avatar ?? ''),
     organization: String(user.organizationId ?? user.organization ?? 'default'),
     roles,
-    admin: Boolean(user.admin ?? roles.some((role: string) => ['admin', 'administrator', 'platform_admin'].includes(role.toLowerCase()))),
+    // Backend roles vary between Casdoor compatibility mode and the native
+    // scaffold. Keep the UI gate aligned with the roles that actually receive
+    // administrative permissions instead of relying on a single role name.
+    admin: Boolean(user.admin ?? roles.some((role: string) => ['admin', 'administrator', 'platform_admin', 'system_admin', 'security_admin', 'velora_admin'].includes(role.toLowerCase()))),
     groups: Array.isArray(user.groups) ? user.groups.map(String) : [],
   }
 }
@@ -180,11 +183,17 @@ export function consumeOIDCRedirect(): string {
 }
 
 export async function loginWithPassword(username: string, password: string, redirect?: string, _turnstileToken?: string): Promise<{ redirect: string }> {
-  await apiFetch('/auth/login', { method: 'POST', body: { loginName: username, organization: 'default', password } })
+  await apiFetch('/auth/login', { method: 'POST', body: { loginName: username, organization: 'default', password, turnstileToken: _turnstileToken || undefined } })
   return { redirect: internalRedirect(redirect) }
 }
-// 当前后端基座没有 Turnstile 路由，关闭旧登录页组件而不是请求 404。
-export function getTurnstileConfig(): Promise<{ enabled: boolean; siteKey: string }> { return Promise.resolve({ enabled: false, siteKey: '' }) }
+export async function getTurnstileConfig(): Promise<{ enabled: boolean; siteKey: string; action: string }> {
+  const data = record(await apiFetch<unknown>('/system/health'))
+  return {
+    enabled: Boolean(data.turnstileEnabled),
+    siteKey: String(data.turnstileSiteKey ?? ''),
+    action: String(data.turnstileAction ?? 'login'),
+  }
+}
 
 // --- 用户中心 ---
 

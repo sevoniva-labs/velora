@@ -68,6 +68,9 @@ type HealthResponse struct {
 	AuthMode             string `protobuf:"bytes,4,opt,name=auth_mode,json=authMode,proto3" json:"auth_mode,omitempty"`
 	PasswordLoginEnabled bool   `protobuf:"varint,5,opt,name=password_login_enabled,json=passwordLoginEnabled,proto3" json:"password_login_enabled,omitempty"`
 	CasdoorAccountUrl    string `protobuf:"bytes,6,opt,name=casdoor_account_url,json=casdoorAccountUrl,proto3" json:"casdoor_account_url,omitempty"`
+	TurnstileEnabled     bool   `protobuf:"varint,7,opt,name=turnstile_enabled,json=turnstileEnabled,proto3" json:"turnstile_enabled,omitempty"`
+	TurnstileSiteKey     string `protobuf:"bytes,8,opt,name=turnstile_site_key,json=turnstileSiteKey,proto3" json:"turnstile_site_key,omitempty"`
+	TurnstileAction      string `protobuf:"bytes,9,opt,name=turnstile_action,json=turnstileAction,proto3" json:"turnstile_action,omitempty"`
 	unknownFields        protoimpl.UnknownFields
 	sizeCache            protoimpl.SizeCache
 }
@@ -140,6 +143,27 @@ func (x *HealthResponse) GetPasswordLoginEnabled() bool {
 func (x *HealthResponse) GetCasdoorAccountUrl() string {
 	if x != nil {
 		return x.CasdoorAccountUrl
+	}
+	return ""
+}
+
+func (x *HealthResponse) GetTurnstileEnabled() bool {
+	if x != nil {
+		return x.TurnstileEnabled
+	}
+	return false
+}
+
+func (x *HealthResponse) GetTurnstileSiteKey() string {
+	if x != nil {
+		return x.TurnstileSiteKey
+	}
+	return ""
+}
+
+func (x *HealthResponse) GetTurnstileAction() string {
+	if x != nil {
+		return x.TurnstileAction
 	}
 	return ""
 }
@@ -417,14 +441,17 @@ var File_forge_v1_system_proto protoreflect.FileDescriptor
 const file_forge_v1_system_proto_rawDesc = "" +
 	"\n" +
 	"\x15forge/v1/system.proto\x12\bforge.v1\x1a\x1cgoogle/api/annotations.proto\x1a\x1bopenapiv3/annotations.proto\"\x0f\n" +
-	"\rHealthRequest\"\xdf\x01\n" +
+	"\rHealthRequest\"\xe5\x02\n" +
 	"\x0eHealthResponse\x12\x16\n" +
 	"\x06status\x18\x01 \x01(\tR\x06status\x12\x18\n" +
 	"\aservice\x18\x02 \x01(\tR\aservice\x12\x18\n" +
 	"\aversion\x18\x03 \x01(\tR\aversion\x12\x1b\n" +
 	"\tauth_mode\x18\x04 \x01(\tR\bauthMode\x124\n" +
 	"\x16password_login_enabled\x18\x05 \x01(\bR\x14passwordLoginEnabled\x12.\n" +
-	"\x13casdoor_account_url\x18\x06 \x01(\tR\x11casdoorAccountUrl\"\x12\n" +
+	"\x13casdoor_account_url\x18\x06 \x01(\tR\x11casdoorAccountUrl\x12+\n" +
+	"\x11turnstile_enabled\x18\a \x01(\bR\x10turnstileEnabled\x12,\n" +
+	"\x12turnstile_site_key\x18\b \x01(\tR\x10turnstileSiteKey\x12)\n" +
+	"\x10turnstile_action\x18\t \x01(\tR\x0fturnstileAction\"\x12\n" +
 	"\x10ReadinessRequest\"X\n" +
 	"\x10DependencyStatus\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x16\n" +

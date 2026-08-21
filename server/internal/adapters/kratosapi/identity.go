@@ -16,6 +16,7 @@ import (
 	appidentity "github.com/sevoniva-labs/velora/server/internal/app/identity"
 	domain "github.com/sevoniva-labs/velora/server/internal/domain/identity"
 	"github.com/sevoniva-labs/velora/server/internal/platform/database"
+	"github.com/sevoniva-labs/velora/server/internal/platform/httpserver"
 	"github.com/sevoniva-labs/velora/server/internal/platform/identitysource"
 	"github.com/sevoniva-labs/velora/server/internal/platform/ratelimit"
 )
@@ -36,7 +37,12 @@ type IdentityService struct {
 	passwordLoginEnabled        bool
 	casdoorPasswordLoginEnabled bool
 	casdoorPasswordProvider     *identitysource.OIDCProvider
+	turnstile                   turnstileVerifier
 	federated                   *FederatedLogin
+}
+
+type turnstileVerifier interface {
+	Verify(context.Context, string, string) error
 }
 
 func NewIdentityService(identity *appidentity.Service, auditWriter *audit.Writer, db *database.DB, limiter *ratelimit.Limiter, secureCookies bool, sameSite string) *IdentityService {
@@ -53,6 +59,10 @@ func (s *IdentityService) ConfigureAuthMode(mode string) {
 func (s *IdentityService) ConfigureCasdoorPasswordLogin(enabled bool, provider *identitysource.OIDCProvider) {
 	s.casdoorPasswordLoginEnabled = enabled && provider != nil
 	s.casdoorPasswordProvider = provider
+}
+
+func (s *IdentityService) ConfigureTurnstile(verifier turnstileVerifier) {
+	s.turnstile = verifier
 }
 
 func (s *IdentityService) requirePasswordManagement() error {
@@ -76,6 +86,12 @@ func (s *IdentityService) Login(ctx context.Context, req *forgev1.LoginRequest) 
 	for _, key := range loginRateLimitKeys(event.ClientIP, loginName) {
 		if err := s.allow(ctx, key, 10, time.Minute, "60"); err != nil {
 			return nil, err
+		}
+	}
+	if s.turnstile != nil {
+		if err := s.turnstile.Verify(ctx, req.GetTurnstileToken(), httpserver.ClientIP(ctx)); err != nil {
+			_ = s.audit.Write(ctx, *event)
+			return nil, kerrors.Forbidden("TURNSTILE_REQUIRED", "security verification failed")
 		}
 	}
 	if s.casdoorPasswordLoginEnabled {

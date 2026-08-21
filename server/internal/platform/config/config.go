@@ -229,13 +229,31 @@ type Security struct {
 	// delegating credential verification to Casdoor's application login API.
 	// It is intentionally opt-in because this is a password-grant compatibility
 	// mode, not the preferred Authorization Code + PKCE flow.
-	CasdoorPasswordLoginEnabled bool     `yaml:"casdoor_password_login_enabled"`
-	CasdoorApplication          string   `yaml:"casdoor_application"`
-	CasdoorOrganization         string   `yaml:"casdoor_organization"`
-	OIDCInternalURL             string   `yaml:"oidc_internal_url"`
-	OIDCProviderEnabled         bool     `yaml:"oidc_provider_enabled"`
-	AllowedOrigins              []string `yaml:"allowed_origins"`
-	TrustedProxies              []string `yaml:"trusted_proxies"`
+	CasdoorPasswordLoginEnabled bool   `yaml:"casdoor_password_login_enabled"`
+	CasdoorApplication          string `yaml:"casdoor_application"`
+	CasdoorOrganization         string `yaml:"casdoor_organization"`
+	// Turnstile protects the Velora-hosted credential form. The secret is
+	// environment/file-only; the site key and hostname allowlist are public
+	// deployment configuration.
+	TurnstileSiteKey    string   `yaml:"turnstile_site_key"`
+	TurnstileSecret     string   `yaml:"-"`
+	TurnstileHostnames  []string `yaml:"turnstile_hostnames"`
+	TurnstileAction     string   `yaml:"turnstile_action"`
+	OIDCInternalURL     string   `yaml:"oidc_internal_url"`
+	OIDCProviderEnabled bool     `yaml:"oidc_provider_enabled"`
+	AllowedOrigins      []string `yaml:"allowed_origins"`
+	TrustedProxies      []string `yaml:"trusted_proxies"`
+}
+
+func (s Security) TurnstileConfigured() bool {
+	return strings.TrimSpace(s.TurnstileSiteKey) != "" && strings.TrimSpace(s.TurnstileSecret) != "" && len(s.TurnstileHostnames) > 0
+}
+
+func (s Security) EffectiveTurnstileAction() string {
+	if action := strings.TrimSpace(s.TurnstileAction); action != "" {
+		return action
+	}
+	return "login"
 }
 
 type Observability struct {
@@ -421,6 +439,7 @@ func ApplyEnvironment(cfg *Config) {
 	cfg.RemoteConfig.Password = secret("VELORA_NACOS_PASSWORD")
 	cfg.Security.CryptoKey = secret("VELORA_CRYPTO_KEY")
 	cfg.Security.OIDCClientSecret = secret("VELORA_OIDC_CLIENT_SECRET")
+	cfg.Security.TurnstileSecret = secret("VELORA_TURNSTILE_SECRET")
 
 	overrideString(&cfg.App.Name, "VELORA_APP_NAME")
 	overrideString(&cfg.App.Environment, "VELORA_ENV")
@@ -561,6 +580,9 @@ func ApplyEnvironment(cfg *Config) {
 	overrideBool(&cfg.Security.CasdoorPasswordLoginEnabled, "VELORA_CASDOOR_PASSWORD_LOGIN_ENABLED")
 	overrideString(&cfg.Security.CasdoorApplication, "VELORA_CASDOOR_APPLICATION")
 	overrideString(&cfg.Security.CasdoorOrganization, "VELORA_CASDOOR_ORGANIZATION")
+	overrideString(&cfg.Security.TurnstileSiteKey, "VELORA_TURNSTILE_SITE_KEY")
+	overrideCSV(&cfg.Security.TurnstileHostnames, "VELORA_TURNSTILE_HOSTNAMES")
+	overrideString(&cfg.Security.TurnstileAction, "VELORA_TURNSTILE_ACTION")
 	overrideString(&cfg.Security.OIDCInternalURL, "VELORA_OIDC_INTERNAL_URL")
 	overrideBool(&cfg.Security.OIDCProviderEnabled, "VELORA_OIDC_PROVIDER_ENABLED")
 	overrideBool(&cfg.Security.SecureCookies, "VELORA_SECURE_COOKIES")
@@ -780,6 +802,42 @@ func (c Config) Validate() error {
 			errs = append(errs, "security.casdoor_organization is required when Casdoor password login is enabled")
 		}
 	}
+	turnstileParts := []string{strings.TrimSpace(c.Security.TurnstileSiteKey), strings.TrimSpace(c.Security.TurnstileSecret)}
+	turnstileConfigured := c.Security.TurnstileConfigured()
+	// Development may carry a public site key before the secret is retrieved;
+	// the verifier remains disabled until all values are present. Production
+	// rejects every partial configuration so a protected form cannot start in
+	// an unverified state.
+	if isProduction(c.App.Environment) && (turnstileConfigured || turnstileParts[0] != "" || turnstileParts[1] != "" || len(c.Security.TurnstileHostnames) > 0) {
+		if turnstileParts[0] == "" {
+			errs = append(errs, "security.turnstile_site_key is required when Turnstile is configured")
+		}
+		if turnstileParts[1] == "" {
+			errs = append(errs, "VELORA_TURNSTILE_SECRET is required when Turnstile is configured")
+		}
+		if len(c.Security.TurnstileHostnames) == 0 {
+			errs = append(errs, "security.turnstile_hostnames is required when Turnstile is configured")
+		}
+		seenHostnames := make(map[string]struct{}, len(c.Security.TurnstileHostnames))
+		for _, raw := range c.Security.TurnstileHostnames {
+			host := strings.ToLower(strings.TrimSpace(raw))
+			if host == "" || strings.ContainsAny(host, "/\\,:;?'\" ") {
+				errs = append(errs, "security.turnstile_hostnames must contain hostnames without schemes, ports, or paths")
+				continue
+			}
+			if _, duplicate := seenHostnames[host]; duplicate {
+				errs = append(errs, "security.turnstile_hostnames must not contain duplicates")
+			}
+			seenHostnames[host] = struct{}{}
+			if isProduction(c.App.Environment) && (host == "localhost" || host == "127.0.0.1") {
+				errs = append(errs, "security.turnstile_hostnames must not include localhost or 127.0.0.1 in production")
+			}
+		}
+		action := c.Security.EffectiveTurnstileAction()
+		if len(action) > 32 || strings.ContainsAny(action, " ,;:/\\") {
+			errs = append(errs, "security.turnstile_action must be 1..32 characters without separators")
+		}
+	}
 	if strings.EqualFold(c.Security.SameSite, "none") && !c.Security.SecureCookies {
 		errs = append(errs, "security.same_site=none requires secure_cookies=true")
 	}
@@ -931,6 +989,9 @@ func (c Config) ValidateProductionAuth() error {
 	}
 	if c.Security.OIDCProviderEnabled {
 		errs = append(errs, "security.oidc_provider_enabled must be false in production; Casdoor is the only OIDC provider")
+	}
+	if c.Security.CasdoorPasswordLoginEnabled && !c.Security.TurnstileConfigured() {
+		errs = append(errs, "Velora-hosted password login requires Turnstile configuration in production")
 	}
 	if len(c.Security.TrustedProxies) == 0 {
 		errs = append(errs, "security.trusted_proxies must contain approved proxy CIDRs in production")

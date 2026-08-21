@@ -105,6 +105,9 @@ message HealthResponse {
   string auth_mode = 4;
   bool password_login_enabled = 5;
   string casdoor_account_url = 6;
+  bool turnstile_enabled = 7;
+  string turnstile_site_key = 8;
+  string turnstile_action = 9;
 }
 
 message ReadinessRequest {}

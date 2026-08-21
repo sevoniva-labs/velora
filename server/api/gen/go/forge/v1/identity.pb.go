@@ -25,14 +25,17 @@ const (
 )
 
 type LoginRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Organization  string                 `protobuf:"bytes,1,opt,name=organization,proto3" json:"organization,omitempty"`
-	LoginName     string                 `protobuf:"bytes,2,opt,name=login_name,json=loginName,proto3" json:"login_name,omitempty"`
-	Password      string                 `protobuf:"bytes,3,opt,name=password,proto3" json:"password,omitempty"`
-	MfaCode       string                 `protobuf:"bytes,4,opt,name=mfa_code,json=mfaCode,proto3" json:"mfa_code,omitempty"`
-	RecoveryCode  string                 `protobuf:"bytes,5,opt,name=recovery_code,json=recoveryCode,proto3" json:"recovery_code,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state        protoimpl.MessageState `protogen:"open.v1"`
+	Organization string                 `protobuf:"bytes,1,opt,name=organization,proto3" json:"organization,omitempty"`
+	LoginName    string                 `protobuf:"bytes,2,opt,name=login_name,json=loginName,proto3" json:"login_name,omitempty"`
+	Password     string                 `protobuf:"bytes,3,opt,name=password,proto3" json:"password,omitempty"`
+	MfaCode      string                 `protobuf:"bytes,4,opt,name=mfa_code,json=mfaCode,proto3" json:"mfa_code,omitempty"`
+	RecoveryCode string                 `protobuf:"bytes,5,opt,name=recovery_code,json=recoveryCode,proto3" json:"recovery_code,omitempty"`
+	// Cloudflare Turnstile token for the public login form. The server verifies
+	// it against the configured siteverify endpoint and never persists it.
+	TurnstileToken string `protobuf:"bytes,6,opt,name=turnstile_token,json=turnstileToken,proto3" json:"turnstile_token,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *LoginRequest) Reset() {
@@ -96,6 +99,13 @@ func (x *LoginRequest) GetMfaCode() string {
 func (x *LoginRequest) GetRecoveryCode() string {
 	if x != nil {
 		return x.RecoveryCode
+	}
+	return ""
+}
+
+func (x *LoginRequest) GetTurnstileToken() string {
+	if x != nil {
+		return x.TurnstileToken
 	}
 	return ""
 }
@@ -1470,14 +1480,15 @@ var File_forge_v1_identity_proto protoreflect.FileDescriptor
 
 const file_forge_v1_identity_proto_rawDesc = "" +
 	"\n" +
-	"\x17forge/v1/identity.proto\x12\bforge.v1\x1a\x15forge/v1/common.proto\x1a\x1cgoogle/api/annotations.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1bopenapiv3/annotations.proto\"\xad\x01\n" +
+	"\x17forge/v1/identity.proto\x12\bforge.v1\x1a\x15forge/v1/common.proto\x1a\x1cgoogle/api/annotations.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1bopenapiv3/annotations.proto\"\xd6\x01\n" +
 	"\fLoginRequest\x12\"\n" +
 	"\forganization\x18\x01 \x01(\tR\forganization\x12\x1d\n" +
 	"\n" +
 	"login_name\x18\x02 \x01(\tR\tloginName\x12\x1a\n" +
 	"\bpassword\x18\x03 \x01(\tR\bpassword\x12\x19\n" +
 	"\bmfa_code\x18\x04 \x01(\tR\amfaCode\x12#\n" +
-	"\rrecovery_code\x18\x05 \x01(\tR\frecoveryCode\"R\n" +
+	"\rrecovery_code\x18\x05 \x01(\tR\frecoveryCode\x12'\n" +
+	"\x0fturnstile_token\x18\x06 \x01(\tR\x0eturnstileToken\"R\n" +
 	"\rLoginResponse\x12\"\n" +
 	"\x04user\x18\x01 \x01(\v2\x0e.forge.v1.UserR\x04user\x12\x1d\n" +
 	"\n" +

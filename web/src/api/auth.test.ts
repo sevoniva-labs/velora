@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { beginOIDCLogin, completeOIDCLogin, getAuthCapabilities } from './api'
+import { beginOIDCLogin, completeOIDCLogin, getAuthCapabilities, getMe } from './api'
 
 describe('OIDC web adapter', () => {
   const originalFetch = globalThis.fetch
@@ -37,5 +37,12 @@ describe('OIDC web adapter', () => {
     const [url, init] = vi.mocked(globalThis.fetch).mock.calls[0]
     expect(url).toBe('/api/v1/auth/federated/oidc/casdoor/callback')
     expect(JSON.parse(String((init as RequestInit).body))).toEqual({ code: 'code-1', state: 'state-1' })
+  })
+
+  it('recognizes scaffold administrator roles for the portal entry', async () => {
+    vi.mocked(globalThis.fetch).mockResolvedValue(new Response(JSON.stringify({ code: '000000', data: {
+      user: { id: 'u1', login_name: 'admin', roles: ['system_admin'], permissions: [] },
+    } }), { status: 200 }))
+    await expect(getMe()).resolves.toMatchObject({ username: 'admin', admin: true })
   })
 })

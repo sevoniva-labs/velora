@@ -12,6 +12,7 @@ declare global {
 
 interface TurnstileRenderOptions {
   sitekey: string
+  action?: string
   callback: (token: string) => void
   'error-callback'?: () => void
   'expired-callback'?: () => void
@@ -21,6 +22,7 @@ interface TurnstileRenderOptions {
 
 interface TurnstileWidgetProps {
   siteKey: string
+  action?: string
   onVerify: (token: string) => void
   onExpire?: () => void
   theme?: 'light' | 'dark' | 'auto'
@@ -53,7 +55,7 @@ function loadTurnstileScript(): Promise<void> {
  * Cloudflare Turnstile 人机验证 widget（显式渲染）。
  * 验证通过后回调携带一次性 token，由登录请求随 body 提交，服务端校验。
  */
-export default function TurnstileWidget({ siteKey, onVerify, onExpire, theme = 'auto' }: TurnstileWidgetProps) {
+export default function TurnstileWidget({ siteKey, action = 'login', onVerify, onExpire, theme = 'auto' }: TurnstileWidgetProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const widgetIdRef = useRef<string | null>(null)
   const [failed, setFailed] = useState(false)
@@ -68,6 +70,7 @@ export default function TurnstileWidget({ siteKey, onVerify, onExpire, theme = '
         if (cancelled || !el || !window.turnstile) return
         widgetId = window.turnstile.render(el, {
           sitekey: siteKey,
+          action,
           callback: (token: string) => onVerify(token),
           'expired-callback': () => {
             onExpire?.()
@@ -96,9 +99,9 @@ export default function TurnstileWidget({ siteKey, onVerify, onExpire, theme = '
       // 清空容器：StrictMode 双挂载 / key 重挂载时避免残留重复 widget
       if (el) el.innerHTML = ''
     }
-    // siteKey 变化即重建（组件按登录页生命周期挂载一次，防重复渲染）
+    // siteKey/action 变化即重建，避免把旧 action 的 token 发给后端。
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [siteKey])
+  }, [siteKey, action])
 
   if (failed) {
     return <div style={{ color: '#fa541c', fontSize: 13 }}>安全验证加载失败，请刷新页面后重试。</div>

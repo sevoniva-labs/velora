@@ -3067,6 +3067,12 @@ components:
                     type: boolean
                 casdoorAccountUrl:
                     type: string
+                turnstileEnabled:
+                    type: boolean
+                turnstileSiteKey:
+                    type: string
+                turnstileAction:
+                    type: string
         forge.v1.LaunchPortalApplicationRequest:
             type: object
             properties:
@@ -3301,6 +3307,11 @@ components:
                     type: string
                 recoveryCode:
                     type: string
+                turnstileToken:
+                    type: string
+                    description: |-
+                        Cloudflare Turnstile token for the public login form. The server verifies
+                         it against the configured siteverify endpoint and never persists it.
         forge.v1.LoginResponse:
             type: object
             properties:

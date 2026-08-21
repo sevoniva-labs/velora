@@ -250,6 +250,7 @@ export default function Login() {
                   <TurnstileWidget
                     key={turnstileAttempt}
                     siteKey={turnstile.siteKey}
+                    action={turnstile.action}
                     onVerify={setTurnstileToken}
                     onExpire={() => setTurnstileToken('')}
                   />

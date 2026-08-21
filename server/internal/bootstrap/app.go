@@ -44,6 +44,7 @@ import (
 	"github.com/sevoniva-labs/velora/server/internal/platform/securefile"
 	appcrypto "github.com/sevoniva-labs/velora/server/internal/platform/security/crypto"
 	"github.com/sevoniva-labs/velora/server/internal/platform/storage"
+	"github.com/sevoniva-labs/velora/server/internal/platform/turnstile"
 )
 
 type Options struct{ Version string }
@@ -250,6 +251,15 @@ func New(ctx context.Context, opts Options) (*App, error) {
 	portalService := kratosapi.NewPortalService(portalSvc, auditWriter, db)
 	identityService := kratosapi.NewIdentityService(identitySvc, auditWriter, db, ratelimit.New(c), cfg.Security.SecureCookies, cfg.Security.SameSite)
 	identityService.ConfigureAuthMode(cfg.Security.AuthMode)
+	if cfg.Security.TurnstileConfigured() {
+		verifier, err := turnstile.New(turnstile.Config{
+			Secret: cfg.Security.TurnstileSecret, Action: cfg.Security.EffectiveTurnstileAction(), Hostnames: cfg.Security.TurnstileHostnames,
+		})
+		if err != nil {
+			return nil, fmt.Errorf("turnstile: %w", err)
+		}
+		identityService.ConfigureTurnstile(verifier)
+	}
 	if cfg.Security.CasdoorPasswordLoginEnabled {
 		providerName := strings.ToLower(strings.TrimSpace(cfg.Security.OIDCName))
 		if providerName == "" {

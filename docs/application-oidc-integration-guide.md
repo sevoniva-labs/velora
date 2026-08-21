@@ -1,9 +1,30 @@
 # Velora 应用 OIDC 接入指南
 
-状态：Reference App 已真实验收；本指南作为后续业务应用接入规范
+状态：Reference App 与 Spectra 已真实验收；本指南作为后续业务应用接入规范
 适用角色：应用开发者、Velora 应用管理员、身份管理员
 
 整体建设顺序和生产约束以[《Velora 新服务器整体建设与上线方案》](./production-clean-deployment-overall-plan.md)为准；本文件只定义下游应用如何接入。
+
+## 0. 五分钟接入版
+
+应用团队只需要完成下面五件事：
+
+1. 提供应用生产地址和一个精确的 HTTPS Callback 地址。
+2. 在 Velora 创建应用，启动地址填写应用自己的 OIDC 登录端点。
+3. 为应用创建 Casdoor Client，只启用 Authorization Code，Scopes 使用 `openid profile email`。
+4. 应用后端配置 `https://auth.sevoniva.com`、Client ID、Secret 文件和 Callback，并实现 PKCE、State、Nonce、ID Token 验签。
+5. 在 Velora 绑定 Client、执行真实验证、配置可见范围并发布。
+
+最小运行配置：
+
+```text
+OIDC_ISSUER=https://auth.sevoniva.com
+OIDC_CLIENT_ID=<公开 Client ID>
+OIDC_CLIENT_SECRET_FILE=/run/secrets/oidc-client-secret
+OIDC_REDIRECT_URL=https://<应用域名>/<callback>
+```
+
+用户从 Velora 点击应用后，Velora 只负责权限检查和跳转；应用与 Casdoor 直接完成标准 OIDC 协议，登录成功后由应用创建自己的业务 Session。
 
 ## 1. 接入边界
 
@@ -204,6 +225,12 @@ sequenceDiagram
 原因：DNS、证书链、Nginx 反代或 Casdoor `origin` 错误。
 处理：先检查外网 Discovery 和证书，再检查容器内 Casdoor 健康状态。
 
+### 配置完整但登录入口返回 503
+
+原因：运行应用的非 root 容器无法读取挂载的 Client Secret。Compose 的文件型 Secret 可能保留宿主机 UID/GID 和权限，宿主机 `0600` 并不代表容器用户可读。
+
+处理：确认容器实际 UID，并将 Secret 设为该 UID 所有、只读，例如 `chown 65532:65532` 与 `chmod 0400`；只检查文件存在不够，必须在容器内验证 `test -r`。禁止为了省事改成全员可读。
+
 ## 12. Reference App 验收结果模板
 
 ```text
@@ -227,3 +254,27 @@ Secret 泄漏扫描：PASS（代码与日志不包含运行时 Secret）
 ```
 
 该模板必须由真实运行结果填写，禁止预填 PASS。
+
+## 13. Spectra 生产接入记录
+
+```text
+应用：Spectra
+应用编码：spectra
+环境：production
+应用地址：https://spectra.sevoniva.com
+Issuer：https://auth.sevoniva.com
+启动地址：https://spectra.sevoniva.com/api/v1/auth/oidc/login
+Callback：https://spectra.sevoniva.com/api/v1/auth/oidc/callback
+Flow：Authorization Code + PKCE S256
+Velora 状态：ENABLED / PUBLISHED
+访问策略：EVERYONE
+Discovery：PASS（Velora 服务端真实请求）
+跳转参数：PASS（公网 302，State、Nonce、PKCE、Client ID、Callback 已核对）
+事务 Cookie：PASS（HttpOnly、Secure、SameSite=Lax）
+Spectra 健康检查：PASS（数据库迁移版本 44）
+执行时间：2026-08-22
+Spectra main：69e3b02
+服务器回滚点：/home/ubuntu/spectra-deploy/backup-20260821T231748Z-main
+```
+
+涉及真实用户身份的 Token 交换、ID Token、UserInfo 和免二次登录由用户首次登录完成最终业务验收；在此之前不得把这些项目标为 PASS。

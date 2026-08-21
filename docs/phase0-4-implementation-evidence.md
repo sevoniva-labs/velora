@@ -10,6 +10,8 @@
 - Phase 2：新增“身份与单点登录”五步向导，支持 URL/OIDC 分支、绑定保存、真实 Discovery 验证、策略跳转、验证失败恢复和发布门禁；向导草稿只保存非敏感字段到浏览器本地存储并可恢复；不收集 Client Secret；管理页展示连接状态、Issuer 和待处理应用数量。
 - Phase 3：保留并修正本地 OIDC PKCE smoke；已实测本地 Casdoor Discovery、Velora begin、`state`/`nonce`/S256 PKCE 参数、未授权管理接口拒绝和容器健康。完整登录、MFA、撤权、错误回调和登出必须使用真实测试账号执行。
 - Phase 4：新增默认关闭的最小权限 Casdoor 应用自动化客户端和只读检查命令；只允许应用客户端管理，强制 `approval_id` maker-checker，不管理用户/密码/角色/MFA；新建客户端的 Secret 仅返回给同时拥有身份管理和受控控制台权限的管理员一次，随后清理内存，不进入数据库、日志、审计或浏览器持久化存储。
+- 安全收口：门户首页/启动 URL 仅接受无用户信息、无查询串、无片段的 HTTPS 地址；`audit.read` 与历史 `system.audit.read` 在授权层等价，避免新权限分配后误拒绝旧审计接口。
+- 身份映射边界：Casdoor 的用户、组织、角色和用户组仍是权威事实；Velora 只通过经过审批的 `external_identities` 绑定把 Casdoor subject 映射到本地用户，再按 Velora 本地角色/用户组计算门户权限，不根据未经批准的 OIDC claims 自动授予高权限。
 
 ## 已执行命令
 
@@ -24,6 +26,7 @@ proto:  make -C server proto-generate PASS
 shell:  bash -n smoke/init  PASS
 git:    git diff --check     PASS; 工作区仅保留本次变更
 secret: gitleaks protect --staged PASS
+commit: 14a45ec fix(authz): harden portal URL and permission compatibility；已推送 `origin/codex/velora-forge-backend-replacement`
 ```
 
 本地 Compose 证据（2026-08-21）：
@@ -36,6 +39,7 @@ secret: gitleaks protect --staged PASS
 - 已认证身份管理员概览真实探测 Discovery 并校验 Issuer，返回连接状态、Issuer 和待处理应用数量；管理 URL 仍不进入公开健康接口；
 - 本地 Casdoor `/healthz` 返回 200，`/.well-known/openid-configuration` 返回 200，Issuer 为本地 Casdoor，Discovery 提供授权、Token、JWKS 和 RP-initiated logout 端点；
 - Velora OIDC begin 返回 200，授权地址包含 `response_type=code`、`state`、`nonce`、`code_challenge_method=S256`、`code_challenge` 和配置的 redirect URI。
+- 最终镜像由提交 `14a45ec` 重建；server、web、Postgres、Casdoor 容器均 healthy；迁移命令再次执行成功且版本保持 23。
 
 ## 未伪造的外部验收项
 

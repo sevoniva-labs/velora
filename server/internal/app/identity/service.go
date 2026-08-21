@@ -581,7 +581,7 @@ func (s *Service) LoginWithMFA(ctx context.Context, orgID, login, raw, mfaCode, 
 // adapter must authenticate the credential first; this method only accepts an
 // explicit, approved subject mapping and never provisions or matches by
 // email/login name.
-func (s *Service) LoginFederated(ctx context.Context, orgID, provider, subject, ip, ua string) (domain.Principal, string, string, time.Time, error) {
+func (s *Service) LoginFederated(ctx context.Context, orgID, provider, subject, ip, ua string, mfaVerified bool) (domain.Principal, string, string, time.Time, error) {
 	provider = strings.ToLower(strings.TrimSpace(provider))
 	subject = strings.TrimSpace(subject)
 	if !federatedProviderPattern.MatchString(provider) || subject == "" || len(subject) > 512 {
@@ -621,7 +621,14 @@ func (s *Service) LoginFederated(ctx context.Context, orgID, provider, subject, 
 		return domain.Principal{}, "", "", time.Time{}, err
 	}
 	expires := time.Now().UTC().Add(policy.sessionTTL)
-	sessionID, err := s.repo.CreateSession(ctx, user.ID, hashToken(token), expires, ip, ua, "FEDERATED", nil)
+	authenticationLevel := "FEDERATED"
+	var mfaVerifiedAt *time.Time
+	if mfaVerified {
+		authenticationLevel = "MFA"
+		verifiedAt := time.Now().UTC()
+		mfaVerifiedAt = &verifiedAt
+	}
+	sessionID, err := s.repo.CreateSession(ctx, user.ID, hashToken(token), expires, ip, ua, authenticationLevel, mfaVerifiedAt)
 	if err != nil {
 		return domain.Principal{}, "", "", time.Time{}, err
 	}
@@ -638,7 +645,7 @@ func (s *Service) LoginFederated(ctx context.Context, orgID, provider, subject, 
 		return domain.Principal{}, "", "", time.Time{}, err
 	}
 	mustChange := user.MustChangePassword || s.passwordExpiredAt(user.PasswordChangedAt, policy.maxAge)
-	p := domain.Principal{Type: "USER", UserID: user.ID, OrganizationID: user.OrganizationID, LoginName: user.LoginName, DisplayName: user.DisplayName, Roles: user.Roles, Permissions: user.Permissions, MustChangePassword: mustChange, SessionID: sessionID, PasswordChangedAt: user.PasswordChangedAt, AuthenticationLevel: "FEDERATED"}
+	p := domain.Principal{Type: "USER", UserID: user.ID, OrganizationID: user.OrganizationID, LoginName: user.LoginName, DisplayName: user.DisplayName, Roles: user.Roles, Permissions: user.Permissions, MustChangePassword: mustChange, SessionID: sessionID, PasswordChangedAt: user.PasswordChangedAt, AuthenticationLevel: authenticationLevel, MFAVerifiedAt: mfaVerifiedAt}
 	return p, token, csrf, expires, nil
 }
 

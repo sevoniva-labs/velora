@@ -42,6 +42,26 @@ func TestUniqueStringsRemovesEmptyAndDuplicates(t *testing.T) {
 	}
 }
 
+func TestClaimsIndicateMFAAcceptsStandardAMRAndACRForms(t *testing.T) {
+	for _, tc := range []struct {
+		name string
+		raw  string
+		acr  string
+		want bool
+	}{
+		{name: "array", raw: `["pwd","mfa"]`, want: true},
+		{name: "string", raw: `"totp"`, want: true},
+		{name: "acr", raw: `[]`, acr: "urn:example:mfa", want: true},
+		{name: "password only", raw: `["pwd"]`, want: false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := claimsIndicateMFA([]byte(tc.raw), tc.acr); got != tc.want {
+				t.Fatalf("claimsIndicateMFA(%s, %q) = %v, want %v", tc.raw, tc.acr, got, tc.want)
+			}
+		})
+	}
+}
+
 func TestNewOIDCProviderRequiresConfidentialClientConfiguration(t *testing.T) {
 	_, err := NewOIDCProvider(context.Background(), nil, OIDCConfig{
 		Name: "casdoor", Issuer: "https://casdoor.example.com", ClientID: "velora", RedirectURL: "https://velora.example.com/api/v1/auth/federated/oidc/casdoor/callback",

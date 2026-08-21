@@ -32,6 +32,7 @@ type FederatedIdentity struct {
 	DisplayName      string
 	Email            string
 	Groups           []string
+	MFAVerified      bool
 	Provider         string
 	AuthenticationAt time.Time
 }
@@ -203,17 +204,19 @@ func (p *OIDCProvider) AuthenticateCode(ctx context.Context, code, nonce string,
 		return FederatedIdentity{}, ErrAuthenticationFailed
 	}
 	var claims struct {
-		Subject           string   `json:"sub"`
-		Email             string   `json:"email"`
-		Name              string   `json:"name"`
-		PreferredUsername string   `json:"preferred_username"`
-		Groups            []string `json:"groups"`
-		Nonce             string   `json:"nonce"`
+		Subject           string          `json:"sub"`
+		Email             string          `json:"email"`
+		Name              string          `json:"name"`
+		PreferredUsername string          `json:"preferred_username"`
+		Groups            []string        `json:"groups"`
+		AMR               json.RawMessage `json:"amr"`
+		ACR               string          `json:"acr"`
+		Nonce             string          `json:"nonce"`
 	}
 	if err := idToken.Claims(&claims); err != nil || claims.Subject == "" || claims.Nonce != nonce {
 		return FederatedIdentity{}, ErrAuthenticationFailed
 	}
-	identity := FederatedIdentity{Subject: claims.Subject, LoginName: claims.PreferredUsername, DisplayName: claims.Name, Email: claims.Email, Groups: uniqueStrings(claims.Groups), Provider: p.name, AuthenticationAt: time.Now().UTC()}
+	identity := FederatedIdentity{Subject: claims.Subject, LoginName: claims.PreferredUsername, DisplayName: claims.Name, Email: claims.Email, Groups: uniqueStrings(claims.Groups), MFAVerified: claimsIndicateMFA(claims.AMR, claims.ACR), Provider: p.name, AuthenticationAt: time.Now().UTC()}
 	if identity.LoginName == "" {
 		identity.LoginName = claims.Email
 	}
@@ -309,7 +312,32 @@ func (p *OIDCProvider) AuthenticatePassword(ctx context.Context, loginName, pass
 	if err := json.Unmarshal(result.Data, &code); err != nil || strings.TrimSpace(code) == "" {
 		return FederatedIdentity{}, ErrAuthenticationFailed
 	}
-	return p.AuthenticateCode(ctx, code, nonce, verifier)
+	identity, err := p.AuthenticateCode(ctx, code, nonce, verifier)
+	if err != nil {
+		return FederatedIdentity{}, err
+	}
+	identity.MFAVerified = strings.TrimSpace(mfaCode) != "" || strings.TrimSpace(recoveryCode) != ""
+	return identity, nil
+}
+
+func claimsIndicateMFA(raw json.RawMessage, acr string) bool {
+	if strings.Contains(strings.ToLower(acr), "mfa") || strings.Contains(strings.ToLower(acr), "multi") {
+		return true
+	}
+	var values []string
+	if json.Unmarshal(raw, &values) == nil {
+		for _, value := range values {
+			if strings.EqualFold(strings.TrimSpace(value), "mfa") || strings.EqualFold(strings.TrimSpace(value), "otp") || strings.EqualFold(strings.TrimSpace(value), "totp") || strings.EqualFold(strings.TrimSpace(value), "hwk") {
+				return true
+			}
+		}
+		return false
+	}
+	var value string
+	if json.Unmarshal(raw, &value) == nil {
+		return strings.EqualFold(strings.TrimSpace(value), "mfa") || strings.EqualFold(strings.TrimSpace(value), "otp") || strings.EqualFold(strings.TrimSpace(value), "totp") || strings.EqualFold(strings.TrimSpace(value), "hwk")
+	}
+	return false
 }
 
 func randomValue(size int) (string, error) {

@@ -48,7 +48,7 @@ func (s *IdentityService) loginCasdoorPassword(ctx context.Context, req *forgev1
 		_ = s.audit.Write(ctx, *event)
 		return nil, kerrors.Unauthorized("INVALID_CREDENTIALS", "invalid credentials")
 	}
-	principal, token, csrf, expires, err := s.loginFederated(ctx, organization, federated.Provider, federated.Subject)
+	principal, token, csrf, expires, err := s.loginFederated(ctx, organization, federated.Provider, federated.Subject, federated.MFAVerified)
 	if err != nil {
 		_ = s.audit.Write(ctx, *event)
 		return nil, err
@@ -167,7 +167,7 @@ func (s *IdentityService) CompleteOIDCLogin(ctx context.Context, req *forgev1.Co
 	if err != nil || federated.Provider != providerName || federated.Subject == "" {
 		return nil, kerrors.Unauthorized("FEDERATED_LOGIN_FAILED", "federated login failed")
 	}
-	principal, token, csrf, expires, err := s.loginFederated(ctx, stateData.Organization, providerName, federated.Subject)
+	principal, token, csrf, expires, err := s.loginFederated(ctx, stateData.Organization, providerName, federated.Subject, federated.MFAVerified)
 	if err != nil {
 		return nil, err
 	}
@@ -205,7 +205,7 @@ func (s *IdentityService) LoginLDAP(ctx context.Context, req *forgev1.LoginLDAPR
 		_ = s.audit.Write(ctx, *event)
 		return nil, kerrors.Unauthorized("FEDERATED_LOGIN_FAILED", "federated login failed")
 	}
-	principal, token, csrf, expires, err := s.loginFederated(ctx, organization, providerName, federated.Subject)
+	principal, token, csrf, expires, err := s.loginFederated(ctx, organization, providerName, federated.Subject, federated.MFAVerified)
 	if err != nil {
 		return nil, err
 	}
@@ -213,7 +213,7 @@ func (s *IdentityService) LoginLDAP(ctx context.Context, req *forgev1.LoginLDAPR
 	return &forgev1.LoginLDAPResponse{User: principalUser(principal), CsrfToken: csrf}, nil
 }
 
-func (s *IdentityService) loginFederated(ctx context.Context, organization, provider, subject string) (domain.Principal, string, string, time.Time, error) {
+func (s *IdentityService) loginFederated(ctx context.Context, organization, provider, subject string, mfaVerified bool) (domain.Principal, string, string, time.Time, error) {
 	var principal domain.Principal
 	var token, csrf string
 	var expires time.Time
@@ -227,7 +227,7 @@ func (s *IdentityService) loginFederated(ctx context.Context, organization, prov
 			return s.audit.Write(txCtx, *event)
 		}
 		event.OrganizationID = organizationID
-		principal, token, csrf, expires, loginErr = s.identity.LoginFederated(txCtx, organizationID, provider, subject, event.ClientIP, requestHeader(ctx, "User-Agent", 512))
+		principal, token, csrf, expires, loginErr = s.identity.LoginFederated(txCtx, organizationID, provider, subject, event.ClientIP, requestHeader(ctx, "User-Agent", 512), mfaVerified)
 		if loginErr == nil {
 			event.ActorID, event.ActorName, event.ResourceID, event.Result = principal.UserID, principal.LoginName, principal.SessionID, "SUCCESS"
 		}

@@ -48,6 +48,7 @@ func TestValidateApplication(t *testing.T) {
 		"bad status":          {Code: "crm", Name: "CRM", Status: "UNKNOWN"},
 		"relative url":        {Code: "crm", Name: "CRM", Status: StatusEnabled, LaunchURL: "/crm"},
 		"http url":            {Code: "crm", Name: "CRM", Status: StatusEnabled, LaunchURL: "http://crm.example.test"},
+		"unsafe home url":     {Code: "crm", Name: "CRM", Status: StatusEnabled, HomeURL: "http://crm.example.test"},
 		"retired velora oidc": {Code: "legacy", Name: "Legacy", LaunchType: LaunchTypeRetiredVeloraOIDC, Status: StatusEnabled, LaunchURL: "https://legacy.example.test"},
 	} {
 		t.Run(name, func(t *testing.T) {

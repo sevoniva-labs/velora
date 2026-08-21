@@ -136,9 +136,15 @@ func ValidateApplication(app Application) error {
 	if app.LaunchType == "" {
 		app.LaunchType = "URL"
 	}
+	if app.HomeURL != "" {
+		u, err := url.Parse(app.HomeURL)
+		if err != nil || u.Scheme != "https" || u.Host == "" || u.User != nil || u.RawQuery != "" || u.Fragment != "" {
+			return ErrInvalidLaunchURL
+		}
+	}
 	if app.LaunchURL != "" {
 		u, err := url.Parse(app.LaunchURL)
-		if err != nil || u.Scheme != "https" || u.Host == "" {
+		if err != nil || u.Scheme != "https" || u.Host == "" || u.User != nil || u.RawQuery != "" || u.Fragment != "" {
 			return ErrInvalidLaunchURL
 		}
 	}

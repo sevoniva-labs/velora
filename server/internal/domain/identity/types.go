@@ -258,7 +258,7 @@ func (p Principal) HasPermission(keys ...string) bool {
 		for _, want := range keys {
 			allowed := false
 			for _, scope := range p.Scopes {
-				if scope == want || scope == "*" {
+				if permissionsEquivalent(scope, want) || scope == "*" {
 					allowed = true
 					break
 				}
@@ -273,10 +273,21 @@ func (p Principal) HasPermission(keys ...string) bool {
 	}
 	for _, have := range p.Permissions {
 		for _, want := range keys {
-			if have == want {
+			if permissionsEquivalent(have, want) {
 				return true
 			}
 		}
 	}
 	return false
+}
+
+// permissionsEquivalent preserves compatibility for permission keys that were
+// renamed while keeping the authorization rule stable for existing tokens and
+// newly assigned roles.
+func permissionsEquivalent(have, want string) bool {
+	if have == want {
+		return true
+	}
+	return (have == "audit.read" && want == "system.audit.read") ||
+		(have == "system.audit.read" && want == "audit.read")
 }

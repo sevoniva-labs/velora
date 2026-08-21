@@ -58,3 +58,22 @@ func TestPlatformAuthorizationDeniesUnregisteredOperation(t *testing.T) {
 		t.Fatal("unregistered platform operation was accepted")
 	}
 }
+
+func TestPortalConsoleRequiresDedicatedPermission(t *testing.T) {
+	handler := Server(PortalRules())(func(context.Context, any) (any, error) { return "ok", nil })
+	operation := forgev1.OperationPortalServiceGetIdentityConsoleLink
+	if _, err := handler(authorizationContext(operation, domain.Principal{Permissions: []string{"iam.integration.read"}}), nil); err == nil {
+		t.Fatal("identity reader was allowed to open the Casdoor console")
+	}
+	if _, err := handler(authorizationContext(operation, domain.Principal{Permissions: []string{"iam.console.open"}}), nil); err != nil {
+		t.Fatalf("identity console permission rejected: %v", err)
+	}
+}
+
+func TestAuditReadCompatibilityPermission(t *testing.T) {
+	handler := Server(PlatformRules())(func(context.Context, any) (any, error) { return "ok", nil })
+	operation := forgev1.OperationPlatformServiceListAuditLogs
+	if _, err := handler(authorizationContext(operation, domain.Principal{Permissions: []string{"audit.read"}}), nil); err != nil {
+		t.Fatalf("audit.read compatibility permission rejected: %v", err)
+	}
+}

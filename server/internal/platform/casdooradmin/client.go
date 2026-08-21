@@ -158,7 +158,17 @@ func (c *Client) UpsertApplication(ctx context.Context, input UpsertInput) (Appl
 	if err != nil {
 		return Application{}, false, err
 	}
-	request := map[string]any{"owner": input.Organization, "name": input.Name, "organization": input.Organization, "displayName": input.DisplayName, "clientId": input.ClientID, "redirectUris": input.RedirectURIs, "grantTypes": input.GrantTypes, "scopes": input.Scopes, "enableSigninSession": true}
+	// Casdoor's authorization UI calls array helpers on these fields without
+	// consistently guarding null. Always send empty arrays for optional
+	// collections so a newly automated OIDC client cannot render a blank page.
+	request := map[string]any{
+		"owner": input.Organization, "name": input.Name, "organization": input.Organization,
+		"displayName": input.DisplayName, "clientId": input.ClientID, "redirectUris": input.RedirectURIs,
+		"grantTypes": input.GrantTypes, "scopes": input.Scopes,
+		"enableSigninSession": true, "enableAutoSignin": true,
+		"providers": []any{}, "signupItems": []any{}, "signinItems": []any{},
+		"tags": []string{}, "samlAttributes": []any{}, "tokenFields": []string{},
+	}
 	method, path := http.MethodPost, "/api/add-application"
 	if found {
 		method, path = http.MethodPost, "/api/update-application"

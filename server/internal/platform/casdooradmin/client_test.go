@@ -47,6 +47,19 @@ func TestUpsertReturnsClientSecretOnlyOnceInMemory(t *testing.T) {
 			w.WriteHeader(http.StatusNotFound)
 			return
 		}
+		var request map[string]any
+		if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+			t.Fatalf("decode application request: %v", err)
+		}
+		for _, field := range []string{"providers", "signupItems", "signinItems", "tags", "samlAttributes", "tokenFields"} {
+			value, ok := request[field].([]any)
+			if !ok || value == nil || len(value) != 0 {
+				t.Fatalf("%s must be encoded as an empty array, got %#v", field, request[field])
+			}
+		}
+		if request["enableSigninSession"] != true || request["enableAutoSignin"] != true {
+			t.Fatalf("OIDC application must reuse the established identity session: %#v", request)
+		}
 		_, _ = w.Write([]byte(`{"status":"ok","data":{"name":"demo","scopes":["openid","profile"],"clientSecret":"one-time-secret"}}`))
 	}))
 	defer server.Close()

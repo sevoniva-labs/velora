@@ -121,6 +121,8 @@ sequenceDiagram
 
 正常情况下，用户已在 Velora 建立 Casdoor SSO Session，授权端点会直接回调，不再显示账号密码页面。
 
+由 Velora 自动创建 Casdoor Client 时，必须同时启用 Signin Session 与 Auto Signin，并把 `providers`、`signupItems`、`signinItems`、`tags`、`samlAttributes`、`tokenFields` 等可选集合写成空数组而不是 `null`。否则 Casdoor 授权页可能白屏，或向已登录用户再次展示 Casdoor 登录入口。
+
 ## 7. Token 校验要求
 
 目标应用必须校验：
@@ -215,6 +217,12 @@ sequenceDiagram
 原因：Casdoor 浏览器 SSO Session 没有建立、过期或被清除。
 处理：检查 Velora Session Bridge、`auth.sevoniva.com` Cookie 和 Casdoor Signin Session 配置；不要通过共享父域 Cookie绕过。
 
+### Casdoor 授权页白屏
+
+原因：Client 的 `signupItems` 等集合字段被保存为 `null`，Casdoor 前端调用数组方法时异常。
+
+处理：通过 Velora 的 Client 自动化重新发布配置，确保可选集合为 `[]`；同时检查浏览器控制台是否存在 `Cannot read properties of null (reading 'find')`。不要修改 Casdoor 源码规避脏配置。
+
 ### `invalid_client`
 
 原因：Client ID/Secret 错误、Secret 已轮换、应用被停用。
@@ -272,6 +280,9 @@ Discovery：PASS（Velora 服务端真实请求）
 跳转参数：PASS（公网 302，State、Nonce、PKCE、Client ID、Callback 已核对）
 事务 Cookie：PASS（HttpOnly、Secure、SameSite=Lax）
 Spectra 健康检查：PASS（数据库迁移版本 44）
+Velora 登录与跨域 Session Bridge：PASS（公网 303、Host-only Secure Cookie、一次性票据重放 410）
+Casdoor 无感授权：PASS（已登录用户不再展示 Casdoor 账号密码页）
+OIDC Callback 与 Spectra 本地 Session：PASS（真实浏览器最终进入 /home）
 执行时间：2026-08-22
 Spectra main：69e3b02
 服务器回滚点：/home/ubuntu/spectra-deploy/backup-20260821T231748Z-main

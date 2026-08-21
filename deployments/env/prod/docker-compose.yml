@@ -270,6 +270,8 @@ services:
       DEMO_OIDC_REDIRECT_URL: "${DEMO_OIDC_REDIRECT_URL:?DEMO_OIDC_REDIRECT_URL is required}"
       DEMO_PUBLIC_URL: "${DEMO_PUBLIC_URL:?DEMO_PUBLIC_URL is required}"
       DEMO_POST_LOGOUT_REDIRECT_URL: "${DEMO_POST_LOGOUT_REDIRECT_URL:?DEMO_POST_LOGOUT_REDIRECT_URL is required}"
+    extra_hosts:
+      - "auth.sevoniva.com:host-gateway"
     secrets:
       - demo_oidc_client_secret
     expose:
@@ -295,10 +297,6 @@ services:
       web:
         condition: service_healthy
       server:
-        condition: service_healthy
-      casdoor:
-        condition: service_healthy
-      oidc-demo:
         condition: service_healthy
     volumes:
       - "${VELORA_CERTS_DIR:?VELORA_CERTS_DIR is required}:/etc/nginx/certs:ro"

@@ -23,6 +23,8 @@ import type {
   TodoKind,
   TodoPriority,
   AccessPolicy,
+  IdentityBinding,
+  ApplicationVerification,
 } from '../types'
 
 type AnyRecord = Record<string, any>
@@ -48,7 +50,7 @@ function mapUser(value: unknown): CurrentUser {
   const permissions = Array.isArray(user.permissions) ? user.permissions.map(String) : []
   // system_admin is the backend's explicit implicit-superuser escape hatch;
   // all other users must have an actual management permission in the payload.
-  const admin = permissions.some((permission) => permission === 'portal.application.manage' || permission.startsWith('system.')) || (permissions.length === 0 && roles.includes('system_admin'))
+  const admin = permissions.some((permission) => permission === 'portal.application.manage' || permission.startsWith('system.') || permission.startsWith('iam.')) || (permissions.length === 0 && roles.includes('system_admin'))
   return {
     id: asId(user.id),
     username: String(user.loginName ?? user.username ?? ''),
@@ -93,7 +95,19 @@ function mapApplication(value: unknown): Application {
     tags: listFrom(item.tags).map(mapTag), policies: listFrom(item.policies).map(mapPolicy), isFavorite: Boolean(item.favorite ?? item.isFavorite),
     isNew: createdAt ? Date.now() - Date.parse(createdAt) < 7 * 24 * 60 * 60 * 1000 : false, createdAt, updatedAt: String(item.updatedAt ?? createdAt),
     createdBy: item.createdBy, updatedBy: item.updatedBy, homeUrl: item.homeUrl, launchUrl: item.launchUrl,
+    lifecycleStatus: item.lifecycleStatus, configVersion: item.configVersion == null ? undefined : Number(item.configVersion), publishedAt: item.publishedAt, publishedBy: item.publishedBy,
   }
+}
+
+function mapIdentityBinding(value: unknown): IdentityBinding | undefined {
+  const item = record(value)
+  if (!item.id) return undefined
+  return { id: asId(item.id), organizationId: asId(item.organizationId), applicationId: asId(item.applicationId), providerKey: String(item.providerKey ?? ''), protocol: String(item.protocol ?? ''), providerApplicationRef: String(item.providerApplicationRef ?? ''), publicClientId: String(item.publicClientId ?? ''), issuer: String(item.issuer ?? ''), redirectUris: listFrom(item, 'redirectUris').map(String), configurationStatus: String(item.configurationStatus ?? ''), verificationStatus: String(item.verificationStatus ?? ''), verifiedAt: item.verifiedAt, verifiedBy: item.verifiedBy, verificationError: String(item.verificationError ?? ''), configVersion: Number(item.configVersion ?? 0), createdAt: item.createdAt, updatedAt: item.updatedAt }
+}
+
+function mapVerification(value: unknown): ApplicationVerification {
+  const item = record(value)
+  return { id: asId(item.id), applicationId: asId(item.applicationId), bindingId: asId(item.bindingId), checkType: String(item.checkType ?? ''), result: String(item.result ?? ''), errorCode: String(item.errorCode ?? ''), evidenceJson: String(item.evidenceJson ?? ''), verifiedBy: String(item.verifiedBy ?? ''), occurredAt: String(item.occurredAt ?? ''), requestId: String(item.requestId ?? '') }
 }
 
 function pageOf<T>(items: T[], page = 1, pageSize = items.length || 1, total = items.length): Page<T> { return { items, total, page, pageSize } }
@@ -266,6 +280,18 @@ export async function adminListApplications(params: ListApplicationsParams = {})
 export async function adminCreateApplication(input: AdminApplicationInput): Promise<Application> { const data = await apiFetch<unknown>('/admin/portal/applications', { method: 'POST', body: applicationBody(input, true) }); return mapApplication(record(data).application ?? data) }
 export async function adminUpdateApplication(id: string | number, input: AdminApplicationInput): Promise<Application> { const data = await apiFetch<unknown>(`/admin/portal/applications/${encodeURIComponent(String(id))}`, { method: 'PATCH', body: applicationBody(input, false) }); return mapApplication(record(data).application ?? data) }
 export function adminDeleteApplication(id: string | number): Promise<void> { return apiFetch(`/admin/portal/applications/${encodeURIComponent(String(id))}`, { method: 'DELETE' }).then(() => undefined) }
+
+export interface IdentityOverview { onboardingEnabled: boolean; adminEntryEnabled: boolean; providerKey: string; adminUrlHost: string }
+export interface ApplicationOnboarding { application: Application; binding?: IdentityBinding; verifications: ApplicationVerification[]; canPublish: boolean }
+export async function getIdentityOverview(): Promise<IdentityOverview> { const data = record(await apiFetch<unknown>('/admin/identity/overview')); return { onboardingEnabled: Boolean(data.onboardingEnabled), adminEntryEnabled: Boolean(data.adminEntryEnabled), providerKey: String(data.providerKey ?? ''), adminUrlHost: String(data.adminUrlHost ?? '') } }
+export async function getIdentityConsoleLink(): Promise<{ url: string; providerKey: string }> { const data = record(await apiFetch<unknown>('/admin/identity/console-link')); return { url: String(data.url ?? ''), providerKey: String(data.providerKey ?? '') } }
+export async function getApplicationOnboarding(id: string | number): Promise<ApplicationOnboarding> { const data = record(await apiFetch<unknown>(`/admin/portal/applications/${encodeURIComponent(String(id))}/onboarding`)); return { application: mapApplication(record(data.application)), binding: mapIdentityBinding(data.binding), verifications: listFrom(data, 'verifications').map(mapVerification), canPublish: Boolean(data.canPublish) } }
+export interface IdentityBindingInput { providerKey: string; protocol: string; providerApplicationRef: string; publicClientId: string; issuer?: string; redirectUris?: string[]; expectedConfigVersion?: number }
+export async function upsertApplicationIdentityBinding(id: string | number, input: IdentityBindingInput): Promise<ApplicationOnboarding> { const data = record(await apiFetch<unknown>(`/admin/portal/applications/${encodeURIComponent(String(id))}/identity-binding`, { method: 'PUT', body: input })); return { application: mapApplication(record(data.application)), binding: mapIdentityBinding(data.binding), verifications: [], canPublish: false } }
+export async function verifyApplicationIdentity(id: string | number, expectedConfigVersion?: number): Promise<ApplicationOnboarding & { passed: boolean }> { const data = record(await apiFetch<unknown>(`/admin/portal/applications/${encodeURIComponent(String(id))}/verify`, { method: 'POST', body: { expectedConfigVersion } })); return { application: mapApplication(record(data.application)), binding: mapIdentityBinding(data.binding), verifications: listFrom(data, 'verifications').map(mapVerification), canPublish: Boolean(data.passed), passed: Boolean(data.passed) } }
+export async function submitApplicationPublish(id: string | number, expectedConfigVersion?: number): Promise<Application> { const data = record(await apiFetch<unknown>(`/admin/portal/applications/${encodeURIComponent(String(id))}/submit-publish`, { method: 'POST', body: { expectedConfigVersion } })); return mapApplication(record(data.application)) }
+export async function publishApplication(id: string | number, expectedConfigVersion?: number): Promise<Application> { const data = record(await apiFetch<unknown>(`/admin/portal/applications/${encodeURIComponent(String(id))}/publish`, { method: 'POST', body: { expectedConfigVersion } })); return mapApplication(record(data.application)) }
+export async function disableApplication(id: string | number, expectedConfigVersion?: number): Promise<Application> { const data = record(await apiFetch<unknown>(`/admin/portal/applications/${encodeURIComponent(String(id))}/disable`, { method: 'POST', body: { expectedConfigVersion } })); return mapApplication(record(data.application)) }
 // Casdoor 同步属于旧后端能力，当前基座不提供该路由；UI 不再展示入口。
 export function adminSyncApplications(): Promise<{ total: number; created: number; updated: number }> { return Promise.reject(unavailable('Casdoor 应用同步')) }
 export async function adminSetPolicies(id: string | number, policies: { policyType: string; value: string }[]): Promise<unknown> { return apiFetch(`/admin/portal/applications/${encodeURIComponent(String(id))}/policies`, { method: 'PUT', body: { policies } }) }
@@ -285,4 +311,4 @@ export function getPortalSettings(): Promise<{ key: string; value: string }[]> {
 export function updatePortalSetting(_key: string, _value: string): Promise<unknown> { return Promise.reject(unavailable('门户设置服务')) }
 export async function getSystemVersion(): Promise<{ application: string; version?: string }> { const data = record(await apiFetch<unknown>('/system/info')); return { application: String(data.service ?? data.application ?? 'Velora'), version: data.version ? String(data.version) : undefined } }
 
-export const queryKeys = { me: ['me'] as const, applications: (params?: unknown) => ['applications', params] as const, application: (id: string | number) => ['applications', id] as const, recent: ['recent'] as const, popular: ['popular'] as const, categories: ['categories'] as const, tags: ['tags'] as const, favorites: ['favorites'] as const, todos: ['todos'] as const, mailAccounts: ['mail', 'accounts'] as const, mailProviders: ['mail', 'providers'] as const, mailMessages: (params?: unknown) => ['mail', 'messages', params] as const, mailMessage: (id: string | number) => ['mail', 'messages', 'detail', id] as const, adminApplications: (params?: unknown) => ['admin', 'applications', params] as const, auditLogs: (params?: unknown) => ['admin', 'audit-logs', params] as const, dashboard: ['admin', 'dashboard'] as const, portalSettings: ['portal', 'settings'] as const }
+export const queryKeys = { me: ['me'] as const, applications: (params?: unknown) => ['applications', params] as const, application: (id: string | number) => ['applications', id] as const, recent: ['recent'] as const, popular: ['popular'] as const, categories: ['categories'] as const, tags: ['tags'] as const, favorites: ['favorites'] as const, todos: ['todos'] as const, mailAccounts: ['mail', 'accounts'] as const, mailProviders: ['mail', 'providers'] as const, mailMessages: (params?: unknown) => ['mail', 'messages', params] as const, mailMessage: (id: string | number) => ['mail', 'messages', 'detail', id] as const, adminApplications: (params?: unknown) => ['admin', 'applications', params] as const, auditLogs: (params?: unknown) => ['admin', 'audit-logs', params] as const, dashboard: ['admin', 'dashboard'] as const, identityOverview: ['admin', 'identity', 'overview'] as const, applicationOnboarding: (id: string | number) => ['admin', 'identity', 'onboarding', id] as const, portalSettings: ['portal', 'settings'] as const }

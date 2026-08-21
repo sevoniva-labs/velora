@@ -42,7 +42,10 @@ export function AdminLayout({ children }: AdminLayoutProps) {
     },
   })
 
-  const menuItems = adminNavGroups.map((g) => ({
+  const permissions = me.data?.permissions ?? []
+  const canSee = (permission?: string) => !permission || permissions.includes(permission) || permissions.includes('system.role.manage') || (permissions.length === 0 && me.data?.roles.includes('system_admin'))
+  const visibleGroups = adminNavGroups.map((g) => ({ ...g, items: g.items.filter((item) => canSee(item.permission)) })).filter((g) => g.items.length > 0)
+  const menuItems = visibleGroups.map((g) => ({
     type: 'group' as const,
     key: g.key,
     label: g.label,
@@ -56,7 +59,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
       ),
     })),
   }))
-  const flatItems = adminNavGroups.flatMap((g) => g.items)
+  const flatItems = visibleGroups.flatMap((g) => g.items)
 
   return (
     <Layout className={collapsed ? 'velora-layout is-collapsed' : 'velora-layout'}>

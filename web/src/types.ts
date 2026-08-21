@@ -70,10 +70,47 @@ export interface Application {
   updatedAt: string
   createdBy?: string
   updatedBy?: string
+  lifecycleStatus?: string
+  configVersion?: number
+  publishedAt?: string
+  publishedBy?: string
   // 仅管理员视图：
   homeUrl?: string
   launchUrl?: string
   healthCheckUrl?: string
+}
+
+export interface IdentityBinding {
+  id: string
+  organizationId: string
+  applicationId: string
+  providerKey: string
+  protocol: string
+  providerApplicationRef: string
+  publicClientId: string
+  issuer: string
+  redirectUris: string[]
+  configurationStatus: string
+  verificationStatus: string
+  verifiedAt?: string
+  verifiedBy?: string
+  verificationError: string
+  configVersion: number
+  createdAt?: string
+  updatedAt?: string
+}
+
+export interface ApplicationVerification {
+  id: string
+  applicationId: string
+  bindingId: string
+  checkType: string
+  result: string
+  errorCode: string
+  evidenceJson: string
+  verifiedBy: string
+  occurredAt: string
+  requestId: string
 }
 
 export interface Page<T> {

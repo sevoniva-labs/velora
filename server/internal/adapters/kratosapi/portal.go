@@ -526,6 +526,25 @@ func (s *PortalService) UpsertApplicationIdentityBinding(ctx context.Context, re
 	if automationEnabled && strings.TrimSpace(req.GetApprovalId()) == "" {
 		return nil, serviceError(casdooradmin.ErrApprovalRequired)
 	}
+	var automationScopes []string
+	if automationEnabled {
+		var scopeErr error
+		automationScopes, scopeErr = portaldomain.NormalizeOIDCScopes(req.GetScopes())
+		if scopeErr != nil {
+			return nil, serviceError(scopeErr)
+		}
+		if err := s.authorizeCasdoorAutomation(ctx, principal, req.GetApprovalId(), "UPSERT", req.GetApplicationId(), map[string]any{
+			"provider":                 portaldomain.IdentityProviderCasdoor,
+			"protocol":                 req.GetProtocol(),
+			"provider_application_ref": req.GetProviderApplicationRef(),
+			"public_client_id":         req.GetPublicClientId(),
+			"issuer":                   req.GetIssuer(),
+			"redirect_uris":            req.GetRedirectUris(),
+			"scopes":                   automationScopes,
+		}); err != nil {
+			return nil, serviceError(err)
+		}
+	}
 	var binding portaldomain.IdentityBinding
 	var app portaldomain.Application
 	event := newAuditEvent(ctx, principal, "iam.integration.update", "portal_application", req.GetApplicationId(), map[string]any{"protocol": req.GetProtocol(), "provider": portaldomain.IdentityProviderCasdoor})
@@ -541,22 +560,7 @@ func (s *PortalService) UpsertApplicationIdentityBinding(ctx context.Context, re
 	// fails. A later retry is safe because the Casdoor provider upsert is
 	// idempotent and the local binding is already auditable and recoverable.
 	if automationEnabled {
-		scopes, scopeErr := portaldomain.NormalizeOIDCScopes(req.GetScopes())
-		if scopeErr != nil {
-			return nil, serviceError(scopeErr)
-		}
-		if err := s.authorizeCasdoorAutomation(ctx, principal, req.GetApprovalId(), "UPSERT", req.GetApplicationId(), map[string]any{
-			"provider":                 portaldomain.IdentityProviderCasdoor,
-			"protocol":                 req.GetProtocol(),
-			"provider_application_ref": req.GetProviderApplicationRef(),
-			"public_client_id":         req.GetPublicClientId(),
-			"issuer":                   req.GetIssuer(),
-			"redirect_uris":            req.GetRedirectUris(),
-			"scopes":                   scopes,
-		}); err != nil {
-			return nil, serviceError(err)
-		}
-		application, _, automationErr := s.casdoorAutomation.UpsertApplication(ctx, casdooradmin.UpsertInput{Name: req.GetProviderApplicationRef(), Organization: principal.OrganizationID, DisplayName: req.GetProviderApplicationRef(), ClientID: req.GetPublicClientId(), RedirectURIs: req.GetRedirectUris(), GrantTypes: []string{"authorization_code"}, Scopes: scopes, ApprovalID: req.GetApprovalId()})
+		application, _, automationErr := s.casdoorAutomation.UpsertApplication(ctx, casdooradmin.UpsertInput{Name: req.GetProviderApplicationRef(), Organization: principal.OrganizationID, DisplayName: req.GetProviderApplicationRef(), ClientID: req.GetPublicClientId(), RedirectURIs: req.GetRedirectUris(), GrantTypes: []string{"authorization_code"}, Scopes: automationScopes, ApprovalID: req.GetApprovalId()})
 		if automationErr != nil {
 			return nil, serviceError(automationErr)
 		}
@@ -651,6 +655,12 @@ func (s *PortalService) DisableApplication(ctx context.Context, req *forgev1.Dis
 		if strings.TrimSpace(req.GetApprovalId()) == "" {
 			return nil, serviceError(casdooradmin.ErrApprovalRequired)
 		}
+		if err := s.authorizeCasdoorAutomation(ctx, principal, req.GetApprovalId(), "DISABLE", req.GetApplicationId(), map[string]any{
+			"provider":                 portaldomain.IdentityProviderCasdoor,
+			"provider_application_ref": binding.ProviderApplicationRef,
+		}); err != nil {
+			return nil, serviceError(err)
+		}
 	}
 	var app portaldomain.Application
 	event := newAuditEvent(ctx, principal, "portal.application.disable", "portal_application", req.GetApplicationId(), map[string]any{"approval_id": req.GetApprovalId(), "casdoor_automation": automationEnabled})
@@ -663,12 +673,6 @@ func (s *PortalService) DisableApplication(ctx context.Context, req *forgev1.Dis
 		return nil, serviceError(err)
 	}
 	if automationEnabled {
-		if err := s.authorizeCasdoorAutomation(ctx, principal, req.GetApprovalId(), "DISABLE", req.GetApplicationId(), map[string]any{
-			"provider":                 portaldomain.IdentityProviderCasdoor,
-			"provider_application_ref": binding.ProviderApplicationRef,
-		}); err != nil {
-			return nil, serviceError(err)
-		}
 		if err := s.casdoorAutomation.DisableApplication(ctx, binding.ProviderApplicationRef, req.GetApprovalId()); err != nil {
 			return nil, serviceError(err)
 		}

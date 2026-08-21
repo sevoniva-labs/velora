@@ -1,0 +1,37 @@
+services:
+  mysql:
+    image: ${MYSQL_IMAGE:?set MYSQL_IMAGE to an internal Harbor digest}
+    environment:
+      MYSQL_DATABASE: velora
+      MYSQL_USER: velora
+      MYSQL_PASSWORD: velora_dev
+      MYSQL_ROOT_PASSWORD: root_dev
+    command: ["--character-set-server=utf8mb4", "--collation-server=utf8mb4_0900_ai_ci"]
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-proot_dev"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+    volumes:
+      - mysql_data:/var/lib/mysql
+  velora:
+    build:
+      context: ../..
+      dockerfile: deploy/docker/Dockerfile
+      args:
+        NODE_IMAGE: ${VELORA_NODE_IMAGE:?set internal Node image digest}
+        GO_IMAGE: ${VELORA_GO_IMAGE:?set internal Go image digest}
+        RUNTIME_IMAGE: ${VELORA_RUNTIME_IMAGE:?set internal runtime image digest}
+    ports: ["8080:8080"]
+    environment:
+      VELORA_CONFIG: /app/config.yaml
+      VELORA_DATABASE_PROVIDER: mysql
+      VELORA_DATABASE_DSN: velora:velora_dev@tcp(mysql:3306)/velora?parseTime=true&charset=utf8mb4
+      VELORA_CRYPTO_KEY: ${VELORA_CRYPTO_KEY:?set VELORA_CRYPTO_KEY in .env}
+      VELORA_BOOTSTRAP_ADMIN: ${VELORA_BOOTSTRAP_ADMIN:-admin}
+      VELORA_BOOTSTRAP_PASSWORD: ${VELORA_BOOTSTRAP_PASSWORD:?set VELORA_BOOTSTRAP_PASSWORD in .env}
+    depends_on:
+      mysql:
+        condition: service_healthy
+volumes:
+  mysql_data:

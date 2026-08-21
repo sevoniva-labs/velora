@@ -6,7 +6,7 @@
 
 > **Casdoor manages identity. Velora manages the workspace.**
 >
-> Casdoor 负责身份 / IAM / SSO，Velora 负责门户 / 工作台 / 应用枢纽。两者通过 OIDC / OAuth 2.0 / Casdoor API 集成，**数据严格隔离**。
+> Casdoor 负责身份 / IAM / SSO，Velora 负责门户 / 工作台 / 应用枢纽。两者通过标准 OIDC 集成，**数据严格隔离**。
 
 ---
 
@@ -54,7 +54,7 @@ Screenshots：待补充。
        App A            App B             App C
 ```
 
-- **后端**：Go + Gin + GORM + PostgreSQL，Modular Monolith，按业务域组织（auth / application / category / tag / favorite / visit / permission / audit / portal）。
+- **后端**：Go + Kratos + Proto/HTTP + PostgreSQL，基于 `go-antd-fullstack` 脚手架替换，按 `domain → app → repository → transport` 分层。
 - **前端**：React + TypeScript + Vite + Ant Design 6 + TanStack Query，复用 [Spectra Web](https://github.com/sevoniva-labs/spectra) 的 UI Foundation（Design Token / 布局 / 顶栏 / 请求封装 / 工程配置）。
 - **身份**：Casdoor 独立部署，Velora 仅通过 OIDC 消费身份，**永不直连 Casdoor 数据表**。
 
@@ -63,7 +63,7 @@ Screenshots：待补充。
 | 层 | 技术 |
 | --- | --- |
 | 前端 | React 19 · TypeScript · Vite 8 · Ant Design 6 · @ant-design/pro-components · TanStack Query 5 · React Router 7 · dayjs · pnpm |
-| 后端 | Go 1.25 · Gin · GORM · PostgreSQL 16 · go-oidc v3 · oauth2 |
+| 后端 | Go 1.26 · Kratos · Proto · PostgreSQL 16 · go-oidc v3 · oauth2 |
 | 基础设施 | Docker Compose（PostgreSQL / Casdoor / Server / Web；Redis 可选 profile） |
 
 ---
@@ -106,7 +106,7 @@ make dev-server             # Go API :8080（自动迁移）
 make dev-web                # Vite :5173（/api 代理到 :8080）
 ```
 
-需要本机 PostgreSQL：创建 `velora` database 并设置 `.env` 的 `DATABASE_URL`。
+需要本机 PostgreSQL：创建 `velora` database 并设置 `VELORA_DATABASE_DSN`。
 
 ---
 
@@ -130,39 +130,28 @@ Casdoor 与 Velora 共用 PostgreSQL Server 但使用**独立 database**（`casd
 
 ### OIDC Configuration（一次性，2 分钟）
 
-> Velora 只消费 Casdoor 的身份，**不会**自动在你的 Casdoor 里创建应用——身份体系归 Casdoor 管。
-> 两种方式任选其一：
+> Velora 只消费 Casdoor 的身份，**不会**自动修改 Casdoor 用户、密码或角色。生产使用 Authorization Code + PKCE；Velora 不接收 Casdoor 密码。
 
-**方式 A（推荐，一条命令）**：`make docker-up` 启动后执行初始化脚本，自动创建 `velora` 应用（启用 `password` + `authorization_code` 两种授权模式）：
+在 Casdoor 控制台按 **应用 → 添加应用** 填写：
 
-```bash
-./scripts/init-casdoor.sh        # 输出 CASDOOR_CLIENT_ID / CASDOOR_CLIENT_SECRET
-# 将输出写入 .env（或 compose 环境变量），然后重启 server：docker compose up -d server
-```
-
-**方式 B（Casdoor UI 手工配置）**：打开 Casdoor 控制台 <http://localhost:8443>（默认账号 `admin` / `123`），按 **应用 → 添加应用** 填写：
-
-1. 名称：`velora`（对应 `CASDOOR_CLIENT_ID` / compose 环境变量 `CASDOOR_CLIENT_ID=velora`）；
-2. 回调地址（Redirect URI）：`http://localhost:8080/api/v1/auth/oidc/callback`（对应 `CASDOOR_REDIRECT_URI`）；
-3. 授权类型勾选 **Authorization Code**（如需登录页账号密码直登，额外勾选 **Password**），并在高级选项中启用 **PKCE**；
-4. 保存后复制该应用的 **Client ID / Client Secret** 到 `.env`（compose 环境变量 `CASDOOR_CLIENT_SECRET`）。
+1. 名称：`velora`；
+2. 回调地址：`https://<velora-host>/api/v1/auth/federated/oidc/casdoor/callback`；
+3. 仅启用 **Authorization Code + PKCE (S256)**；
+4. 保存 Client ID，并将 Client Secret 放入 `VELORA_OIDC_CLIENT_SECRET_FILE` 指向的 Secret 文件。
 
 无论哪种方式，完成后：
 
 - 用户授权：在 **用户** 中给门户管理员添加角色 `velora_admin`（对应 `VELORA_ADMIN_ROLE`）；普通用户登录后自动拥有门户访问权。
-- 打开 Velora Web <http://localhost:5173>，登录页提供两种入口：
-  - **账号密码直登**：输入 Casdoor 账号密码，由 Velora 后端代理 Casdoor OAuth2 `password` 模式认证（无需跳转；Velora 不存储密码）；
-  - **Sign in with SSO**：标准 OIDC 授权码跳转 Casdoor 登录页（备选）。
-  - 两种方式成功后均回到门户；未登录访问受保护页面会自动跳登录页并在登录后回跳。
+- 打开 Velora Web，登录按钮跳转 Casdoor；回调成功后 Velora 建立服务端 session。生产 `VELORA_AUTH_MODE=oidc`，密码/ROPC 路径会被拒绝。
 
-> 提示：`make docker-up` 启动的 Casdoor 使用 `initData=true`，已内置 `admin` 账号与 `built-in` 示例应用；为 Velora 新建应用即可，无需改动内置数据。
+> 生产编排固定 `initData=false`；开发环境的初始化数据仅用于本地演示。
 
 ### 应用接入类型
 
 | 类型 | 说明 | Phase 1 |
 | --- | --- | --- |
 | `URL` | 直链跳转（受信配置的地址） | ✅ |
-| `OIDC` | 通过 Casdoor 为该应用签发登录跳转 | ✅ |
+| `OIDC` | 目标应用自己的 OIDC 登录发起 URL/首页（由目标应用对接 Casdoor） | ✅ |
 | `SAML` / `CAS` / `FORWARD_AUTH` | 数据模型与 Provider 扩展点已预留 | 后续 |
 
 Launch 一律通过 `POST /api/v1/applications/{id}/launch`：服务端读取数据库 → 权限校验 → 状态校验 → 根据受信配置生成启动地址，**不接受客户端 URL 参数**（防 Open Redirect）。
@@ -233,15 +222,15 @@ velora/
 
 | 变量 | 说明 |
 | --- | --- |
-| `VELORA_PORT` | Server 端口，默认 8080 |
-| `DATABASE_URL` | Velora 专属 PostgreSQL 连接串 |
-| `CASDOOR_ISSUER` | Casdoor 地址（如 `http://localhost:8443`） |
-| `CASDOOR_CLIENT_ID` / `CASDOOR_CLIENT_SECRET` | Casdoor 中 Velora 应用凭据 |
-| `CASDOOR_REDIRECT_URI` | OIDC 回调地址 |
-| `SESSION_SECRET` | 会话签名密钥（**必须**替换，`openssl rand -hex 32`） |
-| `COOKIE_SECURE` | 生产 HTTPS 环境设为 `true` |
-| `VELORA_ADMIN_ROLE` | Velora 管理员角色名，默认 `velora_admin` |
-| `CORS_ALLOWED_ORIGINS` | 前后端分离开发时允许的来源（逗号分隔） |
+| `VELORA_DATABASE_DSN` | Velora 专属 PostgreSQL 连接串（生产 `sslmode=verify-full`） |
+| `VELORA_AUTH_MODE` | `oidc`（生产唯一允许值）或 `password`（仅开发） |
+| `VELORA_OIDC_ISSUER` / `VELORA_OIDC_CLIENT_ID` | Casdoor 标准 OIDC discovery 与 client ID |
+| `VELORA_OIDC_CLIENT_SECRET_FILE` | Casdoor client secret 的只读 Secret 文件 |
+| `VELORA_OIDC_REDIRECT_URL` | `/api/v1/auth/federated/oidc/<provider>/callback` |
+| `VELORA_CASDOOR_ACCOUNT_URL` | Casdoor 自助资料/改密/MFA 页面 |
+| `VELORA_CRYPTO_KEY_FILE` | 版本化 CryptoProvider 密钥 Secret 文件 |
+| `VELORA_STORAGE_*` | 通用 S3-compatible endpoint / region / bucket / prefix / SSE 配置 |
+| `VELORA_ALLOWED_ORIGINS` / `VELORA_TRUSTED_PROXIES` | 浏览器来源与受信网关网段 |
 
 ---
 
@@ -263,8 +252,8 @@ make build        # 构建 server 二进制 + web 产物
 
 ## Security
 
-- OIDC **Authorization Code + PKCE**，State（HMAC 签名 + 过期）与 Nonce 双重校验。
-- 会话 Cookie：**HttpOnly + Secure + SameSite=Lax**，HMAC 签名防篡改，有效期可配（见文档"已知权衡"）。
+- OIDC **Authorization Code + PKCE (S256)**，服务端一次性交易 state + nonce + 交易 cookie 校验。
+- 会话 Cookie：**HttpOnly + Secure + SameSite=Lax**，对应 Velora 数据库中的可撤销服务端 session。
 - **CSRF 双提交**：写请求必须携带与 `velora_csrf` Cookie 一致的 `X-CSRF-Token`。
 - **Open Redirect 防护**：OIDC 回调落点仅允许站内相对路径（严格校验，拒绝 `\`、`//`、百分号编码绕过）；Launch 不接受客户端 URL。
 - **可信代理**：默认仅信任回环，`TRUSTED_PROXIES` 显式配置反代网段，防止 `X-Forwarded-For` 伪造绕过限流 / 污染审计 IP。
@@ -278,16 +267,15 @@ make build        # 构建 server 二进制 + web 产物
 - **限流与锁定**：Redis（可选，回退内存）固定窗口限流（全局 + 每端点）+ 登录失败锁定（5 次 / 15 分钟锁 15 分钟）。
 - **人机验证（Cloudflare Turnstile）**：配置 `TURNSTILE_SITE_KEY` / `TURNSTILE_SECRET_KEY` 后，登录页强制人机验证（服务端 siteverify，fail-closed），阻断 bot 撞库 / 分布式暴力破解（IP 限流可被轮换 IP 绕过）；未配置时自动降级（仍由限流 + 锁定兜底）。
 - **集成令牌（Service Account）**：`integration_tokens`（哈希存储 / scope / 过期 / 吊销），外部系统以 Bearer 推送待办，与用户会话解耦。
-- **Forward Auth**：`/api/v1/forward-auth` 校验端点，为非 OIDC 老系统（Nginx/APISIX auth_request）套 SSO，成功注入 `X-Velora-User/Email/Role` 身份头。
+- **Forward Auth**：规划中的网关能力必须绑定目标 app ID/Host，并在后端重新执行应用访问策略；客户端传入的身份/app 头不可信。
 - **数据可携带权**：管理员可导出指定用户全量数据（收藏/访问/待办/邮件元数据/审计），JSON 附件下载，导出行为入审计。
 
 ---
 
 ## Roadmap
 
-- **Phase 1（MVP 已完成）**：Application Portal · Casdoor SSO（隐藏于 Velora 之后）· 应用中心 · 收藏 · 最近使用 · 权限 · 管理后台
-- **Phase 2（生产化已完成）**：Velora OIDC Provider（PKCE/密钥轮换/吊销）· 服务端会话 · Redis 限流与锁定 · 审计防篡改链 · 自助用户中心 · 集成令牌 · SQL 级权限过滤 / pg_trgm / keyset 分页 · Forward Auth · 数据导出（GDPR）
-- **Phase 3（规划）**：SAML / CAS · IMAP IDLE 实时推送 · 邮件附件下载与回复 · i18n 切换层 · AI 搜索与助手
+- **当前实现**：脚手架后端替换、标准 Casdoor OIDC Client、Portal 应用/分类/标签/策略/收藏/访问审计、通用 S3-compatible ObjectStore 与可插拔 CryptoProvider 基座。
+- **未宣称完成**：Velora OIDC Provider、邮件/Todo、ForwardAuth 生产边界、COS/MinIO 目标级能力认证、真实 KMS/HSM 国密适配器。
 
 ---
 

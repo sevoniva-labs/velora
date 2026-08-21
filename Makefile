@@ -4,7 +4,7 @@
 # 常用流程：
 #   make init        # 准备环境（Go 代理 / pnpm 源 / 依赖 / .env）
 #   make dev-web     # 前端开发（Vite, :5173, 代理 /api → :8080）
-#   make dev-server  # 后端开发（Gin, :8080）
+#   make dev-server  # 后端开发（Kratos, :8080）
 #   make docker-up   # 一键起 PostgreSQL + Casdoor + Velora Server + Web
 # ============================================================================
 
@@ -12,9 +12,11 @@ SHELL := /bin/bash
 # Homebrew 工具链兜底（macOS 下 go 常位于此；该目录不存在时不影响其它平台）
 export PATH := /opt/homebrew/bin:$(PATH)
 DOCKER_REGISTRY ?= docker.m.daocloud.io
+PROD_ENV_FILE ?= deployments/env/prod/.env
 
 .PHONY: help init bootstrap dev dev-web dev-server test lint build \
-        docker-build docker-up docker-down migrate seed fmt vet
+        docker-build docker-up docker-down docker-up-prod docker-up-staging \
+        docker-up-monitoring check-prod-config verify migrate fmt vet
 
 help: ## 显示可用命令
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-14s\033[0m %s\n", $$1, $$2}'
@@ -34,7 +36,7 @@ dev-web: ## 前端开发服务器（:5173）
 	cd web && pnpm dev
 
 dev-server: ## 后端开发服务器（:8080）
-	cd server && go run ./cmd/velora serve
+	cd server && VELORA_CONFIG=configs/minimal.yaml go run ./cmd/server
 
 test: ## 全部测试（后端 go test + 前端 lint/build/test）
 	cd server && go test ./...
@@ -48,7 +50,7 @@ fmt: ## 格式化（gofmt + goimports 风格由 gofmt 处理）
 	cd server && gofmt -w $$(find . -name '*.go' -not -path './vendor/*')
 
 build: ## 构建（server 二进制 + web 产物）
-	cd server && go build -o bin/velora ./cmd/velora
+	cd server && go build -o bin/velora ./cmd/server
 	cd web && pnpm build
 
 docker-build: ## 构建 Docker 镜像（可用 DOCKER_REGISTRY=docker.io 切官方源）
@@ -60,8 +62,9 @@ docker-up: ## 启动全部服务（PostgreSQL + Casdoor + Server + Web）
 docker-down: ## 停止全部服务
 	docker compose down
 
-docker-up-prod: ## 生产部署（TLS + 密钥校验，见 docs/ops-deploy.md）
-	DOCKER_REGISTRY=$(DOCKER_REGISTRY) docker compose -f docker-compose.yml -f deployments/env/prod/docker-compose.prod.yml up -d --build
+docker-up-prod: ## 生产部署（独立 Compose、TLS + 密钥校验，见 docs/ops-deploy.md）
+	@test -f "$(PROD_ENV_FILE)" || { echo "错误：生产变量文件不存在：$(PROD_ENV_FILE)" >&2; exit 1; }
+	docker compose --env-file "$(PROD_ENV_FILE)" -f deployments/env/prod/docker-compose.yml up -d --build
 
 docker-up-staging: ## 预发部署（独立端口）
 	DOCKER_REGISTRY=$(DOCKER_REGISTRY) docker compose -f docker-compose.yml -f deployments/env/staging/docker-compose.staging.yml up -d --build
@@ -69,14 +72,17 @@ docker-up-staging: ## 预发部署（独立端口）
 docker-up-monitoring: ## 启动监控栈（Prometheus + Grafana）
 	DOCKER_REGISTRY=$(DOCKER_REGISTRY) docker compose --profile monitoring up -d
 
+check-prod-config: ## 仅校验生产 Compose，不启动容器
+	./scripts/check-production-config.sh
+
+verify: ## 执行后端完整生产门禁（含前端、部署和安全扫描）
+	$(MAKE) -C server verify
+
 backup: ## 数据库全量备份（见 docs/ops-backup.md）
 	./scripts/backup-db.sh
 
 audit-archive: ## 归档 180 天前审计日志（见 docs/ops-audit.md）
 	./scripts/audit-archive.sh
 
-migrate: ## 执行数据库迁移（本地直连 .env 中的 DATABASE_URL）
-	cd server && go run ./cmd/velora migrate
-
-seed: ## 写入开发 Seed 数据（分类 + 示例应用）
-	cd server && go run ./cmd/velora seed
+migrate: ## 执行一次性数据库迁移（读取 VELORA_DATABASE_DSN）
+	cd server && VELORA_CONFIG=configs/minimal.yaml go run ./cmd/migrate

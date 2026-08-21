@@ -6,6 +6,7 @@ import App from './App'
 import AdminApp from './AdminApp'
 import RequireAuth from './auth/RequireAuth'
 import Login from './pages/Login'
+import OIDCCallback from './pages/OIDCCallback'
 import NotFound from './pages/NotFound'
 
 /**
@@ -48,12 +49,17 @@ const AdminTags = lazyWithReload(() => import('./pages/admin/Tags'))
 const AdminPolicies = lazyWithReload(() => import('./pages/admin/Policies'))
 const AdminAudit = lazyWithReload(() => import('./pages/admin/Audit'))
 const AdminIntegrationTokens = lazyWithReload(() => import('./pages/admin/IntegrationTokens'))
-const AdminSettings = lazyWithReload(() => import('./pages/admin/Settings'))
+const AdminIdentityIntegrations = lazyWithReload(() => import('./pages/admin/IdentityIntegrations'))
 
 export const router = createBrowserRouter([
   {
     path: '/login',
     element: <Login />,
+    errorElement: <RouteErrorFallback />,
+  },
+  {
+    path: '/auth/callback',
+    element: <OIDCCallback />,
     errorElement: <RouteErrorFallback />,
   },
   {
@@ -90,7 +96,7 @@ export const router = createBrowserRouter([
       { path: 'policies', element: <AdminPolicies /> },
       { path: 'audit', element: <AdminAudit /> },
       { path: 'integration-tokens', element: <AdminIntegrationTokens /> },
-      { path: 'settings', element: <AdminSettings /> },
+      { path: 'identity', element: <AdminIdentityIntegrations /> },
       { path: '*', element: <NotFound /> },
     ],
   },

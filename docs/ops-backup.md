@@ -13,15 +13,36 @@
 ## 2. 备份命令
 
 ```bash
-# 全量备份（读 .env 的 DATABASE_URL，输出到 ./backups/）
+# 生产一致恢复点：同时备份 Velora 与 Casdoor（两个 URL 都必须提供）
+DATABASE_URL='postgres://velora_app:***@postgres:5432/velora?sslmode=require' \
+CASDOOR_DATABASE_URL='postgres://casdoor_app:***@postgres:5432/casdoor?sslmode=require' \
+POSTGRES_CONTAINER=velora-prod-postgres ./scripts/backup-all-databases.sh
+
+# 仅开发/单库场景才使用单库脚本
 ./scripts/backup-db.sh
 
 # 自定义目录 / 保留天数 / 对象存储上传
-BACKUP_DIR=/data/velora-backup BACKUP_RETENTION_DAYS=30 ./scripts/backup-db.sh
+BACKUP_DIR=/data/velora-backup BACKUP_RETENTION_DAYS=30 POSTGRES_CONTAINER=velora-prod-postgres ./scripts/backup-db.sh
 BACKUP_S3=s3://velora-backup-prod ./scripts/backup-db.sh   # 需 s5cmd 或 aws cli
 ```
 
-备份文件：`velora_full_YYYYMMDD_HHMMSS.dump`（PostgreSQL custom format，支持选择性/并行恢复）。
+一致恢复点会生成 `velora_full_YYYYMMDD_HHMMSS.dump` 与
+`casdoor_full_YYYYMMDD_HHMMSS.dump`（两者时间戳相同，PostgreSQL custom format）。
+
+生产备份必须启用加密、签名和校验清单。脚本使用 `age` 收件人文件加密，使用受控
+OpenSSL 私钥签名，并在同目录生成 `.sha256` 清单与 `.sig`；对象存储上传会同时上传三者。
+示例：
+
+```bash
+BACKUP_ENCRYPTION_REQUIRED=true \
+BACKUP_ENCRYPTION_KEY_FILE=/secure/velora/backup/age-recipient.txt \
+BACKUP_SIGNING_REQUIRED=true \
+BACKUP_SIGNING_KEY_FILE=/secure/velora/backup/backup-signing.key \
+BACKUP_S3=s3://velora-backup-prod ./scripts/backup-db.sh
+```
+
+未安装 `age`/`openssl`、密钥文件不可读、或配置了 `BACKUP_S3` 但没有 `aws/s5cmd` 时脚本会失败，
+不会报告“成功但未加密/未上传”。对象存储还必须由平台侧启用 SSE-KMS、版本控制、对象锁/保留策略和跨区域复制；脚本本身不假装提供这些能力。
 
 ## 3. 调度（cron 示例，生产主机）
 
@@ -33,12 +54,22 @@ BACKUP_S3=s3://velora-backup-prod ./scripts/backup-db.sh   # 需 s5cmd 或 aws c
 ## 4. 恢复
 
 ```bash
-# 恢复到 .env 指向的库（恢复前自动做一次保险备份，并要求确认）
-./scripts/restore-db.sh backups/velora_full_20260101_020000.dump
+# 恢复到 .env 指向的库（恢复前强制做保险备份，并要求确认）
+RESTORE_DB_URL='postgres://velora_restore:***@postgres:5432/velora?sslmode=require' \
+RESTORE_IDP_DB_URL='postgres://casdoor_restore:***@postgres:5432/casdoor?sslmode=require' \
+RESTORE_CONFIRM=yes ./scripts/restore-all-databases.sh \
+  backups/velora_full_20260101_020000.dump \
+  backups/casdoor_full_20260101_020000.dump
 
 # 恢复到指定新库
-RESTORE_DB_URL='postgres://velora:velora@127.0.0.1:5433/velora?sslmode=disable' \
+RESTORE_DB_URL='postgres://velora:velora@127.0.0.1:5433/velora?sslmode=disable' POSTGRES_CONTAINER=velora-prod-postgres \
   ./scripts/restore-db.sh backups/velora_full_20260101_020000.dump
+
+# 加密备份：先把 age 私钥放到受控 Secret 路径
+BACKUP_AGE_IDENTITY_FILE=/secure/velora/backup/age-identity.txt \
+BACKUP_SIGNATURE_REQUIRED=true \
+BACKUP_SIGNATURE_PUBLIC_KEY_FILE=/secure/velora/backup/backup-signing.pub \
+RESTORE_CONFIRM=yes ./scripts/restore-db.sh backups/velora_full_20260101_020000.dump.age
 ```
 
 恢复后验证：
@@ -48,14 +79,38 @@ curl http://localhost:8080/healthz        # 服务健康
 curl http://localhost:8080/api/v1/me      # 会话正常（需重新登录）
 ```
 
-## 5. PITR（时间点恢复，可选增强）
+## 5. PITR（时间点恢复，生产准入门禁）
 
-若业务要求 RPO < 24h：
+若业务要求 RPO < 24h，生产必须在目标 PostgreSQL 主库和对象存储上启用连续 WAL 归档。仓库提供只读门禁，
+不会修改数据库配置、上传或删除 WAL：
+
+```bash
+DATABASE_URL_FILE=/run/secrets/velora_database_dsn \
+PITR_WAL_ARCHIVE_URI=s3://approved-prod/wal \
+POSTGRES_CONTAINER=velora-prod-postgres \
+./scripts/check-pitr-config.sh
+```
+
+门禁会验证 `wal_level`、`archive_mode`、包含 `%p/%f` 的 `archive_command`、大于零的
+`archive_timeout`，并默认拒绝 standby（`PITR_REQUIRE_PRIMARY=true`）。目标 URI 只做格式检查，
+实际对象存储、跨地域复制、权限和恢复能力必须由目标环境验收证据证明。
+
+目标环境实施：
 
 1. postgres 容器启用 WAL 归档（`archive_mode=on` + `archive_command` 写对象存储）；
 2. 备份从"每日全量"升级为"每日全量 + 持续归档"；
 3. 恢复时 `pg_basebackup` + `pg_archivecleanup` 回放到目标时间点。
 4. 注意：casdoor 库与 velora 库同实例，PITR 会同时回放两者，需在恢复后检查 Casdoor 数据一致性。
+
+没有目标环境门禁输出和恢复演练报告，不得把 PITR 标记为已完成或放行金融生产。
+
+## 5.1 审计归档
+
+`scripts/audit-archive.sh` 只导出真实 `audit_logs` 字段并生成 CSV、SHA-256 清单和元数据，
+不会直接删除在线记录。删除必须由应用归档服务完成：它要先把批次写入支持 immutable/WORM
+retention 的对象存储，验证 receipt，再写 `audit_archive_receipts` 和
+`audit_chain_anchors`，最后在同一事务删除。若没有这套 receipt/anchor 证据，禁止手工
+`DELETE audit_logs`。
 
 ## 6. 每月恢复演练（必须执行）
 
@@ -66,17 +121,17 @@ curl http://localhost:8080/api/v1/me      # 会话正常（需重新登录）
 ls -t backups/velora_full_*.dump | head -1
 
 # 2. 创建临时库并恢复（与 velora 库隔离，不触碰生产）
-docker exec velora-postgres psql -U postgres \
+docker exec velora-prod-postgres psql -U postgres \
   -c "CREATE DATABASE velora_drill OWNER postgres;"
-docker cp <备份文件> velora-postgres:/tmp/drill.dump
-docker exec velora-postgres pg_restore -U postgres -d velora_drill /tmp/drill.dump
+docker cp <备份文件> velora-prod-postgres:/tmp/drill.dump
+docker exec velora-prod-postgres pg_restore -U postgres -d velora_drill /tmp/drill.dump
 
 # 3. 校验数据完整性
-docker exec velora-postgres psql -U postgres -d velora_drill -tAc \
+docker exec velora-prod-postgres psql -U postgres -d velora_drill -tAc \
   "SELECT count(*) FROM applications;"
 
 # 4. 清理
-docker exec velora-postgres psql -U postgres -c "DROP DATABASE velora_drill;"
+docker exec velora-prod-postgres psql -U postgres -c "DROP DATABASE velora_drill;"
 ```
 
 演练记录模板（建议入 `docs/ops-runbook.md`）：日期 / 备份文件 / 恢复耗时 / 表数量 / 结论。
@@ -85,7 +140,8 @@ docker exec velora-postgres psql -U postgres -c "DROP DATABASE velora_drill;"
 
 | 问题 | 处理 |
 | --- | --- |
-| 本机无 pg_dump | 脚本自动回退到 `docker exec velora-postgres pg_dump`（compose 环境） |
+| 本机无 pg_dump | 脚本自动回退到 `docker exec $POSTGRES_CONTAINER pg_dump`（默认 `velora-postgres`，生产为 `velora-prod-postgres`） |
 | 恢复报"role does not exist" | 备份含 owner 信息，恢复时用 `--no-owner` 或确保同名角色存在 |
-| 备份文件为空 | 检查 DATABASE_URL 是否指向正确库；容器场景确认 `velora-postgres` 在运行 |
+| 备份文件为空 | 检查 DATABASE_URL 是否指向正确库；容器场景确认对应 `POSTGRES_CONTAINER` 在运行 |
+| 校验清单不匹配 | 立即停止恢复，重新从对象存储取同一备份和 `.sha256`；不要绕过校验 |
 | 磁盘不足 | 备份目录与数据目录分离；开启 BACKUP_S3 异地备份 |

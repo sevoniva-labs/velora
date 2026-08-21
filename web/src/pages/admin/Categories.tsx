@@ -40,7 +40,7 @@ export default function AdminCategories() {
   })
 
   const deleteMutation = useMutation({
-    mutationFn: (id: number) => adminDeleteCategory(id),
+    mutationFn: (id: string | number) => adminDeleteCategory(id),
     onSuccess: () => {
       message.success('分类已删除')
       invalidate()

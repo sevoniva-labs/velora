@@ -1,0 +1,29 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "velora.fullname" . }}-web
+  labels:
+    {{- include "velora.selectorLabels" . | nindent 4 }}
+data:
+  runtime-config.js: |
+    window.__VELORA_CONFIG__ = {
+      appName: {{ .Values.webRuntime.appName | quote }},
+      appShortName: {{ .Values.webRuntime.appShortName | quote }},
+      description: {{ .Values.webRuntime.description | quote }},
+      environment: {{ .Values.webRuntime.environment | quote }},
+      apiBaseUrl: {{ .Values.webRuntime.apiBaseUrl | quote }},
+      localLoginEnabled: {{ .Values.webRuntime.localLoginEnabled }},
+      showOrganizationField: {{ .Values.webRuntime.showOrganizationField }},
+      defaultOrganization: {{ .Values.webRuntime.defaultOrganization | quote }},
+      oidcLoginUrl: {{ .Values.webRuntime.oidcLoginUrl | quote }},
+      helpUrl: {{ .Values.webRuntime.helpUrl | quote }},
+      logoUrl: {{ .Values.webRuntime.logoUrl | quote }},
+      primaryColor: {{ .Values.webRuntime.primaryColor | quote }},
+      defaultTheme: {{ .Values.webRuntime.defaultTheme | quote }},
+      compactMode: {{ .Values.webRuntime.compactMode }},
+      layoutMode: {{ .Values.webRuntime.layoutMode | quote }},
+      pageTabs: {{ .Values.webRuntime.pageTabs }},
+      showEnvironmentBadge: {{ .Values.webRuntime.showEnvironmentBadge }},
+      componentPlayground: {{ .Values.webRuntime.componentPlayground }},
+      footerText: {{ .Values.webRuntime.footerText | quote }}
+    };

@@ -1,0 +1,55 @@
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { beginOIDCLogin, completeOIDCLogin, getAuthCapabilities, getMe } from './api'
+
+describe('OIDC web adapter', () => {
+  const originalFetch = globalThis.fetch
+
+  beforeEach(() => {
+    globalThis.fetch = vi.fn()
+    window.sessionStorage.clear()
+  })
+
+  afterEach(() => {
+    globalThis.fetch = originalFetch
+    window.sessionStorage.clear()
+  })
+
+  it('reads public production OIDC capability without exposing password mode', async () => {
+    vi.mocked(globalThis.fetch).mockResolvedValue(new Response(JSON.stringify({ code: '000000', data: {
+      status: 'UP', auth_mode: 'oidc', password_login_enabled: false, casdoor_account_url: 'https://casdoor.example/account',
+    } }), { status: 200 }))
+    await expect(getAuthCapabilities()).resolves.toEqual({
+      authMode: 'oidc', passwordLoginEnabled: false, casdoorAccountUrl: 'https://casdoor.example/account',
+    })
+  })
+
+  it('stores only an internal return path before beginning OIDC', async () => {
+    vi.mocked(globalThis.fetch).mockResolvedValue(new Response(JSON.stringify({ code: '000000', data: {
+      redirect_url: 'https://casdoor.example/login?state=opaque',
+    } }), { status: 200 }))
+    await expect(beginOIDCLogin('https://attacker.example/steal')).resolves.toBe('https://casdoor.example/login?state=opaque')
+    expect(window.sessionStorage.getItem('velora.oidc.redirect')).toBe('/')
+  })
+
+  it('posts the callback code and state to the backend', async () => {
+    vi.mocked(globalThis.fetch).mockResolvedValue(new Response(JSON.stringify({ code: '000000', data: {} }), { status: 200 }))
+    await completeOIDCLogin('casdoor', 'code-1', 'state-1')
+    const [url, init] = vi.mocked(globalThis.fetch).mock.calls[0]
+    expect(url).toBe('/api/v1/auth/federated/oidc/casdoor/callback')
+    expect(JSON.parse(String((init as RequestInit).body))).toEqual({ code: 'code-1', state: 'state-1' })
+  })
+
+  it('recognizes scaffold administrator roles for the portal entry', async () => {
+    vi.mocked(globalThis.fetch).mockResolvedValue(new Response(JSON.stringify({ code: '000000', data: {
+      user: { id: 'u1', login_name: 'admin', roles: ['system_admin'], permissions: [] },
+    } }), { status: 200 }))
+    await expect(getMe()).resolves.toMatchObject({ username: 'admin', admin: true })
+  })
+
+  it('does not grant the portal entry from an arbitrary role without permission', async () => {
+    vi.mocked(globalThis.fetch).mockResolvedValue(new Response(JSON.stringify({ code: '000000', data: {
+      user: { id: 'u2', login_name: 'operator', roles: ['operator'], permissions: [] },
+    } }), { status: 200 }))
+    await expect(getMe()).resolves.toMatchObject({ username: 'operator', permissions: [], admin: false })
+  })
+})

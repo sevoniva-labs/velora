@@ -15,57 +15,110 @@
 # ============================================================================
 set -euo pipefail
 cd "$(dirname "$0")/.."
+umask 077
 
 # --- 配置 ---
 BACKUP_DIR="${BACKUP_DIR:-./backups}"
 RETENTION_DAYS="${BACKUP_RETENTION_DAYS:-30}"
 DATABASE_URL="${DATABASE_URL:-}"
+POSTGRES_CONTAINER="${POSTGRES_CONTAINER:-}"
+BACKUP_USE_CONTAINER="${BACKUP_USE_CONTAINER:-false}"
+BACKUP_DATABASE_HOST="${BACKUP_DATABASE_HOST:-postgres}"
+BACKUP_ENCRYPTION_KEY_FILE="${BACKUP_ENCRYPTION_KEY_FILE:-}"
+BACKUP_ENCRYPTION_REQUIRED="${BACKUP_ENCRYPTION_REQUIRED:-false}"
+BACKUP_SIGNING_KEY_FILE="${BACKUP_SIGNING_KEY_FILE:-}"
+BACKUP_SIGNING_REQUIRED="${BACKUP_SIGNING_REQUIRED:-false}"
+BACKUP_FILENAME_PREFIX="${BACKUP_FILENAME_PREFIX:-velora_full}"
+
+if ! [[ "$RETENTION_DAYS" =~ ^[1-9][0-9]*$ ]]; then
+  echo "错误：BACKUP_RETENTION_DAYS 必须是正整数" >&2
+  exit 1
+fi
+if [[ -z "$BACKUP_DIR" || "$BACKUP_DIR" == "/" ]]; then
+  echo "错误：BACKUP_DIR 不能为空或为根目录" >&2
+  exit 1
+fi
+if ! [[ "$BACKUP_FILENAME_PREFIX" =~ ^[a-zA-Z0-9_.-]+$ ]]; then
+  echo "错误：BACKUP_FILENAME_PREFIX 含非法字符" >&2
+  exit 1
+fi
+if [[ "$BACKUP_ENCRYPTION_REQUIRED" == "true" && -z "$BACKUP_ENCRYPTION_KEY_FILE" ]]; then
+  echo "错误：生产备份必须设置 BACKUP_ENCRYPTION_KEY_FILE" >&2
+  exit 1
+fi
+if [[ "$BACKUP_SIGNING_REQUIRED" == "true" && -z "$BACKUP_SIGNING_KEY_FILE" ]]; then
+  echo "错误：生产备份必须设置 BACKUP_SIGNING_KEY_FILE" >&2
+  exit 1
+fi
 
 if [ -z "$DATABASE_URL" ] && [ -f .env ]; then
   # 仅提取 DATABASE_URL（避免 source .env 导致特殊字符问题）
   DATABASE_URL="$(grep -E '^DATABASE_URL=' .env | head -1 | cut -d= -f2-)"
 fi
+if [ -z "$POSTGRES_CONTAINER" ] && [ -f .env ]; then
+  POSTGRES_CONTAINER="$(grep -E '^POSTGRES_CONTAINER=' .env | head -1 | cut -d= -f2-)"
+fi
+POSTGRES_CONTAINER="${POSTGRES_CONTAINER:-velora-postgres}"
 if [ -z "$DATABASE_URL" ]; then
   echo "错误：DATABASE_URL 未设置（可在环境变量或 .env 中配置）" >&2
   exit 1
 fi
 
 mkdir -p "$BACKUP_DIR"
-STAMP="$(date +%Y%m%d_%H%M%S)"
-FILENAME="velora_full_${STAMP}.dump"
-TARGET="$BACKUP_DIR/$FILENAME"
+chmod 700 "$BACKUP_DIR"
+STAMP="${BACKUP_STAMP:-$(date +%Y%m%d_%H%M%S)}"
+if ! [[ "$STAMP" =~ ^[0-9]{8}_[0-9]{6}$ ]]; then
+  echo "错误：BACKUP_STAMP 必须为 YYYYMMDD_HHMMSS" >&2
+  exit 1
+fi
+FILENAME="${BACKUP_FILENAME_PREFIX}_${STAMP}.dump"
+RAW_TARGET="$BACKUP_DIR/$FILENAME"
+TARGET="$RAW_TARGET"
 
 echo "==> 开始备份：$TARGET"
 
 # 自定义格式（-Fc）支持 pg_restore 选择性恢复与并行恢复
 IN_CONTAINER=false
-if command -v pg_dump >/dev/null 2>&1; then
-  PG_DUMP="pg_dump"
+if [[ "$BACKUP_USE_CONTAINER" == "true" ]]; then
+  IN_CONTAINER=true
+  echo "==> 使用 PostgreSQL 容器内 pg_dump"
+  if ! [[ "$POSTGRES_CONTAINER" =~ ^[a-zA-Z0-9_.-]+$ ]]; then
+    echo "错误：POSTGRES_CONTAINER 含非法字符" >&2
+    exit 1
+  fi
+  PG_DUMP=(docker exec "$POSTGRES_CONTAINER" pg_dump)
+  DATABASE_URL="$(echo "$DATABASE_URL" | sed -E "s#(postgres://[^@/]+@)[^:/]+(:[0-9]+)?/#\\1${BACKUP_DATABASE_HOST}:5432/#")"
+elif command -v pg_dump >/dev/null 2>&1; then
+  PG_DUMP=(pg_dump)
 elif [ -x /opt/homebrew/bin/pg_dump ]; then
-  PG_DUMP="/opt/homebrew/bin/pg_dump"
+  PG_DUMP=(/opt/homebrew/bin/pg_dump)
 else
   # compose 环境：在 postgres 容器内执行（需容器名 velora-postgres 存在）
   echo "==> 本机无 pg_dump，尝试通过 docker compose 容器执行…"
   IN_CONTAINER=true
-  PG_DUMP="docker exec velora-postgres pg_dump"
+  if ! [[ "$POSTGRES_CONTAINER" =~ ^[a-zA-Z0-9_.-]+$ ]]; then
+    echo "错误：POSTGRES_CONTAINER 含非法字符" >&2
+    exit 1
+  fi
+  PG_DUMP=(docker exec "$POSTGRES_CONTAINER" pg_dump)
   # 容器内连接串：host 换 compose 服务名，端口统一 5432
-  DATABASE_URL="$(echo "$DATABASE_URL" | sed -E 's#(postgres://[^@/]+@)[^:/]+(:[0-9]+)?/#\1postgres:5432/#')"
+  DATABASE_URL="$(echo "$DATABASE_URL" | sed -E "s#(postgres://[^@/]+@)[^:/]+(:[0-9]+)?/#\\1${BACKUP_DATABASE_HOST}:5432/#")"
 fi
 
 if $IN_CONTAINER; then
   # 容器内写临时文件（相对路径在容器内不可用），完成后 docker cp 回宿主
   CONTAINER_TMP="/tmp/velora_backup_${STAMP}.dump"
-  if ! $PG_DUMP "$DATABASE_URL" -Fc -f "$CONTAINER_TMP" 2>/tmp/velora_pgdump_err.txt; then
+  if ! "${PG_DUMP[@]}" "$DATABASE_URL" -Fc -f "$CONTAINER_TMP" 2>/tmp/velora_pgdump_err.txt; then
     echo "错误：pg_dump 失败：" >&2
     cat /tmp/velora_pgdump_err.txt >&2 || true
     rm -f /tmp/velora_pgdump_err.txt
     exit 1
   fi
   rm -f /tmp/velora_pgdump_err.txt
-  docker cp "velora-postgres:$CONTAINER_TMP" "$TARGET"
-  docker exec velora-postgres rm -f "$CONTAINER_TMP"
+  docker cp "$POSTGRES_CONTAINER:$CONTAINER_TMP" "$TARGET"
+  docker exec "$POSTGRES_CONTAINER" rm -f "$CONTAINER_TMP"
 else
-  $PG_DUMP "$DATABASE_URL" -Fc -f "$TARGET" -v 2> >(grep -v '^pg_dump:' >&2 || true)
+  "${PG_DUMP[@]}" "$DATABASE_URL" -Fc -f "$TARGET" -v 2> >(grep -v '^pg_dump:' >&2 || true)
 fi
 
 # 校验文件非空
@@ -76,19 +129,66 @@ fi
 SIZE="$(du -h "$TARGET" | cut -f1)"
 echo "==> 备份完成：$TARGET ($SIZE)"
 
+if [ -n "$BACKUP_ENCRYPTION_KEY_FILE" ]; then
+  if ! command -v age >/dev/null 2>&1; then
+    echo "错误：设置 BACKUP_ENCRYPTION_KEY_FILE 时必须安装 age" >&2
+    exit 1
+  fi
+  if [ ! -r "$BACKUP_ENCRYPTION_KEY_FILE" ]; then
+    echo "错误：备份加密收件人文件不可读：$BACKUP_ENCRYPTION_KEY_FILE" >&2
+    exit 1
+  fi
+  ENCRYPTED_TARGET="${RAW_TARGET}.age"
+  age -R "$BACKUP_ENCRYPTION_KEY_FILE" -o "$ENCRYPTED_TARGET" "$RAW_TARGET"
+  rm -f "$RAW_TARGET"
+  TARGET="$ENCRYPTED_TARGET"
+  echo "==> 已使用 age 加密备份：$TARGET"
+fi
+
+MANIFEST="$TARGET.sha256"
+if command -v sha256sum >/dev/null 2>&1; then
+  sha256sum "$TARGET" > "$MANIFEST"
+else
+  shasum -a 256 "$TARGET" > "$MANIFEST"
+fi
+
+SIGNATURE=""
+if [ -n "$BACKUP_SIGNING_KEY_FILE" ]; then
+  if ! command -v openssl >/dev/null 2>&1; then
+    echo "错误：设置 BACKUP_SIGNING_KEY_FILE 时必须安装 openssl" >&2
+    exit 1
+  fi
+  if [ ! -r "$BACKUP_SIGNING_KEY_FILE" ]; then
+    echo "错误：备份签名私钥不可读：$BACKUP_SIGNING_KEY_FILE" >&2
+    exit 1
+  fi
+  SIGNATURE="${TARGET}.sig"
+  openssl dgst -sha256 -sign "$BACKUP_SIGNING_KEY_FILE" -out "$SIGNATURE" "$TARGET"
+  if [ ! -s "$SIGNATURE" ]; then
+    echo "错误：备份签名文件为空（$SIGNATURE）" >&2
+    exit 1
+  fi
+  echo "==> 已生成备份签名：$SIGNATURE"
+fi
+
 # --- 清理过期备份 ---
 echo "==> 清理超过 ${RETENTION_DAYS} 天的本地备份…"
-find "$BACKUP_DIR" -name 'velora_full_*.dump' -mtime "+$RETENTION_DAYS" -delete
+find "$BACKUP_DIR" -name "${BACKUP_FILENAME_PREFIX}_*.dump*" -mtime "+$RETENTION_DAYS" -delete
 
 # --- 可选：上传对象存储 ---
 if [ -n "${BACKUP_S3:-}" ]; then
   echo "==> 上传到对象存储：$BACKUP_S3"
   if command -v s5cmd >/dev/null 2>&1; then
     s5cmd cp "$TARGET" "$BACKUP_S3/"
+    s5cmd cp "$MANIFEST" "$BACKUP_S3/"
+    [ -z "$SIGNATURE" ] || s5cmd cp "$SIGNATURE" "$BACKUP_S3/"
   elif command -v aws >/dev/null 2>&1; then
     aws s3 cp "$TARGET" "$BACKUP_S3/"
+    aws s3 cp "$MANIFEST" "$BACKUP_S3/"
+    [ -z "$SIGNATURE" ] || aws s3 cp "$SIGNATURE" "$BACKUP_S3/"
   else
-    echo "警告：未找到 s5cmd/aws，跳过上传（请安装或配置 BACKUP_S3）" >&2
+    echo "错误：设置 BACKUP_S3 时必须安装 s5cmd 或 aws" >&2
+    exit 1
   fi
   # 对象存储侧同样清理（列出并按文件名日期判断，简化：保留最近 N 个）
 fi

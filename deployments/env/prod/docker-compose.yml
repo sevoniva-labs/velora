@@ -1,0 +1,319 @@
+# Velora 独立生产编排。
+# 不与根目录开发 Compose 合并，避免开发端口、默认凭据和 initData 继承到生产。
+# 运行前复制 deployments/env/prod/.env.example 到安全位置，并由 Secret Manager/CI 注入真实值。
+name: velora-prod
+
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "20m"
+    max-file: "5"
+
+x-app-env: &app-env
+  VELORA_ENV: production
+  VELORA_APP_NAME: Velora
+  VELORA_PUBLIC_URL: "https://${VELORA_EXTERNAL_URL:?VELORA_EXTERNAL_URL is required}"
+  VELORA_DATABASE_PROVIDER: postgres
+  VELORA_DATABASE_DSN_FILE: /run/secrets/velora_database_dsn
+  VELORA_CACHE_PROVIDER: redis
+  VELORA_REDIS_ADDRESSES: redis:6379
+  VELORA_REDIS_PASSWORD_FILE: /run/secrets/redis_password
+  VELORA_REDIS_TLS: "true"
+  VELORA_REDIS_TLS_CA_FILE: /run/secrets/redis_tls_ca
+  VELORA_REDIS_TLS_CERT_FILE: /run/secrets/redis_tls_cert
+  VELORA_REDIS_TLS_KEY_FILE: /run/secrets/redis_tls_key
+  VELORA_REDIS_TLS_SERVER_NAME: redis
+  VELORA_STORAGE_PROVIDER: "${VELORA_STORAGE_PROVIDER:?VELORA_STORAGE_PROVIDER is required}"
+  VELORA_STORAGE_ENDPOINT: "${VELORA_STORAGE_ENDPOINT:?VELORA_STORAGE_ENDPOINT is required}"
+  VELORA_STORAGE_REGION: "${VELORA_STORAGE_REGION:?VELORA_STORAGE_REGION is required}"
+  VELORA_STORAGE_BUCKET: "${VELORA_STORAGE_BUCKET:?VELORA_STORAGE_BUCKET is required}"
+  VELORA_STORAGE_PREFIX: "${VELORA_STORAGE_PREFIX:?VELORA_STORAGE_PREFIX is required}"
+  VELORA_STORAGE_PATH_STYLE: "${VELORA_STORAGE_PATH_STYLE:?VELORA_STORAGE_PATH_STYLE is required}"
+  VELORA_STORAGE_TLS: "true"
+  VELORA_STORAGE_ACCESS_KEY_FILE: /run/secrets/storage_access_key
+  VELORA_STORAGE_SECRET_KEY_FILE: /run/secrets/storage_secret_key
+  VELORA_STORAGE_SSE_MODE: "${VELORA_STORAGE_SSE_MODE:?VELORA_STORAGE_SSE_MODE is required}"
+  VELORA_STORAGE_SSE_KMS_KEY_ID: "${VELORA_STORAGE_SSE_KMS_KEY_ID:-}"
+  VELORA_CRYPTO_PROVIDER: "${VELORA_CRYPTO_PROVIDER:?VELORA_CRYPTO_PROVIDER is required}"
+  VELORA_CRYPTO_ADAPTER: "${VELORA_CRYPTO_ADAPTER:?VELORA_CRYPTO_ADAPTER is required}"
+  VELORA_CRYPTO_KEY_FILE: /run/secrets/velora_crypto_key
+  VELORA_CRYPTO_KEY_VERSION: "${VELORA_CRYPTO_KEY_VERSION:?VELORA_CRYPTO_KEY_VERSION is required}"
+  VELORA_AUTH_MODE: oidc
+  VELORA_OIDC_NAME: casdoor
+  VELORA_OIDC_ISSUER: "${VELORA_OIDC_ISSUER:?VELORA_OIDC_ISSUER is required}"
+  VELORA_OIDC_CLIENT_ID: "${VELORA_OIDC_CLIENT_ID:?VELORA_OIDC_CLIENT_ID is required}"
+  VELORA_OIDC_CLIENT_SECRET_FILE: /run/secrets/casdoor_oidc_client_secret
+  VELORA_OIDC_REDIRECT_URL: "${VELORA_OIDC_REDIRECT_URL:?VELORA_OIDC_REDIRECT_URL is required}"
+  VELORA_CASDOOR_ACCOUNT_URL: "${VELORA_CASDOOR_ACCOUNT_URL:?VELORA_CASDOOR_ACCOUNT_URL is required}"
+  VELORA_CASDOOR_ADMIN_URL: "${VELORA_CASDOOR_ADMIN_URL:?VELORA_CASDOOR_ADMIN_URL is required}"
+  VELORA_CASDOOR_ALLOWED_HOSTS: "${VELORA_CASDOOR_ALLOWED_HOSTS:?VELORA_CASDOOR_ALLOWED_HOSTS is required}"
+  VELORA_APPLICATION_ONBOARDING_V2: "${VELORA_APPLICATION_ONBOARDING_V2:-true}"
+  VELORA_CASDOOR_ADMIN_ENTRY_ENABLED: "${VELORA_CASDOOR_ADMIN_ENTRY_ENABLED:-true}"
+  VELORA_CASDOOR_APPLICATION_AUTOMATION_ENABLED: "${VELORA_CASDOOR_APPLICATION_AUTOMATION_ENABLED:-false}"
+  VELORA_CASDOOR_AUTOMATION_TOKEN_FILE: /run/secrets/casdoor_automation_token
+  VELORA_OIDC_PROVIDER_ENABLED: "false"
+  VELORA_BOOTSTRAP_ADMIN: "${VELORA_BOOTSTRAP_ADMIN:?VELORA_BOOTSTRAP_ADMIN is required}"
+  VELORA_BOOTSTRAP_PASSWORD_FILE: /run/secrets/velora_bootstrap_password
+  VELORA_ALLOWED_ORIGINS: "${VELORA_ALLOWED_ORIGINS:?VELORA_ALLOWED_ORIGINS is required}"
+  VELORA_TRUSTED_PROXIES: "${TRUSTED_PROXIES:?TRUSTED_PROXIES is required}"
+  VELORA_SECURE_COOKIES: "true"
+  VELORA_SAME_SITE: lax
+  VELORA_COMPLIANCE_PROFILE: financial
+  VELORA_LOG_LEVEL: "${LOG_LEVEL:-info}"
+  VELORA_WEB_DIR: /app/web
+
+services:
+  postgres:
+    image: "${POSTGRES_IMAGE:?POSTGRES_IMAGE must be an approved internal image digest}"
+    container_name: velora-prod-postgres
+    restart: unless-stopped
+    logging: *default-logging
+    environment:
+      POSTGRES_USER: "${POSTGRES_SUPERUSER:?POSTGRES_SUPERUSER is required}"
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_superuser_password
+      POSTGRES_DB: postgres
+      POSTGRES_APP_USER: "${POSTGRES_APP_USER:?POSTGRES_APP_USER is required}"
+      POSTGRES_APP_PASSWORD_FILE: /run/secrets/postgres_app_password
+      POSTGRES_IDP_USER: "${POSTGRES_IDP_USER:?POSTGRES_IDP_USER is required}"
+      POSTGRES_IDP_PASSWORD_FILE: /run/secrets/postgres_idp_password
+    secrets:
+      - postgres_superuser_password
+      - postgres_app_password
+      - postgres_idp_password
+    volumes:
+      - velora-prod-pgdata:/var/lib/postgresql/data
+      - ../../compose/init-db-prod.sh:/docker-entrypoint-initdb.d/10-init-db-prod.sh:ro
+    expose:
+      - "5432"
+    networks:
+      - app
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$$POSTGRES_USER\" -d postgres"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  redis:
+    image: "${REDIS_IMAGE:?REDIS_IMAGE must be an approved internal image digest}"
+    container_name: velora-prod-redis
+    restart: unless-stopped
+    logging: *default-logging
+    command: ["sh", "-ec", "umask 077; { printf '%s\\n' 'port 0' 'tls-port 6379' 'tls-cert-file /run/secrets/redis_tls_cert' 'tls-key-file /run/secrets/redis_tls_key' 'tls-ca-cert-file /run/secrets/redis_tls_ca' 'tls-auth-clients no' 'appendonly yes'; printf 'requirepass %s\\n' \"$$(cat /run/secrets/redis_password)\"; } > /tmp/velora-redis.conf; exec redis-server /tmp/velora-redis.conf"]
+    volumes:
+      - velora-prod-redisdata:/data
+    secrets:
+      - redis_password
+      - redis_tls_ca
+      - redis_tls_cert
+      - redis_tls_key
+    expose:
+      - "6379"
+    networks:
+      - app
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli --tls --cacert /run/secrets/redis_tls_ca -a \"$$(cat /run/secrets/redis_password)\" ping | grep -q PONG"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  casdoor:
+    image: "${CASDOOR_IMAGE:?CASDOOR_IMAGE must be an approved internal image digest}"
+    container_name: velora-prod-casdoor
+    restart: unless-stopped
+    logging: *default-logging
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      RUNNING_IN_DOCKER: "true"
+      driverName: postgres
+      dbName: casdoor
+      dataSourceName: "${CASDOOR_DATA_SOURCE_NAME:?CASDOOR_DATA_SOURCE_NAME is required}"
+      initData: "false"
+      origin: "https://${VELORA_EXTERNAL_URL:?VELORA_EXTERNAL_URL is required}/casdoor"
+    expose:
+      - "8000"
+    networks:
+      - app
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8000/healthz >/dev/null 2>&1 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+
+  server:
+    container_name: velora-prod-server
+    build:
+      # Compose resolves build paths relative to this file. Three levels are
+      # required to reach the repository root from deployments/env/prod.
+      context: ../../..
+      dockerfile: deployments/docker/Dockerfile.server
+      args:
+        DOCKER_REGISTRY: "${DOCKER_REGISTRY:-docker.m.daocloud.io}"
+        GOPROXY: "${GOPROXY:-https://goproxy.cn}"
+    restart: unless-stopped
+    logging: *default-logging
+    depends_on:
+      postgres:
+        condition: service_healthy
+      casdoor:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment: *app-env
+    secrets:
+      - velora_database_dsn
+      - storage_access_key
+      - storage_secret_key
+      - redis_password
+      - redis_tls_ca
+      - redis_tls_cert
+      - redis_tls_key
+      - velora_crypto_key
+      - velora_bootstrap_password
+      - casdoor_oidc_client_secret
+    expose:
+      - "8080"
+    networks:
+      - app
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8080/api/v1/system/health >/dev/null 2>&1 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  migrate:
+    container_name: velora-prod-migrate
+    build:
+      context: ../../..
+      dockerfile: deployments/docker/Dockerfile.server
+      args:
+        DOCKER_REGISTRY: "${DOCKER_REGISTRY:-docker.m.daocloud.io}"
+        GOPROXY: "${GOPROXY:-https://goproxy.cn}"
+    profiles: [release]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: ["/usr/local/bin/velora-migrate"]
+    environment:
+      VELORA_ENV: production
+      VELORA_DATABASE_PROVIDER: postgres
+      VELORA_DATABASE_DSN_FILE: /run/secrets/velora_database_dsn
+    secrets:
+      - velora_database_dsn
+    networks:
+      - app
+
+  web:
+    container_name: velora-prod-web
+    build:
+      context: ../../..
+      dockerfile: deployments/docker/Dockerfile.web
+      args:
+        DOCKER_REGISTRY: "${DOCKER_REGISTRY:-docker.m.daocloud.io}"
+        NPM_CONFIG_REGISTRY: "${NPM_CONFIG_REGISTRY:-https://registry.npmmirror.com}"
+    restart: unless-stopped
+    logging: *default-logging
+    depends_on:
+      server:
+        condition: service_healthy
+      casdoor:
+        condition: service_healthy
+    environment:
+      VELORA_API_PROXY_PASS: http://server:8080
+      VELORA_CASDOOR_PROXY_PASS: http://casdoor:8000/
+      VELORA_DNS_RESOLVER: "${VELORA_DNS_RESOLVER:-127.0.0.11}"
+      VELORA_NGINX_RESOLVE_MODE: "${VELORA_NGINX_RESOLVE_MODE:-dynamic}"
+      VELORA_TLS_ENABLED: "true"
+    volumes:
+      - ./certs:/etc/nginx/certs:ro
+    ports:
+      - "80:80"
+      - "443:443"
+    networks:
+      - edge
+      - app
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-check-certificate -qO- https://127.0.0.1/healthz >/dev/null 2>&1 || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+
+  prometheus:
+    image: "${PROMETHEUS_IMAGE:?PROMETHEUS_IMAGE must be an approved internal image digest}"
+    container_name: velora-prod-prometheus
+    restart: unless-stopped
+    logging: *default-logging
+    profiles: [monitoring]
+    volumes:
+      - ../../monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ../../monitoring/alerts.yml:/etc/prometheus/alerts.yml:ro
+      - velora-prod-promdata:/prometheus
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.retention.time=30d
+    expose:
+      - "9090"
+    networks:
+      - app
+
+  grafana:
+    image: "${GRAFANA_IMAGE:?GRAFANA_IMAGE must be an approved internal image digest}"
+    container_name: velora-prod-grafana
+    restart: unless-stopped
+    logging: *default-logging
+    profiles: [monitoring]
+    depends_on:
+      - prometheus
+    environment:
+      GF_SECURITY_ADMIN_USER: "${GRAFANA_ADMIN_USER:?GRAFANA_ADMIN_USER is required when monitoring is enabled}"
+      GF_SECURITY_ADMIN_PASSWORD: "${GRAFANA_ADMIN_PASSWORD:?GRAFANA_ADMIN_PASSWORD is required when monitoring is enabled}"
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    volumes:
+      - velora-prod-grafanadata:/var/lib/grafana
+    expose:
+      - "3000"
+    networks:
+      - app
+
+volumes:
+  velora-prod-pgdata:
+  velora-prod-redisdata:
+  velora-prod-promdata:
+  velora-prod-grafanadata:
+
+secrets:
+  postgres_superuser_password:
+    file: "${POSTGRES_SUPERUSER_PASSWORD_FILE:?POSTGRES_SUPERUSER_PASSWORD_FILE is required}"
+  postgres_app_password:
+    file: "${POSTGRES_APP_PASSWORD_FILE:?POSTGRES_APP_PASSWORD_FILE is required}"
+  postgres_idp_password:
+    file: "${POSTGRES_IDP_PASSWORD_FILE:?POSTGRES_IDP_PASSWORD_FILE is required}"
+  velora_database_dsn:
+    file: "${VELORA_DATABASE_DSN_FILE:?VELORA_DATABASE_DSN_FILE is required}"
+  storage_access_key:
+    file: "${VELORA_STORAGE_ACCESS_KEY_FILE:?VELORA_STORAGE_ACCESS_KEY_FILE is required}"
+  storage_secret_key:
+    file: "${VELORA_STORAGE_SECRET_KEY_FILE:?VELORA_STORAGE_SECRET_KEY_FILE is required}"
+  redis_password:
+    file: "${REDIS_PASSWORD_FILE:?REDIS_PASSWORD_FILE is required}"
+  redis_tls_ca:
+    file: "${REDIS_TLS_CA_FILE:?REDIS_TLS_CA_FILE is required}"
+  redis_tls_cert:
+    file: "${REDIS_TLS_CERT_FILE:?REDIS_TLS_CERT_FILE is required}"
+  redis_tls_key:
+    file: "${REDIS_TLS_KEY_FILE:?REDIS_TLS_KEY_FILE is required}"
+  velora_crypto_key:
+    file: "${VELORA_CRYPTO_KEY_FILE:?VELORA_CRYPTO_KEY_FILE is required}"
+  velora_bootstrap_password:
+    file: "${VELORA_BOOTSTRAP_PASSWORD_FILE:?VELORA_BOOTSTRAP_PASSWORD_FILE is required}"
+  casdoor_oidc_client_secret:
+    file: "${CASDOOR_OIDC_CLIENT_SECRET_FILE:?CASDOOR_OIDC_CLIENT_SECRET_FILE is required}"
+  casdoor_automation_token:
+    file: "${CASDOOR_AUTOMATION_TOKEN_FILE:-/dev/null}"
+
+networks:
+  edge:
+  app:
+    internal: true

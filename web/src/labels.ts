@@ -5,7 +5,7 @@ import type { SSOType, AppStatus, HealthStatus, PolicyType } from './types'
 export const SSO_TYPE_LABEL: Record<SSOType, string> = {
   URL: '直链',
   OIDC: 'OIDC',
-  VELORA_OIDC: 'Velora SSO',
+  VELORA_OIDC: '待迁移：Velora OIDC',
   SAML: 'SAML',
   CAS: 'CAS',
   FORWARD_AUTH: '反向代理',
@@ -14,7 +14,7 @@ export const SSO_TYPE_LABEL: Record<SSOType, string> = {
 export const SSO_TYPE_COLOR: Record<SSOType, string> = {
   URL: 'default',
   OIDC: 'blue',
-  VELORA_OIDC: 'green',
+  VELORA_OIDC: 'warning',
   SAML: 'purple',
   CAS: 'cyan',
   FORWARD_AUTH: 'orange',
@@ -51,6 +51,21 @@ export const POLICY_TYPE_LABEL: Record<PolicyType, string> = {
 }
 
 export const AUDIT_ACTION_LABEL: Record<string, string> = {
+  'auth.login': '登录',
+  'auth.logout': '退出登录',
+  'auth.password.change': '修改密码',
+  'portal.application.create': '创建应用',
+  'portal.application.update': '更新应用',
+  'portal.application.delete': '删除应用',
+  'portal.application.launch': '启动应用',
+  'portal.favorite.add': '收藏应用',
+  'portal.favorite.remove': '取消收藏',
+  'portal.category.create': '创建分类',
+  'portal.category.update': '更新分类',
+  'portal.category.delete': '删除分类',
+  'portal.tag.create': '创建标签',
+  'portal.tag.update': '更新标签',
+  'portal.tag.delete': '删除标签',
   LOGIN: '登录',
   LOGOUT: '退出登录',
   APPLICATION_CREATE: '创建应用',

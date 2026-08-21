@@ -1,0 +1,18 @@
+# DEVELOPMENT ONLY. Production should use a managed/shared Nacos cluster with
+# authentication, TLS/network controls, backup and HA according to local policy.
+services:
+  nacos:
+    image: ${NACOS_IMAGE:?set NACOS_IMAGE to an internal Harbor digest}
+    environment:
+      MODE: standalone
+      NACOS_AUTH_ENABLE: "true"
+      NACOS_AUTH_TOKEN: ${NACOS_AUTH_TOKEN:?set a strong Nacos auth token}
+      NACOS_AUTH_IDENTITY_KEY: ${NACOS_AUTH_IDENTITY_KEY:?set Nacos identity key}
+      NACOS_AUTH_IDENTITY_VALUE: ${NACOS_AUTH_IDENTITY_VALUE:?set Nacos identity value}
+      JVM_XMS: 512m
+      JVM_XMX: 512m
+      JVM_XMN: 256m
+    ports:
+      - "8848:8848"
+      - "9848:9848"
+      - "18080:8080"

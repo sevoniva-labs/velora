@@ -34,3 +34,10 @@ tmp/
 
 # 本地备份产物
 backups/
+
+# 本地验收证据（可重新生成，不进入源码提交）
+artifacts/
+
+# 生产证书仅由运维挂载，不入 git
+deployments/env/prod/certs/*
+!deployments/env/prod/certs/.gitkeep

@@ -9,6 +9,7 @@ import MailPanel from './mail/MailPanel'
 import MailDetailDrawer from './mail/MailDetailDrawer'
 import ConvertTodoModal from './mail/ConvertTodoModal'
 import type { MailMessage, TodoItem, TodoKind, TodoPriority } from '../types'
+import { isSafeExternalHttpsUrl } from '../utils/format'
 
 /** 待办优先级 → 中文标签（色条/标签样式类名与优先级同名） */
 const TODO_PRI: Record<TodoPriority, string> = { urgent: '紧急', high: '高', mid: '中', low: '低' }
@@ -83,7 +84,7 @@ export default function TodoCenter() {
       setMailDetailId(Number(todo.sourceId))
       return
     }
-    if (todo.url) window.open(todo.url, '_blank', 'noopener,noreferrer')
+    if (todo.url && isSafeExternalHttpsUrl(todo.url)) window.open(todo.url, '_blank', 'noopener,noreferrer')
   }
 
   const filteredTodos = tab === 'all' || tab === 'mail' ? todos : todos.filter((t) => t.kind === tab)
@@ -146,26 +147,16 @@ export default function TodoCenter() {
             const due = formatTodoDue(todo.dueAt)
             const clickable = todo.sourceSystem === 'mail' || !!todo.url
             return (
-              <div
-                key={todo.id}
-                className="velora-todo-item"
-                role={clickable ? 'button' : undefined}
-                tabIndex={clickable ? 0 : undefined}
-                onClick={() => openTodo(todo)}
-                onKeyDown={(e) => {
-                  if (clickable && (e.key === 'Enter' || e.key === ' ')) {
-                    e.preventDefault()
-                    openTodo(todo)
-                  }
-                }}
-              >
-                <span className={`velora-todo-pri velora-todo-pri--${pri}`} />
-                <span className={`velora-todo-lv velora-todo-lv--${pri}`}>{TODO_PRI[pri]}</span>
-                <span className="velora-todo-main">
-                  <span className="velora-todo-title">{todo.title}</span>
-                  <span className="velora-todo-from">{todo.sourceLabel || todo.sourceSystem}</span>
-                </span>
-                {due && <span className={due.warn ? 'velora-todo-due is-warn' : 'velora-todo-due'}>{due.text}</span>}
+              <div key={todo.id} className="velora-todo-item">
+                <button type="button" className="velora-todo-open" disabled={!clickable} onClick={() => openTodo(todo)} aria-label={clickable ? `打开待办：${todo.title}` : todo.title}>
+                  <span className={`velora-todo-pri velora-todo-pri--${pri}`} />
+                  <span className={`velora-todo-lv velora-todo-lv--${pri}`}>{TODO_PRI[pri]}</span>
+                  <span className="velora-todo-main">
+                    <span className="velora-todo-title">{todo.title}</span>
+                    <span className="velora-todo-from">{todo.sourceLabel || todo.sourceSystem}</span>
+                  </span>
+                  {due && <span className={due.warn ? 'velora-todo-due is-warn' : 'velora-todo-due'}>{due.text}</span>}
+                </button>
                 <button
                   type="button"
                   className="velora-todo-done"

@@ -1,0 +1,92 @@
+app:
+  name: Velora
+  environment: production
+  region: cn-north
+  zone: zone-a
+server:
+  listen_addr: ":8080"
+  grpc_listen_addr: ":9090"
+  public_url: "https://velora.example.com"
+  web_dir: "/app/web"
+  web_csp_frame_sources: []
+  web_csp_connect_sources: []
+  web_csp_wujie_enabled: false
+  web_csp_wujie_approval_ref: ""
+  read_timeout: 30s
+  write_timeout: 30s
+  idle_timeout: 60s
+  shutdown_timeout: 20s
+  max_body_bytes: 16777216
+database:
+  provider: postgres
+  max_open_conns: 50
+  max_idle_conns: 10
+  max_lifetime: 30m
+  query_timeout: 10s
+  auto_migrate: false
+cache:
+  provider: redis
+  mode: standalone
+  addresses: ["redis:6379"]
+  db: 0
+  prefix: "velora:"
+  default_ttl: 10m
+  tls: true
+messaging: { provider: disabled }
+streaming: { provider: disabled }
+search: { provider: disabled }
+storage:
+  provider: s3
+  endpoint: "https://s3.internal.example:9000"
+  region: "us-east-1"
+  bucket: velora
+  path_style: true
+  tls: true
+discovery: { provider: disabled }
+remote_config: { provider: disabled }
+security:
+  auth_mode: oidc
+  oidc_name: casdoor
+  oidc_issuer: "https://casdoor.example.internal"
+  oidc_client_id: "velora-portal"
+  oidc_redirect_url: "https://velora.example.com/auth/callback"
+  oidc_post_logout_redirect_url: "https://velora.example.com/login"
+  casdoor_account_url: "https://casdoor.example.internal/account"
+  session_ttl: 1h
+  secure_cookies: true
+  same_site: lax
+  password_min_length: 14
+  password_require_upper: true
+  password_require_lower: true
+  password_require_digit: true
+  password_require_symbol: true
+  password_history: 5
+  password_max_age_days: 90
+  login_max_failures: 5
+  login_lock_duration: 30m
+  crypto_provider: standard
+  crypto_key_version: v1
+  allowed_origins: ["https://velora.example.com"]
+  trusted_proxies: ["10.0.0.0/8"]
+observability:
+  log_level: info
+  log_format: json
+  metrics_enabled: true
+  metrics_path: /metrics
+  tracing_enabled: false
+  pprof_enabled: false
+resilience:
+  dependency_timeout: 8s
+  retry_max_attempts: 3
+  retry_base_delay: 100ms
+  circuit_failure_threshold: 5
+  circuit_open_duration: 30s
+  bulkhead_concurrency: 200
+compliance:
+  profile: mlps3
+  audit_retention_days: 365
+  network_log_retention_days: 183
+  sensitive_data_masking: true
+  disable_debug_endpoints: true
+features:
+  flags: {}

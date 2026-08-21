@@ -1,0 +1,60 @@
+extensions:
+  file_storage:
+    directory: ${env:VELORA_OTEL_STORAGE_DIR}
+    create_directory: true
+
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+        tls:
+          cert_file: ${env:VELORA_OTEL_RECEIVER_CERT_FILE}
+          key_file: ${env:VELORA_OTEL_RECEIVER_KEY_FILE}
+          client_ca_file: ${env:VELORA_OTEL_RECEIVER_CLIENT_CA_FILE}
+      http:
+        endpoint: 0.0.0.0:4318
+        tls:
+          cert_file: ${env:VELORA_OTEL_RECEIVER_CERT_FILE}
+          key_file: ${env:VELORA_OTEL_RECEIVER_KEY_FILE}
+          client_ca_file: ${env:VELORA_OTEL_RECEIVER_CLIENT_CA_FILE}
+
+processors:
+  memory_limiter:
+    check_interval: 1s
+    limit_mib: 512
+    spike_limit_mib: 128
+  batch:
+    timeout: 5s
+    send_batch_size: 1024
+
+exporters:
+  otlp:
+    endpoint: ${env:VELORA_OTEL_EXPORT_ENDPOINT}
+    tls:
+      insecure: false
+      ca_file: ${env:VELORA_OTEL_EXPORT_CA_FILE}
+      cert_file: ${env:VELORA_OTEL_EXPORT_CERT_FILE}
+      key_file: ${env:VELORA_OTEL_EXPORT_KEY_FILE}
+    sending_queue:
+      enabled: true
+      queue_size: 10000
+      storage: file_storage
+    retry_on_failure:
+      enabled: true
+      initial_interval: 5s
+      max_interval: 30s
+      max_elapsed_time: 300s
+
+service:
+  extensions: [file_storage]
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [memory_limiter, batch]
+      exporters: [otlp]
+  telemetry:
+    logs:
+      level: info
+    metrics:
+      address: 0.0.0.0:8888

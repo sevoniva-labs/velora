@@ -1,0 +1,3 @@
+CREATE USER velora WITH PASSWORD 'velora';
+CREATE DATABASE velora OWNER velora;
+CREATE DATABASE casdoor;

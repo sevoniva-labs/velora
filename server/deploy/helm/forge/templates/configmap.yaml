@@ -1,0 +1,163 @@
+{{- if and .Values.config.webCSPWujieEnabled (empty .Values.config.webCSPWujieApprovalRef) -}}
+{{- fail "config.webCSPWujieEnabled requires config.webCSPWujieApprovalRef" -}}
+{{- end -}}
+{{- if and (not .Values.config.webCSPWujieEnabled) (not (empty .Values.config.webCSPWujieApprovalRef)) -}}
+{{- fail "config.webCSPWujieApprovalRef requires config.webCSPWujieEnabled=true" -}}
+{{- end -}}
+{{- if and (eq .Values.config.environment "production") (ne .Values.config.authMode "oidc") -}}
+{{- fail "config.authMode must be oidc in production" -}}
+{{- end -}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "velora.fullname" . }}
+  labels:
+    {{- include "velora.selectorLabels" . | nindent 4 }}
+data:
+  VELORA_APP_NAME: {{ .Values.config.appName | quote }}
+  VELORA_ENV: {{ .Values.config.environment | quote }}
+  VELORA_REGION: {{ .Values.config.region | quote }}
+  VELORA_ZONE: {{ .Values.config.zone | quote }}
+  VELORA_PUBLIC_URL: {{ .Values.config.publicURL | quote }}
+  VELORA_WEB_DIR: {{ .Values.config.webDir | quote }}
+  VELORA_WEB_CSP_FRAME_SOURCES: {{ .Values.config.webCSPFrameSources | quote }}
+  VELORA_WEB_CSP_CONNECT_SOURCES: {{ .Values.config.webCSPConnectSources | quote }}
+  VELORA_WEB_CSP_WUJIE_ENABLED: {{ .Values.config.webCSPWujieEnabled | quote }}
+  VELORA_WEB_CSP_WUJIE_APPROVAL_REF: {{ .Values.config.webCSPWujieApprovalRef | quote }}
+
+  VELORA_DATABASE_PROVIDER: {{ .Values.config.databaseProvider | quote }}
+  VELORA_DATABASE_MAX_OPEN_CONNS: {{ .Values.config.databaseMaxOpenConns | quote }}
+  VELORA_DATABASE_MAX_IDLE_CONNS: {{ .Values.config.databaseMaxIdleConns | quote }}
+  VELORA_DATABASE_MAX_LIFETIME: {{ .Values.config.databaseMaxLifetime | quote }}
+  VELORA_DATABASE_QUERY_TIMEOUT: {{ .Values.config.databaseQueryTimeout | quote }}
+  VELORA_DATABASE_AUTO_MIGRATE: {{ .Values.config.databaseAutoMigrate | quote }}
+
+  VELORA_CACHE_PROVIDER: {{ .Values.config.cacheProvider | quote }}
+  VELORA_REDIS_MODE: {{ .Values.config.redisMode | quote }}
+  VELORA_REDIS_ADDRESSES: {{ .Values.config.redisAddresses | quote }}
+  VELORA_REDIS_MASTER_NAME: {{ .Values.config.redisMasterName | quote }}
+  VELORA_REDIS_TLS: {{ .Values.config.redisTLS | quote }}
+  VELORA_REDIS_TLS_CA_FILE: {{ .Values.config.redisTLSCAFile | quote }}
+  VELORA_REDIS_TLS_CERT_FILE: {{ .Values.config.redisTLSCertFile | quote }}
+  VELORA_REDIS_TLS_KEY_FILE: {{ .Values.config.redisTLSKeyFile | quote }}
+  VELORA_REDIS_TLS_SERVER_NAME: {{ .Values.config.redisTLSServerName | quote }}
+  VELORA_CACHE_DEFAULT_TTL: {{ .Values.config.cacheDefaultTTL | quote }}
+
+  VELORA_MESSAGING_PROVIDER: {{ .Values.config.messagingProvider | quote }}
+  VELORA_ROCKETMQ_ENDPOINT: {{ .Values.config.rocketmqEndpoint | quote }}
+  VELORA_ROCKETMQ_GROUP: {{ .Values.config.rocketmqGroup | quote }}
+  VELORA_ROCKETMQ_NAMESPACE: {{ .Values.config.rocketmqNamespace | quote }}
+  VELORA_ROCKETMQ_TOPICS: {{ .Values.config.rocketmqTopics | quote }}
+  VELORA_ROCKETMQ_TLS: {{ .Values.config.rocketmqTLS | quote }}
+  VELORA_ROCKETMQ_TLS_CA_FILE: {{ .Values.config.rocketmqTLSCAFile | quote }}
+  VELORA_ROCKETMQ_TLS_CERT_FILE: {{ .Values.config.rocketmqTLSCertFile | quote }}
+  VELORA_ROCKETMQ_TLS_KEY_FILE: {{ .Values.config.rocketmqTLSKeyFile | quote }}
+  VELORA_ROCKETMQ_TLS_SERVER_NAME: {{ .Values.config.rocketmqTLSServerName | quote }}
+  VELORA_ROCKETMQ_BATCH_SIZE: {{ .Values.config.rocketmqBatchSize | quote }}
+  VELORA_ROCKETMQ_INVISIBLE_DURATION: {{ .Values.config.rocketmqInvisibleDuration | quote }}
+  VELORA_ROCKETMQ_AWAIT_DURATION: {{ .Values.config.rocketmqAwaitDuration | quote }}
+
+  VELORA_STREAMING_PROVIDER: {{ .Values.config.streamingProvider | quote }}
+  VELORA_KAFKA_BROKERS: {{ .Values.config.kafkaBrokers | quote }}
+  VELORA_KAFKA_CLIENT_ID: {{ .Values.config.kafkaClientID | quote }}
+  VELORA_KAFKA_TLS: {{ .Values.config.kafkaTLS | quote }}
+  VELORA_KAFKA_TLS_CA_FILE: {{ .Values.config.kafkaTLSCAFile | quote }}
+  VELORA_KAFKA_TLS_CERT_FILE: {{ .Values.config.kafkaTLSCertFile | quote }}
+  VELORA_KAFKA_TLS_KEY_FILE: {{ .Values.config.kafkaTLSKeyFile | quote }}
+  VELORA_KAFKA_TLS_SERVER_NAME: {{ .Values.config.kafkaTLSServerName | quote }}
+  VELORA_SEARCH_PROVIDER: {{ .Values.config.searchProvider | quote }}
+  VELORA_SEARCH_URLS: {{ .Values.config.searchURLs | quote }}
+  VELORA_SEARCH_TLS: {{ .Values.config.searchTLS | quote }}
+  VELORA_SEARCH_TLS_CA_FILE: {{ .Values.config.searchTLSCAFile | quote }}
+  VELORA_SEARCH_TLS_CERT_FILE: {{ .Values.config.searchTLSCertFile | quote }}
+  VELORA_SEARCH_TLS_KEY_FILE: {{ .Values.config.searchTLSKeyFile | quote }}
+  VELORA_SEARCH_TLS_SERVER_NAME: {{ .Values.config.searchTLSServerName | quote }}
+
+  VELORA_STORAGE_PROVIDER: {{ .Values.config.storageProvider | quote }}
+  VELORA_STORAGE_LOCAL_ROOT: {{ .Values.config.storageLocalRoot | quote }}
+  VELORA_STORAGE_ENDPOINT: {{ .Values.config.storageEndpoint | quote }}
+  VELORA_STORAGE_REGION: {{ .Values.config.storageRegion | quote }}
+  VELORA_STORAGE_BUCKET: {{ .Values.config.storageBucket | quote }}
+  VELORA_STORAGE_PATH_STYLE: {{ .Values.config.storagePathStyle | quote }}
+  VELORA_STORAGE_TLS: {{ .Values.config.storageTLS | quote }}
+  VELORA_STORAGE_TLS_CA_FILE: {{ .Values.config.storageTLSCAFile | quote }}
+  VELORA_STORAGE_TLS_CERT_FILE: {{ .Values.config.storageTLSCertFile | quote }}
+  VELORA_STORAGE_TLS_KEY_FILE: {{ .Values.config.storageTLSKeyFile | quote }}
+  VELORA_STORAGE_TLS_SERVER_NAME: {{ .Values.config.storageTLSServerName | quote }}
+
+  VELORA_DISCOVERY_PROVIDER: {{ .Values.config.discoveryProvider | quote }}
+  VELORA_DISCOVERY_SERVICE_NAME: {{ .Values.config.discoveryServiceName | quote }}
+  VELORA_DISCOVERY_GRPC_SERVICE_NAME: {{ .Values.config.discoveryGRPCServiceName | quote }}
+  VELORA_DISCOVERY_ADVERTISE_IP: {{ .Values.config.discoveryAdvertiseIP | quote }}
+  VELORA_DISCOVERY_ADVERTISE_PORT: {{ .Values.config.discoveryAdvertisePort | quote }}
+  VELORA_DISCOVERY_ADVERTISE_GRPC_PORT: {{ .Values.config.discoveryAdvertiseGRPCPort | quote }}
+  VELORA_NACOS_SERVERS: {{ .Values.config.nacosServers | quote }}
+  VELORA_NACOS_NAMESPACE: {{ .Values.config.nacosNamespace | quote }}
+  VELORA_NACOS_GROUP: {{ .Values.config.nacosGroup | quote }}
+  VELORA_NACOS_CLUSTER: {{ .Values.config.nacosCluster | quote }}
+  VELORA_NACOS_TLS_REQUIRED: {{ .Values.config.nacosTLSRequired | quote }}
+  VELORA_NACOS_TLS_CA_FILE: {{ .Values.config.nacosTLSCAFile | quote }}
+  VELORA_NACOS_TLS_CERT_FILE: {{ .Values.config.nacosTLSCertFile | quote }}
+  VELORA_NACOS_TLS_KEY_FILE: {{ .Values.config.nacosTLSKeyFile | quote }}
+  VELORA_NACOS_TLS_SERVER_NAME: {{ .Values.config.nacosTLSServerName | quote }}
+  VELORA_REMOTE_CONFIG_PROVIDER: {{ .Values.config.remoteConfigProvider | quote }}
+  VELORA_NACOS_CONFIG_GROUP: {{ .Values.config.nacosConfigGroup | quote }}
+  VELORA_NACOS_CONFIG_DATA_ID: {{ .Values.config.nacosConfigDataID | quote }}
+  VELORA_REMOTE_CONFIG_FAIL_FAST: {{ .Values.config.remoteConfigFailFast | quote }}
+
+  VELORA_SESSION_TTL: {{ .Values.config.sessionTTL | quote }}
+  VELORA_AUTH_MODE: {{ .Values.config.authMode | quote }}
+  VELORA_OIDC_NAME: {{ .Values.config.oidcName | quote }}
+  VELORA_OIDC_ISSUER: {{ .Values.config.oidcIssuer | quote }}
+  VELORA_OIDC_CLIENT_ID: {{ .Values.config.oidcClientID | quote }}
+  VELORA_OIDC_REDIRECT_URL: {{ .Values.config.oidcRedirectURL | quote }}
+  VELORA_OIDC_POST_LOGOUT_REDIRECT_URL: {{ .Values.config.oidcPostLogoutRedirectURL | quote }}
+  VELORA_CASDOOR_ACCOUNT_URL: {{ .Values.config.casdoorAccountURL | quote }}
+  VELORA_CASDOOR_ADMIN_URL: {{ .Values.config.casdoorAdminURL | quote }}
+  VELORA_CASDOOR_ALLOWED_HOSTS: {{ .Values.config.casdoorAllowedHosts | quote }}
+  VELORA_APPLICATION_ONBOARDING_V2: {{ .Values.config.applicationOnboardingV2 | quote }}
+  VELORA_CASDOOR_ADMIN_ENTRY_ENABLED: {{ .Values.config.casdoorAdminEntryEnabled | quote }}
+  VELORA_CASDOOR_APPLICATION_AUTOMATION_ENABLED: {{ .Values.config.casdoorApplicationAutomationEnabled | quote }}
+  VELORA_OIDC_PROVIDER_ENABLED: {{ .Values.config.oidcProviderEnabled | quote }}
+  VELORA_PASSWORD_MIN_LENGTH: {{ .Values.config.passwordMinLength | quote }}
+  VELORA_PASSWORD_REQUIRE_UPPER: {{ .Values.config.passwordRequireUpper | quote }}
+  VELORA_PASSWORD_REQUIRE_LOWER: {{ .Values.config.passwordRequireLower | quote }}
+  VELORA_PASSWORD_REQUIRE_DIGIT: {{ .Values.config.passwordRequireDigit | quote }}
+  VELORA_PASSWORD_REQUIRE_SYMBOL: {{ .Values.config.passwordRequireSymbol | quote }}
+  VELORA_PASSWORD_HISTORY: {{ .Values.config.passwordHistory | quote }}
+  VELORA_PASSWORD_MAX_AGE_DAYS: {{ .Values.config.passwordMaxAgeDays | quote }}
+  VELORA_LOGIN_MAX_FAILURES: {{ .Values.config.loginMaxFailures | quote }}
+  VELORA_LOGIN_LOCK_DURATION: {{ .Values.config.loginLockDuration | quote }}
+  VELORA_CRYPTO_PROVIDER: {{ .Values.config.cryptoProvider | quote }}
+  VELORA_CRYPTO_ADAPTER: {{ .Values.config.cryptoAdapter | quote }}
+  VELORA_CRYPTO_KEY_VERSION: {{ .Values.config.cryptoKeyVersion | quote }}
+  VELORA_SECURE_COOKIES: {{ .Values.config.secureCookies | quote }}
+  VELORA_SAME_SITE: {{ .Values.config.sameSite | quote }}
+  VELORA_ALLOWED_ORIGINS: {{ .Values.config.allowedOrigins | quote }}
+  VELORA_TRUSTED_PROXIES: {{ .Values.config.trustedProxies | quote }}
+
+  VELORA_LOG_LEVEL: {{ .Values.config.logLevel | quote }}
+  VELORA_LOG_FORMAT: {{ .Values.config.logFormat | quote }}
+  VELORA_METRICS_ENABLED: {{ .Values.config.metricsEnabled | quote }}
+  VELORA_METRICS_PATH: {{ .Values.config.metricsPath | quote }}
+  VELORA_TRACING_ENABLED: {{ .Values.config.tracingEnabled | quote }}
+  VELORA_OTLP_ENDPOINT: {{ .Values.config.otlpEndpoint | quote }}
+  VELORA_OTLP_TLS: {{ .Values.config.otlpTLS | quote }}
+  VELORA_OTLP_TLS_CA_FILE: {{ .Values.config.otlpTLSCAFile | quote }}
+  VELORA_OTLP_TLS_CERT_FILE: {{ .Values.config.otlpTLSCertFile | quote }}
+  VELORA_OTLP_TLS_KEY_FILE: {{ .Values.config.otlpTLSKeyFile | quote }}
+  VELORA_OTLP_TLS_SERVER_NAME: {{ .Values.config.otlpTLSServerName | quote }}
+  VELORA_PPROF_ENABLED: {{ .Values.config.pprofEnabled | quote }}
+
+  VELORA_DEPENDENCY_TIMEOUT: {{ .Values.config.dependencyTimeout | quote }}
+  VELORA_RETRY_MAX_ATTEMPTS: {{ .Values.config.retryMaxAttempts | quote }}
+  VELORA_RETRY_BASE_DELAY: {{ .Values.config.retryBaseDelay | quote }}
+  VELORA_CIRCUIT_FAILURE_THRESHOLD: {{ .Values.config.circuitFailureThreshold | quote }}
+  VELORA_CIRCUIT_OPEN_DURATION: {{ .Values.config.circuitOpenDuration | quote }}
+  VELORA_BULKHEAD_CONCURRENCY: {{ .Values.config.bulkheadConcurrency | quote }}
+
+  VELORA_COMPLIANCE_PROFILE: {{ .Values.config.complianceProfile | quote }}
+  VELORA_AUDIT_RETENTION_DAYS: {{ .Values.config.auditRetentionDays | quote }}
+  VELORA_NETWORK_LOG_RETENTION_DAYS: {{ .Values.config.networkLogRetentionDays | quote }}
+  VELORA_SENSITIVE_DATA_MASKING: {{ .Values.config.sensitiveDataMasking | quote }}
+  VELORA_DISABLE_DEBUG_ENDPOINTS: {{ .Values.config.disableDebugEndpoints | quote }}

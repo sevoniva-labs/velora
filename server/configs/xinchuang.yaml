@@ -1,0 +1,123 @@
+# 信创基线：OceanBase MySQL 模式 + 国密算法 Provider。
+# Kingbase/达梦/GaussDB、麒麟/统信、LoongArch 等仍必须在目标版本做兼容认证。
+app:
+  name: Velora
+  environment: production
+  region: cn
+  zone: zone-a
+server:
+  listen_addr: ":8080"
+  grpc_listen_addr: ":9090"
+  public_url: "https://velora.example.cn"
+  web_dir: "/app/web"
+  web_csp_frame_sources: []
+  web_csp_connect_sources: []
+  web_csp_wujie_enabled: false
+  web_csp_wujie_approval_ref: ""
+  read_timeout: 30s
+  write_timeout: 30s
+  idle_timeout: 60s
+  shutdown_timeout: 20s
+  max_body_bytes: 16777216
+database:
+  provider: oceanbase
+  max_open_conns: 50
+  max_idle_conns: 10
+  max_lifetime: 30m
+  query_timeout: 10s
+  auto_migrate: false
+cache:
+  provider: redis
+  mode: standalone
+  addresses: ["redis:6379"]
+  tls: true
+  prefix: "velora:"
+  default_ttl: 10m
+messaging:
+  provider: rocketmq
+  rocketmq_endpoint: "rocketmq-proxy.messaging.svc:8081"
+  rocketmq_group: velora-business-consumer
+  rocketmq_namespace: velora
+  rocketmq_topics: ["velora-business-events"]
+  rocketmq_batch_size: 16
+  rocketmq_invisible_duration: 30s
+  rocketmq_await_duration: 5s
+  tls: true
+  tls_server_name: "rocketmq-proxy.messaging.svc"
+streaming: { provider: disabled }
+search: { provider: disabled }
+storage:
+  provider: s3
+  region: cn-beijing
+  bucket: velora
+  path_style: true
+  tls: true
+discovery:
+  provider: nacos
+  servers: ["https://nacos.example.internal:8848"]
+  tls_required: true
+  namespace: ""
+  group: FORGE
+  cluster: DEFAULT
+  service_name: velora-http
+  grpc_service_name: velora-grpc
+  advertise_ip: "10.0.0.10"
+  advertise_port: 8080
+  advertise_grpc_port: 9090
+remote_config:
+  provider: nacos
+  servers: ["https://nacos.example.internal:8848"]
+  tls_required: true
+  namespace: ""
+  group: FORGE
+  data_id: velora-prod.yaml
+  fail_fast: true
+security:
+  auth_mode: oidc
+  oidc_name: casdoor
+  oidc_issuer: "https://casdoor.example.cn"
+  oidc_client_id: "velora-portal"
+  oidc_redirect_url: "https://velora.example.cn/auth/callback"
+  oidc_post_logout_redirect_url: "https://velora.example.cn/login"
+  casdoor_account_url: "https://casdoor.example.cn/account"
+  session_ttl: 1h
+  secure_cookies: true
+  same_site: lax
+  password_min_length: 14
+  password_require_upper: true
+  password_require_lower: true
+  password_require_digit: true
+  password_require_symbol: true
+  password_history: 8
+  password_max_age_days: 90
+  login_max_failures: 5
+  login_lock_duration: 30m
+  crypto_provider: gm
+  crypto_adapter: hsm
+  crypto_key_version: v1
+  allowed_origins: ["https://velora.example.cn"]
+  trusted_proxies: []
+observability:
+  log_level: info
+  log_format: json
+  metrics_enabled: true
+  metrics_path: /metrics
+  tracing_enabled: true
+  otlp_endpoint: "https://otel-collector:4318"
+  otlp_tls: true
+  pprof_enabled: false
+resilience:
+  dependency_timeout: 8s
+  retry_max_attempts: 3
+  retry_base_delay: 100ms
+  circuit_failure_threshold: 5
+  circuit_open_duration: 30s
+  bulkhead_concurrency: 200
+compliance:
+  profile: financial
+  audit_retention_days: 1095
+  network_log_retention_days: 183
+  sensitive_data_masking: true
+  disable_debug_endpoints: true
+features:
+  flags: {}

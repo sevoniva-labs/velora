@@ -31,7 +31,7 @@ export default function Applications() {
     queryFn: () => listApplications({ pageSize: 500 }),
   })
   const catCounts = useMemo(() => {
-    const m = new Map<number, number>()
+    const m = new Map<string | number, number>()
     allAppsList?.items.forEach((a) => {
       if (a.categoryId != null) m.set(a.categoryId, (m.get(a.categoryId) ?? 0) + 1)
     })
@@ -44,7 +44,7 @@ export default function Applications() {
       listApplications({
         keyword: keyword || undefined,
         categoryId: categoryId ? Number(categoryId) : undefined,
-        tagIds: tagId ? [Number(tagId)] : undefined,
+        tagIds: tagId ? [tagId] : undefined,
         page,
         pageSize: PAGE_SIZE,
       }),

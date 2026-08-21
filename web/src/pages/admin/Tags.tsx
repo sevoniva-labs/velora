@@ -33,7 +33,7 @@ export default function AdminTags() {
   })
 
   const deleteMutation = useMutation({
-    mutationFn: (id: number) => adminDeleteTag(id),
+    mutationFn: (id: string | number) => adminDeleteTag(id),
     onSuccess: () => {
       message.success('标签已删除')
       invalidate()

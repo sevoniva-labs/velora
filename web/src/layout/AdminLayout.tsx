@@ -9,6 +9,7 @@ import { getPortalSettings, queryKeys } from '../api/api'
 import { useMe } from '../auth/useMe'
 import { logout } from '../api/api'
 import { adminActiveKey, adminNavGroups } from './menu'
+import { hasAnyPermission } from '../auth/permissions'
 
 export interface AdminLayoutProps {
   children: ReactNode
@@ -32,17 +33,20 @@ export function AdminLayout({ children }: AdminLayoutProps) {
 
   const logoutMutation = useMutation({
     mutationFn: logout,
-    onSuccess: () => {
+    onSuccess: (result) => {
       queryClient.clear()
       // 整页跳转：让浏览器应用服务端下发的清除 Cookie，并彻底重置前端状态。
-      window.location.assign('/login')
+      window.location.assign(result.federatedLogoutUrl || '/login')
     },
     onError: (err) => {
       message.error(err instanceof Error ? err.message : '退出失败，请稍后再试')
     },
   })
 
-  const menuItems = adminNavGroups.map((g) => ({
+  const permissions = me.data?.permissions ?? []
+  const canSee = (required?: string[]) => !required?.length || hasAnyPermission(permissions, required, me.data?.roles)
+  const visibleGroups = adminNavGroups.map((g) => ({ ...g, items: g.items.filter((item) => canSee(item.permissions)) })).filter((g) => g.items.length > 0)
+  const menuItems = visibleGroups.map((g) => ({
     type: 'group' as const,
     key: g.key,
     label: g.label,
@@ -56,7 +60,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
       ),
     })),
   }))
-  const flatItems = adminNavGroups.flatMap((g) => g.items)
+  const flatItems = visibleGroups.flatMap((g) => g.items)
 
   return (
     <Layout className={collapsed ? 'velora-layout is-collapsed' : 'velora-layout'}>

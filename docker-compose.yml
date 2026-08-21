@@ -97,38 +97,49 @@ services:
         condition: service_healthy
       casdoor:
         condition: service_healthy
-    # Casdoor 的 OIDC issuer 固定为 host 视角地址（origin=http://localhost:8443），
-    # server 容器通过 host-gateway 以同一地址访问，保证 go-oidc 的 issuer 严格校验通过。
-    extra_hosts:
-      - "localhost:host-gateway"
     environment:
       VELORA_ENV: development
-      LOG_LEVEL: info
-      DATABASE_URL: postgres://velora:velora@postgres:5432/velora?sslmode=disable
-      CASDOOR_ISSUER: http://localhost:8443
-      CASDOOR_CLIENT_ID: ${CASDOOR_CLIENT_ID:-velora}
-      CASDOOR_CLIENT_SECRET: ${CASDOOR_CLIENT_SECRET:-change-me}
-      CASDOOR_REDIRECT_URI: http://localhost:8080/api/v1/auth/oidc/callback
-      CASDOOR_ADMIN_USERNAME: ${CASDOOR_ADMIN_USERNAME:-admin}
-      CASDOOR_ADMIN_PASSWORD: ${CASDOOR_ADMIN_PASSWORD:-123}
-      SESSION_SECRET: ${SESSION_SECRET:-docker-compose-dev-secret-change-me}
-      COOKIE_SECURE: "false"
-      CORS_ALLOWED_ORIGINS: http://localhost:5173
-      # 邮件模块：定时补偿同步间隔（分钟，0 禁用）。
-      # 生产环境必须显式配置 MAIL_CREDENTIAL_KEY（base64 编码的 32 字节密钥），开发缺省时由 SESSION_SECRET 派生。
-      MAIL_SYNC_INTERVAL_MINUTES: "10"
-      # Redis（Phase C3 分布式限流/账户锁定）；启动 redis profile 后取消注释启用：
-      # docker compose --profile redis up -d redis
-      REDIS_URL: ${REDIS_URL:-}
-      # Cloudflare Turnstile 人机验证（登录页防 bot）：两者都配置后启用。
-      TURNSTILE_SITE_KEY: ${TURNSTILE_SITE_KEY:-}
-      TURNSTILE_SECRET_KEY: ${TURNSTILE_SECRET_KEY:-}
-      # 信任 compose 内部网段（nginx 反代），保留真实客户端 IP（限流/审计）
-      TRUSTED_PROXIES: "172.16.0.0/12"
+      VELORA_APP_NAME: Velora
+      # 默认由 Velora 承载登录表单，后端仅把凭据交给 Casdoor 校验并
+      # 通过标准 OIDC ID Token 建立本地 session；Casdoor 页面不会暴露给用户。
+      # 若要使用标准 Authorization Code + PKCE 跳转，可将
+      # VELORA_CASDOOR_PASSWORD_LOGIN_ENABLED=false。
+      VELORA_AUTH_MODE: ${VELORA_AUTH_MODE:-oidc}
+      VELORA_OIDC_NAME: ${VELORA_OIDC_NAME:-casdoor}
+      VELORA_OIDC_ISSUER: ${VELORA_OIDC_ISSUER:-http://localhost:8443}
+      VELORA_OIDC_INTERNAL_URL: ${VELORA_OIDC_INTERNAL_URL:-http://casdoor:8000}
+      VELORA_OIDC_CLIENT_ID: ${VELORA_OIDC_CLIENT_ID:-524bd6637c6116523eae}
+      VELORA_OIDC_CLIENT_SECRET: ${VELORA_OIDC_CLIENT_SECRET:-}
+      VELORA_OIDC_REDIRECT_URL: ${VELORA_OIDC_REDIRECT_URL:-http://localhost:5173/auth/callback}
+      VELORA_OIDC_ALLOW_HTTP: "true"
+      VELORA_CASDOOR_ACCOUNT_URL: ${VELORA_CASDOOR_ACCOUNT_URL:-http://localhost:8443/account}
+      VELORA_CASDOOR_ADMIN_URL: ${VELORA_CASDOOR_ADMIN_URL:-http://localhost:8443}
+      VELORA_CASDOOR_ALLOWED_HOSTS: ${VELORA_CASDOOR_ALLOWED_HOSTS:-localhost,127.0.0.1}
+      VELORA_APPLICATION_ONBOARDING_V2: ${VELORA_APPLICATION_ONBOARDING_V2:-true}
+      VELORA_CASDOOR_ADMIN_ENTRY_ENABLED: ${VELORA_CASDOOR_ADMIN_ENTRY_ENABLED:-true}
+      VELORA_CASDOOR_APPLICATION_AUTOMATION_ENABLED: ${VELORA_CASDOOR_APPLICATION_AUTOMATION_ENABLED:-false}
+      VELORA_CASDOOR_AUTOMATION_TOKEN: ${VELORA_CASDOOR_AUTOMATION_TOKEN:-}
+      VELORA_CASDOOR_PASSWORD_LOGIN_ENABLED: ${VELORA_CASDOOR_PASSWORD_LOGIN_ENABLED:-true}
+      VELORA_CASDOOR_APPLICATION: ${VELORA_CASDOOR_APPLICATION:-velora-local}
+      VELORA_CASDOOR_ORGANIZATION: ${VELORA_CASDOOR_ORGANIZATION:-built-in}
+      VELORA_TURNSTILE_SITE_KEY: ${VELORA_TURNSTILE_SITE_KEY:-}
+      VELORA_TURNSTILE_SECRET: ${VELORA_TURNSTILE_SECRET:-}
+      VELORA_TURNSTILE_SECRET_FILE: ${VELORA_TURNSTILE_SECRET_FILE:-}
+      VELORA_TURNSTILE_HOSTNAMES: ${VELORA_TURNSTILE_HOSTNAMES:-}
+      VELORA_TURNSTILE_ACTION: ${VELORA_TURNSTILE_ACTION:-login}
+      VELORA_DATABASE_DSN: ${VELORA_DATABASE_DSN:-postgres://velora:velora@postgres:5432/velora?sslmode=disable}
+      VELORA_CRYPTO_KEY: ${VELORA_CRYPTO_KEY:-velora-local-development-key-change-me-32bytes}
+      VELORA_BOOTSTRAP_ADMIN: ${VELORA_BOOTSTRAP_ADMIN:-admin}
+      VELORA_BOOTSTRAP_PASSWORD: ${VELORA_BOOTSTRAP_PASSWORD:-change-me-development-only}
+      VELORA_PUBLIC_URL: http://localhost:8080
+      # 本地 Web 既支持 Vite 5173，也支持 Compose Nginx 8443；两种 loopback 主机名都显式允许。
+      VELORA_ALLOWED_ORIGINS: ${VELORA_ALLOWED_ORIGINS:-http://localhost:5173,http://127.0.0.1:5173,http://localhost:8443,http://127.0.0.1:8443}
+      VELORA_SECURE_COOKIES: "false"
+      VELORA_WEB_DIR: /app/web
     ports:
       - "8080:8080"
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8080/healthz >/dev/null 2>&1 || exit 1"]
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8080/api/v1/system/health >/dev/null 2>&1 || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 12
@@ -152,6 +163,9 @@ services:
       - "5173:80"
     environment:
       VELORA_API_PROXY_PASS: http://server:8080
+      VELORA_CASDOOR_PROXY_PASS: http://casdoor:8000/
+      VELORA_DNS_RESOLVER: ${VELORA_DNS_RESOLVER:-127.0.0.11}
+      VELORA_NGINX_RESOLVE_MODE: ${VELORA_NGINX_RESOLVE_MODE:-dynamic}
 
   # --- 可观测性（可选 profile：docker compose --profile monitoring up -d） ---
   prometheus:

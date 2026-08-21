@@ -1,5 +1,7 @@
-// Velora 领域 API 函数与 react-query 键。
-// 字段与后端 JSON 契约一致。
+// Velora Web API 适配层。
+// 后端基座使用 Kratos + protobuf HTTP，路由统一挂在 /api/v1，响应字段使用
+// proto 的 snake_case。页面继续使用历史领域模型，因此所有路径、请求字段和
+// 响应模型的兼容逻辑集中在本文件，页面不再拼接后端 URL。
 
 import { apiFetch, buildQuery } from './client'
 import type {
@@ -20,420 +22,285 @@ import type {
   TodoItem,
   TodoKind,
   TodoPriority,
+  AccessPolicy,
+  IdentityBinding,
+  ApplicationVerification,
 } from '../types'
+import { canAccessAdmin } from '../auth/permissions'
 
-// --- 认证 ---
+type AnyRecord = Record<string, any>
 
-export function getMe(): Promise<CurrentUser> {
-  return apiFetch<CurrentUser>('/me')
+function record(value: unknown): AnyRecord {
+  return value && typeof value === 'object' && !Array.isArray(value) ? (value as AnyRecord) : {}
 }
 
-export function logout(): Promise<{ status: string }> {
-  return apiFetch<{ status: string }>('/auth/logout', { method: 'POST' })
+function listFrom(value: unknown, ...keys: string[]): AnyRecord[] {
+  if (Array.isArray(value)) return value as AnyRecord[]
+  const object = record(value)
+  for (const key of keys) if (Array.isArray(object[key])) return object[key] as AnyRecord[]
+  return []
 }
 
-/** 跳转 Casdoor 发起 OIDC 登录（整页跳转）。 */
-export function oidcLoginUrl(redirect?: string): string {
-  const q = redirect ? `?redirect=${encodeURIComponent(redirect)}` : ''
-  return `/api/v1/auth/oidc/login${q}`
+function asId(value: unknown): string {
+  return value == null ? '' : String(value)
 }
 
-/** 账号密码登录（后端代理 Casdoor OAuth2 password 模式）。成功后返回站内跳转目标。 */
-export function loginWithPassword(
-  username: string,
-  password: string,
-  redirect?: string,
-  turnstileToken?: string,
-): Promise<{ redirect: string }> {
-  return apiFetch<{ redirect: string }>('/auth/login', {
-    method: 'POST',
-    body: {
-      username,
-      password,
-      redirect: redirect && redirect.startsWith('/') ? redirect : undefined,
-      turnstileToken,
-    },
-  })
-}
-
-/** 登录页人机验证配置（Cloudflare Turnstile；未启用时 enabled=false）。 */
-export function getTurnstileConfig(): Promise<{ enabled: boolean; siteKey: string }> {
-  return apiFetch('/auth/turnstile-config')
-}
-
-// --- 用户中心（Phase C4 自助） ---
-
-export interface UserProfile extends CurrentUser {
-  admin: boolean
-}
-
-export interface SessionDevice {
-  sessionId: string
-  userAgent: string
-  ip: string
-  lastActiveAt: string
-  expiresAt: string
-  revokedAt?: string
-  current: boolean
-}
-
-export function getUserProfile(): Promise<UserProfile> {
-  return apiFetch<UserProfile>('/user-center/profile')
-}
-
-export function changePassword(oldPassword: string, newPassword: string): Promise<{ status: string; message: string }> {
-  return apiFetch('/user-center/change-password', {
-    method: 'POST',
-    body: { oldPassword, newPassword },
-  })
-}
-
-export function listSessions(): Promise<SessionDevice[]> {
-  return apiFetch<SessionDevice[]>('/auth/sessions')
-}
-
-export function revokeSession(sessionId: string): Promise<{ revoked: string }> {
-  return apiFetch(`/auth/sessions/${encodeURIComponent(sessionId)}`, { method: 'DELETE' })
-}
-
-export function revokeAllSessions(): Promise<{ status: string }> {
-  return apiFetch('/auth/sessions', { method: 'DELETE' })
-}
-
-// --- OIDC Provider 客户端管理（Phase B6 管理后台） ---
-
-export interface OIDCClient {
-  clientId: string
-  name: string
-  redirectUris: string[]
-  grantTypes: string[]
-  scopes: string[]
-  createdAt: string
-}
-
-export function listOIDCClients(applicationId: number): Promise<OIDCClient[]> {
-  return apiFetch(`/admin/applications/${applicationId}/oidc-clients`)
-}
-
-export function createOIDCClient(
-  applicationId: number,
-  redirectUris: string[],
-): Promise<{ client: OIDCClient; clientSecret: string }> {
-  return apiFetch(`/admin/applications/${applicationId}/oidc-clients`, {
-    method: 'POST',
-    body: { redirectUris },
-  })
-}
-
-export function revokeOIDCClient(clientId: string): Promise<{ status: string }> {
-  return apiFetch(`/admin/applications/oidc-clients/${encodeURIComponent(clientId)}`, { method: 'DELETE' })
-}
-
-// --- 集成令牌（Service Account，Phase D3） ---
-
-export interface IntegrationToken {
-  id: number
-  name: string
-  scopes: string[]
-  createdBy: string
-  expiresAt: string | null
-  lastUsedAt: string | null
-  revoked: boolean
-}
-
-export function listIntegrationTokens(): Promise<IntegrationToken[]> {
-  return apiFetch('/admin/integration-tokens')
-}
-
-export function createIntegrationToken(input: {
-  name: string
-  scopes: string[]
-  expiresInDays?: number
-}): Promise<{ token: string; message: string }> {
-  const body: Record<string, unknown> = { name: input.name, scopes: input.scopes }
-  if (input.expiresInDays) {
-    // 服务端按天计算过期时间（避免客户端时区差异）
-    body.expiresAt = new Date(Date.now() + input.expiresInDays * 24 * 3600 * 1000).toISOString()
+function mapUser(value: unknown): CurrentUser {
+  const user = record(value)
+  const roles = Array.isArray(user.roles) ? user.roles.map(String) : []
+  const permissions = Array.isArray(user.permissions) ? user.permissions.map(String) : []
+  // Keep the legacy field for old screens, but derive it from the same
+  // permission set used by navigation and route guards.
+  const admin = canAccessAdmin(permissions, roles)
+  return {
+    id: asId(user.id),
+    username: String(user.loginName ?? user.username ?? ''),
+    displayName: String(user.displayName ?? user.loginName ?? ''),
+    email: String(user.email ?? ''),
+    avatar: String(user.avatar ?? ''),
+    organization: String(user.organizationId ?? user.organization ?? 'default'),
+    roles,
+    permissions,
+    admin,
+    groups: Array.isArray(user.groups) ? user.groups.map(String) : [],
   }
-  return apiFetch('/admin/integration-tokens', { method: 'POST', body })
 }
 
-export function revokeIntegrationToken(id: number): Promise<{ status: string }> {
-  return apiFetch(`/admin/integration-tokens/${id}`, { method: 'DELETE' })
+function mapCategory(value: unknown): Category {
+  const item = record(value)
+  return { id: item.id == null ? '' : item.id, code: String(item.categoryKey ?? item.code ?? ''), name: String(item.name ?? ''), description: String(item.description ?? ''), sort: Number(item.sortOrder ?? item.sort ?? 0), createdAt: item.createdAt, updatedAt: item.updatedAt }
 }
 
-// --- 应用 ---
+function mapTag(value: unknown): Tag {
+  const item = record(value)
+  return { id: item.id == null ? '' : item.id, code: String(item.tagKey ?? item.code ?? ''), name: String(item.name ?? ''), sort: Number(item.sortOrder ?? item.sort ?? 0), createdAt: item.createdAt, updatedAt: item.updatedAt }
+}
+
+function mapPolicy(value: unknown): AccessPolicy {
+  const item = record(value)
+  return { policyType: String(item.policyType ?? item.type ?? 'EVERYONE') as AccessPolicy['policyType'], value: String(item.value ?? '') }
+}
+
+function mapApplication(value: unknown): Application {
+  const item = record(value)
+  const categoryId = item.categoryId ? item.categoryId : undefined
+  const categoryName = String(item.categoryName ?? '')
+  const createdAt = String(item.createdAt ?? '')
+  const launchType = String(item.launchType ?? item.ssoType ?? 'URL').toUpperCase()
+  return {
+    id: asId(item.id), code: String(item.code ?? ''), name: String(item.name ?? ''), description: String(item.description ?? ''), icon: String(item.icon ?? ''),
+    categoryId, category: categoryId ? { id: categoryId, code: '', name: categoryName } : undefined,
+    ssoType: (launchType || 'URL') as Application['ssoType'], owner: String(item.owner ?? item.createdBy ?? ''), department: String(item.department ?? ''),
+    status: (String(item.status ?? 'ENABLED').toUpperCase() || 'ENABLED') as Application['status'], sort: Number(item.sortOrder ?? item.sort ?? 0),
+    isFeatured: Boolean(item.featured ?? item.isFeatured), healthCheckEnabled: false, healthStatus: 'UNKNOWN',
+    tags: listFrom(item.tags).map(mapTag), policies: listFrom(item.policies).map(mapPolicy), isFavorite: Boolean(item.favorite ?? item.isFavorite),
+    isNew: createdAt ? Date.now() - Date.parse(createdAt) < 7 * 24 * 60 * 60 * 1000 : false, createdAt, updatedAt: String(item.updatedAt ?? createdAt),
+    createdBy: item.createdBy, updatedBy: item.updatedBy, homeUrl: item.homeUrl, launchUrl: item.launchUrl,
+    lifecycleStatus: item.lifecycleStatus, configVersion: item.configVersion == null ? undefined : Number(item.configVersion), publishedAt: item.publishedAt, publishedBy: item.publishedBy,
+  }
+}
+
+function mapIdentityBinding(value: unknown): IdentityBinding | undefined {
+  const item = record(value)
+  if (!item.id) return undefined
+  return { id: asId(item.id), organizationId: asId(item.organizationId), applicationId: asId(item.applicationId), providerKey: String(item.providerKey ?? ''), protocol: String(item.protocol ?? ''), providerApplicationRef: String(item.providerApplicationRef ?? ''), publicClientId: String(item.publicClientId ?? ''), issuer: String(item.issuer ?? ''), redirectUris: listFrom(item, 'redirectUris').map(String), scopes: listFrom(item, 'scopes').map(String), configurationStatus: String(item.configurationStatus ?? ''), verificationStatus: String(item.verificationStatus ?? ''), verifiedAt: item.verifiedAt, verifiedBy: item.verifiedBy, verificationError: String(item.verificationError ?? ''), configVersion: Number(item.configVersion ?? 0), createdAt: item.createdAt, updatedAt: item.updatedAt }
+}
+
+function mapVerification(value: unknown): ApplicationVerification {
+  const item = record(value)
+  return { id: asId(item.id), applicationId: asId(item.applicationId), bindingId: asId(item.bindingId), checkType: String(item.checkType ?? ''), result: String(item.result ?? ''), errorCode: String(item.errorCode ?? ''), evidenceJson: String(item.evidenceJson ?? ''), verifiedBy: String(item.verifiedBy ?? ''), occurredAt: String(item.occurredAt ?? ''), requestId: String(item.requestId ?? '') }
+}
+
+function pageOf<T>(items: T[], page = 1, pageSize = items.length || 1, total = items.length): Page<T> { return { items, total, page, pageSize } }
 
 export interface ListApplicationsParams {
   keyword?: string
-  categoryId?: number
-  tagIds?: number[]
+  categoryId?: string | number
+  tagIds?: (string | number)[]
   featured?: boolean
   favorites?: boolean
   page?: number
   pageSize?: number
 }
 
-export function listApplications(params: ListApplicationsParams = {}): Promise<Page<Application>> {
-  return apiFetch(`/applications${buildQuery({
-    keyword: params.keyword,
-    categoryId: params.categoryId,
-    tagId: params.tagIds?.join(','),
-    featured: params.featured,
-    favorites: params.favorites,
-    page: params.page ?? 1,
-    pageSize: params.pageSize ?? 24,
-  })}`)
+async function fetchPortalApplications(params: ListApplicationsParams = {}, admin = false): Promise<Application[]> {
+  const path = admin ? '/admin/portal/applications' : '/portal/applications'
+  const data = await apiFetch<unknown>(`${path}${buildQuery({ keyword: params.keyword, categoryId: params.categoryId == null ? undefined : String(params.categoryId), tagId: params.tagIds?.[0] == null ? undefined : String(params.tagIds[0]), favoritesOnly: params.favorites, limit: 500 })}`)
+  return listFrom(data, 'applications', 'items').map(mapApplication)
 }
 
-export function getApplication(id: number | string): Promise<Application> {
-  return apiFetch(`/applications/${id}`)
+// --- 认证 ---
+
+export interface AuthCapabilities {
+  authMode: 'oidc' | 'password'
+  passwordLoginEnabled: boolean
+  casdoorAccountUrl: string
 }
 
-export function launchApplication(id: number | string): Promise<LaunchResult> {
-  return apiFetch(`/applications/${id}/launch`, { method: 'POST' })
+const OIDC_REDIRECT_STORAGE_KEY = 'velora.oidc.redirect'
+
+function internalRedirect(value?: string | null): string {
+  const candidate = String(value ?? '').trim()
+  if (!candidate || !candidate.startsWith('/') || candidate.startsWith('//') || candidate.includes('\\')) return '/'
+  try {
+    const parsed = new URL(candidate, window.location.origin)
+    if (parsed.origin !== window.location.origin) return '/'
+    return `${parsed.pathname}${parsed.search}${parsed.hash}`
+  } catch {
+    return '/'
+  }
 }
 
-export function listRecent(limit = 8): Promise<RecentItem[]> {
-  return apiFetch(`/applications/recent${buildQuery({ limit })}`)
+export async function getAuthCapabilities(): Promise<AuthCapabilities> {
+  const data = record(await apiFetch<unknown>('/system/health'))
+  const authMode = String(data.authMode ?? 'oidc').toLowerCase() === 'password' ? 'password' : 'oidc'
+  return {
+    authMode,
+    // In OIDC mode this flag may represent the explicitly enabled Casdoor
+    // password compatibility flow; production health must still fail closed.
+    passwordLoginEnabled: Boolean(data.passwordLoginEnabled),
+    casdoorAccountUrl: String(data.casdoorAccountUrl ?? ''),
+  }
 }
 
-export function listPopular(limit = 8): Promise<Application[]> {
-  return apiFetch(`/applications/popular${buildQuery({ limit })}`)
+export async function getMe(): Promise<CurrentUser> { const data = await apiFetch<unknown>('/me'); return mapUser(record(data).user ?? data) }
+export async function logout(): Promise<{ status: string; federatedLogoutUrl?: string }> {
+  const data = await apiFetch<unknown>('/auth/logout', { method: 'POST', body: {} })
+  const item = record(data)
+  return { status: 'logged_out', federatedLogoutUrl: String(item.federatedLogoutUrl ?? '') || undefined }
+}
+export function oidcLoginUrl(redirect?: string): string { return `/api/v1/auth/federated/oidc/casdoor/begin${buildQuery({ organization: 'default', redirect })}` }
+export async function beginOIDCLogin(redirect?: string): Promise<string> {
+  const data = record(await apiFetch<unknown>(`/auth/federated/oidc/casdoor/begin${buildQuery({ organization: 'default' })}`))
+  const target = internalRedirect(redirect)
+  try {
+    window.sessionStorage.setItem(OIDC_REDIRECT_STORAGE_KEY, target)
+  } catch {
+    // Session storage can be disabled by a browser policy; root is the safe fallback.
+  }
+  const redirectURL = String(data.redirectUrl ?? '')
+  if (!redirectURL || !/^https:\/\//i.test(redirectURL)) throw new Error('OIDC 登录地址无效')
+  return redirectURL
 }
 
-// --- 分类 / 标签 ---
-
-export function listCategories(): Promise<Category[]> {
-  return apiFetch('/categories')
+export async function completeOIDCLogin(provider: string, code: string, state: string): Promise<void> {
+  const safeProvider = String(provider || 'casdoor').toLowerCase().replace(/[^a-z0-9._-]/g, '')
+  if (!safeProvider || !code || !state) throw new Error('OIDC 回调参数不完整')
+  await apiFetch(`/auth/federated/oidc/${encodeURIComponent(safeProvider)}/callback`, { method: 'POST', body: { code, state } })
 }
 
-export function listTags(): Promise<Tag[]> {
-  return apiFetch('/tags')
+export function consumeOIDCRedirect(): string {
+  try {
+    const target = internalRedirect(window.sessionStorage.getItem(OIDC_REDIRECT_STORAGE_KEY))
+    window.sessionStorage.removeItem(OIDC_REDIRECT_STORAGE_KEY)
+    return target
+  } catch {
+    return '/'
+  }
 }
 
-// --- 收藏 ---
-
-export function addFavorite(applicationId: number | string): Promise<{ favorited: boolean }> {
-  return apiFetch(`/favorites/${applicationId}`, { method: 'POST' })
+export async function loginWithPassword(username: string, password: string, redirect?: string, _turnstileToken?: string): Promise<{ redirect: string }> {
+  await apiFetch('/auth/login', { method: 'POST', body: { loginName: username, organization: 'default', password, turnstileToken: _turnstileToken || undefined } })
+  return { redirect: internalRedirect(redirect) }
+}
+export async function getTurnstileConfig(): Promise<{ enabled: boolean; siteKey: string; action: string }> {
+  const data = record(await apiFetch<unknown>('/system/health'))
+  return {
+    enabled: Boolean(data.turnstileEnabled),
+    siteKey: String(data.turnstileSiteKey ?? ''),
+    action: String(data.turnstileAction ?? 'login'),
+  }
 }
 
-export function removeFavorite(applicationId: number | string): Promise<{ favorited: boolean }> {
-  return apiFetch(`/favorites/${applicationId}`, { method: 'DELETE' })
+// --- 用户中心 ---
+
+export interface UserProfile extends CurrentUser { admin: boolean }
+export interface SessionDevice { sessionId: string; userAgent: string; ip: string; lastActiveAt: string; expiresAt: string; revokedAt?: string; current: boolean }
+export async function getUserProfile(): Promise<UserProfile> { return (await getMe()) as UserProfile }
+export function changePassword(oldPassword: string, newPassword: string): Promise<{ status: string; message: string }> { return apiFetch('/auth/password', { method: 'PATCH', body: { currentPassword: oldPassword, newPassword } }).then(() => ({ status: 'updated', message: '密码已更新，请重新登录' })) }
+export async function listSessions(): Promise<SessionDevice[]> {
+  const data = await apiFetch<unknown>('/admin/sessions?limit=100')
+  return listFrom(data, 'sessions').map((item) => ({ sessionId: asId(item.id), userAgent: String(item.userAgent ?? ''), ip: String(item.clientIp ?? item.ip ?? ''), lastActiveAt: String(item.lastSeenAt ?? item.lastActiveAt ?? ''), expiresAt: String(item.expiresAt ?? ''), current: Boolean(item.current) }))
 }
+export function revokeSession(sessionId: string): Promise<{ revoked: string }> { return apiFetch(`/admin/sessions/${encodeURIComponent(sessionId)}`, { method: 'DELETE' }).then(() => ({ revoked: sessionId })) }
+export async function revokeAllSessions(): Promise<{ status: string }> { const sessions = await listSessions(); await Promise.all(sessions.filter((session) => !session.current).map((session) => revokeSession(session.sessionId))); return { status: 'revoked' } }
 
-// --- 待办中心 ---
+// --- API Token（替换旧 Integration Token 路由） ---
 
-export function listTodos(params: { status?: 'open' | 'done' | 'all'; limit?: number } = {}): Promise<TodoListResult> {
-  return apiFetch(`/todos${buildQuery({ status: params.status ?? 'open', limit: params.limit ?? 50 })}`)
-}
+export interface IntegrationToken { id: string | number; name: string; scopes: string[]; createdBy: string; expiresAt: string | null; lastUsedAt: string | null; revoked: boolean }
+function mapToken(value: unknown): IntegrationToken { const item = record(value); return { id: item.id ?? '', name: String(item.name ?? ''), scopes: Array.isArray(item.scopes) ? item.scopes.map(String) : [], createdBy: '', expiresAt: item.expiresAt ?? null, lastUsedAt: item.lastUsedAt ?? null, revoked: false } }
+export async function listIntegrationTokens(): Promise<IntegrationToken[]> { const data = await apiFetch<unknown>('/api-tokens'); return listFrom(data, 'tokens', 'items').map(mapToken) }
+export async function createIntegrationToken(input: { name: string; scopes: string[]; expiresInDays?: number }): Promise<{ token: string; message: string }> { const data = await apiFetch<unknown>('/api-tokens', { method: 'POST', body: { name: input.name, scopes: input.scopes, expiresDays: input.expiresInDays ?? 0 } }); const item = record(data); return { token: String(item.secret ?? item.token ?? ''), message: '令牌已创建，密钥仅展示一次' } }
+export function revokeIntegrationToken(id: string | number): Promise<{ status: string }> { return apiFetch(`/api-tokens/${encodeURIComponent(String(id))}`, { method: 'DELETE' }).then(() => ({ status: 'revoked' })) }
 
-export function markTodoDone(id: number): Promise<{ done: boolean }> {
-  return apiFetch(`/todos/${id}/done`, { method: 'PATCH' })
-}
+// --- 门户 ---
 
-// --- 邮件（企业邮箱） ---
+export async function listApplications(params: ListApplicationsParams = {}): Promise<Page<Application>> { const all = await fetchPortalApplications(params); const page = params.page ?? 1; const pageSize = params.pageSize ?? 24; return pageOf(all.slice((page - 1) * pageSize, page * pageSize), page, pageSize, all.length) }
+export async function getApplication(id: string | number): Promise<Application> { const data = await apiFetch<unknown>(`/portal/applications/${encodeURIComponent(String(id))}`); return mapApplication(record(data).application ?? data) }
+export async function launchApplication(id: string | number): Promise<LaunchResult> { const data = record(await apiFetch<unknown>(`/portal/applications/${encodeURIComponent(String(id))}/launch`, { method: 'POST', body: {} })); return { type: 'url', url: String(data.launchUrl ?? record(data.application).launchUrl ?? ''), target: '_blank' } }
+export async function listRecent(limit = 8): Promise<RecentItem[]> { const data = await apiFetch<unknown>(`/portal/recent${buildQuery({ limit })}`); return listFrom(data, 'applications', 'items').map((item) => { const application = mapApplication(item); return { application, lastVisitedAt: application.updatedAt, visitCount: Number(item.visitCount ?? 0) } }) }
+export async function listPopular(limit = 8): Promise<Application[]> { return (await listRecent(limit)).map((item) => item.application) }
+export async function listCategories(): Promise<Category[]> { const data = await apiFetch<unknown>('/portal/categories'); return listFrom(data, 'categories', 'items').map(mapCategory) }
+export async function listTags(): Promise<Tag[]> { const data = await apiFetch<unknown>('/portal/tags'); return listFrom(data, 'tags', 'items').map(mapTag) }
+export async function addFavorite(applicationId: string | number): Promise<{ favorited: boolean }> { await apiFetch('/portal/favorites', { method: 'POST', body: { applicationId: String(applicationId) } }); return { favorited: true } }
+export async function removeFavorite(applicationId: string | number): Promise<{ favorited: boolean }> { await apiFetch(`/portal/favorites/${encodeURIComponent(String(applicationId))}`, { method: 'DELETE' }); return { favorited: false } }
 
-export interface BindMailAccountInput {
-  provider: string
-  email: string
-  password: string
-  displayName?: string
-  imapHost?: string
-  imapPort?: number
-  smtpHost?: string
-  smtpPort?: number
-}
+// --- 待办与邮件 ---
+// Wave 1 后端没有 mail/todo 服务，读取接口返回空状态避免门户访问旧 404；写操作显式失败，避免假成功。
+const unavailable = (feature: string): never => { throw new Error(`${feature} 尚未接入当前后端基座`) }
+export function listTodos(_params: { status?: 'open' | 'done' | 'all'; limit?: number } = {}): Promise<TodoListResult> { return Promise.resolve({ items: [], openCount: 0 }) }
+export function markTodoDone(_id: string | number): Promise<{ done: boolean }> { return Promise.reject(unavailable('待办')) }
+export interface BindMailAccountInput { provider: string; email: string; password: string; displayName?: string; imapHost?: string; imapPort?: number; smtpHost?: string; smtpPort?: number }
+export interface ListMailMessagesParams { accountId?: string | number; unread?: boolean; starred?: boolean; keyword?: string; page?: number; pageSize?: number }
+const emptyMailCapabilities: MailCapabilities = { idle: false, send: false, reply: false, folders: false, star: false, markRead: false }
+export function listMailProviders(): Promise<{ profiles: MailProviderProfile[]; capabilities: MailCapabilities }> { return Promise.resolve({ profiles: [], capabilities: emptyMailCapabilities }) }
+export function listMailAccounts(): Promise<MailAccount[]> { return Promise.resolve([]) }
+export function bindMailAccount(_input: BindMailAccountInput): Promise<MailAccount> { return Promise.reject(unavailable('邮件')) }
+export function unbindMailAccount(_id: string | number): Promise<{ deleted: boolean }> { return Promise.reject(unavailable('邮件')) }
+export function testMailAccount(_id: string | number): Promise<{ ok: boolean; error?: string }> { return Promise.reject(unavailable('邮件')) }
+export function syncMailAccount(_id: string | number): Promise<MailAccount> { return Promise.reject(unavailable('邮件')) }
+export function listMailMessages(_params: ListMailMessagesParams = {}): Promise<Page<MailMessage>> { return Promise.resolve(pageOf([], 1, 20)) }
+export function getMailMessage(_id: string | number): Promise<{ message: MailMessage; bodyError?: string }> { return Promise.reject(unavailable('邮件')) }
+export function setMailRead(_id: string | number, _read: boolean): Promise<{ read: boolean }> { return Promise.reject(unavailable('邮件')) }
+export function setMailStar(_id: string | number, _starred: boolean): Promise<{ starred: boolean }> { return Promise.reject(unavailable('邮件')) }
+export interface ConvertMailToTodoInput { title?: string; priority?: TodoPriority; kind?: TodoKind; dueAt?: string | null }
+export function convertMailToTodo(_id: string | number, _input: ConvertMailToTodoInput): Promise<TodoItem> { return Promise.reject(unavailable('邮件/待办')) }
 
-export interface ListMailMessagesParams {
-  accountId?: number
-  unread?: boolean
-  starred?: boolean
-  keyword?: string
-  page?: number
-  pageSize?: number
-}
+// --- 管理端门户 ---
 
-export function listMailProviders(): Promise<{ profiles: MailProviderProfile[]; capabilities: MailCapabilities }> {
-  return apiFetch('/mail/providers')
-}
+export interface AdminApplicationInput { code: string; name: string; description?: string; keywords?: string; icon?: string; categoryId?: string | number | null; homeUrl?: string; launchUrl?: string; ssoType: string; owner?: string; department?: string; status: string; sort?: number; isFeatured?: boolean; tagIds?: (string | number)[]; policies?: { policyType: string; value: string }[] }
+function applicationBody(input: AdminApplicationInput, includeCode: boolean): AnyRecord { const body: AnyRecord = { name: input.name, description: input.description ?? '', icon: input.icon ?? '', categoryId: input.categoryId == null ? '' : String(input.categoryId), homeUrl: input.homeUrl ?? '', launchUrl: input.launchUrl ?? '', launchType: input.ssoType || 'URL', status: input.status || 'ENABLED', sortOrder: input.sort ?? 0, featured: input.isFeatured ?? false, tagIds: (input.tagIds ?? []).map(String) }; if (includeCode) body.code = input.code; return body }
+export async function adminListApplications(params: ListApplicationsParams = {}): Promise<Page<Application>> { const all = await fetchPortalApplications(params, true); const page = params.page ?? 1; const pageSize = params.pageSize ?? 20; return pageOf(all.slice((page - 1) * pageSize, page * pageSize), page, pageSize, all.length) }
+export async function adminCreateApplication(input: AdminApplicationInput): Promise<Application> { const data = await apiFetch<unknown>('/admin/portal/applications', { method: 'POST', body: applicationBody(input, true) }); return mapApplication(record(data).application ?? data) }
+export async function adminUpdateApplication(id: string | number, input: AdminApplicationInput): Promise<Application> { const data = await apiFetch<unknown>(`/admin/portal/applications/${encodeURIComponent(String(id))}`, { method: 'PATCH', body: applicationBody(input, false) }); return mapApplication(record(data).application ?? data) }
+export function adminDeleteApplication(id: string | number): Promise<void> { return apiFetch(`/admin/portal/applications/${encodeURIComponent(String(id))}`, { method: 'DELETE' }).then(() => undefined) }
 
-export function listMailAccounts(): Promise<MailAccount[]> {
-  return apiFetch('/mail/accounts')
-}
+export interface IdentityOverview { onboardingEnabled: boolean; adminEntryEnabled: boolean; providerKey: string; adminUrlHost: string; issuer: string; connectionStatus: string; pendingApplicationCount: number; automationEnabled: boolean }
+export interface ApplicationOnboarding { application: Application; binding?: IdentityBinding; verifications: ApplicationVerification[]; canPublish: boolean; oneTimeClientSecret?: string }
+export async function getIdentityOverview(): Promise<IdentityOverview> { const data = record(await apiFetch<unknown>('/admin/identity/overview')); return { onboardingEnabled: Boolean(data.onboardingEnabled), adminEntryEnabled: Boolean(data.adminEntryEnabled), providerKey: String(data.providerKey ?? ''), adminUrlHost: String(data.adminUrlHost ?? ''), issuer: String(data.issuer ?? ''), connectionStatus: String(data.connectionStatus ?? 'UNCONFIGURED'), pendingApplicationCount: Number(data.pendingApplicationCount ?? 0), automationEnabled: Boolean(data.automationEnabled) } }
+export async function getIdentityConsoleLink(): Promise<{ url: string; providerKey: string }> { const data = record(await apiFetch<unknown>('/admin/identity/console-link')); return { url: String(data.url ?? ''), providerKey: String(data.providerKey ?? '') } }
+export async function getApplicationOnboarding(id: string | number): Promise<ApplicationOnboarding> { const data = record(await apiFetch<unknown>(`/admin/portal/applications/${encodeURIComponent(String(id))}/onboarding`)); return { application: mapApplication(record(data.application)), binding: mapIdentityBinding(data.binding), verifications: listFrom(data, 'verifications').map(mapVerification), canPublish: Boolean(data.canPublish) } }
+export interface IdentityBindingInput { providerKey: string; protocol: string; providerApplicationRef: string; publicClientId: string; issuer?: string; redirectUris?: string[]; scopes?: string[]; approvalId?: string; expectedConfigVersion?: number }
+export async function upsertApplicationIdentityBinding(id: string | number, input: IdentityBindingInput): Promise<ApplicationOnboarding> { const data = record(await apiFetch<unknown>(`/admin/portal/applications/${encodeURIComponent(String(id))}/identity-binding`, { method: 'PUT', body: input })); return { application: mapApplication(record(data.application)), binding: mapIdentityBinding(data.binding), verifications: [], canPublish: false, oneTimeClientSecret: data.oneTimeClientSecret ? String(data.oneTimeClientSecret) : undefined } }
+export async function verifyApplicationIdentity(id: string | number, expectedConfigVersion?: number): Promise<ApplicationOnboarding & { passed: boolean }> { const data = record(await apiFetch<unknown>(`/admin/portal/applications/${encodeURIComponent(String(id))}/verify`, { method: 'POST', body: { expectedConfigVersion } })); return { application: mapApplication(record(data.application)), binding: mapIdentityBinding(data.binding), verifications: listFrom(data, 'verifications').map(mapVerification), canPublish: Boolean(data.passed), passed: Boolean(data.passed) } }
+export async function submitApplicationPublish(id: string | number, expectedConfigVersion?: number): Promise<Application> { const data = record(await apiFetch<unknown>(`/admin/portal/applications/${encodeURIComponent(String(id))}/submit-publish`, { method: 'POST', body: { expectedConfigVersion } })); return mapApplication(record(data.application)) }
+export async function publishApplication(id: string | number, expectedConfigVersion?: number): Promise<Application> { const data = record(await apiFetch<unknown>(`/admin/portal/applications/${encodeURIComponent(String(id))}/publish`, { method: 'POST', body: { expectedConfigVersion } })); return mapApplication(record(data.application)) }
+export async function disableApplication(id: string | number, expectedConfigVersion?: number, approvalId?: string): Promise<Application> { const data = record(await apiFetch<unknown>(`/admin/portal/applications/${encodeURIComponent(String(id))}/disable`, { method: 'POST', body: { expectedConfigVersion, approvalId } })); return mapApplication(record(data.application)) }
+export async function adminSetPolicies(id: string | number, policies: { policyType: string; value: string }[]): Promise<unknown> { return apiFetch(`/admin/portal/applications/${encodeURIComponent(String(id))}/policies`, { method: 'PUT', body: { policies } }) }
+export async function adminCreateCategory(input: Partial<Category>): Promise<Category> { const data = await apiFetch<unknown>('/admin/portal/categories', { method: 'POST', body: { categoryKey: input.code ?? '', name: input.name ?? '', description: input.description ?? '', sortOrder: input.sort ?? 0, status: 'ACTIVE' } }); return mapCategory(record(data).category ?? data) }
+export async function adminUpdateCategory(id: string | number, input: Partial<Category>): Promise<Category> { const data = await apiFetch<unknown>(`/admin/portal/categories/${encodeURIComponent(String(id))}`, { method: 'PATCH', body: { name: input.name ?? '', description: input.description ?? '', sortOrder: input.sort ?? 0, status: 'ACTIVE' } }); return mapCategory(record(data).category ?? data) }
+export function adminDeleteCategory(id: string | number): Promise<void> { return apiFetch(`/admin/portal/categories/${encodeURIComponent(String(id))}`, { method: 'DELETE' }).then(() => undefined) }
+export async function adminCreateTag(input: Partial<Tag>): Promise<Tag> { const data = await apiFetch<unknown>('/admin/portal/tags', { method: 'POST', body: { tagKey: input.code ?? '', name: input.name ?? '', sortOrder: input.sort ?? 0 } }); return mapTag(record(data).tag ?? data) }
+export async function adminUpdateTag(id: string | number, input: Partial<Tag>): Promise<Tag> { const data = await apiFetch<unknown>(`/admin/portal/tags/${encodeURIComponent(String(id))}`, { method: 'PATCH', body: { name: input.name ?? '', sortOrder: input.sort ?? 0 } }); return mapTag(record(data).tag ?? data) }
+export function adminDeleteTag(id: string | number): Promise<void> { return apiFetch(`/admin/portal/tags/${encodeURIComponent(String(id))}`, { method: 'DELETE' }).then(() => undefined) }
+export async function adminListAuditLogs(params: { page?: number; pageSize?: number; operator?: string; action?: string } = {}): Promise<Page<AuditLog>> { const data = await apiFetch<unknown>(`/admin/audit-logs${buildQuery({ limit: 500 })}`); const items = listFrom(data, 'events', 'items').map((item): AuditLog => ({ id: item.id ?? '', operator: String(item.actorName ?? item.actorId ?? ''), action: String(item.action ?? ''), resource: String(item.resourceType ?? ''), resourceId: String(item.resourceId ?? ''), ip: String(item.clientIp ?? ''), userAgent: '', requestId: String(item.requestId ?? ''), detail: String(item.detailsJson ?? ''), createdAt: String(item.occurredAt ?? '') })).filter((item) => (!params.operator || item.operator.includes(params.operator)) && (!params.action || item.action === params.action)); const page = params.page ?? 1; const pageSize = params.pageSize ?? 20; return pageOf(items.slice((page - 1) * pageSize, page * pageSize), page, pageSize, items.length) }
+export async function adminDashboard(): Promise<DashboardStats> { const [apps, categories, tags] = await Promise.all([adminListApplications({ page: 1, pageSize: 500 }), listCategories(), listTags()]); return { applicationCount: apps.total, categoryCount: categories.length, tagCount: tags.length, favoriteCount: apps.items.filter((item) => item.isFavorite).length, totalLaunches: apps.items.reduce((sum, item) => sum + Number((item as any).visitCount ?? 0), 0), enabledAppCount: apps.items.filter((item) => item.status === 'ENABLED').length, disabledAppCount: apps.items.filter((item) => item.status !== 'ENABLED').length } }
 
-export function bindMailAccount(input: BindMailAccountInput): Promise<MailAccount> {
-  return apiFetch('/mail/accounts', { method: 'POST', body: input })
-}
+// Wave 1 没有门户设置表。设置页使用浏览器本地存储作为明确的临时适配，避免继续访问旧 /portal/settings。
+const defaultSettings = [{ key: 'portal_name', value: 'Velora' }, { key: 'portal_welcome', value: '企业应用门户' }, { key: 'portal_footer', value: '' }, { key: 'announcement', value: '' }, { key: 'ui_scale', value: '1' }, { key: 'new_badge_days', value: '7' }]
+// Wave 1 后端没有共享门户设置服务；固定只读默认值，避免把 localStorage 误当成生产配置。
+export function getPortalSettings(): Promise<{ key: string; value: string }[]> { return Promise.resolve(defaultSettings) }
+export function updatePortalSetting(_key: string, _value: string): Promise<unknown> { return Promise.reject(unavailable('门户设置服务')) }
+export async function getSystemVersion(): Promise<{ application: string; version?: string }> { const data = record(await apiFetch<unknown>('/system/info')); return { application: String(data.service ?? data.application ?? 'Velora'), version: data.version ? String(data.version) : undefined } }
 
-export function unbindMailAccount(id: number): Promise<{ deleted: boolean }> {
-  return apiFetch(`/mail/accounts/${id}`, { method: 'DELETE' })
-}
-
-export function testMailAccount(id: number): Promise<{ ok: boolean; error?: string }> {
-  return apiFetch(`/mail/accounts/${id}/test`, { method: 'POST' })
-}
-
-export function syncMailAccount(id: number): Promise<MailAccount> {
-  return apiFetch(`/mail/accounts/${id}/sync`, { method: 'POST' })
-}
-
-export function listMailMessages(params: ListMailMessagesParams = {}): Promise<Page<MailMessage>> {
-  return apiFetch(`/mail/messages${buildQuery({
-    accountId: params.accountId,
-    unread: params.unread,
-    starred: params.starred,
-    keyword: params.keyword,
-    page: params.page ?? 1,
-    pageSize: params.pageSize ?? 20,
-  })}`)
-}
-
-export function getMailMessage(id: number): Promise<{ message: MailMessage; bodyError?: string }> {
-  return apiFetch(`/mail/messages/${id}`)
-}
-
-export function setMailRead(id: number, read: boolean): Promise<{ read: boolean }> {
-  return apiFetch(`/mail/messages/${id}/read`, { method: 'POST', body: { read } })
-}
-
-export function setMailStar(id: number, starred: boolean): Promise<{ starred: boolean }> {
-  return apiFetch(`/mail/messages/${id}/star`, { method: 'POST', body: { starred } })
-}
-
-export interface ConvertMailToTodoInput {
-  title?: string
-  priority?: TodoPriority
-  kind?: TodoKind
-  dueAt?: string | null
-}
-
-export function convertMailToTodo(id: number, input: ConvertMailToTodoInput): Promise<TodoItem> {
-  return apiFetch(`/mail/messages/${id}/todo`, { method: 'POST', body: input })
-}
-
-// --- 管理端 ---
-
-export interface AdminApplicationInput {
-  code: string
-  name: string
-  description?: string
-  keywords?: string
-  icon?: string
-  categoryId?: number | null
-  homeUrl?: string
-  launchUrl?: string
-  ssoType: string
-  casdoorApplicationName?: string
-  casdoorClientId?: string
-  owner?: string
-  department?: string
-  status: string
-  sort?: number
-  isFeatured?: boolean
-  healthCheckEnabled?: boolean
-  healthCheckUrl?: string
-  tagIds?: number[]
-  policies?: { policyType: string; value: string }[]
-}
-
-export function adminListApplications(params: ListApplicationsParams = {}): Promise<Page<Application>> {
-  return apiFetch(`/admin/applications${buildQuery({
-    keyword: params.keyword,
-    categoryId: params.categoryId,
-    page: params.page ?? 1,
-    pageSize: params.pageSize ?? 20,
-  })}`)
-}
-
-export function adminCreateApplication(input: AdminApplicationInput): Promise<Application> {
-  return apiFetch('/admin/applications', { method: 'POST', body: input })
-}
-
-export function adminUpdateApplication(id: number | string, input: AdminApplicationInput): Promise<Application> {
-  return apiFetch(`/admin/applications/${id}`, { method: 'PUT', body: input })
-}
-
-export function adminDeleteApplication(id: number | string): Promise<void> {
-  return apiFetch(`/admin/applications/${id}`, { method: 'DELETE' })
-}
-
-export function adminSyncApplications(): Promise<{ total: number; created: number; updated: number }> {
-  return apiFetch('/admin/applications/sync', { method: 'POST' })
-}
-
-export function adminSetPolicies(id: number | string, policies: { policyType: string; value: string }[]): Promise<unknown> {
-  return apiFetch(`/admin/applications/${id}/policies`, { method: 'PUT', body: { policies } })
-}
-
-export function adminCreateCategory(input: Partial<Category>): Promise<Category> {
-  return apiFetch('/admin/categories', { method: 'POST', body: input })
-}
-
-export function adminUpdateCategory(id: number, input: Partial<Category>): Promise<Category> {
-  return apiFetch(`/admin/categories/${id}`, { method: 'PUT', body: input })
-}
-
-export function adminDeleteCategory(id: number): Promise<void> {
-  return apiFetch(`/admin/categories/${id}`, { method: 'DELETE' })
-}
-
-export function adminCreateTag(input: Partial<Tag>): Promise<Tag> {
-  return apiFetch('/admin/tags', { method: 'POST', body: input })
-}
-
-export function adminUpdateTag(id: number, input: Partial<Tag>): Promise<Tag> {
-  return apiFetch(`/admin/tags/${id}`, { method: 'PUT', body: input })
-}
-
-export function adminDeleteTag(id: number): Promise<void> {
-  return apiFetch(`/admin/tags/${id}`, { method: 'DELETE' })
-}
-
-export function adminListAuditLogs(params: { page?: number; pageSize?: number; operator?: string; action?: string } = {}): Promise<Page<AuditLog>> {
-  return apiFetch(`/admin/audit-logs${buildQuery({
-    page: params.page ?? 1,
-    pageSize: params.pageSize ?? 20,
-    operator: params.operator,
-    action: params.action,
-  })}`)
-}
-
-export function adminDashboard(): Promise<DashboardStats> {
-  return apiFetch('/admin/dashboard')
-}
-
-export function getPortalSettings(): Promise<{ key: string; value: string }[]> {
-  return apiFetch('/portal/settings')
-}
-
-export function updatePortalSetting(key: string, value: string): Promise<unknown> {
-  return apiFetch('/admin/portal/settings', { method: 'PUT', body: { key, value } })
-}
-
-/** 系统版本（公开端点，登录页展示）。 */
-export function getSystemVersion(): Promise<{ application: string; version?: string }> {
-  return apiFetch('/system/version')
-}
-
-// --- react-query 键 ---
-
-export const queryKeys = {
-  me: ['me'] as const,
-  applications: (params?: unknown) => ['applications', params] as const,
-  application: (id: number | string) => ['applications', id] as const,
-  recent: ['recent'] as const,
-  popular: ['popular'] as const,
-  categories: ['categories'] as const,
-  tags: ['tags'] as const,
-  favorites: ['favorites'] as const,
-  todos: ['todos'] as const,
-  mailAccounts: ['mail', 'accounts'] as const,
-  mailProviders: ['mail', 'providers'] as const,
-  mailMessages: (params?: unknown) => ['mail', 'messages', params] as const,
-  mailMessage: (id: number) => ['mail', 'messages', 'detail', id] as const,
-  adminApplications: (params?: unknown) => ['admin', 'applications', params] as const,
-  auditLogs: (params?: unknown) => ['admin', 'audit-logs', params] as const,
-  dashboard: ['admin', 'dashboard'] as const,
-  portalSettings: ['portal', 'settings'] as const,
-}
+export const queryKeys = { me: ['me'] as const, applications: (params?: unknown) => ['applications', params] as const, application: (id: string | number) => ['applications', id] as const, recent: ['recent'] as const, popular: ['popular'] as const, categories: ['categories'] as const, tags: ['tags'] as const, favorites: ['favorites'] as const, todos: ['todos'] as const, mailAccounts: ['mail', 'accounts'] as const, mailProviders: ['mail', 'providers'] as const, mailMessages: (params?: unknown) => ['mail', 'messages', params] as const, mailMessage: (id: string | number) => ['mail', 'messages', 'detail', id] as const, adminApplications: (params?: unknown) => ['admin', 'applications', params] as const, auditLogs: (params?: unknown) => ['admin', 'audit-logs', params] as const, dashboard: ['admin', 'dashboard'] as const, identityOverview: ['admin', 'identity', 'overview'] as const, applicationOnboarding: (id: string | number) => ['admin', 'identity', 'onboarding', id] as const, portalSettings: ['portal', 'settings'] as const }

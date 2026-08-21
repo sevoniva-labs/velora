@@ -3,31 +3,52 @@ import { usePageTitle } from '../../hooks/usePageTitle'
 import QueryErrorState from '../../components/QueryErrorState'
 import AdminPageHead from '../../components/AdminPageHead'
 import { isSafeHttpUrl } from '../../utils/format'
-import { App as AntdApp, Alert, Button, Form, Input, InputNumber, Modal, Popconfirm, Select, Space, Switch, Table, Tag, Tooltip } from 'antd'
-import { ApiOutlined } from '@ant-design/icons'
-import { CloudSyncOutlined } from '@ant-design/icons'
+import { App as AntdApp, Button, Form, Input, InputNumber, Modal, Popconfirm, Select, Space, Switch, Table, Tag } from 'antd'
 import { PlusOutlined } from '@ant-design/icons'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   adminCreateApplication,
   adminDeleteApplication,
   adminListApplications,
-  adminSyncApplications,
   adminUpdateApplication,
-  createOIDCClient,
   listCategories,
-  listOIDCClients,
   listTags,
   queryKeys,
-  revokeOIDCClient,
   type AdminApplicationInput,
-  type OIDCClient,
 } from '../../api/api'
 import type { Application } from '../../types'
 import { APP_STATUS_LABEL, SSO_TYPE_COLOR, SSO_TYPE_LABEL } from '../../labels'
 import { AppIcon } from '../../components/AppCard'
 
-const SSO_OPTIONS = ['URL', 'OIDC', 'VELORA_OIDC', 'SAML', 'CAS', 'FORWARD_AUTH']
+// 只开放已经有完整生命周期闭环的类型。OIDC 可以创建为待配置草稿，
+// 但必须转到接入向导完成真实绑定和验证后才允许发布；这里不收集 Secret。
+const SSO_OPTIONS = ['URL', 'OIDC'] as const
+const applicationDraftStorageKey = 'velora.application-draft.v1'
+
+function readApplicationDraft(): Partial<AdminApplicationInput> | undefined {
+  try {
+    const raw = window.localStorage.getItem(applicationDraftStorageKey)
+    return raw ? JSON.parse(raw) as Partial<AdminApplicationInput> : undefined
+  } catch {
+    return undefined
+  }
+}
+
+function writeApplicationDraft(values: Partial<AdminApplicationInput>) {
+  try {
+    window.localStorage.setItem(applicationDraftStorageKey, JSON.stringify(values))
+  } catch {
+    // 浏览器存储不可用时仍可继续提交，服务端数据不受影响。
+  }
+}
+
+function clearApplicationDraft() {
+  try {
+    window.localStorage.removeItem(applicationDraftStorageKey)
+  } catch {
+    // 浏览器存储不可用时无需阻断已完成的服务端保存。
+  }
+}
 
 export default function AdminApplications() {
   usePageTitle('应用管理')
@@ -38,7 +59,6 @@ export default function AdminApplications() {
   const [keyword, setKeyword] = useState('')
   const [modalOpen, setModalOpen] = useState(false)
   const [editing, setEditing] = useState<Application | null>(null)
-  const [oidcApp, setOidcApp] = useState<Application | null>(null)
   const [form] = Form.useForm<AdminApplicationInput>()
   const watchSsoType = Form.useWatch('ssoType', form)
 
@@ -60,6 +80,7 @@ export default function AdminApplications() {
       editing ? adminUpdateApplication(editing.id, input) : adminCreateApplication(input),
     onSuccess: () => {
       message.success(editing ? '应用已更新' : '应用已创建')
+      if (!editing) clearApplicationDraft()
       setModalOpen(false)
       setEditing(null)
       invalidate()
@@ -68,21 +89,12 @@ export default function AdminApplications() {
   })
 
   const deleteMutation = useMutation({
-    mutationFn: (id: number) => adminDeleteApplication(id),
+    mutationFn: (id: string | number) => adminDeleteApplication(id),
     onSuccess: () => {
       message.success('应用已删除')
       invalidate()
     },
     onError: (err) => message.error(err instanceof Error ? err.message : '删除失败'),
-  })
-
-  const syncMutation = useMutation({
-    mutationFn: adminSyncApplications,
-    onSuccess: (r) => {
-      message.success(`同步完成：新增 ${r.created} 个，更新 ${r.updated} 个（共 ${r.total} 个 Casdoor 应用）`)
-      invalidate()
-    },
-    onError: (err) => message.error(err instanceof Error ? err.message : '同步失败'),
   })
 
   const openCreate = () => {
@@ -93,8 +105,8 @@ export default function AdminApplications() {
       status: 'ENABLED',
       sort: 0,
       isFeatured: false,
-      healthCheckEnabled: false,
       tagIds: [],
+      ...readApplicationDraft(),
     })
     setModalOpen(true)
   }
@@ -111,15 +123,11 @@ export default function AdminApplications() {
       homeUrl: app.homeUrl,
       launchUrl: app.launchUrl,
       ssoType: app.ssoType,
-      casdoorApplicationName: app.casdoorApplicationName,
-      casdoorClientId: app.casdoorClientId,
       owner: app.owner,
       department: app.department,
       status: app.status,
       sort: app.sort,
       isFeatured: app.isFeatured,
-      healthCheckEnabled: app.healthCheckEnabled,
-      healthCheckUrl: app.healthCheckUrl,
       tagIds: (app.tags ?? []).map((t) => t.id),
     })
     setModalOpen(true)
@@ -133,23 +141,14 @@ export default function AdminApplications() {
     })
   }
 
-  const openOIDCClients = (app: Application) => setOidcApp(app)
-
   return (
     <div>
       <AdminPageHead
         title="应用管理"
         extra={
-          <>
-            <Tooltip title="将 Casdoor 中已接入统一登录的应用同步到门户（含图标与名称）">
-              <Button icon={<CloudSyncOutlined />} loading={syncMutation.isPending} onClick={() => syncMutation.mutate()}>
-                从 Casdoor 同步
-              </Button>
-            </Tooltip>
-            <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>
-              新建应用
-            </Button>
-          </>
+          <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>
+            新建应用
+          </Button>
         }
       />
 
@@ -249,11 +248,6 @@ export default function AdminApplications() {
             width: 210,
             render: (_, app) => (
               <Space>
-                {app.ssoType === 'VELORA_OIDC' && (
-                  <Button type="link" size="small" icon={<ApiOutlined />} onClick={() => openOIDCClients(app)}>
-                    OIDC 客户端
-                  </Button>
-                )}
                 <Button type="link" size="small" onClick={() => openEdit(app)}>
                   编辑
                 </Button>
@@ -287,7 +281,15 @@ export default function AdminApplications() {
         width={640}
         destroyOnHidden
       >
-        <Form form={form} layout="vertical" requiredMark={false} style={{ marginTop: 4 }}>
+        <Form
+          form={form}
+          layout="vertical"
+          requiredMark={false}
+          style={{ marginTop: 4 }}
+          onValuesChange={(_, values) => {
+            if (!editing) writeApplicationDraft(values as Partial<AdminApplicationInput>)
+          }}
+        >
           <div className="velora-form-grid">
             <Form.Item label="应用编码" name="code" rules={[{ required: true, message: '请输入应用编码' }]}>
               <Input placeholder="如 devops" />
@@ -354,23 +356,7 @@ export default function AdminApplications() {
             <Form.Item label="接入类型" name="ssoType" rules={[{ required: true }]}>
               <Select options={SSO_OPTIONS.map((v) => ({ value: v, label: SSO_TYPE_LABEL[v as Application['ssoType']] }))} />
             </Form.Item>
-            <Form.Item
-              noStyle
-              shouldUpdate={(prev, cur) => prev.ssoType !== cur.ssoType}
-            >
-              {({ getFieldValue }) =>
-                getFieldValue('ssoType') === 'OIDC' ? (
-                  <Form.Item label="Casdoor Client ID" name="casdoorClientId" rules={[{ required: true, message: 'OIDC 应用需配置 Client ID' }]}>
-                    <Input placeholder="Casdoor 中该应用的 Client ID" />
-                  </Form.Item>
-                ) : null
-              }
-            </Form.Item>
-            {watchSsoType === 'OIDC' ? (
-              <Form.Item label="Casdoor 应用名" name="casdoorApplicationName">
-                <Input placeholder="可选" />
-              </Form.Item>
-            ) : null}
+            {watchSsoType === 'OIDC' ? <Tag color="warning">OIDC 应用创建后请到“身份与单点登录”完成绑定和验证</Tag> : null}
           </div>
 
           <div className="velora-form-grid">
@@ -414,196 +400,10 @@ export default function AdminApplications() {
             <Form.Item label="精选展示" name="isFeatured" valuePropName="checked" style={{ marginBottom: 8 }}>
               <Switch />
             </Form.Item>
-            <Form.Item label="健康检查" name="healthCheckEnabled" valuePropName="checked" style={{ marginBottom: 8 }}>
-              <Switch />
-            </Form.Item>
           </Space>
-          <Form.Item
-            noStyle
-            shouldUpdate={(prev, cur) => prev.healthCheckEnabled !== cur.healthCheckEnabled}
-          >
-            {({ getFieldValue }) =>
-              getFieldValue('healthCheckEnabled') ? (
-                <Form.Item label="健康检查地址" name="healthCheckUrl" rules={[{ type: 'url', message: '请输入合法 URL' }]}>
-                  <Input placeholder="https://app.example.internal/healthz" />
-                </Form.Item>
-              ) : null
-            }
-          </Form.Item>
         </Form>
       </Modal>
 
-      {/* OIDC 客户端管理（Phase B6）：仅 VELORA_OIDC 接入的应用 */}
-      <OIDCClientModal app={oidcApp} onClose={() => setOidcApp(null)} />
     </div>
-  )
-}
-
-/**
- * OIDC 客户端管理弹窗：查看 / 新建（返回一次 secret）/ 吊销客户端。
- * 展示对接参数（authorize/token/userinfo/jwks 端点）便于第三方接入。
- */
-function OIDCClientModal({ app, onClose }: { app: Application | null; onClose: () => void }) {
-  const { message } = AntdApp.useApp()
-  const queryClient = useQueryClient()
-  const [newSecret, setNewSecret] = useState<{ clientId: string; secret: string } | null>(null)
-  const [redirectInput, setRedirectInput] = useState('')
-
-  const { data: clients, isLoading } = useQuery({
-    queryKey: ['admin', 'oidc-clients', app?.id],
-    queryFn: () => listOIDCClients(app!.id),
-    enabled: !!app,
-  })
-
-  const createMutation = useMutation({
-    mutationFn: (redirectUris: string[]) => createOIDCClient(app!.id, redirectUris),
-    onSuccess: (r) => {
-      message.success('客户端已创建（密钥仅显示一次，请立即保存）')
-      setNewSecret({ clientId: r.client.clientId, secret: r.clientSecret })
-      setRedirectInput('')
-      void queryClient.invalidateQueries({ queryKey: ['admin', 'oidc-clients', app?.id] })
-    },
-    onError: (err) => message.error(err instanceof Error ? err.message : '创建失败'),
-  })
-
-  const revokeMutation = useMutation({
-    mutationFn: (clientId: string) => revokeOIDCClient(clientId),
-    onSuccess: () => {
-      message.success('客户端已吊销')
-      void queryClient.invalidateQueries({ queryKey: ['admin', 'oidc-clients', app?.id] })
-    },
-    onError: (err) => message.error(err instanceof Error ? err.message : '吊销失败'),
-  })
-
-  const endpointBase = `${window.location.origin}/oidc`
-
-  return (
-    <Modal
-      title={`OIDC 客户端：${app?.name ?? ''}`}
-      open={!!app}
-      onCancel={onClose}
-      footer={null}
-      width={640}
-      destroyOnHidden
-    >
-      {app && (
-        <>
-          <Alert
-            type="info"
-            showIcon
-            style={{ marginBottom: 12 }}
-            message="第三方应用通过以下 Velora SSO 端点对接（PKCE S256 强制）"
-            description={
-              <div style={{ fontSize: 12 }}>
-                authorize：<code>{endpointBase}/authorize</code>
-                <br />
-                token：<code>{endpointBase}/token</code> · userinfo：
-                <code>{endpointBase}/userinfo</code> · jwks：<code>{endpointBase}/jwks</code>
-                <br />
-                发现文档：<code>{endpointBase}/.well-known/openid-configuration</code>
-              </div>
-            }
-          />
-
-          {newSecret && (
-            <Alert
-              type="success"
-              showIcon
-              style={{ marginBottom: 12 }}
-              message={`客户端 ${newSecret.clientId} 创建成功`}
-              description={
-                <div>
-                  <div>
-                    Client ID：<code>{newSecret.clientId}</code>
-                  </div>
-                  <div>
-                    Client Secret：<code>{newSecret.secret}</code>
-                  </div>
-                  <div style={{ marginTop: 4, color: '#fa8c16' }}>⚠ 密钥仅本次显示，请立即复制保存；遗失需吊销后重建。</div>
-                </div>
-              }
-            />
-          )}
-
-          {/* 新建客户端 */}
-          <Space.Compact style={{ width: '100%', marginBottom: 12 }}>
-            <Input
-              placeholder="回调地址 redirect_uri（多个用逗号分隔）"
-              value={redirectInput}
-              onChange={(e) => setRedirectInput(e.target.value)}
-              onPressEnter={() => {
-                const uris = redirectInput.split(',').map((s) => s.trim()).filter(Boolean)
-                if (uris.length) createMutation.mutate(uris)
-              }}
-            />
-            <Button
-              type="primary"
-              loading={createMutation.isPending}
-              disabled={!redirectInput.trim()}
-              onClick={() => {
-                const uris = redirectInput.split(',').map((s) => s.trim()).filter(Boolean)
-                createMutation.mutate(uris)
-              }}
-            >
-              新建客户端
-            </Button>
-          </Space.Compact>
-
-          <Table<OIDCClient>
-            rowKey="clientId"
-            size="small"
-            loading={isLoading}
-            dataSource={clients ?? []}
-            pagination={false}
-            locale={{ emptyText: '暂无客户端，请先创建' }}
-            columns={[
-              {
-                title: 'Client ID',
-                dataIndex: 'clientId',
-                ellipsis: true,
-                render: (v: string) => <code style={{ fontSize: 12 }}>{v}</code>,
-              },
-              {
-                title: '回调地址',
-                dataIndex: 'redirectUris',
-                render: (uris: string[]) => (
-                  <Space size={4} wrap>
-                    {uris.map((u) => (
-                      <Tag key={u} style={{ fontSize: 11, maxWidth: 220 }}>
-                        {u}
-                      </Tag>
-                    ))}
-                  </Space>
-                ),
-              },
-              {
-                title: '创建时间',
-                dataIndex: 'createdAt',
-                width: 100,
-                render: (v: string) => (v ? new Date(v).toLocaleDateString() : '-'),
-              },
-              {
-                title: '操作',
-                key: 'op',
-                width: 70,
-                render: (_, cl) => (
-                  <Popconfirm
-                    title="吊销客户端？"
-                    description="吊销后该客户端所有 code/token 立即失效，第三方应用将无法登录。"
-                    okText="吊销"
-                    okButtonProps={{ danger: true }}
-                    onConfirm={() => revokeMutation.mutate(cl.clientId)}
-                  >
-                    <Button type="link" size="small" danger loading={revokeMutation.isPending}>
-                      吊销
-                    </Button>
-                  </Popconfirm>
-                ),
-              },
-            ]}
-          />
-        </>
-      )}
-    </Modal>
   )
 }

@@ -1,7 +1,3 @@
-// Package ratelimit 提供分布式限流（Redis 固定窗口 + 内存降级）。
-//
-// Phase C3：替换 httpserver 的进程内限流为 Redis 实现，支持多实例统一限流；
-// REDIS_URL 未配置时自动降级为单机内存实现（开发/演示环境可用）。
 package ratelimit
 
 import (
@@ -10,117 +6,70 @@ import (
 	"sync"
 	"time"
 
-	"github.com/redis/go-redis/v9"
+	"github.com/sevoniva-labs/velora/server/internal/platform/cache"
 )
 
-// Limiter 为限流器接口。
-type Limiter interface {
-	// Allow 判断 key 在窗口内是否允许（allowed 为 true 表示放行）。
-	Allow(ctx context.Context, key string) (allowed bool, remaining int64, err error)
-	// Reset 清除 key 的计数（解锁等场景）。
-	Reset(ctx context.Context, key string) error
+// Limiter uses cache atomic increment when available. Redis therefore gives a
+// cluster-wide fixed-window limiter; memory is process-local.
+type Limiter struct {
+	cache cache.Cache
+	mu    sync.Mutex
+	local map[string]entry
 }
 
-// Config 限流配置。
-type Config struct {
-	Limit  int           // 窗口内最大次数
-	Window time.Duration // 窗口时长
-}
+const maxLocalEntries = 10_000
 
-// New 创建限流器。redisClient 为 nil 时返回内存实现。
-func New(redisClient *redis.Client, cfg Config) Limiter {
-	if redisClient != nil {
-		return &redisLimiter{client: redisClient, cfg: cfg}
-	}
-	return newMemoryLimiter(cfg)
-}
-
-// --- Redis 实现（固定窗口，INCR + EXPIRE，原子） ---
-
-type redisLimiter struct {
-	client *redis.Client
-	cfg    Config
-}
-
-func (l *redisLimiter) Allow(ctx context.Context, key string) (bool, int64, error) {
-	redisKey := "rl:" + key
-	// Lua 脚本保证原子性：计数 +1，首次设置过期；返回新计数。
-	script := `
-local c = redis.call('INCR', KEYS[1])
-if c == 1 then
-  redis.call('PEXPIRE', KEYS[1], ARGV[1])
-end
-return c
-`
-	n, err := l.client.Eval(ctx, script, []string{redisKey}, l.cfg.Window.Milliseconds()).Int64()
-	if err != nil {
-		// Redis 故障：放行（fail-open，保证可用性优先；生产可改 fail-close）
-		return true, 0, fmt.Errorf("限流器 Redis 调用失败（fail-open）: %w", err)
-	}
-	remaining := int64(l.cfg.Limit) - n
-	if remaining < 0 {
-		remaining = 0
-	}
-	return n <= int64(l.cfg.Limit), remaining, nil
-}
-
-func (l *redisLimiter) Reset(ctx context.Context, key string) error {
-	return l.client.Del(ctx, "rl:"+key).Err()
-}
-
-// --- 内存实现（降级，单实例） ---
-
-type memEntry struct {
+type entry struct {
 	count int
-	start time.Time
+	until time.Time
 }
 
-type memoryLimiter struct {
-	mu      sync.Mutex
-	buckets map[string]*memEntry
-	cfg     Config
+func New(c cache.Cache) *Limiter {
+	return &Limiter{cache: c, local: map[string]entry{}}
 }
 
-func newMemoryLimiter(cfg Config) *memoryLimiter {
-	l := &memoryLimiter{buckets: map[string]*memEntry{}, cfg: cfg}
-	go l.sweeper()
-	return l
-}
-
-func (l *memoryLimiter) sweeper() {
-	ticker := time.NewTicker(time.Minute)
-	defer ticker.Stop()
-	for range ticker.C {
-		l.mu.Lock()
-		now := time.Now()
-		for k, e := range l.buckets {
-			if now.Sub(e.start) > l.cfg.Window {
-				delete(l.buckets, k)
+func (l *Limiter) Allow(ctx context.Context, key string, limit int, window time.Duration, now time.Time) (bool, error) {
+	if limit <= 0 {
+		return true, nil
+	}
+	if l.cache != nil && l.cache.Provider() != "disabled" {
+		n, err := l.cache.Increment(ctx, "ratelimit:"+key, window)
+		if err == nil {
+			return n <= int64(limit), nil
+		}
+		// Do not fail-open silently on a Redis outage in financial profile; the
+		// caller can decide whether to convert this error into 503.
+		if l.cache.Provider() == "redis" {
+			return false, fmt.Errorf("distributed rate limit: %w", err)
+		}
+	}
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	if len(l.local) >= maxLocalEntries {
+		var oldestKey string
+		var oldestUntil time.Time
+		for k, v := range l.local {
+			if now.After(v.until) {
+				delete(l.local, k)
+				continue
+			}
+			if oldestKey == "" || v.until.Before(oldestUntil) {
+				oldestKey, oldestUntil = k, v.until
 			}
 		}
-		l.mu.Unlock()
+		if len(l.local) >= maxLocalEntries && oldestKey != "" {
+			delete(l.local, oldestKey)
+		}
 	}
-}
-
-func (l *memoryLimiter) Allow(_ context.Context, key string) (bool, int64, error) {
-	l.mu.Lock()
-	defer l.mu.Unlock()
-	e, ok := l.buckets[key]
-	if !ok || time.Since(e.start) > l.cfg.Window {
-		e = &memEntry{start: time.Now()}
-		l.buckets[key] = e
+	e := l.local[key]
+	if now.After(e.until) {
+		e = entry{until: now.Add(window)}
+	}
+	if e.count >= limit {
+		l.local[key] = e
+		return false, nil
 	}
 	e.count++
-	remaining := int64(l.cfg.Limit - e.count)
-	if remaining < 0 {
-		remaining = 0
-	}
-	return e.count <= l.cfg.Limit, remaining, nil
-}
-
-func (l *memoryLimiter) Reset(_ context.Context, key string) error {
-	l.mu.Lock()
-	defer l.mu.Unlock()
-	delete(l.buckets, key)
-	return nil
+	l.local[key] = e
+	return true, nil
 }

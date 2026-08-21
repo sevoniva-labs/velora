@@ -1,0 +1,38 @@
+{{- if .Values.enabled }}
+apiVersion: apisix.apache.org/v2
+kind: ApisixUpstream
+metadata:
+  name: {{ .Values.service.name }}
+  annotations:
+    velora.sevoniva.cn/change-approval-ref: {{ .Values.governance.changeApprovalRef | quote }}
+    velora.sevoniva.cn/apisix-ingress-controller-version: {{ .Values.compatibility.ingressControllerVersion | quote }}
+spec:
+  ingressClassName: {{ .Values.ingressClassName | quote }}
+  loadbalancer:
+    type: roundrobin
+  portLevelSettings:
+    - port: {{ .Values.service.httpPort }}
+      scheme: {{ ternary "https" "http" .Values.upstream.tls }}
+      retries: 0
+      timeout:
+        connect: {{ .Values.upstream.connectTimeout }}
+        send: {{ .Values.upstream.sendTimeout }}
+        read: {{ .Values.upstream.readTimeout }}
+      {{- if .Values.upstream.tls }}
+      tlsSecret:
+        name: {{ required "upstream.clientCertificateSecretName is required when upstream TLS is enabled" .Values.upstream.clientCertificateSecretName }}
+        namespace: {{ .Release.Namespace }}
+      {{- end }}
+    - port: {{ .Values.service.grpcPort }}
+      scheme: {{ ternary "grpcs" "grpc" .Values.upstream.tls }}
+      retries: 0
+      timeout:
+        connect: {{ .Values.upstream.connectTimeout }}
+        send: {{ .Values.upstream.sendTimeout }}
+        read: {{ .Values.upstream.readTimeout }}
+      {{- if .Values.upstream.tls }}
+      tlsSecret:
+        name: {{ required "upstream.clientCertificateSecretName is required when upstream TLS is enabled" .Values.upstream.clientCertificateSecretName }}
+        namespace: {{ .Release.Namespace }}
+      {{- end }}
+{{- end }}

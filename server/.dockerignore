@@ -1,0 +1,14 @@
+.git
+.gitignore
+.env
+.env.*
+!.env.example
+node_modules
+web/node_modules
+web/dist
+bin
+data
+*.tsbuildinfo
+*.local.md
+docs/banking-production-feasibility-plan.local.md
+docs/banking-production-goal-prompt.local.md

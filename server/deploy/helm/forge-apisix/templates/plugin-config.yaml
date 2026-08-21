@@ -1,0 +1,44 @@
+{{- if .Values.enabled }}
+apiVersion: apisix.apache.org/v2
+kind: ApisixPluginConfig
+metadata:
+  name: {{ .Values.service.name }}-gateway-plugins
+  annotations:
+    velora.sevoniva.cn/change-approval-ref: {{ .Values.governance.changeApprovalRef | quote }}
+    velora.sevoniva.cn/apisix-ingress-controller-version: {{ .Values.compatibility.ingressControllerVersion | quote }}
+spec:
+  ingressClassName: {{ .Values.ingressClassName | quote }}
+  plugins:
+    - name: request-id
+      enable: true
+      config:
+        header_name: X-Request-ID
+        include_in_response: true
+    - name: limit-req
+      enable: true
+      config:
+        rate: {{ .Values.rateLimit.rate }}
+        burst: {{ .Values.rateLimit.burst }}
+        key: remote_addr
+        key_type: var
+        nodelay: true
+        rejected_code: 429
+        rejected_msg: Too Many Requests
+        allow_degradation: false
+        policy: {{ .Values.rateLimit.policy | quote }}
+    - name: prometheus
+      enable: true
+      config: {}
+    # Never forward client-supplied Velora identity headers. The application
+    # may emit these only after authenticating the request server-side.
+    - name: proxy-rewrite
+      enable: true
+      config:
+        headers:
+          remove:
+            - X-Velora-Authenticated
+            - X-Velora-Application-ID
+            - X-Velora-User-ID
+            - X-Velora-Login-Name
+            - X-Velora-Organization-ID
+{{- end }}

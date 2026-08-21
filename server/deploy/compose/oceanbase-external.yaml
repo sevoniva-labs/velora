@@ -1,0 +1,24 @@
+# OceanBase MySQL-compatible mode example.
+# This file intentionally connects Forge to an existing OceanBase endpoint instead of pinning
+# a database image. Set VELORA_DATABASE_DSN to the target cluster/tenant DSN.
+services:
+  velora:
+    build:
+      context: ../..
+      dockerfile: deploy/docker/Dockerfile
+      args:
+        NODE_IMAGE: ${VELORA_NODE_IMAGE:?set internal Node image digest}
+        GO_IMAGE: ${VELORA_GO_IMAGE:?set internal Go image digest}
+        RUNTIME_IMAGE: ${VELORA_RUNTIME_IMAGE:?set internal runtime image digest}
+    ports: ["8080:8080"]
+    volumes: ["../../configs/xinchuang.yaml:/app/config.yaml:ro"]
+    environment:
+      VELORA_CONFIG: /app/config.yaml
+      VELORA_DATABASE_PROVIDER: oceanbase
+      VELORA_DATABASE_DSN: ${VELORA_DATABASE_DSN:?set OceanBase MySQL-mode DSN}
+      VELORA_CRYPTO_PROVIDER: gm
+      VELORA_CRYPTO_KEY: ${VELORA_CRYPTO_KEY:?set encryption key}
+      VELORA_SECURE_COOKIES: ${VELORA_SECURE_COOKIES:-false}
+      VELORA_PUBLIC_URL: ${VELORA_PUBLIC_URL:-http://localhost:8080}
+      VELORA_BOOTSTRAP_ADMIN: ${VELORA_BOOTSTRAP_ADMIN:-admin}
+      VELORA_BOOTSTRAP_PASSWORD: ${VELORA_BOOTSTRAP_PASSWORD:?set bootstrap password}

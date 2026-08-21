@@ -1,0 +1,38 @@
+{{- if .Values.enabled }}
+apiVersion: apisix.apache.org/v2
+kind: ApisixTls
+metadata:
+  name: {{ .Values.service.name }}-web-tls
+  annotations:
+    velora.sevoniva.cn/change-approval-ref: {{ .Values.governance.changeApprovalRef | quote }}
+    velora.sevoniva.cn/apisix-ingress-controller-version: {{ .Values.compatibility.ingressControllerVersion | quote }}
+spec:
+  ingressClassName: {{ .Values.ingressClassName | quote }}
+  hosts:
+    - {{ .Values.hosts.web | quote }}
+  secret:
+    name: {{ required "tls.webSecretName is required" .Values.tls.webSecretName }}
+    namespace: {{ .Release.Namespace }}
+---
+apiVersion: apisix.apache.org/v2
+kind: ApisixTls
+metadata:
+  name: {{ .Values.service.name }}-grpc-tls
+  annotations:
+    velora.sevoniva.cn/change-approval-ref: {{ .Values.governance.changeApprovalRef | quote }}
+    velora.sevoniva.cn/apisix-ingress-controller-version: {{ .Values.compatibility.ingressControllerVersion | quote }}
+spec:
+  ingressClassName: {{ .Values.ingressClassName | quote }}
+  hosts:
+    - {{ .Values.hosts.grpc | quote }}
+  secret:
+    name: {{ required "tls.grpcSecretName is required" .Values.tls.grpcSecretName }}
+    namespace: {{ .Release.Namespace }}
+  {{- if .Values.tls.grpcClientMTLS.enabled }}
+  client:
+    caSecret:
+      name: {{ required "tls.grpcClientMTLS.caSecretName is required when client mTLS is enabled" .Values.tls.grpcClientMTLS.caSecretName }}
+      namespace: {{ .Release.Namespace }}
+    depth: {{ .Values.tls.grpcClientMTLS.verifyDepth }}
+  {{- end }}
+{{- end }}

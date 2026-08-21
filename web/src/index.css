@@ -778,7 +778,7 @@ button {
   transform: none;
 }
 
-/* ---------- 工作台三栏（最近使用 / 待办中心 / 应用分类） ---------- */
+/* ---------- 工作台双栏（最近使用 / 应用分类） ---------- */
 
 .velora-workbench {
   display: grid;
@@ -786,10 +786,10 @@ button {
   gap: 14px;
   margin-top: 14px;
   align-items: stretch;
-  /* 固定行高：三个面板始终等高，内容在面板内部滚动，切 Tab / 数据增减均不跳动 */
-  height: 460px;
+  /* 固定行高：面板始终等高，内容在面板内部滚动 */
+  height: 420px;
 }
-/* 三块面板等高：弹性占满所在格子，内部 flex 纵向布局 */
+/* 面板等高：弹性占满所在格子，内部 flex 纵向布局 */
 .velora-workbench > .velora-panel {
   min-height: 0;
   display: flex;
@@ -814,6 +814,8 @@ button {
 @media (max-width: 1200px) {
   .velora-workbench {
     grid-template-columns: 1fr 1fr;
+    height: auto;
+    min-height: 420px;
   }
 }
 @media (max-width: 900px) {
@@ -908,12 +910,14 @@ button {
   grid-template-columns: repeat(2, 1fr);
   gap: 8px;
   padding: 4px 18px 16px;
+  align-content: start;
+  grid-auto-rows: max-content;
 }
 .velora-cat-card {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 11px 12px;
+  gap: 6px;
+  padding: 7px 8px;
   border-radius: 11px;
   cursor: pointer;
   background: rgba(255, 255, 255, 0.55);
@@ -937,15 +941,15 @@ button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 34px;
-  height: 34px;
-  flex: 0 0 34px;
-  border-radius: 10px;
-  font-size: 16px;
+  width: 22px;
+  height: 22px;
+  flex: 0 0 22px;
+  border-radius: 6px;
+  font-size: 11px;
   color: var(--velora-primary);
   background: linear-gradient(145deg, #eef5ff 0%, #e2edff 100%);
   border: 1px solid rgba(22, 119, 255, 0.14);
-  box-shadow: 0 5px 12px -5px rgba(22, 119, 255, 0.4);
+  box-shadow: 0 3px 7px -4px rgba(22, 119, 255, 0.32);
 }
 .velora-cat-card-main {
   min-width: 0;
@@ -1089,8 +1093,26 @@ button {
     border-color 0.16s ease,
     transform 0.16s ease;
 }
+.velora-app-card-hitarea {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.velora-app-card-hitarea:focus-visible {
+  outline: 2px solid var(--velora-primary);
+  outline-offset: 3px;
+  border-radius: 10px;
+}
 .velora-app-card:hover,
-.velora-app-card:focus-visible {
+.velora-app-card:focus-within {
   border-color: color-mix(in srgb, var(--velora-primary-hover) 45%, transparent);
   transform: translateY(-2px);
   box-shadow:
@@ -1921,7 +1943,7 @@ button {
 .velora-cat-card:focus-visible,
 .velora-recent-item:focus-visible,
 .velora-popular-item:focus-visible,
-.velora-app-card:focus-visible {
+.velora-app-card-hitarea:focus-visible {
   outline: 2px solid var(--velora-primary);
   outline-offset: 1px;
 }
@@ -2070,13 +2092,28 @@ button {
   border-radius: 8px;
   border-bottom: 1px solid rgba(20, 32, 58, 0.06);
   transition: background 0.16s ease;
-  cursor: pointer;
 }
 .velora-todo-item:last-child {
   border-bottom: none;
 }
 .velora-todo-item:hover {
   background: rgba(255, 255, 255, 0.8);
+}
+.velora-todo-open {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  flex: 1;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.velora-todo-open:disabled {
+  cursor: default;
 }
 /* 优先级色条 */
 .velora-todo-pri {
@@ -2176,6 +2213,7 @@ button {
   padding: 0 6px;
   font-variant-numeric: tabular-nums;
 }
+
 
 /* ---------- 应用中心：紧凑工具栏 ---------- */
 .velora-apps-search {

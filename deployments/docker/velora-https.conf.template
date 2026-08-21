@@ -1,8 +1,10 @@
 # Velora Web Nginx 配置（HTTPS 服务块 · 生产形态）。
-# 证书挂载：/etc/nginx/certs/velora.crt + velora.key（compose 生产 overlay 挂载）。
+# 证书挂载：/etc/nginx/certs/velora.crt + velora.key（独立生产 Compose 挂载）。
 server {
     listen 443 ssl;
     server_name _;
+    # Docker 服务重建后 IP 会变化，使用内置 DNS 动态解析，避免旧 IP 导致 502。
+    resolver ${VELORA_DNS_RESOLVER} valid=10s ipv6=off;
 
     ssl_certificate     /etc/nginx/certs/velora.crt;
     ssl_certificate_key /etc/nginx/certs/velora.key;
@@ -12,8 +14,9 @@ server {
     ssl_session_cache shared:SSL:10m;
     ssl_session_timeout 1d;
 
-    # HSTS（确认证书链可信后启用）
-    # add_header Strict-Transport-Security "max-age=63072000; includeSubDomains; preload" always;
+    # 生产入口只接受已验证的 TLS 证书链，默认开启 HSTS；证书轮换仍由
+    # Secret Manager/发布流程负责，不能通过降级到 HTTP 绕过安全策略。
+    add_header Strict-Transport-Security "max-age=63072000; includeSubDomains; preload" always;
 
     root /usr/share/nginx/html;
     index index.html;
@@ -36,28 +39,28 @@ server {
     }
 
     location /api/ {
-        proxy_pass ${VELORA_API_PROXY_PASS:-http://server:8080};
+        set $velora_api_proxy_pass "${VELORA_API_PROXY_PASS}";
+        proxy_pass $velora_api_proxy_pass;
         proxy_http_version 1.1;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto https;
+        proxy_set_header X-Forwarded-Host $host;
+        # Never forward client-supplied authorization result headers to the
+        # server; only the server may mint X-Velora-* response headers.
+        proxy_set_header X-Velora-Authenticated "";
+        proxy_set_header X-Velora-Application-ID "";
+        proxy_set_header X-Velora-User-ID "";
+        proxy_set_header X-Velora-Login-Name "";
+        proxy_set_header X-Velora-Organization-ID "";
         proxy_set_header X-Request-Id $request_id;
         proxy_read_timeout 30s;
     }
 
     location /casdoor/ {
-        proxy_pass http://casdoor:8000/;
-        proxy_http_version 1.1;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto https;
-    }
-
-    # OIDC Provider（Phase B）：第三方应用 SSO 端点（/oidc/authorize、/oidc/token 等）
-    location /oidc/ {
-        proxy_pass ${VELORA_API_PROXY_PASS:-http://server:8080};
+        set $velora_casdoor_proxy_pass "${VELORA_CASDOOR_PROXY_PASS}";
+        proxy_pass $velora_casdoor_proxy_pass;
         proxy_http_version 1.1;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
@@ -67,6 +70,13 @@ server {
 
     location = /healthz {
         access_log off;
-        return 200 "ok\n";
+        set $velora_ready_proxy_pass "${VELORA_API_PROXY_PASS}/api/v1/system/ready";
+        proxy_pass $velora_ready_proxy_pass;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-Proto https;
+        proxy_set_header X-Request-Id $request_id;
+        proxy_connect_timeout 2s;
+        proxy_read_timeout 3s;
     }
 }

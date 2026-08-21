@@ -2,41 +2,31 @@ package ratelimit
 
 import (
 	"context"
+	"strconv"
 	"testing"
 	"time"
-
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
-func TestMemoryLimiter(t *testing.T) {
-	l := New(nil, Config{Limit: 3, Window: time.Minute})
-	ctx := context.Background()
-	for i := 0; i < 3; i++ {
-		ok, _, err := l.Allow(ctx, "ip-1")
-		require.NoError(t, err)
-		assert.True(t, ok)
+func TestLocalLimiterBoundsKeyCardinality(t *testing.T) {
+	l := New(nil)
+	now := time.Now()
+	for i := 0; i < maxLocalEntries+250; i++ {
+		if ok, err := l.Allow(context.Background(), "ip:"+strconv.Itoa(i), 1, time.Hour, now); err != nil || !ok {
+			t.Fatalf("Allow() = (%v, %v), want first attempt allowed", ok, err)
+		}
 	}
-	// 第 4 次超限
-	ok, remaining, err := l.Allow(ctx, "ip-1")
-	require.NoError(t, err)
-	assert.False(t, ok)
-	assert.Equal(t, int64(0), remaining)
-	// 其他 key 不受影响
-	ok, _, err = l.Allow(ctx, "ip-2")
-	require.NoError(t, err)
-	assert.True(t, ok)
+	if got := len(l.local); got > maxLocalEntries {
+		t.Fatalf("local limiter retained %d entries, want <= %d", got, maxLocalEntries)
+	}
 }
 
-func TestMemoryLimiterReset(t *testing.T) {
-	l := New(nil, Config{Limit: 2, Window: time.Minute})
-	ctx := context.Background()
-	_, _, _ = l.Allow(ctx, "k")
-	_, _, _ = l.Allow(ctx, "k")
-	ok, _, _ := l.Allow(ctx, "k")
-	assert.False(t, ok)
-	require.NoError(t, l.Reset(ctx, "k"))
-	ok, _, err := l.Allow(ctx, "k")
-	require.NoError(t, err)
-	assert.True(t, ok)
+func TestLocalLimiterExpiresKeysDuringAdmission(t *testing.T) {
+	l := New(nil)
+	start := time.Unix(100, 0)
+	if ok, err := l.Allow(context.Background(), "expired", 1, time.Second, start); err != nil || !ok {
+		t.Fatalf("initial Allow() = (%v, %v)", ok, err)
+	}
+	if ok, err := l.Allow(context.Background(), "expired", 1, time.Second, start.Add(2*time.Second)); err != nil || !ok {
+		t.Fatalf("expired key was not admitted: (%v, %v)", ok, err)
+	}
 }

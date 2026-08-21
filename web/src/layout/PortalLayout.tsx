@@ -5,6 +5,7 @@ import { LogoutOutlined, SettingOutlined, UserOutlined } from '@ant-design/icons
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useState, type KeyboardEvent } from 'react'
 import { useMe } from '../auth/useMe'
+import { canAccessAdmin } from '../auth/permissions'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { logout, getPortalSettings, queryKeys } from '../api/api'
 
@@ -31,16 +32,16 @@ export function PortalLayout({ children }: PortalLayoutProps) {
   const portalName = valueOf('portal_name') || 'Velora'
   const portalWelcome = valueOf('portal_welcome') || '企业应用门户'
 
-  const isAdmin = me.data?.admin === true
+  const isAdmin = canAccessAdmin(me.data?.permissions, me.data?.roles)
   const displayName = me.data?.displayName || me.data?.username || '用户'
   const activeKey = NAV_ITEMS.find((i) => location.pathname.startsWith(i.path))?.key ?? 'home'
 
   const logoutMutation = useMutation({
     mutationFn: logout,
-    onSuccess: () => {
+    onSuccess: (result) => {
       queryClient.clear()
       // 整页跳转：让浏览器应用服务端下发的清除 Cookie，并彻底重置前端状态。
-      window.location.assign('/login')
+      window.location.assign(result.federatedLogoutUrl || '/login')
     },
     onError: (err) => {
       message.error(err instanceof Error ? err.message : '退出失败，请稍后再试')

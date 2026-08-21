@@ -1,0 +1,24 @@
+{
+  "target": {
+    "product": "velora",
+    "version": "replace-with-release",
+    "tested_at": "replace-with-rfc3339",
+    "cpu": "replace-with-cpu",
+    "os": "replace-with-os-and-kernel",
+    "runtime": "replace-with-container-runtime",
+    "database": "replace-with-product-and-version",
+    "message_queue": "replace-with-product-and-version",
+    "object_storage": "replace-with-provider-and-version"
+  },
+  "rpo_target_seconds": 300,
+  "rto_target_seconds": 1800,
+  "scenarios": [
+    {"name": "node_failure", "status": "not_tested"},
+    {"name": "network_partition", "status": "not_tested"},
+    {"name": "database_failover", "status": "not_tested"},
+    {"name": "mq_failure", "status": "not_tested"},
+    {"name": "s3_failure", "status": "not_tested"},
+    {"name": "site_failure", "status": "not_tested"},
+    {"name": "backup_restore", "status": "not_tested"}
+  ]
+}

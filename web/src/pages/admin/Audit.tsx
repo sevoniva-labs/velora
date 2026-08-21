@@ -10,22 +10,21 @@ import { auditActionLabel } from '../../labels'
 import { formatDateTime } from '../../utils/format'
 
 const ACTION_OPTIONS = [
-  'LOGIN',
-  'LOGOUT',
-  'APPLICATION_CREATE',
-  'APPLICATION_UPDATE',
-  'APPLICATION_DELETE',
-  'APPLICATION_LAUNCH',
-  'FAVORITE_ADD',
-  'FAVORITE_REMOVE',
-  'PERMISSION_CHANGE',
-  'CATEGORY_CREATE',
-  'CATEGORY_UPDATE',
-  'CATEGORY_DELETE',
-  'TAG_CREATE',
-  'TAG_UPDATE',
-  'TAG_DELETE',
-  'SETTING_UPDATE',
+  'auth.login',
+  'auth.logout',
+  'auth.password.change',
+  'portal.application.create',
+  'portal.application.update',
+  'portal.application.delete',
+  'portal.application.launch',
+  'portal.favorite.add',
+  'portal.favorite.remove',
+  'portal.category.create',
+  'portal.category.update',
+  'portal.category.delete',
+  'portal.tag.create',
+  'portal.tag.update',
+  'portal.tag.delete',
 ]
 
 export default function AdminAudit() {

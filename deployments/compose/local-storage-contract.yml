@@ -1,0 +1,51 @@
+# 本地对象存储能力契约验收环境。仅用于开发/验收，不是生产部署清单。
+#
+# 启动：
+#   docker compose -f deployments/compose/local-storage-contract.yml up -d
+# 验收：
+#   docker compose -f deployments/compose/local-storage-contract.yml run --rm init
+# 停止：
+#   docker compose -f deployments/compose/local-storage-contract.yml down
+name: velora-storage-contract
+
+x-registry: &registry "${DOCKER_REGISTRY:-docker.m.daocloud.io}"
+
+services:
+  minio:
+    image: "${DOCKER_REGISTRY:-docker.m.daocloud.io}/minio/minio:RELEASE.2025-06-13T11-33-47Z"
+    container_name: velora-storage-contract-minio
+    command: ["server", "/data", "--console-address", ":9001"]
+    environment:
+      MINIO_ROOT_USER: "${MINIO_ROOT_USER:-minioadmin}"
+      MINIO_ROOT_PASSWORD: "${MINIO_ROOT_PASSWORD:-minioadmin-contract-only}"
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - velora-storage-contract-data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:9000/minio/health/ready >/dev/null"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  init:
+    image: "${DOCKER_REGISTRY:-docker.m.daocloud.io}/minio/mc:RELEASE.2025-05-21T01-59-54Z"
+    depends_on:
+      minio:
+        condition: service_healthy
+    environment:
+      MINIO_ROOT_USER: "${MINIO_ROOT_USER:-minioadmin}"
+      MINIO_ROOT_PASSWORD: "${MINIO_ROOT_PASSWORD:-minioadmin-contract-only}"
+      MINIO_BUCKET: "${MINIO_BUCKET:-velora-worm}"
+    entrypoint: ["/bin/sh", "-ec"]
+    command:
+      - |
+        mc alias set local http://minio:9000 "$${MINIO_ROOT_USER}" "$${MINIO_ROOT_PASSWORD}"
+        mc mb --ignore-existing --with-lock "local/$${MINIO_BUCKET}"
+        mc version enable "local/$${MINIO_BUCKET}"
+        mc anonymous set none "local/$${MINIO_BUCKET}"
+        mc stat "local/$${MINIO_BUCKET}"
+
+volumes:
+  velora-storage-contract-data:

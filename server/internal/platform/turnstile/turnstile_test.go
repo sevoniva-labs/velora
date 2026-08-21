@@ -1,88 +1,62 @@
 package turnstile
 
 import (
-	"encoding/json"
+	"context"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
-
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
-// mockServer 返回模拟 siteverify 的 HTTP 服务器。
-func mockServer(t *testing.T, respond func(r *http.Request) (int, any)) *httptest.Server {
+func testVerifier(t *testing.T, body string, status int) (*Verifier, *httptest.Server) {
 	t.Helper()
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		code, payload := respond(r)
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(code)
-		_ = json.NewEncoder(w).Encode(payload)
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if got := r.Header.Get("Content-Type"); !strings.HasPrefix(got, "application/x-www-form-urlencoded") {
+			t.Errorf("content type = %q", got)
+		}
+		if err := r.ParseForm(); err != nil {
+			t.Errorf("parse form: %v", err)
+		}
+		if r.Form.Get("secret") != "secret" || r.Form.Get("response") != "token" || r.Form.Get("remoteip") != "192.0.2.10" {
+			t.Errorf("unexpected siteverify form: %#v", r.Form)
+		}
+		w.WriteHeader(status)
+		_, _ = w.Write([]byte(body))
 	}))
-	t.Cleanup(srv.Close)
-	return srv
+	verifier := &Verifier{secret: "secret", action: "login", hostnames: map[string]struct{}{"localhost": {}}, client: server.Client(), endpoint: server.URL}
+	return verifier, server
 }
 
-func TestVerifySuccess(t *testing.T) {
-	var gotSecret, gotToken string
-	srv := mockServer(t, func(r *http.Request) (int, any) {
-		_ = r.ParseForm()
-		gotSecret, gotToken = r.PostForm.Get("secret"), r.PostForm.Get("response")
-		return http.StatusOK, map[string]any{"success": true, "error-codes": []string{}}
-	})
-	v := NewVerifier("test-secret")
-	v.endpoint = srv.URL
-
-	ok, err := v.Verify(t.Context(), "widget-token", "1.2.3.4")
-	require.NoError(t, err)
-	assert.True(t, ok)
-	assert.Equal(t, "test-secret", gotSecret)
-	assert.Equal(t, "widget-token", gotToken)
+func TestVerifyRequiresSuccessActionAndHostname(t *testing.T) {
+	tests := []struct {
+		name   string
+		body   string
+		wantOK bool
+	}{
+		{name: "success", body: `{"success":true,"action":"login","hostname":"localhost"}`, wantOK: true},
+		{name: "wrong action", body: `{"success":true,"action":"signup","hostname":"localhost"}`},
+		{name: "wrong hostname", body: `{"success":true,"action":"login","hostname":"evil.example"}`},
+		{name: "provider rejected", body: `{"success":false,"error-codes":["invalid-input-response"]}`},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			verifier, server := testVerifier(t, tt.body, http.StatusOK)
+			defer server.Close()
+			err := verifier.Verify(context.Background(), "token", "192.0.2.10")
+			if (err == nil) != tt.wantOK {
+				t.Fatalf("Verify() error = %v, want success=%v", err, tt.wantOK)
+			}
+		})
+	}
 }
 
-func TestVerifyRejected(t *testing.T) {
-	srv := mockServer(t, func(_ *http.Request) (int, any) {
-		return http.StatusOK, map[string]any{"success": false, "error-codes": []string{"invalid-input-response"}}
-	})
-	v := NewVerifier("test-secret")
-	v.endpoint = srv.URL
-
-	ok, err := v.Verify(t.Context(), "bad-token", "")
-	require.NoError(t, err, "siteverify 明确拒绝属于业务结果，不应报系统错误")
-	assert.False(t, ok, "siteverify 拒绝时不应通过")
-}
-
-func TestVerifyMissingConfig(t *testing.T) {
-	v := NewVerifier("") // 未配置
-	ok, err := v.Verify(t.Context(), "token", "")
-	assert.Error(t, err)
-	assert.False(t, ok)
-	assert.False(t, v.Enabled())
-}
-
-func TestVerifyEmptyToken(t *testing.T) {
-	v := NewVerifier("secret")
-	ok, err := v.Verify(t.Context(), "", "")
-	assert.Error(t, err, "空 token 应报错")
-	assert.False(t, ok)
-}
-
-func TestVerifyNetworkError(t *testing.T) {
-	// 指向不可达端点：网络失败按拒绝处理。
-	v := NewVerifier("secret")
-	v.endpoint = "http://127.0.0.1:1/siteverify"
-	ok, err := v.Verify(t.Context(), "token", "")
-	assert.Error(t, err)
-	assert.False(t, ok)
-}
-
-func TestVerifyBadResponse(t *testing.T) {
-	srv := mockServer(t, func(_ *http.Request) (int, any) {
-		return http.StatusOK, "not-json"
-	})
-	v := NewVerifier("secret")
-	v.endpoint = srv.URL
-	ok, err := v.Verify(t.Context(), "token", "")
-	assert.Error(t, err, "畸形响应应报错")
-	assert.False(t, ok)
+func TestVerifyFailsClosedOnUpstreamErrorAndOversizedToken(t *testing.T) {
+	verifier, server := testVerifier(t, `{}`, http.StatusBadGateway)
+	defer server.Close()
+	if err := verifier.Verify(context.Background(), "token", "192.0.2.10"); err == nil {
+		t.Fatal("Verify() accepted non-200 siteverify response")
+	}
+	if err := verifier.Verify(context.Background(), strings.Repeat("x", 2049), "192.0.2.10"); err == nil {
+		t.Fatal("Verify() accepted oversized token")
+	}
 }

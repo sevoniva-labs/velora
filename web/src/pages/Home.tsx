@@ -18,8 +18,8 @@ import { useNavigate } from 'react-router-dom'
 import { ProCard } from '@ant-design/pro-components'
 import { launchApplication, listApplications, listCategories, listRecent, getPortalSettings, queryKeys } from '../api/api'
 import { AppIcon } from '../components/AppCard'
-import QueryErrorState from '../components/QueryErrorState'
 import TodoCenter from '../components/TodoCenter'
+import QueryErrorState from '../components/QueryErrorState'
 import { formatRelativeTime } from '../utils/format'
 import { usePageTitle } from '../hooks/usePageTitle'
 
@@ -57,7 +57,7 @@ export default function Home() {
   const navigate = useNavigate()
   const { message } = AntdApp.useApp()
 
-  // SSO 门户模型：点击应用 = 直接启动（OIDC 应用跳转 Casdoor 登录，URL 应用直接打开）。
+  // SSO 门户模型：点击应用 = 直接启动（OIDC 应用跳转外部 IdP，URL 应用直接打开）。
   const launchApp = async (appId: number | string) => {
     try {
       const result = await launchApplication(appId)
@@ -198,7 +198,7 @@ export default function Home() {
 
   // 分类计数（前端统计）；有计数的分类优先展示，全未分类时回退展示全部
   const catCounts = useMemo(() => {
-    const m = new Map<number, number>()
+    const m = new Map<string | number, number>()
     allAppsList?.items.forEach((a) => {
       if (a.categoryId != null) m.set(a.categoryId, (m.get(a.categoryId) ?? 0) + 1)
     })
@@ -284,7 +284,7 @@ export default function Home() {
         {renderMyApps()}
       </ProCard>
 
-      {/* 三栏工作台：最近使用 / 待办中心 / 应用分类 */}
+      {/* 三栏工作台：最近使用 / 待办中心 / 应用分类。 */}
       <div className="velora-workbench">
         {/* 最近使用 */}
         <section className="velora-panel">
@@ -331,7 +331,7 @@ export default function Home() {
           )}
         </section>
 
-        {/* 待办中心：多 Tab（全部 / 邮件 / 按类型），见 components/TodoCenter */}
+        {/* 待办中心：多 Tab（邮件入口保留，邮件服务暂不接入）。 */}
         <TodoCenter />
 
         {/* 应用分类（带计数，空分类不展示） */}
@@ -376,6 +376,7 @@ export default function Home() {
           )}
         </section>
       </div>
+
     </div>
   )
 }

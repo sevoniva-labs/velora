@@ -9,6 +9,8 @@ gzip_min_length 1024;
 server {
     listen 80;
     server_name _;
+    # Docker 服务重建后 IP 会变化，使用内置 DNS 动态解析，避免旧 IP 导致 502。
+    resolver ${VELORA_DNS_RESOLVER} valid=10s ipv6=off;
 
     root /usr/share/nginx/html;
     index index.html;
@@ -36,29 +38,29 @@ server {
 
     # API 反向代理到 Velora Server
     location /api/ {
-        proxy_pass ${VELORA_API_PROXY_PASS:-http://server:8080};
+        set $velora_api_proxy_pass "${VELORA_API_PROXY_PASS}";
+        proxy_pass $velora_api_proxy_pass;
         proxy_http_version 1.1;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Host $host;
+        # Never forward client-supplied authorization result headers to the
+        # server; only the server may mint X-Velora-* response headers.
+        proxy_set_header X-Velora-Authenticated "";
+        proxy_set_header X-Velora-Application-ID "";
+        proxy_set_header X-Velora-User-ID "";
+        proxy_set_header X-Velora-Login-Name "";
+        proxy_set_header X-Velora-Organization-ID "";
         proxy_set_header X-Request-Id $request_id;
         proxy_read_timeout 30s;
     }
 
     # Casdoor 反代（生产：让 Casdoor 登录页位于 Velora 域名下，用户无感）
     location /casdoor/ {
-        proxy_pass http://casdoor:8000/;
-        proxy_http_version 1.1;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-    }
-
-    # OIDC Provider（Phase B）：第三方应用 SSO 端点（/oidc/authorize、/oidc/token 等）
-    location /oidc/ {
-        proxy_pass ${VELORA_API_PROXY_PASS:-http://server:8080};
+        set $velora_casdoor_proxy_pass "${VELORA_CASDOOR_PROXY_PASS}";
+        proxy_pass $velora_casdoor_proxy_pass;
         proxy_http_version 1.1;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
@@ -69,6 +71,13 @@ server {
     # 健康检查
     location = /healthz {
         access_log off;
-        return 200 "ok\n";
+        set $velora_ready_proxy_pass "${VELORA_API_PROXY_PASS}/api/v1/system/ready";
+        proxy_pass $velora_ready_proxy_pass;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Request-Id $request_id;
+        proxy_connect_timeout 2s;
+        proxy_read_timeout 3s;
     }
 }

@@ -1,0 +1,385 @@
+syntax = "proto3";
+
+package forge.v1;
+
+import "forge/v1/common.proto";
+import "google/api/annotations.proto";
+import "google/protobuf/timestamp.proto";
+import "openapiv3/annotations.proto";
+
+option go_package = "github.com/sevoniva-labs/velora/server/api/gen/go/forge/v1;forgev1";
+
+service IdentityService {
+  rpc Login(LoginRequest) returns (LoginResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/auth/login"
+      body: "*"
+    };
+  }
+  rpc BeginOIDCLogin(BeginOIDCLoginRequest) returns (BeginOIDCLoginResponse) {
+    option (google.api.http) = {get: "/api/v1/auth/federated/oidc/{provider}/begin"};
+  }
+  rpc CompleteOIDCLogin(CompleteOIDCLoginRequest) returns (CompleteOIDCLoginResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/auth/federated/oidc/{provider}/callback"
+      body: "*"
+      additional_bindings {get: "/api/v1/auth/federated/oidc/{provider}/callback"}
+    };
+  }
+  rpc LoginLDAP(LoginLDAPRequest) returns (LoginLDAPResponse) {
+    option (google.api.http) = {post: "/api/v1/auth/federated/ldap/{provider}" body: "*"};
+  }
+  rpc Logout(LogoutRequest) returns (LogoutResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/auth/logout"
+      body: "*"
+    };
+    option (openapi.v3.operation) = {
+      security: [
+        {
+          additional_properties: [
+            {
+              name: "SessionCookie"
+              value: {
+                value: []
+              }
+            },
+            {
+              name: "CsrfToken"
+              value: {
+                value: []
+              }
+            }
+          ]
+        }
+      ]
+    };
+  }
+  rpc ChangePassword(ChangePasswordRequest) returns (ChangePasswordResponse) {
+    option (google.api.http) = {
+      patch: "/api/v1/auth/password"
+      body: "*"
+    };
+    option (openapi.v3.operation) = {
+      security: [
+        {
+          additional_properties: [
+            {
+              name: "SessionCookie"
+              value: {
+                value: []
+              }
+            },
+            {
+              name: "CsrfToken"
+              value: {
+                value: []
+              }
+            }
+          ]
+        }
+      ]
+    };
+  }
+  rpc StepUpAuthentication(StepUpAuthenticationRequest) returns (StepUpAuthenticationResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/auth/step-up"
+      body: "*"
+    };
+    option (openapi.v3.operation) = {security: [{additional_properties: [{name: "SessionCookie" value: {value: []}}, {name: "CsrfToken" value: {value: []}}]}]};
+  }
+  rpc GetCurrentUser(GetCurrentUserRequest) returns (GetCurrentUserResponse) {
+    option (google.api.http) = {get: "/api/v1/me"};
+    option (openapi.v3.operation) = {
+      security: [
+        {
+          additional_properties: [
+            {
+              name: "SessionCookie"
+              value: {
+                value: []
+              }
+            }
+          ]
+        },
+        {
+          additional_properties: [
+            {
+              name: "BearerAuth"
+              value: {
+                value: []
+              }
+            }
+          ]
+        }
+      ]
+    };
+  }
+  rpc GetMFAStatus(GetMFAStatusRequest) returns (GetMFAStatusResponse) {
+    option (google.api.http) = {get: "/api/v1/mfa"};
+    option (openapi.v3.operation) = {
+      security: [
+        {
+          additional_properties: [
+            {
+              name: "SessionCookie"
+              value: {value: []}
+            }
+          ]
+        }
+      ]
+    };
+  }
+  rpc BeginMFAEnrollment(BeginMFAEnrollmentRequest) returns (BeginMFAEnrollmentResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/mfa/totp/enrollment"
+      body: "*"
+    };
+    option (openapi.v3.operation) = {
+      security: [
+        {
+          additional_properties: [
+            {
+              name: "SessionCookie"
+              value: {value: []}
+            },
+            {
+              name: "CsrfToken"
+              value: {value: []}
+            }
+          ]
+        }
+      ]
+    };
+  }
+  rpc ConfirmMFAEnrollment(ConfirmMFAEnrollmentRequest) returns (ConfirmMFAEnrollmentResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/mfa/totp/enrollment/confirmation"
+      body: "*"
+    };
+    option (openapi.v3.operation) = {
+      security: [
+        {
+          additional_properties: [
+            {
+              name: "SessionCookie"
+              value: {value: []}
+            },
+            {
+              name: "CsrfToken"
+              value: {value: []}
+            }
+          ]
+        }
+      ]
+    };
+  }
+  rpc DisableMFA(DisableMFARequest) returns (DisableMFAResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/mfa/totp/disable"
+      body: "*"
+    };
+    option (openapi.v3.operation) = {
+      security: [
+        {
+          additional_properties: [
+            {
+              name: "SessionCookie"
+              value: {value: []}
+            },
+            {
+              name: "CsrfToken"
+              value: {value: []}
+            }
+          ]
+        }
+      ]
+    };
+  }
+  rpc ListApiTokens(ListApiTokensRequest) returns (ListApiTokensResponse) {
+    option (google.api.http) = {get: "/api/v1/api-tokens"};
+    option (openapi.v3.operation) = {
+      security: [
+        {
+          additional_properties: [
+            {
+              name: "SessionCookie"
+              value: {
+                value: []
+              }
+            }
+          ]
+        }
+      ]
+    };
+  }
+  rpc CreateApiToken(CreateApiTokenRequest) returns (CreateApiTokenResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/api-tokens"
+      body: "*"
+    };
+    option (openapi.v3.operation) = {
+      security: [
+        {
+          additional_properties: [
+            {
+              name: "SessionCookie"
+              value: {
+                value: []
+              }
+            },
+            {
+              name: "CsrfToken"
+              value: {
+                value: []
+              }
+            }
+          ]
+        }
+      ]
+    };
+  }
+  rpc RevokeApiToken(RevokeApiTokenRequest) returns (RevokeApiTokenResponse) {
+    option (google.api.http) = {delete: "/api/v1/api-tokens/{token_id}"};
+    option (openapi.v3.operation) = {
+      security: [
+        {
+          additional_properties: [
+            {
+              name: "SessionCookie"
+              value: {
+                value: []
+              }
+            },
+            {
+              name: "CsrfToken"
+              value: {
+                value: []
+              }
+            }
+          ]
+        }
+      ]
+    };
+  }
+}
+
+message LoginRequest {
+  string organization = 1;
+  string login_name = 2;
+  string password = 3;
+  string mfa_code = 4;
+  string recovery_code = 5;
+  // Cloudflare Turnstile token for the public login form. The server verifies
+  // it against the configured siteverify endpoint and never persists it.
+  string turnstile_token = 6;
+}
+
+message LoginResponse {
+  User user = 1;
+  string csrf_token = 2;
+}
+
+message BeginOIDCLoginRequest {
+  string provider = 1;
+  string organization = 2;
+}
+message BeginOIDCLoginResponse {
+  string redirect_url = 1;
+}
+message CompleteOIDCLoginRequest {
+  string provider = 1;
+  string code = 2;
+  string state = 3;
+}
+message CompleteOIDCLoginResponse {
+  User user = 1;
+  string csrf_token = 2;
+}
+message LoginLDAPRequest {
+  string provider = 1;
+  string organization = 2;
+  string login_name = 3;
+  string password = 4;
+}
+message LoginLDAPResponse {
+  User user = 1;
+  string csrf_token = 2;
+}
+
+message LogoutRequest {}
+message LogoutResponse {
+  // Optional RP-initiated logout URL for the external IdP. The Velora
+  // session is already revoked before this value is returned.
+  string federated_logout_url = 1;
+}
+
+message ChangePasswordRequest {
+  string current_password = 1;
+  string new_password = 2;
+}
+
+message ChangePasswordResponse {}
+message StepUpAuthenticationRequest {
+  string current_password = 1;
+  string mfa_code = 2;
+  string recovery_code = 3;
+}
+message StepUpAuthenticationResponse {
+  google.protobuf.Timestamp verified_at = 1;
+}
+message GetCurrentUserRequest {}
+
+message GetCurrentUserResponse {
+  User user = 1;
+}
+
+message GetMFAStatusRequest {}
+message GetMFAStatusResponse {
+  bool enabled = 1;
+}
+
+message BeginMFAEnrollmentRequest {
+  string current_password = 1;
+}
+message BeginMFAEnrollmentResponse {
+  string secret = 1;
+  string provisioning_uri = 2;
+}
+
+message ConfirmMFAEnrollmentRequest {
+  string code = 1;
+}
+message ConfirmMFAEnrollmentResponse {
+  repeated string recovery_codes = 1;
+}
+
+message DisableMFARequest {
+  string current_password = 1;
+  string code = 2;
+  string recovery_code = 3;
+}
+message DisableMFAResponse {}
+
+message ListApiTokensRequest {}
+
+message ListApiTokensResponse {
+  repeated ApiToken tokens = 1;
+}
+
+message CreateApiTokenRequest {
+  string name = 1;
+  repeated string scopes = 2;
+  int32 expires_days = 3;
+}
+
+message CreateApiTokenResponse {
+  ApiToken token = 1;
+  string secret = 2;
+}
+
+message RevokeApiTokenRequest {
+  string token_id = 1;
+}
+
+message RevokeApiTokenResponse {}

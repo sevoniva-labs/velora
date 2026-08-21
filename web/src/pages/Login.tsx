@@ -14,17 +14,19 @@ import { useMe } from '../auth/useMe'
 import TurnstileWidget from '../components/TurnstileWidget'
 import {
   getPortalSettings,
-  getSystemVersion,
+  getAuthCapabilities,
   getTurnstileConfig,
+  beginOIDCLogin,
   loginWithPassword,
   queryKeys,
 } from '../api/api'
+import type { AuthCapabilities } from '../api/api'
 
-/** 品牌区三大能力点（与门户真实能力对应，不写空话） */
+/** 品牌区能力说明：只描述用户能实际使用的功能，不使用宣传式表述。 */
 const FEATURES = [
-  { icon: <SafetyCertificateOutlined />, name: '统一身份认证', desc: '一次登录，访问全部授权应用' },
-  { icon: <AppstoreOutlined />, name: '应用汇聚', desc: '分类、收藏与最近使用' },
-  { icon: <CheckSquareOutlined />, name: '待办与邮件', desc: '审批、工单与企业邮件' },
+  { icon: <SafetyCertificateOutlined />, name: '统一登录', desc: '使用企业账号访问授权应用' },
+  { icon: <AppstoreOutlined />, name: '集中管理', desc: '按分类、收藏和最近使用查找应用' },
+  { icon: <SafetyCertificateOutlined />, name: '权限控制', desc: '仅展示当前账号已获授权的应用' },
 ]
 
 /** 品牌区装饰磁贴：呼应门户应用宫格，纯视觉（色调同应用图标体系） */
@@ -37,16 +39,15 @@ const DECO_TILES = [
 ]
 
 /**
- * Velora 登录页：全屏分栏（品牌叙事 / 登录表单），无顶栏。
- * 登录即 SSO：账号密码由 Velora 后端代理 Casdoor OAuth2 password 模式认证
- * （Velora 不实现密码认证，密码仅经 HTTPS 提交给 Casdoor，不落库）。
+ * Velora 登录页：全屏分栏（品牌叙事 / 登录入口），无顶栏。
+ * 登录方式由后端公开能力动态决定。认证服务的实现细节不在用户界面暴露。
  */
 export default function Login() {
   const me = useMe()
   const [searchParams] = useSearchParams()
   const { message } = AntdApp.useApp()
-  const [serverVersion, setServerVersion] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  const [authCapabilities, setAuthCapabilities] = useState<AuthCapabilities | null>(null)
   // Cloudflare Turnstile 人机验证（登录防 bot；后端配置启用后必须通过验证才能登录）
   const [turnstileToken, setTurnstileToken] = useState('')
   // Turnstile token 一次性有效：登录失败/过期后递增 key 强制重挂载 widget 获取新 token。
@@ -60,9 +61,10 @@ export default function Login() {
   const turnstileEnabled = turnstile?.enabled && !!turnstile.siteKey
 
   useEffect(() => {
-    void getSystemVersion()
-      .then((v) => setServerVersion(v.version || v.application))
-      .catch(() => setServerVersion(''))
+    void getAuthCapabilities().then(setAuthCapabilities).catch(() => {
+      // 能力发现失败时默认使用统一身份登录，不在页面展示密码表单。
+      setAuthCapabilities({ authMode: 'oidc', passwordLoginEnabled: false, casdoorAccountUrl: '' })
+    })
   }, [])
 
   // 门户展示配置：名称 / 欢迎语 / 页脚（未登录也可读，后端为公开只读接口）。
@@ -74,11 +76,43 @@ export default function Login() {
 
   // 未登录访问受保护页面时，携带 redirect 以便登录后跳回。
   const redirect = searchParams.get('redirect')
+  const oidcOnly = !authCapabilities || !authCapabilities.passwordLoginEnabled
+
+  const loginErrorMessage = (error: unknown, fallback: string): string => {
+    const raw = error instanceof Error ? error.message.trim() : ''
+    const normalized = raw.toLowerCase()
+    if (!raw) return fallback
+    if (normalized.includes('oidc') || normalized.includes('provider') || normalized.includes('identity')) {
+      return '统一登录暂不可用，请联系系统管理员。'
+    }
+    if (
+      normalized.includes('credential') ||
+      normalized.includes('password') ||
+      normalized.includes('unauthorized') ||
+      normalized.includes('invalid') ||
+      normalized.includes('账号') ||
+      normalized.includes('密码')
+    ) {
+      return '账号或密码错误，请重试。'
+    }
+    return fallback
+  }
+
+  const onOIDCLogin = async () => {
+    setSubmitting(true)
+    try {
+      const target = await beginOIDCLogin(redirect ?? undefined)
+      window.location.assign(target)
+    } catch (err) {
+      message.error(loginErrorMessage(err, '统一登录暂不可用，请稍后重试。'))
+      setSubmitting(false)
+    }
+  }
 
   const onFinish = async (values: { username: string; password: string }) => {
     // 人机验证启用时强制校验 token（组件回调填充；未通过则按钮禁用）。
     if (turnstileEnabled && !turnstileToken) {
-      message.warning('请先完成人机验证')
+      message.warning('请完成人机验证后继续。')
       return
     }
     setSubmitting(true)
@@ -87,8 +121,7 @@ export default function Login() {
       // 整页跳转：让应用重新加载会话（Cookie 已由后端种下）。
       window.location.assign(res.redirect || '/')
     } catch (err) {
-      const msg = err instanceof Error ? err.message : '登录失败，请稍后再试'
-      message.error(msg)
+      message.error(loginErrorMessage(err, '登录失败，请稍后重试。'))
       setSubmitting(false)
       // 人机验证 token 已被消费：重置 widget，下次提交需重新验证。
       setTurnstileToken('')
@@ -141,13 +174,13 @@ export default function Login() {
         </header>
 
         <div className="velora-login-brand-body">
-          <p className="velora-login-eyebrow">ENTERPRISE APPLICATION PORTAL</p>
+          <p className="velora-login-eyebrow">企业应用门户</p>
           <h1 className="velora-login-headline">
-            一个门户
+            统一访问
             <br />
-            接入企业全部应用
+            企业应用
           </h1>
-          <p className="velora-login-sub">统一认证，直达应用、待办与企业邮件。</p>
+          <p className="velora-login-sub">登录后访问当前账号已获授权的应用与服务。</p>
           <ul className="velora-login-features">
             {FEATURES.map((f) => (
               <li key={f.name} className="velora-login-feature">
@@ -160,64 +193,73 @@ export default function Login() {
         </div>
 
         <footer className="velora-login-brand-foot">
-          {portalFooter || `© ${new Date().getFullYear()} ${portalName} · ${portalWelcome}`}
-          {serverVersion ? ` · v${serverVersion}` : ''}
+          {portalFooter || `© ${new Date().getFullYear()} ${portalName}`}
         </footer>
       </div>
 
-      {/* 右：登录表单区 */}
+      {/* 右：登录入口区 */}
       <div className="velora-login-panel">
         <div className="velora-login-panel-inner">
           <h2 className="velora-login-title">登录</h2>
-          <p className="velora-login-desc">使用企业统一账号登录</p>
+          <p className="velora-login-desc">使用企业账号登录</p>
 
-          <Form<{ username: string; password: string }>
-            name="login"
-            size="large"
-            onFinish={onFinish}
-            requiredMark={false}
-          >
-            <Form.Item name="username" rules={[{ required: true, message: '请输入账号' }]}>
-              <Input
-                prefix={<UserOutlined style={{ color: '#98a2b3' }} />}
-                placeholder="账号 / 邮箱"
-                autoComplete="username"
-                maxLength={64}
-              />
-            </Form.Item>
-            <Form.Item name="password" rules={[{ required: true, message: '请输入密码' }]}>
-              <Input.Password
-                prefix={<LockOutlined style={{ color: '#98a2b3' }} />}
-                placeholder="密码"
-                autoComplete="current-password"
-                maxLength={128}
-              />
-            </Form.Item>
-            <Form.Item style={{ marginBottom: 0, marginTop: 8 }}>
-              <Button
-                type="primary"
-                htmlType="submit"
-                block
-                loading={submitting}
-                disabled={turnstileEnabled && !turnstileToken}
-                className="velora-login-submit"
-              >
-                登录
+          {oidcOnly ? (
+            <>
+              <Button type="primary" block loading={submitting} onClick={() => void onOIDCLogin()} className="velora-login-submit">
+                使用统一身份登录
               </Button>
-            </Form.Item>
-            {turnstileEnabled && (
-              <div style={{ marginTop: 16, marginBottom: 4 }}>
-                <TurnstileWidget
-                  key={turnstileAttempt}
-                  siteKey={turnstile.siteKey}
-                  onVerify={setTurnstileToken}
-                  onExpire={() => setTurnstileToken('')}
+              <p className="velora-login-note">登录验证由企业身份中心完成。</p>
+            </>
+          ) : (
+            <Form<{ username: string; password: string }>
+              name="login"
+              size="large"
+              onFinish={onFinish}
+              requiredMark={false}
+            >
+              <Form.Item label="账号" name="username" rules={[{ required: true, message: '请输入账号或邮箱' }]}>
+                <Input
+                  prefix={<UserOutlined style={{ color: '#98a2b3' }} />}
+                  placeholder="请输入账号或邮箱"
+                  autoComplete="username"
+                  maxLength={64}
                 />
-              </div>
-            )}
-          </Form>
+              </Form.Item>
+              <Form.Item label="密码" name="password" rules={[{ required: true, message: '请输入密码' }]}>
+                <Input.Password
+                  prefix={<LockOutlined style={{ color: '#98a2b3' }} />}
+                  placeholder="请输入密码"
+                  autoComplete="current-password"
+                  maxLength={128}
+                />
+              </Form.Item>
+              <Form.Item style={{ marginBottom: 0, marginTop: 8 }}>
+                <Button
+                  type="primary"
+                  htmlType="submit"
+                  block
+                  loading={submitting}
+                  disabled={turnstileEnabled && !turnstileToken}
+                  className="velora-login-submit"
+                >
+                  登录
+                </Button>
+              </Form.Item>
+              {turnstileEnabled && (
+                <div style={{ marginTop: 16, marginBottom: 4 }}>
+                  <TurnstileWidget
+                    key={turnstileAttempt}
+                    siteKey={turnstile.siteKey}
+                    action={turnstile.action}
+                    onVerify={setTurnstileToken}
+                    onExpire={() => setTurnstileToken('')}
+                  />
+                </div>
+              )}
+            </Form>
+          )}
 
-          <p className="velora-login-note">无法登录？请联系系统管理员。</p>
+          {!oidcOnly && <p className="velora-login-note">如无法登录，请联系系统管理员。</p>}
         </div>
       </div>
     </div>

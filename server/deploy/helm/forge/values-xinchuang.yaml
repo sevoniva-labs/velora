@@ -1,0 +1,109 @@
+# Xinchuang/financial deployment profile. This is an engineering baseline,
+# not a compatibility certification for a specific OS/CPU/database combination.
+replicaCount: 2
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1
+
+autoscaling:
+  enabled: false
+
+networkPolicy:
+  enabled: true
+  ingressFrom:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: ingress-apisix
+  egressRules:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+      ports:
+        - { protocol: UDP, port: 53 }
+        - { protocol: TCP, port: 53 }
+    - to:
+        - podSelector: {}
+      ports:
+        - { protocol: TCP, port: 2881 }
+        - { protocol: TCP, port: 6379 }
+        - { protocol: TCP, port: 26379 }
+        - { protocol: TCP, port: 8848 }
+        - { protocol: TCP, port: 9848 }
+        - { protocol: TCP, port: 8081 }
+        - { protocol: TCP, port: 4318 }
+
+image:
+  repository: registry.example.cn/sevoniva/velora
+  # Replace this syntactically valid placeholder with the signed build digest.
+  digest: sha256:0000000000000000000000000000000000000000000000000000000000000000
+
+config:
+  environment: production
+  webCSPFrameSources: ""
+  webCSPConnectSources: ""
+  webCSPWujieEnabled: false
+  webCSPWujieApprovalRef: ""
+  databaseProvider: oceanbase
+  cacheProvider: redis
+  redisMode: sentinel
+  redisAddresses: "redis-sentinel-0:26379,redis-sentinel-1:26379,redis-sentinel-2:26379"
+  redisMasterName: mymaster
+  redisTLS: "true"
+  messagingProvider: rocketmq
+  rocketmqEndpoint: "rocketmq-proxy.messaging.svc:8081"
+  rocketmqGroup: velora-business-consumer
+  rocketmqNamespace: velora
+  rocketmqTopics: "velora-business-events"
+  rocketmqTLS: "true"
+  rocketmqTLSServerName: "rocketmq-proxy.messaging.svc"
+  streamingProvider: disabled
+  searchProvider: disabled
+  storageProvider: s3
+  storageRegion: cn-beijing
+  storageBucket: velora-production
+  storagePathStyle: "true"
+  storageTLS: "true"
+
+  # Kubernetes uses Service/DNS for discovery. Nacos remains the configuration
+  # center; non-Kubernetes profiles may explicitly enable Nacos registration.
+  discoveryProvider: disabled
+  nacosServers: "https://nacos.internal.example:8848"
+  nacosGroup: FORGE
+  nacosCluster: DEFAULT
+  nacosTLSRequired: "true"
+  remoteConfigProvider: nacos
+  nacosConfigGroup: FORGE
+  nacosConfigDataID: velora-prod.yaml
+  remoteConfigFailFast: "true"
+
+  cryptoProvider: gm
+  cryptoAdapter: hsm
+  cryptoKeyVersion: v1
+  tracingEnabled: "true"
+  otlpEndpoint: "https://otel-collector.monitoring.svc:4318"
+  otlpTLS: "true"
+  otlpTLSServerName: "otel-collector.monitoring.svc"
+  complianceProfile: financial
+  auditRetentionDays: "1095"
+  networkLogRetentionDays: "183"
+  disableDebugEndpoints: "true"
+
+worker:
+  enabled: true
+
+nodeSelector:
+  kubernetes.io/os: linux
+# Add verified architecture/vendor labels only after target-environment testing.
+#  kubernetes.io/arch: arm64
+
+topologySpreadConstraints:
+  - maxSkew: 1
+    topologyKey: kubernetes.io/hostname
+    whenUnsatisfiable: ScheduleAnyway
+    labelSelector:
+      matchLabels:
+        app.kubernetes.io/name: velora

@@ -1,0 +1,54 @@
+syntax = "proto3";
+
+package forge.v1;
+
+import "google/api/annotations.proto";
+import "google/protobuf/timestamp.proto";
+import "openapiv3/annotations.proto";
+
+option go_package = "github.com/sevoniva-labs/velora/server/api/gen/go/forge/v1;forgev1";
+
+// ReferenceSettlementService is the contract example for extracting a domain
+// module from the modular monolith into an independently deployed Kratos service.
+service ReferenceSettlementService {
+  // GetSettlement returns an organization-scoped settlement projection.
+  rpc GetSettlement(GetSettlementRequest) returns (GetSettlementResponse) {
+    option (google.api.http) = {get: "/api/v1/example/organizations/{organization_id}/settlements/{settlement_id}"};
+    option (openapi.v3.operation) = {
+      security: [
+        {
+          additional_properties: [
+            {
+              name: "BearerAuth"
+              value: {
+                value: []
+              }
+            }
+          ]
+        }
+      ]
+    };
+  }
+}
+
+// GetSettlementRequest identifies one settlement inside an organization.
+message GetSettlementRequest {
+  string organization_id = 1;
+  string settlement_id = 2;
+}
+
+// GetSettlementResponse wraps the settlement projection.
+message GetSettlementResponse {
+  Settlement settlement = 1;
+}
+
+// Settlement is a read-only reference projection used by the split-service example.
+message Settlement {
+  string id = 1;
+  string organization_id = 2;
+  string status = 3;
+  string currency = 4;
+  int64 amount_minor = 5;
+  uint64 version = 6;
+  google.protobuf.Timestamp updated_at = 7;
+}

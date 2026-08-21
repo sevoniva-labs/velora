@@ -1,6 +1,6 @@
 // Velora 领域类型（与后端 OpenAPI/JSON 契约一致，snake_case 响应已由 client 解包）。
 
-// VELORA_OIDC：通过 Velora 自身 OIDC Provider 登录（统一登录入口，Casdoor 隐藏在后）。
+// OIDC：目标应用直接对接 Casdoor；Velora 只负责门户侧的统一登录入口。
 export type SSOType = 'URL' | 'OIDC' | 'SAML' | 'CAS' | 'FORWARD_AUTH' | 'VELORA_OIDC'
 export type AppStatus = 'ENABLED' | 'DISABLED'
 export type HealthStatus = 'UP' | 'DOWN' | 'UNKNOWN'
@@ -14,13 +14,15 @@ export interface CurrentUser {
   avatar: string
   organization: string
   roles: string[]
-  /** 服务端按 VELORA_ADMIN_ROLE 计算的管理员标记 */
+  /** 服务端授权模型计算出的权限集合；界面只据此决定管理入口。 */
+  permissions: string[]
+  /** 兼容旧页面的管理员标记，来源必须是 permissions。 */
   admin?: boolean
   groups: string[]
 }
 
 export interface Category {
-  id: number
+  id: string | number
   code: string
   name: string
   description: string
@@ -30,7 +32,7 @@ export interface Category {
 }
 
 export interface Tag {
-  id: number
+  id: string | number
   code: string
   name: string
   sort: number
@@ -44,14 +46,14 @@ export interface AccessPolicy {
 }
 
 export interface Application {
-  id: number
+  id: string | number
   code: string
   name: string
   description: string
   keywords?: string
   icon: string
-  categoryId?: number
-  category?: { id: number; code: string; name: string }
+  categoryId?: string | number
+  category?: { id: string | number; code: string; name: string }
   ssoType: SSOType
   owner: string
   department: string
@@ -68,12 +70,48 @@ export interface Application {
   updatedAt: string
   createdBy?: string
   updatedBy?: string
+  lifecycleStatus?: string
+  configVersion?: number
+  publishedAt?: string
+  publishedBy?: string
   // 仅管理员视图：
   homeUrl?: string
   launchUrl?: string
-  casdoorApplicationName?: string
-  casdoorClientId?: string
   healthCheckUrl?: string
+}
+
+export interface IdentityBinding {
+  id: string
+  organizationId: string
+  applicationId: string
+  providerKey: string
+  protocol: string
+  providerApplicationRef: string
+  publicClientId: string
+  issuer: string
+  redirectUris: string[]
+  scopes: string[]
+  configurationStatus: string
+  verificationStatus: string
+  verifiedAt?: string
+  verifiedBy?: string
+  verificationError: string
+  configVersion: number
+  createdAt?: string
+  updatedAt?: string
+}
+
+export interface ApplicationVerification {
+  id: string
+  applicationId: string
+  bindingId: string
+  checkType: string
+  result: string
+  errorCode: string
+  evidenceJson: string
+  verifiedBy: string
+  occurredAt: string
+  requestId: string
 }
 
 export interface Page<T> {

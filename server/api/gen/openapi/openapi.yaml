@@ -1,0 +1,4603 @@
+# Generated with protoc-gen-openapi
+# https://github.com/google/gnostic/tree/master/cmd/protoc-gen-openapi
+
+openapi: 3.0.3
+info:
+    title: Velora API
+    description: Contract-first HTTP API for the Forge enterprise and financial scaffold.
+    version: 1.0.0
+paths:
+    /api/v1/admin/access-reviews:
+        get:
+            tags:
+                - PlatformService
+            operationId: PlatformService_ListAccessReviews
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/forge.v1.ListAccessReviewsResponse'
+            security:
+                - SessionCookie: []
+                - BearerAuth: []
+        post:
+            tags:
+                - PlatformService
+            operationId: PlatformService_CreateAccessReview
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/forge.v1.CreateAccessReviewRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/forge.v1.CreateAccessReviewResponse'
+            security:
+                - SessionCookie: []
+                  CsrfToken: []
+                - BearerAuth: []
+    /api/v1/admin/access-reviews/{reviewId}/items:
+        get:
+            tags:
+                - PlatformService
+            operationId: PlatformService_ListAccessReviewItems
+            parameters:
+                - name: reviewId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/forge.v1.ListAccessReviewItemsResponse'
+            security:
+                - SessionCookie: []
+                - BearerAuth: []
+    /api/v1/admin/access-reviews/{reviewId}/items/{itemId}/decisions:
+        post:
+            tags:
+                - PlatformService
+            operationId: PlatformService_DecideAccessReviewItem
+            parameters:
+                - name: reviewId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+                - name: itemId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/forge.v1.DecideAccessReviewItemRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/forge.v1.DecideAccessReviewItemResponse'
+            security:
+                - SessionCookie: []
+                  CsrfToken: []
+                - BearerAuth: []
+    /api/v1/admin/audit-logs:
+        get:
+            tags:
+                - PlatformService
+            operationId: PlatformService_ListAuditLogs
+            parameters:
+                - name: limit
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/forge.v1.ListAuditLogsResponse'
+            security:
+                - SessionCookie: []
+                - BearerAuth: []
+    /api/v1/admin/audit-logs/export:
+        get:
+            tags:
+                - PlatformService
+            operationId: PlatformService_ExportAuditLogs
+            parameters:
+                - name: format
+                  in: query
+                  schema:
+                    type: string
+                - name: limit
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+                - name: approvalId
+                  in: query
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/forge.v1.ExportAuditLogsResponse'
+            security:
+                - SessionCookie: []
+                  CsrfToken: []
+                - BearerAuth: []
+    /api/v1/admin/audit-logs/integrity:
+        get:
+            tags:
+                - PlatformService
+            operationId: PlatformService_VerifyAuditIntegrity
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/forge.v1.VerifyAuditIntegrityResponse'
+            security:
+                - SessionCookie: []
+                - BearerAuth: []
+    /api/v1/admin/config-changes:
+        get:
+            tags:
+                - PlatformService
+            operationId: PlatformService_ListConfigChanges
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/forge.v1.ListConfigChangesResponse'
+            security:
+                - SessionCookie: []
+                - BearerAuth: []
+        post:
+            tags:
+                - PlatformService
+            operationId: PlatformService_CreateConfigChange
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/forge.v1.CreateConfigChangeRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/forge.v1.CreateConfigChangeResponse'
+            security:
+                - SessionCookie: []
+                  CsrfToken: []
+                - BearerAuth: []
+    /api/v1/admin/config-changes/{changeId}/approve:
+        post:
+            tags:
+                - PlatformService
+            operationId: PlatformService_ApproveConfigChange
+            parameters:
+                - name: changeId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/forge.v1.ApproveConfigChangeRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/forge.v1.ApproveConfigChangeResponse'
+            security:
+                - SessionCookie: []
+                  CsrfToken: []
+                - BearerAuth: []
+    /api/v1/admin/config-changes/{changeId}/publish:
+        post:
+            tags:
+                - PlatformService
+            operationId: PlatformService_PublishConfigChange
+            parameters:
+                - name: changeId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/forge.v1.PublishConfigChangeRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/forge.v1.PublishConfigChangeResponse'
+            security:
+                - SessionCookie: []
+                  CsrfToken: []
+                - BearerAuth: []
+    /api/v1/admin/config-changes/{changeId}/rollback:
+        post:
+            tags:
+                - PlatformService
+            operationId: PlatformService_RollbackConfigChange
+            parameters:
+                - name: changeId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/forge.v1.RollbackConfigChangeRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/forge.v1.RollbackConfigChangeResponse'
+            security:
+                - SessionCookie: []
+                  CsrfToken: []
+                - BearerAuth: []
+    /api/v1/admin/config-changes/{changeId}/rollback-request:
+        post:
+            tags:
+                - PlatformService
+            operationId: PlatformService_RequestConfigRollback
+            parameters:
+                - name: changeId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/forge.v1.RequestConfigRollbackRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/forge.v1.RequestConfigRollbackResponse'
+            security:
+                - SessionCookie: []
+                  CsrfToken: []
+                - BearerAuth: []
+    /api/v1/admin/data-exports/authorize:
+        post:
+            tags:
+                - PlatformService
+            operationId: PlatformService_AuthorizeDataExport
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/forge.v1.AuthorizeDataExportRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/forge.v1.AuthorizeDataExportResponse'
+            security:
+                - SessionCookie: []
+                  CsrfToken: []
+                - BearerAuth: []
+    /api/v1/admin/data-policies:
+        get:
+            tags:
+                - PlatformService
+            operationId: PlatformService_ListDataFieldPolicies
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/forge.v1.ListDataFieldPoliciesResponse'
+            security:
+                - SessionCookie: []
+                - BearerAuth: []
+    /api/v1/admin/data-policies/{policy.field_key}:
+        put:
+            tags:
+                - PlatformService
+            operationId: PlatformService_UpsertDataFieldPolicy
+            parameters:
+                - name: policy.field_key
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/forge.v1.UpsertDataFieldPolicyRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/forge.v1.UpsertDataFieldPolicyResponse'
+            security:
+                - SessionCookie: []
+                  CsrfToken: []
+                - BearerAuth: []
+    /api/v1/admin/data-retention/evidence:
+        get:
+            tags:
+                - PlatformService
+            operationId: PlatformService_ListDataDeletionEvidence
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/forge.v1.ListDataDeletionEvidenceResponse'
+            security:
+                - SessionCookie: []
+                - BearerAuth: []
+        post:
+            tags:
+                - PlatformService
+            operationId: PlatformService_RecordDataDeletionEvidence
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/forge.v1.RecordDataDeletionEvidenceRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/forge.v1.RecordDataDeletionEvidenceResponse'
+            security:
+                - SessionCookie: []
+                  CsrfToken: []
+                - BearerAuth: []
+    /api/v1/admin/departments:
+        get:
+            tags:
+                - PlatformService
+            operationId: PlatformService_ListDepartments
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/forge.v1.ListDepartmentsResponse'
+            security:
+                - SessionCookie: []
+                - BearerAuth: []
+        post:
+            tags:
+                - PlatformService
+            operationId: PlatformService_CreateDepartment
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/forge.v1.CreateDepartmentRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/forge.v1.CreateDepartmentResponse'
+            security:
+                - SessionCookie: []
+                  CsrfToken: []
+                - BearerAuth: []
+    /api/v1/admin/departments/{departmentId}:
+        patch:
+            tags:
+                - PlatformService
+            operationId: PlatformService_UpdateDepartment
+            parameters:
+                - name: departmentId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/forge.v1.UpdateDepartmentRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/forge.v1.UpdateDepartmentResponse'
+            security:
+                - SessionCookie: []
+                  CsrfToken: []
+                - BearerAuth: []
+    /api/v1/admin/identity-mappings:
+        get:
+            tags:
+                - PlatformService
+            operationId: PlatformService_ListFederatedIdentityLinks
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/forge.v1.ListFederatedIdentityLinksResponse'
+            security:
+                - SessionCookie: []
+                - BearerAuth: []
+        post:
+            tags:
+                - PlatformService
+            operationId: PlatformService_LinkFederatedIdentity
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/forge.v1.LinkFederatedIdentityRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/forge.v1.LinkFederatedIdentityResponse'
+            security:
+                - SessionCookie: []
+                  CsrfToken: []
+                - BearerAuth: []
+    /api/v1/admin/identity-mappings/{linkId}:unlink:
+        post:
+            tags:
+                - PlatformService
+            operationId: PlatformService_UnlinkFederatedIdentity
+            parameters:
+                - name: linkId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/forge.v1.UnlinkFederatedIdentityRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/forge.v1.UnlinkFederatedIdentityResponse'
+            security:
+                - SessionCookie: []
+                  CsrfToken: []
+                - BearerAuth: []
+    /api/v1/admin/identity/console-link:
+        get:
+            tags:
+                - PortalService
+            operationId: PortalService_GetIdentityConsoleLink
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/forge.v1.GetIdentityConsoleLinkResponse'
+    /api/v1/admin/identity/overview:
+        get:
+            tags:
+                - PortalService
+            operationId: PortalService_GetIdentityOverview
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/forge.v1.GetIdentityOverviewResponse'
+    /api/v1/admin/menus:
+        get:
+            tags:
+                - PlatformService
+            operationId: PlatformService_ListMenus
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/forge.v1.ListMenusResponse'
+            security:
+                - SessionCookie: []
+                - BearerAuth: []
+    /api/v1/admin/menus/{menuKey}:
+        patch:
+            tags:
+                - PlatformService
+            operationId: PlatformService_UpdateMenu
+            parameters:
+                - name: menuKey
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/forge.v1.UpdateMenuRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/forge.v1.UpdateMenuResponse'
+            security:
+                - SessionCookie: []
+                  CsrfToken: []
+                - BearerAuth: []
+    /api/v1/admin/organization:
+        get:
+            tags:
+                - PlatformService
+            operationId: PlatformService_GetOrganization
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/forge.v1.GetOrganizationResponse'
+            security:
+                - SessionCookie: []
+                - BearerAuth: []
+        patch:
+            tags:
+                - PlatformService
+            operationId: PlatformService_UpdateOrganization
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/forge.v1.UpdateOrganizationRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/forge.v1.UpdateOrganizationResponse'
+            security:
+                - SessionCookie: []
+                  CsrfToken: []
+                - BearerAuth: []
+    /api/v1/admin/permissions:
+        get:
+            tags:
+                - PlatformService
+            operationId: PlatformService_ListPermissions
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/forge.v1.ListPermissionsResponse'
+            security:
+                - SessionCookie: []
+                - BearerAuth: []
+    /api/v1/admin/portal/applications:
+        get:
+            tags:
+                - PortalService
+            operationId: PortalService_ListAdminPortalApplications
+            parameters:
+                - name: limit
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/forge.v1.ListAdminPortalApplicationsResponse'
+            security:
+                - SessionCookie: []
+                - BearerAuth: []
+        post:
+            tags:
+                - PortalService
+            operationId: PortalService_CreatePortalApplication
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/forge.v1.CreatePortalApplicationRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/forge.v1.CreatePortalApplicationResponse'
+            security:
+                - SessionCookie: []
+                  CsrfToken: []
+                - BearerAuth: []
+    /api/v1/admin/portal/applications/{applicationId}:
+        delete:
+            tags:
+                - PortalService
+            operationId: PortalService_DeletePortalApplication
+            parameters:
+                - name: applicationId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/forge.v1.DeletePortalApplicationResponse'
+            security:
+                - SessionCookie: []
+                  CsrfToken: []
+                - BearerAuth: []
+        patch:
+            tags:
+                - PortalService
+            operationId: PortalService_UpdatePortalApplication
+            parameters:
+                - name: applicationId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/forge.v1.UpdatePortalApplicationRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/forge.v1.UpdatePortalApplicationResponse'
+            security:
+                - SessionCookie: []
+                  CsrfToken: []
+                - BearerAuth: []
+    /api/v1/admin/portal/applications/{applicationId}/disable:
+        post:
+            tags:
+                - PortalService
+            operationId: PortalService_DisableApplication
+            parameters:
+                - name: applicationId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/forge.v1.DisableApplicationRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/forge.v1.DisableApplicationResponse'
+    /api/v1/admin/portal/applications/{applicationId}/identity-binding:
+        put:
+            tags:
+                - PortalService
+            operationId: PortalService_UpsertApplicationIdentityBinding
+            parameters:
+                - name: applicationId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/forge.v1.UpsertApplicationIdentityBindingRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/forge.v1.UpsertApplicationIdentityBindingResponse'
+    /api/v1/admin/portal/applications/{applicationId}/onboarding:
+        get:
+            tags:
+                - PortalService
+            operationId: PortalService_GetApplicationOnboarding
+            parameters:
+                - name: applicationId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/forge.v1.GetApplicationOnboardingResponse'
+    /api/v1/admin/portal/applications/{applicationId}/policies:
+        put:
+            tags:
+                - PortalService
+            operationId: PortalService_ReplacePortalApplicationPolicies
+            parameters:
+                - name: applicationId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/forge.v1.ReplacePortalApplicationPoliciesRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/forge.v1.ReplacePortalApplicationPoliciesResponse'
+            security:
+                - SessionCookie: []
+                  CsrfToken: []
+                - BearerAuth: []
+    /api/v1/admin/portal/applications/{applicationId}/publish:
+        post:
+            tags:
+                - PortalService
+            operationId: PortalService_PublishApplication
+            parameters:
+                - name: applicationId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/forge.v1.PublishApplicationRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/forge.v1.PublishApplicationResponse'
+    /api/v1/admin/portal/applications/{applicationId}/submit-publish:
+        post:
+            tags:
+                - PortalService
+            operationId: PortalService_SubmitApplicationPublish
+            parameters:
+                - name: applicationId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/forge.v1.SubmitApplicationPublishRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/forge.v1.SubmitApplicationPublishResponse'
+    /api/v1/admin/portal/applications/{applicationId}/verify:
+        post:
+            tags:
+                - PortalService
+            operationId: PortalService_VerifyApplicationIdentity
+            parameters:
+                - name: applicationId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/forge.v1.VerifyApplicationIdentityRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/forge.v1.VerifyApplicationIdentityResponse'
+    /api/v1/admin/portal/categories:
+        post:
+            tags:
+                - PortalService
+            operationId: PortalService_CreatePortalCategory
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/forge.v1.CreatePortalCategoryRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/forge.v1.CreatePortalCategoryResponse'
+            security:
+                - SessionCookie: []
+                  CsrfToken: []
+                - BearerAuth: []
+    /api/v1/admin/portal/categories/{categoryId}:
+        delete:
+            tags:
+                - PortalService
+            operationId: PortalService_DeletePortalCategory
+            parameters:
+                - name: categoryId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/forge.v1.DeletePortalCategoryResponse'
+            security:
+                - SessionCookie: []
+                  CsrfToken: []
+                - BearerAuth: []
+        patch:
+            tags:
+                - PortalService
+            operationId: PortalService_UpdatePortalCategory
+            parameters:
+                - name: categoryId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/forge.v1.UpdatePortalCategoryRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/forge.v1.UpdatePortalCategoryResponse'
+            security:
+                - SessionCookie: []
+                  CsrfToken: []
+                - BearerAuth: []
+    /api/v1/admin/portal/tags:
+        post:
+            tags:
+                - PortalService
+            operationId: PortalService_CreatePortalTag
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/forge.v1.CreatePortalTagRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/forge.v1.CreatePortalTagResponse'
+            security:
+                - SessionCookie: []
+                  CsrfToken: []
+                - BearerAuth: []
+    /api/v1/admin/portal/tags/{tagId}:
+        delete:
+            tags:
+                - PortalService
+            operationId: PortalService_DeletePortalTag
+            parameters:
+                - name: tagId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/forge.v1.DeletePortalTagResponse'
+            security:
+                - SessionCookie: []
+                  CsrfToken: []
+                - BearerAuth: []
+        patch:
+            tags:
+                - PortalService
+            operationId: PortalService_UpdatePortalTag
+            parameters:
+                - name: tagId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/forge.v1.UpdatePortalTagRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/forge.v1.UpdatePortalTagResponse'
+            security:
+                - SessionCookie: []
+                  CsrfToken: []
+                - BearerAuth: []
+    /api/v1/admin/positions:
+        get:
+            tags:
+                - PlatformService
+            operationId: PlatformService_ListPositions
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/forge.v1.ListPositionsResponse'
+            security:
+                - SessionCookie: []
+                - BearerAuth: []
+        post:
+            tags:
+                - PlatformService
+            operationId: PlatformService_CreatePosition
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/forge.v1.CreatePositionRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/forge.v1.CreatePositionResponse'
+            security:
+                - SessionCookie: []
+                  CsrfToken: []
+                - BearerAuth: []
+    /api/v1/admin/positions/{positionId}:
+        patch:
+            tags:
+                - PlatformService
+            operationId: PlatformService_UpdatePosition
+            parameters:
+                - name: positionId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/forge.v1.UpdatePositionRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/forge.v1.UpdatePositionResponse'
+            security:
+                - SessionCookie: []
+                  CsrfToken: []
+                - BearerAuth: []
+    /api/v1/admin/roles:
+        get:
+            tags:
+                - PlatformService
+            operationId: PlatformService_ListRoles
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/forge.v1.ListRolesResponse'
+            security:
+                - SessionCookie: []
+                - BearerAuth: []
+    /api/v1/admin/roles/{roleKey}/data-scope:
+        put:
+            tags:
+                - PlatformService
+            operationId: PlatformService_UpdateRoleDataScope
+            parameters:
+                - name: roleKey
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/forge.v1.UpdateRoleDataScopeRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/forge.v1.UpdateRoleDataScopeResponse'
+            security:
+                - SessionCookie: []
+                  CsrfToken: []
+                - BearerAuth: []
+    /api/v1/admin/roles/{roleKey}/permissions:
+        put:
+            tags:
+                - PlatformService
+            operationId: PlatformService_UpdateRolePermissions
+            parameters:
+                - name: roleKey
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/forge.v1.UpdateRolePermissionsRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/forge.v1.UpdateRolePermissionsResponse'
+            security:
+                - SessionCookie: []
+                  CsrfToken: []
+                - BearerAuth: []
+    /api/v1/admin/security-config:
+        get:
+            tags:
+                - PlatformService
+            operationId: PlatformService_GetSecurityPolicy
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/forge.v1.GetSecurityPolicyResponse'
+            security:
+                - SessionCookie: []
+                - BearerAuth: []
+        put:
+            tags:
+                - PlatformService
+            operationId: PlatformService_UpdateSecurityPolicy
+            parameters:
+                - name: approvalId
+                  in: query
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/forge.v1.SecurityPolicy'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/forge.v1.UpdateSecurityPolicyResponse'
+            security:
+                - SessionCookie: []
+                  CsrfToken: []
+                - BearerAuth: []
+    /api/v1/admin/sessions:
+        get:
+            tags:
+                - PlatformService
+            operationId: PlatformService_ListSessions
+            parameters:
+                - name: limit
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/forge.v1.ListSessionsResponse'
+            security:
+                - SessionCookie: []
+                - BearerAuth: []
+    /api/v1/admin/sessions/{sessionId}:
+        delete:
+            tags:
+                - PlatformService
+            operationId: PlatformService_RevokeSession
+            parameters:
+                - name: sessionId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/forge.v1.RevokeSessionResponse'
+            security:
+                - SessionCookie: []
+                  CsrfToken: []
+                - BearerAuth: []
+    /api/v1/admin/temporary-role-grants:
+        get:
+            tags:
+                - PlatformService
+            operationId: PlatformService_ListTemporaryRoleGrants
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/forge.v1.ListTemporaryRoleGrantsResponse'
+            security:
+                - SessionCookie: []
+                - BearerAuth: []
+        post:
+            tags:
+                - PlatformService
+            operationId: PlatformService_CreateTemporaryRoleGrant
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/forge.v1.CreateTemporaryRoleGrantRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/forge.v1.CreateTemporaryRoleGrantResponse'
+            security:
+                - SessionCookie: []
+                  CsrfToken: []
+    /api/v1/admin/temporary-role-grants/{grantId}:revoke:
+        post:
+            tags:
+                - PlatformService
+            operationId: PlatformService_RevokeTemporaryRoleGrant
+            parameters:
+                - name: grantId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/forge.v1.RevokeTemporaryRoleGrantRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/forge.v1.RevokeTemporaryRoleGrantResponse'
+            security:
+                - SessionCookie: []
+                  CsrfToken: []
+    /api/v1/admin/user-groups:
+        get:
+            tags:
+                - PlatformService
+            operationId: PlatformService_ListUserGroups
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/forge.v1.ListUserGroupsResponse'
+            security:
+                - SessionCookie: []
+                - BearerAuth: []
+        post:
+            tags:
+                - PlatformService
+            operationId: PlatformService_CreateUserGroup
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/forge.v1.CreateUserGroupRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/forge.v1.CreateUserGroupResponse'
+            security:
+                - SessionCookie: []
+                  CsrfToken: []
+                - BearerAuth: []
+    /api/v1/admin/user-groups/{groupId}:
+        patch:
+            tags:
+                - PlatformService
+            operationId: PlatformService_UpdateUserGroup
+            parameters:
+                - name: groupId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/forge.v1.UpdateUserGroupRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/forge.v1.UpdateUserGroupResponse'
+            security:
+                - SessionCookie: []
+                  CsrfToken: []
+                - BearerAuth: []
+    /api/v1/admin/user-groups/{groupId}/members:
+        put:
+            tags:
+                - PlatformService
+            operationId: PlatformService_UpdateUserGroupMembers
+            parameters:
+                - name: groupId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/forge.v1.UpdateUserGroupMembersRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/forge.v1.UpdateUserGroupMembersResponse'
+            security:
+                - SessionCookie: []
+                  CsrfToken: []
+                - BearerAuth: []
+    /api/v1/admin/user-groups/{groupId}/roles:
+        put:
+            tags:
+                - PlatformService
+            operationId: PlatformService_UpdateUserGroupRoles
+            parameters:
+                - name: groupId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/forge.v1.UpdateUserGroupRolesRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/forge.v1.UpdateUserGroupRolesResponse'
+            security:
+                - SessionCookie: []
+                  CsrfToken: []
+                - BearerAuth: []
+    /api/v1/admin/users:
+        get:
+            tags:
+                - PlatformService
+            operationId: PlatformService_ListUsers
+            parameters:
+                - name: limit
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/forge.v1.ListUsersResponse'
+            security:
+                - SessionCookie: []
+                - BearerAuth: []
+        post:
+            tags:
+                - PlatformService
+            operationId: PlatformService_CreateUser
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/forge.v1.CreateUserRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/forge.v1.CreateUserResponse'
+            security:
+                - SessionCookie: []
+                  CsrfToken: []
+                - BearerAuth: []
+    /api/v1/admin/users/{userId}/assignments:
+        get:
+            tags:
+                - PlatformService
+            operationId: PlatformService_ListUserAssignments
+            parameters:
+                - name: userId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/forge.v1.ListUserAssignmentsResponse'
+            security:
+                - SessionCookie: []
+                - BearerAuth: []
+        put:
+            tags:
+                - PlatformService
+            operationId: PlatformService_ReplaceUserAssignments
+            parameters:
+                - name: userId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/forge.v1.ReplaceUserAssignmentsRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/forge.v1.ReplaceUserAssignmentsResponse'
+            security:
+                - SessionCookie: []
+                  CsrfToken: []
+                - BearerAuth: []
+    /api/v1/admin/users/{userId}/reset-password:
+        post:
+            tags:
+                - PlatformService
+            operationId: PlatformService_ResetUserPassword
+            parameters:
+                - name: userId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/forge.v1.ResetUserPasswordRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/forge.v1.ResetUserPasswordResponse'
+            security:
+                - SessionCookie: []
+                  CsrfToken: []
+                - BearerAuth: []
+    /api/v1/admin/users/{userId}/roles:
+        patch:
+            tags:
+                - PlatformService
+            operationId: PlatformService_UpdateUserRoles
+            parameters:
+                - name: userId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/forge.v1.UpdateUserRolesRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/forge.v1.UpdateUserRolesResponse'
+            security:
+                - SessionCookie: []
+                  CsrfToken: []
+                - BearerAuth: []
+    /api/v1/admin/users/{userId}/status:
+        patch:
+            tags:
+                - PlatformService
+            operationId: PlatformService_UpdateUserStatus
+            parameters:
+                - name: userId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/forge.v1.UpdateUserStatusRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/forge.v1.UpdateUserStatusResponse'
+            security:
+                - SessionCookie: []
+                  CsrfToken: []
+                - BearerAuth: []
+    /api/v1/admin/users/{userId}/unlock:
+        post:
+            tags:
+                - PlatformService
+            operationId: PlatformService_UnlockUser
+            parameters:
+                - name: userId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/forge.v1.UnlockUserRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/forge.v1.UnlockUserResponse'
+            security:
+                - SessionCookie: []
+                  CsrfToken: []
+                - BearerAuth: []
+    /api/v1/api-tokens:
+        get:
+            tags:
+                - IdentityService
+            operationId: IdentityService_ListApiTokens
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/forge.v1.ListApiTokensResponse'
+            security:
+                - SessionCookie: []
+        post:
+            tags:
+                - IdentityService
+            operationId: IdentityService_CreateApiToken
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/forge.v1.CreateApiTokenRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/forge.v1.CreateApiTokenResponse'
+            security:
+                - SessionCookie: []
+                  CsrfToken: []
+    /api/v1/api-tokens/{tokenId}:
+        delete:
+            tags:
+                - IdentityService
+            operationId: IdentityService_RevokeApiToken
+            parameters:
+                - name: tokenId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/forge.v1.RevokeApiTokenResponse'
+            security:
+                - SessionCookie: []
+                  CsrfToken: []
+    /api/v1/approvals:
+        get:
+            tags:
+                - ApprovalService
+            operationId: ApprovalService_ListApprovals
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/forge.v1.ListApprovalsResponse'
+            security:
+                - SessionCookie: []
+        post:
+            tags:
+                - ApprovalService
+            operationId: ApprovalService_CreateApproval
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/forge.v1.CreateApprovalRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/forge.v1.CreateApprovalResponse'
+            security:
+                - SessionCookie: []
+                  CsrfToken: []
+    /api/v1/approvals/{approvalId}:
+        get:
+            tags:
+                - ApprovalService
+            operationId: ApprovalService_GetApproval
+            parameters:
+                - name: approvalId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/forge.v1.GetApprovalResponse'
+            security:
+                - SessionCookie: []
+    /api/v1/approvals/{approvalId}/decisions:
+        post:
+            tags:
+                - ApprovalService
+            operationId: ApprovalService_DecideApproval
+            parameters:
+                - name: approvalId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/forge.v1.DecideApprovalRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/forge.v1.DecideApprovalResponse'
+            security:
+                - SessionCookie: []
+                  CsrfToken: []
+    /api/v1/approvals/{approvalId}/transfer:
+        post:
+            tags:
+                - ApprovalService
+            operationId: ApprovalService_TransferApproval
+            parameters:
+                - name: approvalId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/forge.v1.TransferApprovalRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/forge.v1.TransferApprovalResponse'
+            security:
+                - SessionCookie: []
+                  CsrfToken: []
+    /api/v1/approvals/{approvalId}/withdraw:
+        post:
+            tags:
+                - ApprovalService
+            operationId: ApprovalService_WithdrawApproval
+            parameters:
+                - name: approvalId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/forge.v1.WithdrawApprovalRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/forge.v1.WithdrawApprovalResponse'
+            security:
+                - SessionCookie: []
+                  CsrfToken: []
+    /api/v1/auth/federated/ldap/{provider}:
+        post:
+            tags:
+                - IdentityService
+            operationId: IdentityService_LoginLDAP
+            parameters:
+                - name: provider
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/forge.v1.LoginLDAPRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/forge.v1.LoginLDAPResponse'
+    /api/v1/auth/federated/oidc/{provider}/begin:
+        get:
+            tags:
+                - IdentityService
+            operationId: IdentityService_BeginOIDCLogin
+            parameters:
+                - name: provider
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+                - name: organization
+                  in: query
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/forge.v1.BeginOIDCLoginResponse'
+    /api/v1/auth/federated/oidc/{provider}/callback:
+        get:
+            tags:
+                - IdentityService
+            operationId: IdentityService_CompleteOIDCLogin
+            parameters:
+                - name: provider
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+                - name: code
+                  in: query
+                  schema:
+                    type: string
+                - name: state
+                  in: query
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/forge.v1.CompleteOIDCLoginResponse'
+        post:
+            tags:
+                - IdentityService
+            operationId: IdentityService_CompleteOIDCLogin
+            parameters:
+                - name: provider
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/forge.v1.CompleteOIDCLoginRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/forge.v1.CompleteOIDCLoginResponse'
+    /api/v1/auth/forward/{applicationId}:
+        get:
+            tags:
+                - PortalService
+            operationId: PortalService_AuthorizePortalApplication
+            parameters:
+                - name: applicationId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/forge.v1.AuthorizePortalApplicationResponse'
+            security:
+                - SessionCookie: []
+                - BearerAuth: []
+    /api/v1/auth/login:
+        post:
+            tags:
+                - IdentityService
+            operationId: IdentityService_Login
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/forge.v1.LoginRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/forge.v1.LoginResponse'
+    /api/v1/auth/logout:
+        post:
+            tags:
+                - IdentityService
+            operationId: IdentityService_Logout
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/forge.v1.LogoutRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/forge.v1.LogoutResponse'
+            security:
+                - SessionCookie: []
+                  CsrfToken: []
+    /api/v1/auth/password:
+        patch:
+            tags:
+                - IdentityService
+            operationId: IdentityService_ChangePassword
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/forge.v1.ChangePasswordRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/forge.v1.ChangePasswordResponse'
+            security:
+                - SessionCookie: []
+                  CsrfToken: []
+    /api/v1/auth/step-up:
+        post:
+            tags:
+                - IdentityService
+            operationId: IdentityService_StepUpAuthentication
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/forge.v1.StepUpAuthenticationRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/forge.v1.StepUpAuthenticationResponse'
+            security:
+                - SessionCookie: []
+                  CsrfToken: []
+    /api/v1/example/organizations/{organizationId}/settlements/{settlementId}:
+        get:
+            tags:
+                - ReferenceSettlementService
+            description: GetSettlement returns an organization-scoped settlement projection.
+            operationId: ReferenceSettlementService_GetSettlement
+            parameters:
+                - name: organizationId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+                - name: settlementId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/forge.v1.GetSettlementResponse'
+            security:
+                - BearerAuth: []
+    /api/v1/me:
+        get:
+            tags:
+                - IdentityService
+            operationId: IdentityService_GetCurrentUser
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/forge.v1.GetCurrentUserResponse'
+            security:
+                - SessionCookie: []
+                - BearerAuth: []
+    /api/v1/mfa:
+        get:
+            tags:
+                - IdentityService
+            operationId: IdentityService_GetMFAStatus
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/forge.v1.GetMFAStatusResponse'
+            security:
+                - SessionCookie: []
+    /api/v1/mfa/totp/disable:
+        post:
+            tags:
+                - IdentityService
+            operationId: IdentityService_DisableMFA
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/forge.v1.DisableMFARequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/forge.v1.DisableMFAResponse'
+            security:
+                - SessionCookie: []
+                  CsrfToken: []
+    /api/v1/mfa/totp/enrollment:
+        post:
+            tags:
+                - IdentityService
+            operationId: IdentityService_BeginMFAEnrollment
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/forge.v1.BeginMFAEnrollmentRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/forge.v1.BeginMFAEnrollmentResponse'
+            security:
+                - SessionCookie: []
+                  CsrfToken: []
+    /api/v1/mfa/totp/enrollment/confirmation:
+        post:
+            tags:
+                - IdentityService
+            operationId: IdentityService_ConfirmMFAEnrollment
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/forge.v1.ConfirmMFAEnrollmentRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/forge.v1.ConfirmMFAEnrollmentResponse'
+            security:
+                - SessionCookie: []
+                  CsrfToken: []
+    /api/v1/portal/applications:
+        get:
+            tags:
+                - PortalService
+            operationId: PortalService_ListPortalApplications
+            parameters:
+                - name: keyword
+                  in: query
+                  schema:
+                    type: string
+                - name: categoryId
+                  in: query
+                  schema:
+                    type: string
+                - name: tagId
+                  in: query
+                  schema:
+                    type: string
+                - name: favoritesOnly
+                  in: query
+                  schema:
+                    type: boolean
+                - name: limit
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/forge.v1.ListPortalApplicationsResponse'
+            security:
+                - SessionCookie: []
+                - BearerAuth: []
+    /api/v1/portal/applications/{applicationId}:
+        get:
+            tags:
+                - PortalService
+            operationId: PortalService_GetPortalApplication
+            parameters:
+                - name: applicationId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/forge.v1.GetPortalApplicationResponse'
+            security:
+                - SessionCookie: []
+                - BearerAuth: []
+    /api/v1/portal/applications/{applicationId}/launch:
+        post:
+            tags:
+                - PortalService
+            operationId: PortalService_LaunchPortalApplication
+            parameters:
+                - name: applicationId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/forge.v1.LaunchPortalApplicationRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/forge.v1.LaunchPortalApplicationResponse'
+            security:
+                - SessionCookie: []
+                  CsrfToken: []
+                - BearerAuth: []
+    /api/v1/portal/categories:
+        get:
+            tags:
+                - PortalService
+            operationId: PortalService_ListPortalCategories
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/forge.v1.ListPortalCategoriesResponse'
+            security:
+                - SessionCookie: []
+                - BearerAuth: []
+    /api/v1/portal/favorites:
+        get:
+            tags:
+                - PortalService
+            operationId: PortalService_ListPortalFavorites
+            parameters:
+                - name: limit
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/forge.v1.ListPortalFavoritesResponse'
+            security:
+                - SessionCookie: []
+                - BearerAuth: []
+        post:
+            tags:
+                - PortalService
+            operationId: PortalService_AddPortalFavorite
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/forge.v1.AddPortalFavoriteRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/forge.v1.AddPortalFavoriteResponse'
+            security:
+                - SessionCookie: []
+                  CsrfToken: []
+                - BearerAuth: []
+    /api/v1/portal/favorites/{applicationId}:
+        delete:
+            tags:
+                - PortalService
+            operationId: PortalService_RemovePortalFavorite
+            parameters:
+                - name: applicationId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/forge.v1.RemovePortalFavoriteResponse'
+            security:
+                - SessionCookie: []
+                  CsrfToken: []
+                - BearerAuth: []
+    /api/v1/portal/recent:
+        get:
+            tags:
+                - PortalService
+            operationId: PortalService_ListRecentPortalApplications
+            parameters:
+                - name: limit
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/forge.v1.ListRecentPortalApplicationsResponse'
+            security:
+                - SessionCookie: []
+                - BearerAuth: []
+    /api/v1/portal/tags:
+        get:
+            tags:
+                - PortalService
+            operationId: PortalService_ListPortalTags
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/forge.v1.ListPortalTagsResponse'
+            security:
+                - SessionCookie: []
+                - BearerAuth: []
+    /api/v1/system/health:
+        get:
+            tags:
+                - SystemService
+            description: Health reports process liveness without checking remote dependencies.
+            operationId: SystemService_Health
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/forge.v1.HealthResponse'
+    /api/v1/system/info:
+        get:
+            tags:
+                - SystemService
+            description: GetSystemInfo returns authenticated runtime and provider metadata.
+            operationId: SystemService_GetSystemInfo
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/forge.v1.GetSystemInfoResponse'
+            security:
+                - SessionCookie: []
+                - BearerAuth: []
+    /api/v1/system/ready:
+        get:
+            tags:
+                - SystemService
+            description: Readiness reports whether required dependencies can serve traffic.
+            operationId: SystemService_Readiness
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/forge.v1.ReadinessResponse'
+components:
+    schemas:
+        forge.v1.AccessReview:
+            type: object
+            properties:
+                id:
+                    type: string
+                organizationId:
+                    type: string
+                reviewerId:
+                    type: string
+                reviewerName:
+                    type: string
+                status:
+                    type: string
+                dueAt:
+                    type: string
+                    format: date-time
+                createdBy:
+                    type: string
+                createdAt:
+                    type: string
+                    format: date-time
+                completedAt:
+                    type: string
+                    format: date-time
+        forge.v1.AccessReviewItem:
+            type: object
+            properties:
+                id:
+                    type: string
+                reviewId:
+                    type: string
+                organizationId:
+                    type: string
+                userId:
+                    type: string
+                loginName:
+                    type: string
+                roleKey:
+                    type: string
+                decision:
+                    type: string
+                reason:
+                    type: string
+                decidedBy:
+                    type: string
+                decidedAt:
+                    type: string
+                    format: date-time
+                createdAt:
+                    type: string
+                    format: date-time
+        forge.v1.AddPortalFavoriteRequest:
+            type: object
+            properties:
+                applicationId:
+                    type: string
+        forge.v1.AddPortalFavoriteResponse:
+            type: object
+            properties:
+                application:
+                    $ref: '#/components/schemas/forge.v1.PortalApplication'
+        forge.v1.ApiToken:
+            type: object
+            properties:
+                id:
+                    type: string
+                name:
+                    type: string
+                scopes:
+                    type: array
+                    items:
+                        type: string
+                createdAt:
+                    type: string
+                    format: date-time
+                expiresAt:
+                    type: string
+                    format: date-time
+                lastUsedAt:
+                    type: string
+                    format: date-time
+                prefix:
+                    type: string
+        forge.v1.ApprovalRequest:
+            type: object
+            properties:
+                id:
+                    type: string
+                organizationId:
+                    type: string
+                requestType:
+                    type: string
+                action:
+                    type: string
+                resource:
+                    type: string
+                resourceId:
+                    type: string
+                summary:
+                    type: string
+                requestDigest:
+                    type: string
+                applicantId:
+                    type: string
+                mode:
+                    type: string
+                requiredApprovals:
+                    type: integer
+                    format: int32
+                status:
+                    type: string
+                expiresAt:
+                    type: string
+                    format: date-time
+                createdAt:
+                    type: string
+                    format: date-time
+                updatedAt:
+                    type: string
+                    format: date-time
+                tasks:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/forge.v1.ApprovalTask'
+                payloadJson:
+                    type: string
+        forge.v1.ApprovalTask:
+            type: object
+            properties:
+                id:
+                    type: string
+                assigneeId:
+                    type: string
+                status:
+                    type: string
+                decision:
+                    type: string
+                comment:
+                    type: string
+                transferredFrom:
+                    type: string
+                decidedAt:
+                    type: string
+                    format: date-time
+        forge.v1.ApproveConfigChangeRequest:
+            type: object
+            properties:
+                changeId:
+                    type: string
+                approvalId:
+                    type: string
+        forge.v1.ApproveConfigChangeResponse:
+            type: object
+            properties:
+                change:
+                    $ref: '#/components/schemas/forge.v1.ConfigChange'
+        forge.v1.AuditEvent:
+            type: object
+            properties:
+                id:
+                    type: string
+                occurredAt:
+                    type: string
+                    format: date-time
+                requestId:
+                    type: string
+                organizationId:
+                    type: string
+                actorId:
+                    type: string
+                actorName:
+                    type: string
+                action:
+                    type: string
+                resourceType:
+                    type: string
+                resourceId:
+                    type: string
+                result:
+                    type: string
+                clientIp:
+                    type: string
+                detailsJson:
+                    type: string
+                sequenceNo:
+                    type: string
+                prevHash:
+                    type: string
+                eventHash:
+                    type: string
+        forge.v1.AuthorizeDataExportRequest:
+            type: object
+            properties:
+                fieldKeys:
+                    type: array
+                    items:
+                        type: string
+                purpose:
+                    type: string
+                approvalId:
+                    type: string
+                watermark:
+                    type: string
+        forge.v1.AuthorizeDataExportResponse:
+            type: object
+            properties:
+                authorized:
+                    type: boolean
+                purpose:
+                    type: string
+                watermark:
+                    type: string
+        forge.v1.AuthorizePortalApplicationResponse:
+            type: object
+            properties:
+                applicationId:
+                    type: string
+                userId:
+                    type: string
+                loginName:
+                    type: string
+                organizationId:
+                    type: string
+                displayName:
+                    type: string
+        forge.v1.BeginMFAEnrollmentRequest:
+            type: object
+            properties:
+                currentPassword:
+                    type: string
+        forge.v1.BeginMFAEnrollmentResponse:
+            type: object
+            properties:
+                secret:
+                    type: string
+                provisioningUri:
+                    type: string
+        forge.v1.BeginOIDCLoginResponse:
+            type: object
+            properties:
+                redirectUrl:
+                    type: string
+        forge.v1.ChangePasswordRequest:
+            type: object
+            properties:
+                currentPassword:
+                    type: string
+                newPassword:
+                    type: string
+        forge.v1.ChangePasswordResponse:
+            type: object
+            properties: {}
+        forge.v1.CompleteOIDCLoginRequest:
+            type: object
+            properties:
+                provider:
+                    type: string
+                code:
+                    type: string
+                state:
+                    type: string
+        forge.v1.CompleteOIDCLoginResponse:
+            type: object
+            properties:
+                user:
+                    $ref: '#/components/schemas/forge.v1.User'
+                csrfToken:
+                    type: string
+        forge.v1.ConfigChange:
+            type: object
+            properties:
+                id:
+                    type: string
+                organizationId:
+                    type: string
+                namespace:
+                    type: string
+                group:
+                    type: string
+                dataId:
+                    type: string
+                version:
+                    type: string
+                expectedPreviousVersion:
+                    type: string
+                valueDigest:
+                    type: string
+                valueRef:
+                    type: string
+                sensitive:
+                    type: boolean
+                createdBy:
+                    type: string
+                approvedBy:
+                    type: string
+                approvalId:
+                    type: string
+                state:
+                    type: string
+                updatedAt:
+                    type: string
+                    format: date-time
+        forge.v1.ConfirmMFAEnrollmentRequest:
+            type: object
+            properties:
+                code:
+                    type: string
+        forge.v1.ConfirmMFAEnrollmentResponse:
+            type: object
+            properties:
+                recoveryCodes:
+                    type: array
+                    items:
+                        type: string
+        forge.v1.CreateAccessReviewRequest:
+            type: object
+            properties:
+                reviewerId:
+                    type: string
+                dueAt:
+                    type: string
+                    format: date-time
+        forge.v1.CreateAccessReviewResponse:
+            type: object
+            properties:
+                review:
+                    $ref: '#/components/schemas/forge.v1.AccessReview'
+        forge.v1.CreateApiTokenRequest:
+            type: object
+            properties:
+                name:
+                    type: string
+                scopes:
+                    type: array
+                    items:
+                        type: string
+                expiresDays:
+                    type: integer
+                    format: int32
+        forge.v1.CreateApiTokenResponse:
+            type: object
+            properties:
+                token:
+                    $ref: '#/components/schemas/forge.v1.ApiToken'
+                secret:
+                    type: string
+        forge.v1.CreateApprovalRequest:
+            type: object
+            properties:
+                requestType:
+                    type: string
+                action:
+                    type: string
+                resource:
+                    type: string
+                resourceId:
+                    type: string
+                summary:
+                    type: string
+                payloadJson:
+                    type: string
+                mode:
+                    type: string
+                requiredApprovals:
+                    type: integer
+                    format: int32
+                approverIds:
+                    type: array
+                    items:
+                        type: string
+                expiresInSeconds:
+                    type: string
+        forge.v1.CreateApprovalResponse:
+            type: object
+            properties:
+                approval:
+                    $ref: '#/components/schemas/forge.v1.ApprovalRequest'
+        forge.v1.CreateConfigChangeRequest:
+            type: object
+            properties:
+                namespace:
+                    type: string
+                group:
+                    type: string
+                dataId:
+                    type: string
+                version:
+                    type: string
+                expectedPreviousVersion:
+                    type: string
+                valueDigest:
+                    type: string
+                valueRef:
+                    type: string
+                sensitive:
+                    type: boolean
+        forge.v1.CreateConfigChangeResponse:
+            type: object
+            properties:
+                change:
+                    $ref: '#/components/schemas/forge.v1.ConfigChange'
+        forge.v1.CreateDepartmentRequest:
+            type: object
+            properties:
+                departmentKey:
+                    type: string
+                name:
+                    type: string
+                parentId:
+                    type: string
+                status:
+                    type: string
+                sortOrder:
+                    type: string
+        forge.v1.CreateDepartmentResponse:
+            type: object
+            properties:
+                department:
+                    $ref: '#/components/schemas/forge.v1.Department'
+        forge.v1.CreatePortalApplicationRequest:
+            type: object
+            properties:
+                code:
+                    type: string
+                name:
+                    type: string
+                description:
+                    type: string
+                icon:
+                    type: string
+                categoryId:
+                    type: string
+                homeUrl:
+                    type: string
+                launchUrl:
+                    type: string
+                launchType:
+                    type: string
+                status:
+                    type: string
+                sortOrder:
+                    type: string
+                featured:
+                    type: boolean
+                tagIds:
+                    type: array
+                    items:
+                        type: string
+        forge.v1.CreatePortalApplicationResponse:
+            type: object
+            properties:
+                application:
+                    $ref: '#/components/schemas/forge.v1.PortalApplication'
+        forge.v1.CreatePortalCategoryRequest:
+            type: object
+            properties:
+                categoryKey:
+                    type: string
+                name:
+                    type: string
+                description:
+                    type: string
+                sortOrder:
+                    type: string
+                status:
+                    type: string
+        forge.v1.CreatePortalCategoryResponse:
+            type: object
+            properties:
+                category:
+                    $ref: '#/components/schemas/forge.v1.PortalCategory'
+        forge.v1.CreatePortalTagRequest:
+            type: object
+            properties:
+                tagKey:
+                    type: string
+                name:
+                    type: string
+                sortOrder:
+                    type: string
+        forge.v1.CreatePortalTagResponse:
+            type: object
+            properties:
+                tag:
+                    $ref: '#/components/schemas/forge.v1.PortalTag'
+        forge.v1.CreatePositionRequest:
+            type: object
+            properties:
+                positionKey:
+                    type: string
+                name:
+                    type: string
+                description:
+                    type: string
+                departmentId:
+                    type: string
+                status:
+                    type: string
+                sortOrder:
+                    type: string
+        forge.v1.CreatePositionResponse:
+            type: object
+            properties:
+                position:
+                    $ref: '#/components/schemas/forge.v1.Position'
+        forge.v1.CreateTemporaryRoleGrantRequest:
+            type: object
+            properties:
+                userId:
+                    type: string
+                roleKey:
+                    type: string
+                reason:
+                    type: string
+                validFrom:
+                    type: string
+                    format: date-time
+                validUntil:
+                    type: string
+                    format: date-time
+                approvalId:
+                    type: string
+        forge.v1.CreateTemporaryRoleGrantResponse:
+            type: object
+            properties:
+                grant:
+                    $ref: '#/components/schemas/forge.v1.TemporaryRoleGrant'
+        forge.v1.CreateUserGroupRequest:
+            type: object
+            properties:
+                groupKey:
+                    type: string
+                name:
+                    type: string
+                description:
+                    type: string
+                status:
+                    type: string
+        forge.v1.CreateUserGroupResponse:
+            type: object
+            properties:
+                userGroup:
+                    $ref: '#/components/schemas/forge.v1.UserGroup'
+        forge.v1.CreateUserRequest:
+            type: object
+            properties:
+                loginName:
+                    type: string
+                displayName:
+                    type: string
+                password:
+                    type: string
+                roles:
+                    type: array
+                    items:
+                        type: string
+        forge.v1.CreateUserResponse:
+            type: object
+            properties:
+                user:
+                    $ref: '#/components/schemas/forge.v1.User'
+        forge.v1.DataDeletionEvidence:
+            type: object
+            properties:
+                id:
+                    type: string
+                organizationId:
+                    type: string
+                resourceType:
+                    type: string
+                resourceDigest:
+                    type: string
+                fieldKeys:
+                    type: array
+                    items:
+                        type: string
+                reason:
+                    type: string
+                recordsDeleted:
+                    type: string
+                deletedAt:
+                    type: string
+                    format: date-time
+                evidenceHash:
+                    type: string
+                createdAt:
+                    type: string
+                    format: date-time
+        forge.v1.DataFieldPolicy:
+            type: object
+            properties:
+                id:
+                    type: string
+                organizationId:
+                    type: string
+                fieldKey:
+                    type: string
+                classification:
+                    type: string
+                owner:
+                    type: string
+                purpose:
+                    type: string
+                residency:
+                    type: string
+                retentionDays:
+                    type: string
+                tags:
+                    type: array
+                    items:
+                        type: string
+                maskStrategy:
+                    type: string
+                exportApproval:
+                    type: boolean
+                watermark:
+                    type: boolean
+                createdAt:
+                    type: string
+                    format: date-time
+                updatedAt:
+                    type: string
+                    format: date-time
+        forge.v1.DecideAccessReviewItemRequest:
+            type: object
+            properties:
+                reviewId:
+                    type: string
+                itemId:
+                    type: string
+                decision:
+                    type: string
+                reason:
+                    type: string
+        forge.v1.DecideAccessReviewItemResponse:
+            type: object
+            properties: {}
+        forge.v1.DecideApprovalRequest:
+            type: object
+            properties:
+                approvalId:
+                    type: string
+                decision:
+                    type: string
+                comment:
+                    type: string
+        forge.v1.DecideApprovalResponse:
+            type: object
+            properties:
+                approval:
+                    $ref: '#/components/schemas/forge.v1.ApprovalRequest'
+        forge.v1.DeletePortalApplicationResponse:
+            type: object
+            properties: {}
+        forge.v1.DeletePortalCategoryResponse:
+            type: object
+            properties: {}
+        forge.v1.DeletePortalTagResponse:
+            type: object
+            properties: {}
+        forge.v1.Department:
+            type: object
+            properties:
+                id:
+                    type: string
+                organizationId:
+                    type: string
+                parentId:
+                    type: string
+                departmentKey:
+                    type: string
+                name:
+                    type: string
+                status:
+                    type: string
+                sortOrder:
+                    type: string
+                createdAt:
+                    type: string
+                    format: date-time
+                updatedAt:
+                    type: string
+                    format: date-time
+        forge.v1.DependencyStatus:
+            type: object
+            properties:
+                name:
+                    type: string
+                status:
+                    type: string
+                message:
+                    type: string
+        forge.v1.DisableApplicationRequest:
+            type: object
+            properties:
+                applicationId:
+                    type: string
+                expectedConfigVersion:
+                    type: string
+                approvalId:
+                    type: string
+        forge.v1.DisableApplicationResponse:
+            type: object
+            properties:
+                application:
+                    $ref: '#/components/schemas/forge.v1.PortalApplication'
+        forge.v1.DisableMFARequest:
+            type: object
+            properties:
+                currentPassword:
+                    type: string
+                code:
+                    type: string
+                recoveryCode:
+                    type: string
+        forge.v1.DisableMFAResponse:
+            type: object
+            properties: {}
+        forge.v1.EffectiveDataScope:
+            type: object
+            properties:
+                organizationWide:
+                    type: boolean
+                self:
+                    type: boolean
+                departmentIds:
+                    type: array
+                    items:
+                        type: string
+        forge.v1.ExportAuditLogsResponse:
+            type: object
+            properties:
+                content:
+                    type: string
+                    format: bytes
+                contentType:
+                    type: string
+                filename:
+                    type: string
+        forge.v1.FederatedIdentityLink:
+            type: object
+            properties:
+                id:
+                    type: string
+                organizationId:
+                    type: string
+                provider:
+                    type: string
+                subject:
+                    type: string
+                userId:
+                    type: string
+                loginName:
+                    type: string
+                createdBy:
+                    type: string
+                approvalId:
+                    type: string
+                createdAt:
+                    type: string
+                    format: date-time
+                lastAuthenticatedAt:
+                    type: string
+                    format: date-time
+        forge.v1.GetApplicationOnboardingResponse:
+            type: object
+            properties:
+                application:
+                    $ref: '#/components/schemas/forge.v1.PortalApplication'
+                binding:
+                    $ref: '#/components/schemas/forge.v1.PortalIdentityBinding'
+                verifications:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/forge.v1.PortalApplicationVerification'
+                canPublish:
+                    type: boolean
+        forge.v1.GetApprovalResponse:
+            type: object
+            properties:
+                approval:
+                    $ref: '#/components/schemas/forge.v1.ApprovalRequest'
+        forge.v1.GetCurrentUserResponse:
+            type: object
+            properties:
+                user:
+                    $ref: '#/components/schemas/forge.v1.User'
+        forge.v1.GetIdentityConsoleLinkResponse:
+            type: object
+            properties:
+                url:
+                    type: string
+                providerKey:
+                    type: string
+        forge.v1.GetIdentityOverviewResponse:
+            type: object
+            properties:
+                onboardingEnabled:
+                    type: boolean
+                adminEntryEnabled:
+                    type: boolean
+                providerKey:
+                    type: string
+                adminUrlHost:
+                    type: string
+                issuer:
+                    type: string
+                connectionStatus:
+                    type: string
+                pendingApplicationCount:
+                    type: string
+                automationEnabled:
+                    type: boolean
+        forge.v1.GetMFAStatusResponse:
+            type: object
+            properties:
+                enabled:
+                    type: boolean
+        forge.v1.GetOrganizationResponse:
+            type: object
+            properties:
+                organization:
+                    $ref: '#/components/schemas/forge.v1.Organization'
+        forge.v1.GetPortalApplicationResponse:
+            type: object
+            properties:
+                application:
+                    $ref: '#/components/schemas/forge.v1.PortalApplication'
+        forge.v1.GetSecurityPolicyResponse:
+            type: object
+            properties:
+                policy:
+                    $ref: '#/components/schemas/forge.v1.SecurityPolicy'
+        forge.v1.GetSettlementResponse:
+            type: object
+            properties:
+                settlement:
+                    $ref: '#/components/schemas/forge.v1.Settlement'
+            description: GetSettlementResponse wraps the settlement projection.
+        forge.v1.GetSystemInfoResponse:
+            type: object
+            properties:
+                service:
+                    type: string
+                version:
+                    type: string
+                environment:
+                    type: string
+                region:
+                    type: string
+                zone:
+                    type: string
+                providers:
+                    type: object
+                    additionalProperties:
+                        type: string
+        forge.v1.HealthResponse:
+            type: object
+            properties:
+                status:
+                    type: string
+                service:
+                    type: string
+                version:
+                    type: string
+                authMode:
+                    type: string
+                    description: Public, non-secret capabilities used by the login shell before a session exists.
+                passwordLoginEnabled:
+                    type: boolean
+                casdoorAccountUrl:
+                    type: string
+                turnstileEnabled:
+                    type: boolean
+                turnstileSiteKey:
+                    type: string
+                turnstileAction:
+                    type: string
+        forge.v1.LaunchPortalApplicationRequest:
+            type: object
+            properties:
+                applicationId:
+                    type: string
+        forge.v1.LaunchPortalApplicationResponse:
+            type: object
+            properties:
+                application:
+                    $ref: '#/components/schemas/forge.v1.PortalApplication'
+                launchUrl:
+                    type: string
+        forge.v1.LinkFederatedIdentityRequest:
+            type: object
+            properties:
+                provider:
+                    type: string
+                subject:
+                    type: string
+                userId:
+                    type: string
+                approvalId:
+                    type: string
+        forge.v1.LinkFederatedIdentityResponse:
+            type: object
+            properties:
+                link:
+                    $ref: '#/components/schemas/forge.v1.FederatedIdentityLink'
+        forge.v1.ListAccessReviewItemsResponse:
+            type: object
+            properties:
+                items:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/forge.v1.AccessReviewItem'
+        forge.v1.ListAccessReviewsResponse:
+            type: object
+            properties:
+                reviews:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/forge.v1.AccessReview'
+        forge.v1.ListAdminPortalApplicationsResponse:
+            type: object
+            properties:
+                applications:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/forge.v1.PortalApplication'
+        forge.v1.ListApiTokensResponse:
+            type: object
+            properties:
+                tokens:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/forge.v1.ApiToken'
+        forge.v1.ListApprovalsResponse:
+            type: object
+            properties:
+                approvals:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/forge.v1.ApprovalRequest'
+        forge.v1.ListAuditLogsResponse:
+            type: object
+            properties:
+                events:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/forge.v1.AuditEvent'
+        forge.v1.ListConfigChangesResponse:
+            type: object
+            properties:
+                changes:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/forge.v1.ConfigChange'
+        forge.v1.ListDataDeletionEvidenceResponse:
+            type: object
+            properties:
+                evidence:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/forge.v1.DataDeletionEvidence'
+        forge.v1.ListDataFieldPoliciesResponse:
+            type: object
+            properties:
+                policies:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/forge.v1.DataFieldPolicy'
+        forge.v1.ListDepartmentsResponse:
+            type: object
+            properties:
+                departments:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/forge.v1.Department'
+        forge.v1.ListFederatedIdentityLinksResponse:
+            type: object
+            properties:
+                links:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/forge.v1.FederatedIdentityLink'
+        forge.v1.ListMenusResponse:
+            type: object
+            properties:
+                menus:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/forge.v1.Menu'
+        forge.v1.ListPermissionsResponse:
+            type: object
+            properties:
+                permissions:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/forge.v1.Permission'
+        forge.v1.ListPortalApplicationsResponse:
+            type: object
+            properties:
+                applications:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/forge.v1.PortalApplication'
+        forge.v1.ListPortalCategoriesResponse:
+            type: object
+            properties:
+                categories:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/forge.v1.PortalCategory'
+        forge.v1.ListPortalFavoritesResponse:
+            type: object
+            properties:
+                applications:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/forge.v1.PortalApplication'
+        forge.v1.ListPortalTagsResponse:
+            type: object
+            properties:
+                tags:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/forge.v1.PortalTag'
+        forge.v1.ListPositionsResponse:
+            type: object
+            properties:
+                positions:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/forge.v1.Position'
+        forge.v1.ListRecentPortalApplicationsResponse:
+            type: object
+            properties:
+                applications:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/forge.v1.PortalApplication'
+        forge.v1.ListRolesResponse:
+            type: object
+            properties:
+                roles:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/forge.v1.Role'
+        forge.v1.ListSessionsResponse:
+            type: object
+            properties:
+                sessions:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/forge.v1.Session'
+        forge.v1.ListTemporaryRoleGrantsResponse:
+            type: object
+            properties:
+                grants:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/forge.v1.TemporaryRoleGrant'
+        forge.v1.ListUserAssignmentsResponse:
+            type: object
+            properties:
+                assignments:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/forge.v1.UserAssignment'
+        forge.v1.ListUserGroupsResponse:
+            type: object
+            properties:
+                userGroups:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/forge.v1.UserGroup'
+        forge.v1.ListUsersResponse:
+            type: object
+            properties:
+                users:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/forge.v1.User'
+        forge.v1.LoginLDAPRequest:
+            type: object
+            properties:
+                provider:
+                    type: string
+                organization:
+                    type: string
+                loginName:
+                    type: string
+                password:
+                    type: string
+        forge.v1.LoginLDAPResponse:
+            type: object
+            properties:
+                user:
+                    $ref: '#/components/schemas/forge.v1.User'
+                csrfToken:
+                    type: string
+        forge.v1.LoginRequest:
+            type: object
+            properties:
+                organization:
+                    type: string
+                loginName:
+                    type: string
+                password:
+                    type: string
+                mfaCode:
+                    type: string
+                recoveryCode:
+                    type: string
+                turnstileToken:
+                    type: string
+                    description: |-
+                        Cloudflare Turnstile token for the public login form. The server verifies
+                         it against the configured siteverify endpoint and never persists it.
+        forge.v1.LoginResponse:
+            type: object
+            properties:
+                user:
+                    $ref: '#/components/schemas/forge.v1.User'
+                csrfToken:
+                    type: string
+        forge.v1.LogoutRequest:
+            type: object
+            properties: {}
+        forge.v1.LogoutResponse:
+            type: object
+            properties:
+                federatedLogoutUrl:
+                    type: string
+                    description: |-
+                        Optional RP-initiated logout URL for the external IdP. The Velora
+                         session is already revoked before this value is returned.
+        forge.v1.Menu:
+            type: object
+            properties:
+                id:
+                    type: string
+                organizationId:
+                    type: string
+                key:
+                    type: string
+                parentKey:
+                    type: string
+                name:
+                    type: string
+                route:
+                    type: string
+                icon:
+                    type: string
+                permissionKey:
+                    type: string
+                sortOrder:
+                    type: integer
+                    format: int32
+                status:
+                    type: string
+        forge.v1.Organization:
+            type: object
+            properties:
+                id:
+                    type: string
+                organizationKey:
+                    type: string
+                name:
+                    type: string
+                description:
+                    type: string
+                status:
+                    type: string
+                maxUsers:
+                    type: string
+                maxActiveSessions:
+                    type: string
+                createdAt:
+                    type: string
+                    format: date-time
+                updatedAt:
+                    type: string
+                    format: date-time
+        forge.v1.Permission:
+            type: object
+            properties:
+                key:
+                    type: string
+                name:
+                    type: string
+                description:
+                    type: string
+                resource:
+                    type: string
+                action:
+                    type: string
+        forge.v1.PortalAccessPolicy:
+            type: object
+            properties:
+                id:
+                    type: string
+                applicationId:
+                    type: string
+                policyType:
+                    type: string
+                value:
+                    type: string
+                createdAt:
+                    type: string
+                    format: date-time
+                updatedAt:
+                    type: string
+                    format: date-time
+        forge.v1.PortalApplication:
+            type: object
+            properties:
+                id:
+                    type: string
+                organizationId:
+                    type: string
+                code:
+                    type: string
+                name:
+                    type: string
+                description:
+                    type: string
+                icon:
+                    type: string
+                categoryId:
+                    type: string
+                categoryName:
+                    type: string
+                homeUrl:
+                    type: string
+                launchUrl:
+                    type: string
+                launchType:
+                    type: string
+                status:
+                    type: string
+                sortOrder:
+                    type: string
+                featured:
+                    type: boolean
+                favorite:
+                    type: boolean
+                visitCount:
+                    type: string
+                tags:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/forge.v1.PortalTag'
+                policies:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/forge.v1.PortalAccessPolicy'
+                createdAt:
+                    type: string
+                    format: date-time
+                updatedAt:
+                    type: string
+                    format: date-time
+                lifecycleStatus:
+                    type: string
+                configVersion:
+                    type: string
+                publishedAt:
+                    type: string
+                    format: date-time
+                publishedBy:
+                    type: string
+        forge.v1.PortalApplicationVerification:
+            type: object
+            properties:
+                id:
+                    type: string
+                applicationId:
+                    type: string
+                bindingId:
+                    type: string
+                checkType:
+                    type: string
+                result:
+                    type: string
+                errorCode:
+                    type: string
+                evidenceJson:
+                    type: string
+                verifiedBy:
+                    type: string
+                occurredAt:
+                    type: string
+                    format: date-time
+                requestId:
+                    type: string
+        forge.v1.PortalCategory:
+            type: object
+            properties:
+                id:
+                    type: string
+                organizationId:
+                    type: string
+                categoryKey:
+                    type: string
+                name:
+                    type: string
+                description:
+                    type: string
+                status:
+                    type: string
+                sortOrder:
+                    type: string
+                createdAt:
+                    type: string
+                    format: date-time
+                updatedAt:
+                    type: string
+                    format: date-time
+        forge.v1.PortalIdentityBinding:
+            type: object
+            properties:
+                id:
+                    type: string
+                organizationId:
+                    type: string
+                applicationId:
+                    type: string
+                providerKey:
+                    type: string
+                protocol:
+                    type: string
+                providerApplicationRef:
+                    type: string
+                publicClientId:
+                    type: string
+                issuer:
+                    type: string
+                redirectUris:
+                    type: array
+                    items:
+                        type: string
+                configurationStatus:
+                    type: string
+                verificationStatus:
+                    type: string
+                verifiedAt:
+                    type: string
+                    format: date-time
+                verifiedBy:
+                    type: string
+                verificationError:
+                    type: string
+                configVersion:
+                    type: string
+                createdAt:
+                    type: string
+                    format: date-time
+                updatedAt:
+                    type: string
+                    format: date-time
+                scopes:
+                    type: array
+                    items:
+                        type: string
+        forge.v1.PortalTag:
+            type: object
+            properties:
+                id:
+                    type: string
+                organizationId:
+                    type: string
+                tagKey:
+                    type: string
+                name:
+                    type: string
+                sortOrder:
+                    type: string
+                createdAt:
+                    type: string
+                    format: date-time
+                updatedAt:
+                    type: string
+                    format: date-time
+        forge.v1.Position:
+            type: object
+            properties:
+                id:
+                    type: string
+                organizationId:
+                    type: string
+                departmentId:
+                    type: string
+                positionKey:
+                    type: string
+                name:
+                    type: string
+                description:
+                    type: string
+                status:
+                    type: string
+                sortOrder:
+                    type: string
+                createdAt:
+                    type: string
+                    format: date-time
+                updatedAt:
+                    type: string
+                    format: date-time
+        forge.v1.PublishApplicationRequest:
+            type: object
+            properties:
+                applicationId:
+                    type: string
+                expectedConfigVersion:
+                    type: string
+        forge.v1.PublishApplicationResponse:
+            type: object
+            properties:
+                application:
+                    $ref: '#/components/schemas/forge.v1.PortalApplication'
+        forge.v1.PublishConfigChangeRequest:
+            type: object
+            properties:
+                changeId:
+                    type: string
+                approvalId:
+                    type: string
+        forge.v1.PublishConfigChangeResponse:
+            type: object
+            properties:
+                change:
+                    $ref: '#/components/schemas/forge.v1.ConfigChange'
+        forge.v1.ReadinessResponse:
+            type: object
+            properties:
+                status:
+                    type: string
+                dependencies:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/forge.v1.DependencyStatus'
+        forge.v1.RecordDataDeletionEvidenceRequest:
+            type: object
+            properties:
+                resourceType:
+                    type: string
+                resourceDigest:
+                    type: string
+                fieldKeys:
+                    type: array
+                    items:
+                        type: string
+                reason:
+                    type: string
+                recordsDeleted:
+                    type: string
+                deletedAt:
+                    type: string
+                    format: date-time
+                approvalId:
+                    type: string
+        forge.v1.RecordDataDeletionEvidenceResponse:
+            type: object
+            properties:
+                evidence:
+                    $ref: '#/components/schemas/forge.v1.DataDeletionEvidence'
+        forge.v1.RemovePortalFavoriteResponse:
+            type: object
+            properties: {}
+        forge.v1.ReplacePortalApplicationPoliciesRequest:
+            type: object
+            properties:
+                applicationId:
+                    type: string
+                policies:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/forge.v1.PortalAccessPolicy'
+        forge.v1.ReplacePortalApplicationPoliciesResponse:
+            type: object
+            properties:
+                policies:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/forge.v1.PortalAccessPolicy'
+        forge.v1.ReplaceUserAssignmentsRequest:
+            type: object
+            properties:
+                userId:
+                    type: string
+                assignments:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/forge.v1.UserAssignment'
+        forge.v1.ReplaceUserAssignmentsResponse:
+            type: object
+            properties: {}
+        forge.v1.RequestConfigRollbackRequest:
+            type: object
+            properties:
+                changeId:
+                    type: string
+                approvalId:
+                    type: string
+        forge.v1.RequestConfigRollbackResponse:
+            type: object
+            properties:
+                change:
+                    $ref: '#/components/schemas/forge.v1.ConfigChange'
+        forge.v1.ResetUserPasswordRequest:
+            type: object
+            properties:
+                userId:
+                    type: string
+                password:
+                    type: string
+                approvalId:
+                    type: string
+        forge.v1.ResetUserPasswordResponse:
+            type: object
+            properties: {}
+        forge.v1.RevokeApiTokenResponse:
+            type: object
+            properties: {}
+        forge.v1.RevokeSessionResponse:
+            type: object
+            properties: {}
+        forge.v1.RevokeTemporaryRoleGrantRequest:
+            type: object
+            properties:
+                grantId:
+                    type: string
+                reason:
+                    type: string
+        forge.v1.RevokeTemporaryRoleGrantResponse:
+            type: object
+            properties: {}
+        forge.v1.Role:
+            type: object
+            properties:
+                key:
+                    type: string
+                name:
+                    type: string
+                description:
+                    type: string
+                dataScope:
+                    type: string
+                permissions:
+                    type: array
+                    items:
+                        type: string
+                dataScopeDepartmentIds:
+                    type: array
+                    items:
+                        type: string
+        forge.v1.RollbackConfigChangeRequest:
+            type: object
+            properties:
+                changeId:
+                    type: string
+                approvalId:
+                    type: string
+        forge.v1.RollbackConfigChangeResponse:
+            type: object
+            properties:
+                change:
+                    $ref: '#/components/schemas/forge.v1.ConfigChange'
+        forge.v1.SecurityPolicy:
+            type: object
+            properties:
+                passwordMinLength:
+                    type: string
+                passwordRequireUpper:
+                    type: boolean
+                passwordRequireLower:
+                    type: boolean
+                passwordRequireDigit:
+                    type: boolean
+                passwordRequireSymbol:
+                    type: boolean
+                passwordHistory:
+                    type: string
+                passwordMaxAgeDays:
+                    type: string
+                loginMaxFailures:
+                    type: string
+                loginLockDurationSeconds:
+                    type: string
+                sessionTtlSeconds:
+                    type: string
+                maxActiveSessions:
+                    type: string
+        forge.v1.Session:
+            type: object
+            properties:
+                id:
+                    type: string
+                userId:
+                    type: string
+                loginName:
+                    type: string
+                clientIp:
+                    type: string
+                userAgent:
+                    type: string
+                createdAt:
+                    type: string
+                    format: date-time
+                expiresAt:
+                    type: string
+                    format: date-time
+                lastSeenAt:
+                    type: string
+                    format: date-time
+                current:
+                    type: boolean
+        forge.v1.Settlement:
+            type: object
+            properties:
+                id:
+                    type: string
+                organizationId:
+                    type: string
+                status:
+                    type: string
+                currency:
+                    type: string
+                amountMinor:
+                    type: string
+                version:
+                    type: string
+                updatedAt:
+                    type: string
+                    format: date-time
+            description: Settlement is a read-only reference projection used by the split-service example.
+        forge.v1.StepUpAuthenticationRequest:
+            type: object
+            properties:
+                currentPassword:
+                    type: string
+                mfaCode:
+                    type: string
+                recoveryCode:
+                    type: string
+        forge.v1.StepUpAuthenticationResponse:
+            type: object
+            properties:
+                verifiedAt:
+                    type: string
+                    format: date-time
+        forge.v1.SubmitApplicationPublishRequest:
+            type: object
+            properties:
+                applicationId:
+                    type: string
+                expectedConfigVersion:
+                    type: string
+        forge.v1.SubmitApplicationPublishResponse:
+            type: object
+            properties:
+                application:
+                    $ref: '#/components/schemas/forge.v1.PortalApplication'
+        forge.v1.TemporaryRoleGrant:
+            type: object
+            properties:
+                id:
+                    type: string
+                organizationId:
+                    type: string
+                userId:
+                    type: string
+                roleKey:
+                    type: string
+                requestedBy:
+                    type: string
+                approvalId:
+                    type: string
+                reason:
+                    type: string
+                status:
+                    type: string
+                validFrom:
+                    type: string
+                    format: date-time
+                validUntil:
+                    type: string
+                    format: date-time
+                revokedAt:
+                    type: string
+                    format: date-time
+                revokedBy:
+                    type: string
+                revokeReason:
+                    type: string
+                createdAt:
+                    type: string
+                    format: date-time
+        forge.v1.TransferApprovalRequest:
+            type: object
+            properties:
+                approvalId:
+                    type: string
+                newAssigneeId:
+                    type: string
+                comment:
+                    type: string
+        forge.v1.TransferApprovalResponse:
+            type: object
+            properties:
+                approval:
+                    $ref: '#/components/schemas/forge.v1.ApprovalRequest'
+        forge.v1.UnlinkFederatedIdentityRequest:
+            type: object
+            properties:
+                linkId:
+                    type: string
+        forge.v1.UnlinkFederatedIdentityResponse:
+            type: object
+            properties: {}
+        forge.v1.UnlockUserRequest:
+            type: object
+            properties:
+                userId:
+                    type: string
+        forge.v1.UnlockUserResponse:
+            type: object
+            properties:
+                user:
+                    $ref: '#/components/schemas/forge.v1.User'
+        forge.v1.UpdateDepartmentRequest:
+            type: object
+            properties:
+                departmentId:
+                    type: string
+                name:
+                    type: string
+                parentId:
+                    type: string
+                status:
+                    type: string
+                sortOrder:
+                    type: string
+        forge.v1.UpdateDepartmentResponse:
+            type: object
+            properties:
+                department:
+                    $ref: '#/components/schemas/forge.v1.Department'
+        forge.v1.UpdateMenuRequest:
+            type: object
+            properties:
+                menuKey:
+                    type: string
+                parentKey:
+                    type: string
+                name:
+                    type: string
+                route:
+                    type: string
+                icon:
+                    type: string
+                permissionKey:
+                    type: string
+                sortOrder:
+                    type: integer
+                    format: int32
+                status:
+                    type: string
+                approvalId:
+                    type: string
+        forge.v1.UpdateMenuResponse:
+            type: object
+            properties:
+                menu:
+                    $ref: '#/components/schemas/forge.v1.Menu'
+        forge.v1.UpdateOrganizationRequest:
+            type: object
+            properties:
+                name:
+                    type: string
+                description:
+                    type: string
+                status:
+                    type: string
+                maxUsers:
+                    type: string
+                maxActiveSessions:
+                    type: string
+        forge.v1.UpdateOrganizationResponse:
+            type: object
+            properties:
+                organization:
+                    $ref: '#/components/schemas/forge.v1.Organization'
+        forge.v1.UpdatePortalApplicationRequest:
+            type: object
+            properties:
+                applicationId:
+                    type: string
+                name:
+                    type: string
+                description:
+                    type: string
+                icon:
+                    type: string
+                categoryId:
+                    type: string
+                homeUrl:
+                    type: string
+                launchUrl:
+                    type: string
+                launchType:
+                    type: string
+                status:
+                    type: string
+                sortOrder:
+                    type: string
+                featured:
+                    type: boolean
+                tagIds:
+                    type: array
+                    items:
+                        type: string
+        forge.v1.UpdatePortalApplicationResponse:
+            type: object
+            properties:
+                application:
+                    $ref: '#/components/schemas/forge.v1.PortalApplication'
+        forge.v1.UpdatePortalCategoryRequest:
+            type: object
+            properties:
+                categoryId:
+                    type: string
+                name:
+                    type: string
+                description:
+                    type: string
+                sortOrder:
+                    type: string
+                status:
+                    type: string
+        forge.v1.UpdatePortalCategoryResponse:
+            type: object
+            properties:
+                category:
+                    $ref: '#/components/schemas/forge.v1.PortalCategory'
+        forge.v1.UpdatePortalTagRequest:
+            type: object
+            properties:
+                tagId:
+                    type: string
+                name:
+                    type: string
+                sortOrder:
+                    type: string
+        forge.v1.UpdatePortalTagResponse:
+            type: object
+            properties:
+                tag:
+                    $ref: '#/components/schemas/forge.v1.PortalTag'
+        forge.v1.UpdatePositionRequest:
+            type: object
+            properties:
+                positionId:
+                    type: string
+                name:
+                    type: string
+                description:
+                    type: string
+                departmentId:
+                    type: string
+                status:
+                    type: string
+                sortOrder:
+                    type: string
+        forge.v1.UpdatePositionResponse:
+            type: object
+            properties:
+                position:
+                    $ref: '#/components/schemas/forge.v1.Position'
+        forge.v1.UpdateRoleDataScopeRequest:
+            type: object
+            properties:
+                roleKey:
+                    type: string
+                dataScope:
+                    type: string
+                departmentIds:
+                    type: array
+                    items:
+                        type: string
+                approvalId:
+                    type: string
+        forge.v1.UpdateRoleDataScopeResponse:
+            type: object
+            properties:
+                role:
+                    $ref: '#/components/schemas/forge.v1.Role'
+        forge.v1.UpdateRolePermissionsRequest:
+            type: object
+            properties:
+                roleKey:
+                    type: string
+                permissions:
+                    type: array
+                    items:
+                        type: string
+                approvalId:
+                    type: string
+        forge.v1.UpdateRolePermissionsResponse:
+            type: object
+            properties:
+                role:
+                    $ref: '#/components/schemas/forge.v1.Role'
+        forge.v1.UpdateSecurityPolicyResponse:
+            type: object
+            properties:
+                policy:
+                    $ref: '#/components/schemas/forge.v1.SecurityPolicy'
+        forge.v1.UpdateUserGroupMembersRequest:
+            type: object
+            properties:
+                groupId:
+                    type: string
+                userIds:
+                    type: array
+                    items:
+                        type: string
+        forge.v1.UpdateUserGroupMembersResponse:
+            type: object
+            properties: {}
+        forge.v1.UpdateUserGroupRequest:
+            type: object
+            properties:
+                groupId:
+                    type: string
+                name:
+                    type: string
+                description:
+                    type: string
+                status:
+                    type: string
+        forge.v1.UpdateUserGroupResponse:
+            type: object
+            properties:
+                userGroup:
+                    $ref: '#/components/schemas/forge.v1.UserGroup'
+        forge.v1.UpdateUserGroupRolesRequest:
+            type: object
+            properties:
+                groupId:
+                    type: string
+                roles:
+                    type: array
+                    items:
+                        type: string
+        forge.v1.UpdateUserGroupRolesResponse:
+            type: object
+            properties: {}
+        forge.v1.UpdateUserRolesRequest:
+            type: object
+            properties:
+                userId:
+                    type: string
+                roles:
+                    type: array
+                    items:
+                        type: string
+                approvalId:
+                    type: string
+        forge.v1.UpdateUserRolesResponse:
+            type: object
+            properties:
+                user:
+                    $ref: '#/components/schemas/forge.v1.User'
+        forge.v1.UpdateUserStatusRequest:
+            type: object
+            properties:
+                userId:
+                    type: string
+                status:
+                    type: string
+        forge.v1.UpdateUserStatusResponse:
+            type: object
+            properties:
+                user:
+                    $ref: '#/components/schemas/forge.v1.User'
+        forge.v1.UpsertApplicationIdentityBindingRequest:
+            type: object
+            properties:
+                applicationId:
+                    type: string
+                providerKey:
+                    type: string
+                protocol:
+                    type: string
+                providerApplicationRef:
+                    type: string
+                publicClientId:
+                    type: string
+                issuer:
+                    type: string
+                redirectUris:
+                    type: array
+                    items:
+                        type: string
+                expectedConfigVersion:
+                    type: string
+                approvalId:
+                    type: string
+                scopes:
+                    type: array
+                    items:
+                        type: string
+        forge.v1.UpsertApplicationIdentityBindingResponse:
+            type: object
+            properties:
+                binding:
+                    $ref: '#/components/schemas/forge.v1.PortalIdentityBinding'
+                application:
+                    $ref: '#/components/schemas/forge.v1.PortalApplication'
+                oneTimeClientSecret:
+                    type: string
+        forge.v1.UpsertDataFieldPolicyRequest:
+            type: object
+            properties:
+                policy:
+                    $ref: '#/components/schemas/forge.v1.DataFieldPolicy'
+                approvalId:
+                    type: string
+        forge.v1.UpsertDataFieldPolicyResponse:
+            type: object
+            properties:
+                policy:
+                    $ref: '#/components/schemas/forge.v1.DataFieldPolicy'
+        forge.v1.User:
+            type: object
+            properties:
+                id:
+                    type: string
+                organizationId:
+                    type: string
+                loginName:
+                    type: string
+                displayName:
+                    type: string
+                status:
+                    type: string
+                mustChangePassword:
+                    type: boolean
+                lockedUntil:
+                    type: string
+                    format: date-time
+                passwordChangedAt:
+                    type: string
+                    format: date-time
+                createdAt:
+                    type: string
+                    format: date-time
+                roles:
+                    type: array
+                    items:
+                        type: string
+                permissions:
+                    type: array
+                    items:
+                        type: string
+                dataScope:
+                    $ref: '#/components/schemas/forge.v1.EffectiveDataScope'
+                authenticationLevel:
+                    type: string
+                mfaVerifiedAt:
+                    type: string
+                    format: date-time
+        forge.v1.UserAssignment:
+            type: object
+            properties:
+                id:
+                    type: string
+                organizationId:
+                    type: string
+                userId:
+                    type: string
+                departmentId:
+                    type: string
+                positionId:
+                    type: string
+                primary:
+                    type: boolean
+                validFrom:
+                    type: string
+                    format: date-time
+                validUntil:
+                    type: string
+                    format: date-time
+                createdAt:
+                    type: string
+                    format: date-time
+        forge.v1.UserGroup:
+            type: object
+            properties:
+                id:
+                    type: string
+                organizationId:
+                    type: string
+                groupKey:
+                    type: string
+                name:
+                    type: string
+                description:
+                    type: string
+                status:
+                    type: string
+                roles:
+                    type: array
+                    items:
+                        type: string
+                memberIds:
+                    type: array
+                    items:
+                        type: string
+                memberCount:
+                    type: string
+                createdAt:
+                    type: string
+                    format: date-time
+                updatedAt:
+                    type: string
+                    format: date-time
+        forge.v1.VerifyApplicationIdentityRequest:
+            type: object
+            properties:
+                applicationId:
+                    type: string
+                expectedConfigVersion:
+                    type: string
+        forge.v1.VerifyApplicationIdentityResponse:
+            type: object
+            properties:
+                binding:
+                    $ref: '#/components/schemas/forge.v1.PortalIdentityBinding'
+                application:
+                    $ref: '#/components/schemas/forge.v1.PortalApplication'
+                verifications:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/forge.v1.PortalApplicationVerification'
+                passed:
+                    type: boolean
+        forge.v1.VerifyAuditIntegrityResponse:
+            type: object
+            properties:
+                verified:
+                    type: boolean
+        forge.v1.WithdrawApprovalRequest:
+            type: object
+            properties:
+                approvalId:
+                    type: string
+                comment:
+                    type: string
+        forge.v1.WithdrawApprovalResponse:
+            type: object
+            properties:
+                approval:
+                    $ref: '#/components/schemas/forge.v1.ApprovalRequest'
+    securitySchemes:
+        SessionCookie:
+            type: apiKey
+            description: Interactive browser session. Mutating operations also require CsrfToken.
+            name: velora_session
+            in: cookie
+        BearerAuth:
+            type: http
+            description: API token constrained by both account permissions and token scopes.
+            scheme: bearer
+            bearerFormat: Forge API Token
+        CsrfToken:
+            type: apiKey
+            description: Double-submit token matching the velora_csrf cookie.
+            name: X-CSRF-Token
+            in: header
+tags:
+    - name: ApprovalService
+    - name: IdentityService
+    - name: PlatformService
+    - name: PortalService
+    - name: ReferenceSettlementService
+      description: |-
+        ReferenceSettlementService is the contract example for extracting a domain
+         module from the modular monolith into an independently deployed Kratos service.
+    - name: SystemService
+      description: SystemService exposes liveness, readiness, and immutable build metadata.

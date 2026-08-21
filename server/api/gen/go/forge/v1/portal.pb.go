@@ -4232,7 +4232,7 @@ const file_forge_v1_portal_proto_rawDesc = "" +
 	"\vapproval_id\x18\x03 \x01(\tR\n" +
 	"approvalId\"[\n" +
 	"\x1aDisableApplicationResponse\x12=\n" +
-	"\vapplication\x18\x01 \x01(\v2\x1b.forge.v1.PortalApplicationR\vapplication2\xfc,\n" +
+	"\vapplication\x18\x01 \x01(\v2\x1b.forge.v1.PortalApplicationR\vapplication2\x990\n" +
 	"\rPortalService\x12\xd0\x01\n" +
 	"\x1aAuthorizePortalApplication\x12+.forge.v1.AuthorizePortalApplicationRequest\x1a,.forge.v1.AuthorizePortalApplicationResponse\"W\xbaG'Z\x13\n" +
 	"\x11\n" +
@@ -4385,15 +4385,65 @@ const file_forge_v1_portal_proto_rawDesc = "" +
 	"\tCsrfToken\x12\x00Z\x10\n" +
 	"\x0e\n" +
 	"\n" +
-	"BearerAuth\x12\x00\x82\xd3\xe4\x93\x02@:\x01*\x1a;/api/v1/admin/portal/applications/{application_id}/policies\x12\x8b\x01\n" +
-	"\x13GetIdentityOverview\x12$.forge.v1.GetIdentityOverviewRequest\x1a%.forge.v1.GetIdentityOverviewResponse\"'\x82\xd3\xe4\x93\x02!\x12\x1f/api/v1/admin/identity/overview\x12\x98\x01\n" +
-	"\x16GetIdentityConsoleLink\x12'.forge.v1.GetIdentityConsoleLinkRequest\x1a(.forge.v1.GetIdentityConsoleLinkResponse\"+\x82\xd3\xe4\x93\x02%\x12#/api/v1/admin/identity/console-link\x12\xb8\x01\n" +
-	"\x18GetApplicationOnboarding\x12).forge.v1.GetApplicationOnboardingRequest\x1a*.forge.v1.GetApplicationOnboardingResponse\"E\x82\xd3\xe4\x93\x02?\x12=/api/v1/admin/portal/applications/{application_id}/onboarding\x12\xd9\x01\n" +
-	" UpsertApplicationIdentityBinding\x121.forge.v1.UpsertApplicationIdentityBindingRequest\x1a2.forge.v1.UpsertApplicationIdentityBindingResponse\"N\x82\xd3\xe4\x93\x02H:\x01*\x1aC/api/v1/admin/portal/applications/{application_id}/identity-binding\x12\xba\x01\n" +
-	"\x19VerifyApplicationIdentity\x12*.forge.v1.VerifyApplicationIdentityRequest\x1a+.forge.v1.VerifyApplicationIdentityResponse\"D\x82\xd3\xe4\x93\x02>:\x01*\"9/api/v1/admin/portal/applications/{application_id}/verify\x12\xbf\x01\n" +
-	"\x18SubmitApplicationPublish\x12).forge.v1.SubmitApplicationPublishRequest\x1a*.forge.v1.SubmitApplicationPublishResponse\"L\x82\xd3\xe4\x93\x02F:\x01*\"A/api/v1/admin/portal/applications/{application_id}/submit-publish\x12\xa6\x01\n" +
-	"\x12PublishApplication\x12#.forge.v1.PublishApplicationRequest\x1a$.forge.v1.PublishApplicationResponse\"E\x82\xd3\xe4\x93\x02?:\x01*\":/api/v1/admin/portal/applications/{application_id}/publish\x12\xa6\x01\n" +
-	"\x12DisableApplication\x12#.forge.v1.DisableApplicationRequest\x1a$.forge.v1.DisableApplicationResponse\"E\x82\xd3\xe4\x93\x02?:\x01*\":/api/v1/admin/portal/applications/{application_id}/disableBDZBgithub.com/sevoniva-labs/velora/server/api/gen/go/forge/v1;forgev1b\x06proto3"
+	"BearerAuth\x12\x00\x82\xd3\xe4\x93\x02@:\x01*\x1a;/api/v1/admin/portal/applications/{application_id}/policies\x12\xb5\x01\n" +
+	"\x13GetIdentityOverview\x12$.forge.v1.GetIdentityOverviewRequest\x1a%.forge.v1.GetIdentityOverviewResponse\"Q\xbaG'Z\x13\n" +
+	"\x11\n" +
+	"\rSessionCookie\x12\x00Z\x10\n" +
+	"\x0e\n" +
+	"\n" +
+	"BearerAuth\x12\x00\x82\xd3\xe4\x93\x02!\x12\x1f/api/v1/admin/identity/overview\x12\xc2\x01\n" +
+	"\x16GetIdentityConsoleLink\x12'.forge.v1.GetIdentityConsoleLinkRequest\x1a(.forge.v1.GetIdentityConsoleLinkResponse\"U\xbaG'Z\x13\n" +
+	"\x11\n" +
+	"\rSessionCookie\x12\x00Z\x10\n" +
+	"\x0e\n" +
+	"\n" +
+	"BearerAuth\x12\x00\x82\xd3\xe4\x93\x02%\x12#/api/v1/admin/identity/console-link\x12\xe2\x01\n" +
+	"\x18GetApplicationOnboarding\x12).forge.v1.GetApplicationOnboardingRequest\x1a*.forge.v1.GetApplicationOnboardingResponse\"o\xbaG'Z\x13\n" +
+	"\x11\n" +
+	"\rSessionCookie\x12\x00Z\x10\n" +
+	"\x0e\n" +
+	"\n" +
+	"BearerAuth\x12\x00\x82\xd3\xe4\x93\x02?\x12=/api/v1/admin/portal/applications/{application_id}/onboarding\x12\x93\x02\n" +
+	" UpsertApplicationIdentityBinding\x121.forge.v1.UpsertApplicationIdentityBindingRequest\x1a2.forge.v1.UpsertApplicationIdentityBindingResponse\"\x87\x01\xbaG6Z\"\n" +
+	"\x11\n" +
+	"\rSessionCookie\x12\x00\n" +
+	"\r\n" +
+	"\tCsrfToken\x12\x00Z\x10\n" +
+	"\x0e\n" +
+	"\n" +
+	"BearerAuth\x12\x00\x82\xd3\xe4\x93\x02H:\x01*\x1aC/api/v1/admin/portal/applications/{application_id}/identity-binding\x12\xf3\x01\n" +
+	"\x19VerifyApplicationIdentity\x12*.forge.v1.VerifyApplicationIdentityRequest\x1a+.forge.v1.VerifyApplicationIdentityResponse\"}\xbaG6Z\"\n" +
+	"\x11\n" +
+	"\rSessionCookie\x12\x00\n" +
+	"\r\n" +
+	"\tCsrfToken\x12\x00Z\x10\n" +
+	"\x0e\n" +
+	"\n" +
+	"BearerAuth\x12\x00\x82\xd3\xe4\x93\x02>:\x01*\"9/api/v1/admin/portal/applications/{application_id}/verify\x12\xf9\x01\n" +
+	"\x18SubmitApplicationPublish\x12).forge.v1.SubmitApplicationPublishRequest\x1a*.forge.v1.SubmitApplicationPublishResponse\"\x85\x01\xbaG6Z\"\n" +
+	"\x11\n" +
+	"\rSessionCookie\x12\x00\n" +
+	"\r\n" +
+	"\tCsrfToken\x12\x00Z\x10\n" +
+	"\x0e\n" +
+	"\n" +
+	"BearerAuth\x12\x00\x82\xd3\xe4\x93\x02F:\x01*\"A/api/v1/admin/portal/applications/{application_id}/submit-publish\x12\xdf\x01\n" +
+	"\x12PublishApplication\x12#.forge.v1.PublishApplicationRequest\x1a$.forge.v1.PublishApplicationResponse\"~\xbaG6Z\"\n" +
+	"\x11\n" +
+	"\rSessionCookie\x12\x00\n" +
+	"\r\n" +
+	"\tCsrfToken\x12\x00Z\x10\n" +
+	"\x0e\n" +
+	"\n" +
+	"BearerAuth\x12\x00\x82\xd3\xe4\x93\x02?:\x01*\":/api/v1/admin/portal/applications/{application_id}/publish\x12\xdf\x01\n" +
+	"\x12DisableApplication\x12#.forge.v1.DisableApplicationRequest\x1a$.forge.v1.DisableApplicationResponse\"~\xbaG6Z\"\n" +
+	"\x11\n" +
+	"\rSessionCookie\x12\x00\n" +
+	"\r\n" +
+	"\tCsrfToken\x12\x00Z\x10\n" +
+	"\x0e\n" +
+	"\n" +
+	"BearerAuth\x12\x00\x82\xd3\xe4\x93\x02?:\x01*\":/api/v1/admin/portal/applications/{application_id}/disableBDZBgithub.com/sevoniva-labs/velora/server/api/gen/go/forge/v1;forgev1b\x06proto3"
 
 var (
 	file_forge_v1_portal_proto_rawDescOnce sync.Once

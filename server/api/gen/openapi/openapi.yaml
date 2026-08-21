@@ -552,6 +552,9 @@ paths:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/forge.v1.GetIdentityConsoleLinkResponse'
+            security:
+                - SessionCookie: []
+                - BearerAuth: []
     /api/v1/admin/identity/overview:
         get:
             tags:
@@ -564,6 +567,9 @@ paths:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/forge.v1.GetIdentityOverviewResponse'
+            security:
+                - SessionCookie: []
+                - BearerAuth: []
     /api/v1/admin/menus:
         get:
             tags:
@@ -773,6 +779,10 @@ paths:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/forge.v1.DisableApplicationResponse'
+            security:
+                - SessionCookie: []
+                  CsrfToken: []
+                - BearerAuth: []
     /api/v1/admin/portal/applications/{applicationId}/identity-binding:
         put:
             tags:
@@ -797,6 +807,10 @@ paths:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/forge.v1.UpsertApplicationIdentityBindingResponse'
+            security:
+                - SessionCookie: []
+                  CsrfToken: []
+                - BearerAuth: []
     /api/v1/admin/portal/applications/{applicationId}/onboarding:
         get:
             tags:
@@ -815,6 +829,9 @@ paths:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/forge.v1.GetApplicationOnboardingResponse'
+            security:
+                - SessionCookie: []
+                - BearerAuth: []
     /api/v1/admin/portal/applications/{applicationId}/policies:
         put:
             tags:
@@ -867,6 +884,10 @@ paths:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/forge.v1.PublishApplicationResponse'
+            security:
+                - SessionCookie: []
+                  CsrfToken: []
+                - BearerAuth: []
     /api/v1/admin/portal/applications/{applicationId}/submit-publish:
         post:
             tags:
@@ -891,6 +912,10 @@ paths:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/forge.v1.SubmitApplicationPublishResponse'
+            security:
+                - SessionCookie: []
+                  CsrfToken: []
+                - BearerAuth: []
     /api/v1/admin/portal/applications/{applicationId}/verify:
         post:
             tags:
@@ -915,6 +940,10 @@ paths:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/forge.v1.VerifyApplicationIdentityResponse'
+            security:
+                - SessionCookie: []
+                  CsrfToken: []
+                - BearerAuth: []
     /api/v1/admin/portal/categories:
         post:
             tags:

@@ -53,7 +53,6 @@ func (s *IdentityService) loginCasdoorPassword(ctx context.Context, req *forgev1
 		_ = s.audit.Write(ctx, *event)
 		return nil, err
 	}
-	s.setLoginCookies(ctx, token, csrf, expires)
 	response := &forgev1.LoginResponse{User: principalUser(principal), CsrfToken: csrf}
 	if s.sessionBridge != nil {
 		if strings.TrimSpace(federated.CasdoorSessionCookie) == "" {
@@ -66,6 +65,7 @@ func (s *IdentityService) loginCasdoorPassword(ctx context.Context, req *forgev1
 		response.BridgeAction = s.sessionBridge.ActionURL()
 		response.BridgeTicket = ticket
 	}
+	s.setLoginCookies(ctx, token, csrf, expires)
 	return response, nil
 }
 

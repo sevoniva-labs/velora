@@ -84,10 +84,14 @@ services:
       POSTGRES_APP_PASSWORD_FILE: /run/secrets/postgres_app_password
       POSTGRES_IDP_USER: "${POSTGRES_IDP_USER:?POSTGRES_IDP_USER is required}"
       POSTGRES_IDP_PASSWORD_FILE: /run/secrets/postgres_idp_password
+    command: ["postgres", "-c", "ssl=on", "-c", "ssl_cert_file=/run/secrets/postgres_tls_cert", "-c", "ssl_key_file=/run/secrets/postgres_tls_key", "-c", "ssl_ca_file=/run/secrets/postgres_tls_ca"]
     secrets:
       - postgres_superuser_password
       - postgres_app_password
       - postgres_idp_password
+      - postgres_tls_cert
+      - postgres_tls_key
+      - postgres_tls_ca
     volumes:
       - velora-prod-pgdata:/var/lib/postgresql/data
       - ../../compose/init-db-prod.sh:/docker-entrypoint-initdb.d/10-init-db-prod.sh:ro
@@ -312,6 +316,12 @@ volumes:
 secrets:
   postgres_superuser_password:
     file: "${POSTGRES_SUPERUSER_PASSWORD_FILE:?POSTGRES_SUPERUSER_PASSWORD_FILE is required}"
+  postgres_tls_cert:
+    file: "${POSTGRES_TLS_CERT_FILE:?POSTGRES_TLS_CERT_FILE is required}"
+  postgres_tls_key:
+    file: "${POSTGRES_TLS_KEY_FILE:?POSTGRES_TLS_KEY_FILE is required}"
+  postgres_tls_ca:
+    file: "${POSTGRES_TLS_CA_FILE:?POSTGRES_TLS_CA_FILE is required}"
   postgres_app_password:
     file: "${POSTGRES_APP_PASSWORD_FILE:?POSTGRES_APP_PASSWORD_FILE is required}"
   postgres_idp_password:

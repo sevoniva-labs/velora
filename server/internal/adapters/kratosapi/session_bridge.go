@@ -88,6 +88,8 @@ func (b *SessionBridge) Create(ctx context.Context, cookieValue, returnPath stri
 func (b *SessionBridge) Handler() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Cache-Control", "no-store")
+		w.Header().Set("Pragma", "no-cache")
+		w.Header().Set("Referrer-Policy", "no-referrer")
 		if r.Method != http.MethodPost || r.URL.RawQuery != "" || !b.allowedHost(r.Host) {
 			http.Error(w, "not found", http.StatusNotFound)
 			return

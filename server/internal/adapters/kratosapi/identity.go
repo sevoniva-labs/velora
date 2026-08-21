@@ -78,6 +78,10 @@ func (s *IdentityService) requirePasswordManagement() error {
 }
 
 func (s *IdentityService) Login(ctx context.Context, req *forgev1.LoginRequest) (*forgev1.LoginResponse, error) {
+	if tr, ok := transport.FromServerContext(ctx); ok {
+		tr.ReplyHeader().Set("Cache-Control", "no-store")
+		tr.ReplyHeader().Set("Pragma", "no-cache")
+	}
 	if !s.passwordLoginEnabled && !s.casdoorPasswordLoginEnabled {
 		return nil, kerrors.ServiceUnavailable("PASSWORD_LOGIN_DISABLED", "password login is disabled; use the configured OIDC provider")
 	}

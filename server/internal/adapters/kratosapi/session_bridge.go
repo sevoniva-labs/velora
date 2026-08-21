@@ -48,7 +48,12 @@ func NewSessionBridge(c cache.Cache, accountURL string, secure bool, sameSite ht
 	if err != nil || u.Hostname() == "" || (u.Scheme != "https" && secure) {
 		return nil, errors.New("session bridge account URL must have a valid host")
 	}
-	action := strings.TrimRight(strings.TrimSpace(accountURL), "/") + "/_velora/session/bridge"
+	actionURL := *u
+	actionURL.Path = "/_velora/session/bridge"
+	actionURL.RawPath = ""
+	actionURL.RawQuery = ""
+	actionURL.Fragment = ""
+	action := actionURL.String()
 	return &SessionBridge{cache: c, authHost: strings.ToLower(u.Hostname()), actionURL: action, secure: secure, sameSite: sameSite}, nil
 }
 

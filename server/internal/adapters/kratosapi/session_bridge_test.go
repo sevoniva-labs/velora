@@ -22,6 +22,9 @@ func newTestBridge(t *testing.T) (*SessionBridge, cache.Cache) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	if bridge.ActionURL() != "https://auth.example.test/_velora/session/bridge" {
+		t.Fatalf("bridge action URL=%q", bridge.ActionURL())
+	}
 	return bridge, c
 }
 

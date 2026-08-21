@@ -99,12 +99,12 @@ Demo App 必须运行在独立域名，才能真实验证跨应用浏览器 SSO�
 实施时只解压需要的 bundle 与 key，CSR 不上传服务器运行目录：
 
 ```text
-/opt/velora/runtime/certs/auth.sevoniva.com/fullchain.pem
-/opt/velora/runtime/certs/auth.sevoniva.com/privkey.pem
-/opt/velora/runtime/certs/demo.sevoniva.com/fullchain.pem
-/opt/velora/runtime/certs/demo.sevoniva.com/privkey.pem
-/opt/velora/runtime/certs/home.sevoniva.com/fullchain.pem
-/opt/velora/runtime/certs/home.sevoniva.com/privkey.pem
+/opt/velora/prod/runtime/certs/auth.sevoniva.com/fullchain.pem
+/opt/velora/prod/runtime/certs/auth.sevoniva.com/privkey.pem
+/opt/velora/prod/runtime/certs/demo.sevoniva.com/fullchain.pem
+/opt/velora/prod/runtime/certs/demo.sevoniva.com/privkey.pem
+/opt/velora/prod/runtime/certs/home.sevoniva.com/fullchain.pem
+/opt/velora/prod/runtime/certs/home.sevoniva.com/privkey.pem
 ```
 
 目录权限 `0700`，私钥 `0600`，证书 `0644`，属主为 root。证书和私钥不提交 Git，不打印私钥内容或公钥指纹到应用日志。
@@ -119,7 +119,7 @@ auth.sevoniva.com  A  175.27.250.53
 demo.sevoniva.com  A  175.27.250.53
 ```
 
-当前状态：等待用户修改解析。正式切换前先用 `curl --resolve` 验证三个虚拟主机；切换后再从公网、Mac 和服务器侧分别复验。
+当前状态：三条解析均已切换并从公网、Mac 和服务器侧复验通过；证书轮换或回滚时继续使用 `curl --resolve` 做切换前验证。
 
 ### 证书
 
@@ -330,7 +330,7 @@ location / {
 - SSH 只允许密钥登录，禁止 root 远程登录和密码登录；`ubuntu` 通过 sudo 运维。
 - 防火墙仅开放 `22/80/443`；PostgreSQL、Redis、Casdoor、Server、Demo 均不绑定宿主机公网地址。
 - 容器使用非 root、`read_only`、`no-new-privileges`、最小 capabilities、健康检查、日志轮转和资源限制。
-- Secret 放在 `/opt/velora/runtime/secrets`，目录 `0700`、文件 `0600`，不写入 `.env`、Compose、Git、命令行参数或日志。
+- Secret 放在 `/opt/velora/prod/runtime/secrets`，目录 `0700`、文件 `0600`，不写入 `.env`、Compose、Git、命令行参数或日志。
 - 三套 TLS 私钥只挂载给 Edge；应用容器不可读取。
 - Turnstile Site Key 可进入前端配置，Secret Key 只由 Velora Server 读取并通过 Cloudflare Siteverify 服务端校验。
 - 数据库每日加密备份到 COS 独立前缀，保留 7 个日备、4 个周备；首次上线前必须完成一次恢复演练。

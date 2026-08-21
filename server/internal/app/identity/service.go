@@ -839,11 +839,23 @@ func (s *Service) Authenticate(ctx context.Context, token string) (domain.Princi
 		if policyErr != nil {
 			return domain.Principal{}, policyErr
 		}
-		if s.passwordExpiredAt(p.PasswordChangedAt, policy.maxAge) {
-			p.MustChangePassword = true
-		}
+		s.applyPasswordRequirement(&p, policy.maxAge)
 	}
 	return p, err
+}
+
+// applyPasswordRequirement keeps local password policy out of externally
+// authenticated sessions. Casdoor owns password lifecycle for federated
+// identities, so a stale or bootstrap-only local password must never block an
+// otherwise valid federated session on subsequent requests.
+func (s *Service) applyPasswordRequirement(p *domain.Principal, maxAge time.Duration) {
+	if strings.EqualFold(strings.TrimSpace(p.AuthenticationLevel), "FEDERATED") {
+		p.MustChangePassword = false
+		return
+	}
+	if s.passwordExpiredAt(p.PasswordChangedAt, maxAge) {
+		p.MustChangePassword = true
+	}
 }
 func (s *Service) Logout(ctx context.Context, token string) error {
 	if token == "" {

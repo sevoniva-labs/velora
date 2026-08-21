@@ -29,6 +29,7 @@ import (
 	domain "github.com/sevoniva-labs/velora/server/internal/domain/identity"
 	portaldomain "github.com/sevoniva-labs/velora/server/internal/domain/portal"
 	"github.com/sevoniva-labs/velora/server/internal/platform/authn"
+	"github.com/sevoniva-labs/velora/server/internal/platform/casdooradmin"
 	"github.com/sevoniva-labs/velora/server/internal/platform/database"
 	"github.com/sevoniva-labs/velora/server/internal/platform/httpserver"
 )
@@ -810,6 +811,8 @@ func serviceError(err error) error {
 		return kratoserrors.BadRequest("PUBLISH_NOT_READY", "application has not passed identity verification")
 	case errors.Is(err, portaldomain.ErrOptimisticConflict):
 		return kratoserrors.Conflict("CONFIG_VERSION_CONFLICT", "configuration was changed by another operator")
+	case errors.Is(err, casdooradmin.ErrApprovalRequired):
+		return kratoserrors.BadRequest("APPROVAL_REQUIRED", "maker-checker approval is required")
 	case errors.Is(err, sql.ErrNoRows):
 		return kratoserrors.NotFound("NOT_FOUND", "resource not found")
 	case errors.Is(err, appidentity.ErrGrantCeiling), errors.Is(err, appidentity.ErrLastSystemAdmin):

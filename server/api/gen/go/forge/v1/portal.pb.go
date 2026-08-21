@@ -3290,6 +3290,7 @@ type UpsertApplicationIdentityBindingRequest struct {
 	Issuer                 string                 `protobuf:"bytes,6,opt,name=issuer,proto3" json:"issuer,omitempty"`
 	RedirectUris           []string               `protobuf:"bytes,7,rep,name=redirect_uris,json=redirectUris,proto3" json:"redirect_uris,omitempty"`
 	ExpectedConfigVersion  int64                  `protobuf:"varint,8,opt,name=expected_config_version,json=expectedConfigVersion,proto3" json:"expected_config_version,omitempty"`
+	ApprovalId             string                 `protobuf:"bytes,9,opt,name=approval_id,json=approvalId,proto3" json:"approval_id,omitempty"`
 	unknownFields          protoimpl.UnknownFields
 	sizeCache              protoimpl.SizeCache
 }
@@ -3378,6 +3379,13 @@ func (x *UpsertApplicationIdentityBindingRequest) GetExpectedConfigVersion() int
 		return x.ExpectedConfigVersion
 	}
 	return 0
+}
+
+func (x *UpsertApplicationIdentityBindingRequest) GetApprovalId() string {
+	if x != nil {
+		return x.ApprovalId
+	}
+	return ""
 }
 
 type UpsertApplicationIdentityBindingResponse struct {
@@ -4113,7 +4121,7 @@ const file_forge_v1_portal_proto_rawDesc = "" +
 	"\abinding\x18\x02 \x01(\v2\x1f.forge.v1.PortalIdentityBindingR\abinding\x12M\n" +
 	"\rverifications\x18\x03 \x03(\v2'.forge.v1.PortalApplicationVerificationR\rverifications\x12\x1f\n" +
 	"\vcan_publish\x18\x04 \x01(\bR\n" +
-	"canPublish\"\xe8\x02\n" +
+	"canPublish\"\x89\x03\n" +
 	"'UpsertApplicationIdentityBindingRequest\x12%\n" +
 	"\x0eapplication_id\x18\x01 \x01(\tR\rapplicationId\x12!\n" +
 	"\fprovider_key\x18\x02 \x01(\tR\vproviderKey\x12\x1a\n" +
@@ -4122,7 +4130,9 @@ const file_forge_v1_portal_proto_rawDesc = "" +
 	"\x10public_client_id\x18\x05 \x01(\tR\x0epublicClientId\x12\x16\n" +
 	"\x06issuer\x18\x06 \x01(\tR\x06issuer\x12#\n" +
 	"\rredirect_uris\x18\a \x03(\tR\fredirectUris\x126\n" +
-	"\x17expected_config_version\x18\b \x01(\x03R\x15expectedConfigVersion\"\xa4\x01\n" +
+	"\x17expected_config_version\x18\b \x01(\x03R\x15expectedConfigVersion\x12\x1f\n" +
+	"\vapproval_id\x18\t \x01(\tR\n" +
+	"approvalId\"\xa4\x01\n" +
 	"(UpsertApplicationIdentityBindingResponse\x129\n" +
 	"\abinding\x18\x01 \x01(\v2\x1f.forge.v1.PortalIdentityBindingR\abinding\x12=\n" +
 	"\vapplication\x18\x02 \x01(\v2\x1b.forge.v1.PortalApplicationR\vapplication\"\x81\x01\n" +

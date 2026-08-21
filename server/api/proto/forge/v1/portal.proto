@@ -305,6 +305,7 @@ message UpsertApplicationIdentityBindingRequest {
   string issuer = 6;
   repeated string redirect_uris = 7;
   int64 expected_config_version = 8;
+  string approval_id = 9;
 }
 message UpsertApplicationIdentityBindingResponse { PortalIdentityBinding binding = 1; PortalApplication application = 2; }
 message VerifyApplicationIdentityRequest { string application_id = 1; int64 expected_config_version = 2; }

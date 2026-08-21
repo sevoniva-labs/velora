@@ -13,6 +13,7 @@ import (
 	"github.com/sevoniva-labs/velora/server/internal/app/audit"
 	appportal "github.com/sevoniva-labs/velora/server/internal/app/portal"
 	portaldomain "github.com/sevoniva-labs/velora/server/internal/domain/portal"
+	"github.com/sevoniva-labs/velora/server/internal/platform/casdooradmin"
 	"github.com/sevoniva-labs/velora/server/internal/platform/database"
 	"github.com/sevoniva-labs/velora/server/internal/platform/httpserver"
 )
@@ -26,6 +27,7 @@ type PortalService struct {
 	identityAllowedHosts      []string
 	identityOnboardingEnabled bool
 	identityAdminEntryEnabled bool
+	casdoorAutomation         *casdooradmin.Client
 }
 
 func NewPortalService(portal *appportal.Service, auditWriter *audit.Writer, db *database.DB) *PortalService {
@@ -37,6 +39,10 @@ func (s *PortalService) ConfigureIdentityBoundary(adminURL string, allowedHosts 
 	s.identityAllowedHosts = append([]string(nil), allowedHosts...)
 	s.identityOnboardingEnabled = onboardingEnabled
 	s.identityAdminEntryEnabled = adminEntryEnabled
+}
+
+func (s *PortalService) ConfigureCasdoorAutomation(client *casdooradmin.Client) {
+	s.casdoorAutomation = client
 }
 
 func (s *PortalService) audited(ctx context.Context, event *audit.Event, operation func(context.Context) error) error {
@@ -448,6 +454,11 @@ func (s *PortalService) UpsertApplicationIdentityBinding(ctx context.Context, re
 	principal, err := requiredPrincipal(ctx)
 	if err != nil {
 		return nil, err
+	}
+	if s.casdoorAutomation != nil && s.casdoorAutomation.Enabled() {
+		if _, _, automationErr := s.casdoorAutomation.UpsertApplication(ctx, casdooradmin.UpsertInput{Name: req.GetProviderApplicationRef(), Organization: principal.OrganizationID, DisplayName: req.GetProviderApplicationRef(), ClientID: req.GetPublicClientId(), RedirectURIs: req.GetRedirectUris(), GrantTypes: []string{"authorization_code"}, ApprovalID: req.GetApprovalId()}); automationErr != nil {
+			return nil, serviceError(automationErr)
+		}
 	}
 	var binding portaldomain.IdentityBinding
 	var app portaldomain.Application

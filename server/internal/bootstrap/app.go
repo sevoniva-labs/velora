@@ -28,6 +28,7 @@ import (
 	"github.com/sevoniva-labs/velora/server/internal/platform/authn"
 	"github.com/sevoniva-labs/velora/server/internal/platform/authz"
 	"github.com/sevoniva-labs/velora/server/internal/platform/cache"
+	"github.com/sevoniva-labs/velora/server/internal/platform/casdooradmin"
 	"github.com/sevoniva-labs/velora/server/internal/platform/config"
 	"github.com/sevoniva-labs/velora/server/internal/platform/csrf"
 	"github.com/sevoniva-labs/velora/server/internal/platform/database"
@@ -250,6 +251,11 @@ func New(ctx context.Context, opts Options) (*App, error) {
 	platformService := kratosapi.NewPlatformService(identitySvc, approvalSvc, configChangeSvc, dataPolicySvc, auditWriter, db)
 	portalService := kratosapi.NewPortalService(portalSvc, auditWriter, db)
 	portalService.ConfigureIdentityBoundary(cfg.Security.CasdoorAdminURL, cfg.Security.CasdoorAllowedHosts, cfg.Security.ApplicationOnboardingV2, cfg.Security.CasdoorAdminEntryEnabled)
+	casdoorAutomation, err := casdooradmin.New(casdooradmin.Config{BaseURL: cfg.Security.CasdoorAdminURL, Token: cfg.Security.CasdoorAutomationToken, Enabled: cfg.Security.CasdoorApplicationAutomationEnabled})
+	if err != nil {
+		return nil, fmt.Errorf("Casdoor application automation: %w", err)
+	}
+	portalService.ConfigureCasdoorAutomation(casdoorAutomation)
 	identityService := kratosapi.NewIdentityService(identitySvc, auditWriter, db, ratelimit.New(c), cfg.Security.SecureCookies, cfg.Security.SameSite)
 	identityService.ConfigureAuthMode(cfg.Security.AuthMode)
 	if cfg.Security.TurnstileConfigured() {

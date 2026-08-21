@@ -4402,6 +4402,8 @@ components:
                         type: string
                 expectedConfigVersion:
                     type: string
+                approvalId:
+                    type: string
         forge.v1.UpsertApplicationIdentityBindingResponse:
             type: object
             properties:

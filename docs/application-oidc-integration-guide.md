@@ -121,6 +121,8 @@ sequenceDiagram
 - 推荐 Cookie 名称使用 `__Host-` 前缀。
 - 登录、Callback、登出响应添加 `Cache-Control: no-store`。
 - Session 失效后重新发起 OIDC，不直接使用过期 Claims。
+- 应用退出必须先清除自己的 Host-only Session，再调用 Casdoor RP-initiated logout；应用不能直接删除 Velora 或其他应用的 Cookie。
+- 未实现并验证 OIDC Back-Channel Logout 前，不得宣称从任一应用退出会自动清理所有其他应用会话。
 
 ## 9. 权限边界
 

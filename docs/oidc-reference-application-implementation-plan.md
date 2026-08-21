@@ -201,16 +201,17 @@ flowchart TB
 4. Casdoor 返回 OIDC Code 和 `casdoor_session_id`；Velora继续完成 ID Token 校验。
 5. Velora 创建本地会话，同时生成 256 bit 随机一次性 Bridge Ticket。
 6. Casdoor Session ID 只进入短期 Cache，键使用 Ticket 哈希，TTL 30 秒。
-7. 登录接口返回固定允许域名下的 Bridge URL，不返回 Session ID：
+7. 登录接口返回固定 Bridge Action 和一次性 Ticket，不返回 Session ID；登录响应必须 `Cache-Control: no-store`：
 
    ```text
-   https://auth.sevoniva.com/_velora/session/bridge?ticket=<opaque-ticket>
+   bridge_action=https://auth.sevoniva.com/_velora/session/bridge
+   bridge_ticket=<opaque-ticket>
    ```
 
-8. 前端使用整页跳转访问 Bridge URL。
+8. 前端创建隐藏表单，将 Ticket 放入 `application/x-www-form-urlencoded` Body，整页 `POST` 到 Bridge Action；禁止把 Ticket 拼入 URL。
 9. `auth.sevoniva.com` 的 Nginx 仅将 `/_velora/session/bridge` 代理到 Velora Server，其他路径全部代理到 Casdoor。
 10. Bridge Handler 原子消费 Ticket，在 `auth.sevoniva.com` 响应中设置 Host-only `casdoor_session_id`，然后以 HTTP 303 跳回服务器预先保存的 Velora 内部路径。
-11. Ticket 被使用、过期、Host 不符或 Cookie 缺失时全部失败关闭，不进入门户。
+11. Bridge 只接受 POST；GET、Ticket 被使用/过期、Host 不符或 Cookie 缺失时全部失败关闭，不进入门户。
 
 ### Bridge 安全要求
 
@@ -218,7 +219,7 @@ flowchart TB
 - Cache 中只保存 30 秒，不落数据库；使用 Compare-And-Delete 防重放。
 - 返回地址由服务端在 Ticket Payload 中保存，禁止从 URL 接受任意 `return_url`。
 - Bridge 只允许请求 Host 为 `auth.sevoniva.com`。
-- Bridge 路径关闭访问日志或确保不记录 Query String。
+- Bridge 路径关闭访问日志和请求体日志；任何代理层都不得记录 Ticket。
 - 响应包含 `Cache-Control: no-store`、`Pragma: no-cache`、`Referrer-Policy: no-referrer`。
 - Casdoor Cookie 名称必须精确匹配 `casdoor_session_id`，缺失或重复均失败。
 - Casdoor Session ID、Ticket、密码、授权码、Token 不进入应用日志、错误信息和审计详情。
@@ -232,13 +233,9 @@ flowchart TB
 
 ### 登出
 
-登出必须清除三层会话：
+由于三个 Cookie 都是 Host-only，任一域名都不能直接删除另一个域名的 Cookie。必须按入口分别定义登出：
 
-1. Demo App 本地 Cookie；
-2. Casdoor SSO Session；
-3. Velora 本地 Session。
-
-Velora 登出后的浏览器流程：
+Velora 发起退出：
 
 ```text
 Velora revoke session
@@ -246,7 +243,16 @@ Velora revoke session
   -> Velora 登录页
 ```
 
-只清除 Velora Cookie 而不清除 Casdoor Cookie，会导致下次登录自动恢复；只清除 Casdoor Cookie 而不清除下游应用 Cookie，也不会退出已有业务会话。
+Demo 发起退出：
+
+```text
+Demo clear local session
+  -> Casdoor RP-initiated logout
+  -> Velora logout completion
+  -> Velora 登录页
+```
+
+Velora 退出保证清除 Velora 与 Casdoor 会话，但不能直接删除已经存在的 Demo Cookie；Demo 退出按上面链路清理三层会话。后续其他应用必须清理自己的本地 Session，再进入统一退出链路。除非以后实现并验证 OIDC Back-Channel Logout，否则不宣称从任意入口能同步清理所有已接入应用。
 
 ## 8. Nginx、资源与生产基线
 
@@ -270,6 +276,7 @@ server_name auth.sevoniva.com;
 
 location = /_velora/session/bridge {
     access_log off;
+    limit_except POST { deny all; }
     proxy_pass http://server:8080/_velora/session/bridge;
     proxy_set_header Host $host;
     proxy_set_header X-Forwarded-Proto https;
@@ -357,9 +364,15 @@ VELORA_TURNSTILE_SECRET_FILE=/run/secrets/velora-turnstile-secret
 VELORA_TURNSTILE_HOSTNAMES=home.sevoniva.com
 VELORA_TURNSTILE_ACTION=login
 VELORA_CACHE_PROVIDER=redis
+VELORA_COMPLIANCE_PROFILE=standard
+VELORA_CRYPTO_PROVIDER=standard
+VELORA_CRYPTO_ADAPTER=software
+VELORA_CRYPTO_KEY_FILE=/run/secrets/velora-crypto-key
 ```
 
 生产环境 `VELORA_OIDC_ALLOW_HTTP` 必须为 `false`。当前代码的生产门禁会拒绝 Password Login；实施必须将其改为组合式安全门禁：只有 HTTPS、Turnstile、Redis Bridge、限流、安全 Cookie 和 Casdoor OIDC 全部有效时才允许启用，任一缺失则启动失败。禁止通过使用非生产环境名绕过门禁。
+
+本轮 `standard` Profile 允许 root-only Secret 文件提供标准软件加密，并在健康/验收证据中明确为非金融级；`financial` Profile 必须继续拒绝 software adapter，未安装真实国密 KMS/HSM/PKCS#11 adapter 时失败关闭。
 
 ## 9. Reference App 设计
 
@@ -493,7 +506,7 @@ DRAFT
 - `server/internal/platform/config/config.go`
   - 增加 Bridge 开关、URL、Host、TTL，完成生产配置校验。
 - `server/api/proto/forge/v1/identity.proto`
-  - `LoginResponse` 增加 `next_url`，重新生成 Go/OpenAPI/Web API。
+  - `LoginResponse` 增加 `bridge_action` 和 `bridge_ticket`，重新生成 Go/OpenAPI/Web API；响应禁止缓存。
 - `server/internal/app/portal/service.go`
   - 拆分 OIDC 验证项，禁止 Discovery 单项通过即发布。
 - `server/internal/platform/casdooradmin/client.go`
@@ -504,9 +517,9 @@ DRAFT
 ### Web
 
 - `web/src/pages/Login.tsx`
-  - 登录成功后只允许跳转到后端返回且 Host 精确匹配的 `auth.sevoniva.com` Bridge URL。
+  - 登录成功后校验 `bridge_action` 的 Scheme/Host/Path，创建隐藏表单并将 `bridge_ticket` 作为 POST Body 整页提交。
 - `web/src/api/api.ts`
-  - 消费 `next_url`；未知外部地址失败关闭。
+  - 消费 Bridge 字段；未知地址、缺少 Ticket 或非 HTTPS 地址失败关闭。
 - `web/src/pages/admin/Applications.tsx`
   - 新建后直接进入接入向导。
 - `web/src/pages/admin/IdentityIntegrations.tsx`
@@ -529,93 +542,17 @@ DRAFT
 - `scripts/check-production-config.sh`
   - 校验公网 Issuer、Bridge Host、三域名证书、Turnstile、Redis 和 Demo Callback。
 
-## 12. 实施阶段与停止点
+## 12. 与整体方案的实施映射
 
-### R0：回滚点与基础配置
+本文件不再定义另一套 R0–R5 流程，避免执行代理重复开发。实施统一服从整体方案 P0–P4：
 
-- 检查工作树、提交现有方案修改、在 `codex/` 发布分支实施。
-- 新服务器确认无既有 Velora 数据；创建全新运行目录、配置版本和空数据卷，不连接旧服务器。
-- 验证 DNS 和证书，不满足条件则停止，不改生产。
+- P0：完成生产表单登录组合门禁、Redis、配置契约和服务器开发/正式隔离。
+- P1：完成公网 Issuer、Edge、POST Session Bridge、Cookie 安全和准确登出语义。
+- P2：完成 Go Demo Client、Casdoor Demo Client 和免二次登录闭环。
+- P3：完成应用接入向导、验证、访问策略和管理员入口。
+- P4：完成正式 Compose、DNS/TLS、真实 E2E、备份恢复和接入文档。
 
-提交建议：
-
-```text
-chore(release): create oidc reference app rollback point
-```
-
-### R1：公网 Casdoor Issuer
-
-- 上线 `auth.sevoniva.com` Nginx Server Block。
-- 修改 Casdoor `origin`。
-- 修正 Velora Issuer/Internal URL 配置。
-- 验证 Discovery、JWKS、Authorize、Token、UserInfo。
-
-停止验收：Issuer 任一位置不一致，不进入 R2。
-
-提交建议：
-
-```text
-feat(auth): expose casdoor through public oidc issuer
-```
-
-### R2：浏览器 SSO Session Bridge
-
-- 开发 Bridge Ticket、Cookie 捕获、专用 Handler 和登出链路。
-- 完成单元测试、并发/重放测试、Cookie 安全测试。
-- 验证 Velora 页面登录后访问 Casdoor Authorize 不再出现密码页。
-
-停止验收：出现共享父域 Cookie、Ticket 可重放、Session ID 进入日志，立即回滚。
-
-提交建议：
-
-```text
-feat(auth): bridge casdoor browser sso session
-```
-
-### R3：Reference App
-
-- 开发 Go Demo App 与镜像。
-- 创建 Casdoor Demo Client。
-- 部署 `demo.sevoniva.com`。
-- 接入 Velora 应用目录并配置仅管理员可见策略。
-
-提交建议：
-
-```text
-feat(example): add production-like oidc client demo
-```
-
-### R4：真实 E2E 验收
-
-必须覆盖：
-
-1. 首次 Velora 登录。
-2. 启动 Demo App，不二次输入密码。
-3. 非法 State/Nonce/PKCE 被拒绝。
-4. 错误 Redirect URI 被拒绝。
-5. 未授权用户看不到且不能启动 Demo App。
-6. Velora 登出后 Casdoor 与 Demo App 行为符合定义。
-7. Casdoor Client 停用后 Demo 登录失败且错误可诊断。
-8. 容器重启后健康检查和会话策略符合预期。
-
-提交建议：
-
-```text
-test(auth): cover oidc sso reference journey
-```
-
-### R5：接入向导和文档收口
-
-- 合并应用创建、身份、策略、验证和发布流程。
-- 更新管理员与应用开发者接入文档。
-- 输出上线配置、故障排查、回滚步骤和验收证据。
-
-提交建议：
-
-```text
-feat(portal): complete application onboarding journey
-docs(oidc): publish verified integration runbook
-```
+每个阶段都直接在 `main` 完成聚焦测试后 Conventional Commit 并 push。Issuer 不一致、Ticket 可重放/泄漏、共享父域 Cookie、未授权启动或 Secret 进入日志均为阶段阻断项，必须修复后继续，禁止带病发布。
 
 ## 13. 测试矩阵
 
@@ -666,20 +603,20 @@ GET https://home.sevoniva.com/healthz -> 200
 
 ## 15. 回滚方案
 
-### R1 回滚
+### Issuer/Edge 回滚
 
 - 在 DNS 切换前直接停止新环境的身份入口，不影响任何旧系统。
 - 在 DNS 切换后恢复本次新环境上一份已验证的 Edge/Casdoor/Velora 配置和镜像。
 - 不把流量自动指回旧服务器；回滚目标必须由用户明确指定。
 
-### R2 回滚
+### Session Bridge 回滚
 
 - 关闭 `VELORA_IDP_SESSION_BRIDGE_ENABLED`。
 - 前端回退为原 Velora 本地会话跳转。
 - 删除 Cache 中 `idp-session-bridge:*` 短期键。
 - 不删除用户或 Casdoor Application。
 
-### R3/R4 回滚
+### Demo/E2E 回滚
 
 - 从 Velora 下架 Demo App。
 - 停止 `oidc-demo-client` 容器。
@@ -688,19 +625,9 @@ GET https://home.sevoniva.com/healthz -> 200
 
 数据库迁移必须向前兼容；如需新增表，仅允许新增，不在同一版本删除或重命名现有列。
 
-## 16. 时间预估
+## 16. 执行效率
 
-在 DNS 和证书可用后：
-
-| 工作 | 预计开发与验证时间 |
-|---|---:|
-| 公网 Issuer + Nginx + 配置 | 0.5–1 天 |
-| Session Bridge + 登出 + 安全测试 | 1–2 天 |
-| Go Reference App + 部署 | 1 天 |
-| 真实 E2E 与故障修复 | 0.5–1 天 |
-| 接入向导和文档收口 | 2–3 天 |
-
-第一条真实 OIDC 闭环预计 2–4 天；完整应用接入产品收口预计 5–8 天。时间不包含 DNS/证书等待和外部应用配合时间。
+本专项不单独估算人工工作日，直接纳入整体方案 P0–P4 连续执行。开发代理不得用重复规划、长时间观察或压力测试延迟推进；完成一个可运行切片后立即测试、提交、push 并继续。只有缺少不可推导的 DNS/外部输入时才暂停。
 
 ## 17. 开始实施前的确认项
 

@@ -5,8 +5,8 @@
 ## 已交付
 
 - Phase 0：移除未落库的 Client ID/应用名假字段，正式表单只开放已闭环的直链；普通用户界面统一使用“统一身份中心”；管理入口和菜单按细粒度权限集合渲染。
-- Phase 1：新增 `00023_portal_identity_boundary` additive migration；身份绑定、验证记录、生命周期、发布时间、操作者和 `config_version` 乐观锁；`iam.integration.*`、`iam.console.open`、`portal.application.publish` 权限；控制台 URL 仅通过受权 API 返回。
-- Phase 2：新增“身份与单点登录”五步向导，支持 URL/OIDC 分支、绑定保存、真实 Discovery 验证、策略跳转、验证失败恢复和发布门禁；不收集 Client Secret。
+- Phase 1：新增 `00023_portal_identity_boundary` additive migration；身份绑定、验证记录、生命周期、发布时间、操作者和 `config_version` 乐观锁；`iam.integration.*`、`iam.console.open`、`portal.application.publish` 权限；控制台 URL 仅通过受权 API 返回；后端拒绝新建未验收的 SAML/CAS/ForwardAuth 绑定。
+- Phase 2：新增“身份与单点登录”五步向导，支持 URL/OIDC 分支、绑定保存、真实 Discovery 验证、策略跳转、验证失败恢复和发布门禁；向导草稿只保存非敏感字段到浏览器本地存储并可恢复；不收集 Client Secret；管理页展示连接状态、Issuer 和待处理应用数量。
 - Phase 3：保留并修正本地 OIDC PKCE smoke；已实测本地 Casdoor Discovery、Velora begin、`state`/`nonce`/S256 PKCE 参数、未授权管理接口拒绝和容器健康。完整登录、MFA、撤权、错误回调和登出必须使用真实测试账号执行。
 - Phase 4：新增默认关闭的最小权限 Casdoor 应用自动化客户端和只读检查命令；只允许应用客户端管理，强制 `approval_id` maker-checker，不管理用户/密码/角色/MFA，不保存或输出 Client Secret。
 
@@ -15,10 +15,13 @@
 ```text
 server: go test ./...       PASS
 server: go vet ./...        PASS
-web:    npm test -- --run    PASS (38 tests)
-web:    npm run lint         PASS
-web:    npm run build        PASS
+web:    pnpm test -- --run   PASS (38 tests)
+web:    pnpm lint            PASS
+web:    pnpm build           PASS
+proto:  make -C server proto-check PASS
 proto:  make -C server proto-generate PASS
+shell:  bash -n smoke/init  PASS
+git:    git diff --check     PASS; 工作区仅保留本次变更
 ```
 
 本地 Compose 证据（2026-08-21）：
@@ -28,6 +31,7 @@ proto:  make -C server proto-generate PASS
 - `portal_application_identity_bindings` 与 `portal_application_verifications` 存在；
 - `GET /api/v1/system/health` 返回 200，Turnstile enabled；
 - `GET /api/v1/admin/identity/overview` 无会话返回 401；
+- 已认证身份管理员概览返回 Issuer、连接配置状态和待处理应用数量；管理 URL 仍不进入公开健康接口；
 - 本地 Casdoor `/healthz` 返回 200，`/.well-known/openid-configuration` 返回 200，Issuer 为本地 Casdoor，Discovery 提供授权、Token、JWKS 和 RP-initiated logout 端点；
 - Velora OIDC begin 返回 200，授权地址包含 `response_type=code`、`state`、`nonce`、`code_challenge_method=S256`、`code_challenge` 和配置的 redirect URI。
 

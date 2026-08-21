@@ -31,6 +31,7 @@ type SessionBridge struct {
 	cache     cache.Cache
 	authHost  string
 	actionURL string
+	portalURL *url.URL
 	secure    bool
 	sameSite  http.SameSite
 }
@@ -40,7 +41,7 @@ type bridgePayload struct {
 	ReturnPath string `json:"return_path"`
 }
 
-func NewSessionBridge(c cache.Cache, accountURL string, secure bool, sameSite http.SameSite) (*SessionBridge, error) {
+func NewSessionBridge(c cache.Cache, accountURL, portalURL string, secure bool, sameSite http.SameSite) (*SessionBridge, error) {
 	if c == nil {
 		return nil, errors.New("session bridge cache is required")
 	}
@@ -54,7 +55,11 @@ func NewSessionBridge(c cache.Cache, accountURL string, secure bool, sameSite ht
 	actionURL.RawQuery = ""
 	actionURL.Fragment = ""
 	action := actionURL.String()
-	return &SessionBridge{cache: c, authHost: strings.ToLower(u.Hostname()), actionURL: action, secure: secure, sameSite: sameSite}, nil
+	portal, err := url.Parse(strings.TrimSpace(portalURL))
+	if err != nil || portal.Hostname() == "" || (portal.Scheme != "https" && secure) || portal.User != nil || portal.RawQuery != "" || portal.Fragment != "" {
+		return nil, errors.New("session bridge portal URL must have a valid host")
+	}
+	return &SessionBridge{cache: c, authHost: strings.ToLower(u.Hostname()), actionURL: action, portalURL: portal, secure: secure, sameSite: sameSite}, nil
 }
 
 func (b *SessionBridge) ActionURL() string {
@@ -126,8 +131,21 @@ func (b *SessionBridge) Handler() http.Handler {
 		}
 		// Domain is intentionally omitted: this is a host-only Casdoor cookie.
 		http.SetCookie(w, &http.Cookie{Name: casdoorSessionCookie, Value: handoff.Cookie, Path: "/", HttpOnly: true, Secure: b.secure, SameSite: b.sameSite})
-		http.Redirect(w, r, safeBridgeReturnPath(handoff.ReturnPath), http.StatusSeeOther)
+		http.Redirect(w, r, b.returnURL(handoff.ReturnPath), http.StatusSeeOther)
 	})
+}
+
+func (b *SessionBridge) returnURL(returnPath string) string {
+	relative, err := url.Parse(safeBridgeReturnPath(returnPath))
+	if err != nil {
+		relative = &url.URL{Path: "/"}
+	}
+	target := *b.portalURL
+	target.Path = relative.Path
+	target.RawPath = relative.RawPath
+	target.RawQuery = relative.RawQuery
+	target.Fragment = ""
+	return target.String()
 }
 
 func (b *SessionBridge) allowedHost(raw string) bool {

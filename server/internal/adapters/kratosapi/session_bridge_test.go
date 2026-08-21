@@ -18,7 +18,7 @@ func newTestBridge(t *testing.T) (*SessionBridge, cache.Cache) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	bridge, err := NewSessionBridge(c, "https://auth.example.test/account", true, http.SameSiteLaxMode)
+	bridge, err := NewSessionBridge(c, "https://auth.example.test/account", "https://home.example.test", true, http.SameSiteLaxMode)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -40,7 +40,7 @@ func TestSessionBridgeConsumesTicketAndSetsHostOnlyCookie(t *testing.T) {
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	res := httptest.NewRecorder()
 	bridge.Handler().ServeHTTP(res, req)
-	if res.Code != http.StatusSeeOther || res.Header().Get("Location") != "/home?from=login" {
+	if res.Code != http.StatusSeeOther || res.Header().Get("Location") != "https://home.example.test/home?from=login" {
 		t.Fatalf("bridge response status=%d location=%q", res.Code, res.Header().Get("Location"))
 	}
 	cookie := res.Result().Cookies()
@@ -56,6 +56,17 @@ func TestSessionBridgeConsumesTicketAndSetsHostOnlyCookie(t *testing.T) {
 		t.Fatalf("ticket replay status=%d", second.Code)
 	}
 	_ = c.Close()
+}
+
+func TestSessionBridgeRejectsInvalidPortalURL(t *testing.T) {
+	c, err := cache.New(config.Cache{Provider: "memory", Prefix: "test:"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer c.Close()
+	if _, err := NewSessionBridge(c, "https://auth.example.test/account", "/relative", true, http.SameSiteLaxMode); err == nil {
+		t.Fatal("expected invalid portal URL to fail")
+	}
 }
 
 func TestSessionBridgeRejectsQueryTicketsAndUntrustedHost(t *testing.T) {

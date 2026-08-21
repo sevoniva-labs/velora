@@ -275,7 +275,7 @@ func New(ctx context.Context, opts Options) (*App, error) {
 			providerName = "casdoor"
 		}
 		identityService.ConfigureCasdoorPasswordLogin(true, oidcProviders[providerName])
-		bridge, bridgeErr := kratosapi.NewSessionBridge(c, cfg.Security.CasdoorAccountURL, cfg.Security.SecureCookies, kratosapi.SameSiteMode(cfg.Security.SameSite))
+		bridge, bridgeErr := kratosapi.NewSessionBridge(c, cfg.Security.CasdoorAccountURL, cfg.Server.PublicURL, cfg.Security.SecureCookies, kratosapi.SameSiteMode(cfg.Security.SameSite))
 		if bridgeErr != nil {
 			return nil, fmt.Errorf("Casdoor session bridge: %w", bridgeErr)
 		}

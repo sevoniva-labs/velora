@@ -10,13 +10,19 @@ import {
   UnorderedListOutlined,
   SafetyOutlined,
 } from '@ant-design/icons'
+import {
+  API_TOKEN_MANAGE,
+  AUDIT_READ,
+  IDENTITY_READ,
+  PORTAL_MANAGE,
+} from '../auth/permissions'
 
 export interface AdminNavItem {
   key: string
   path: string
   label: string
   icon?: ReactNode
-  permission?: string
+  permissions?: string[]
 }
 
 export interface AdminNavGroup {
@@ -30,20 +36,20 @@ export const adminNavGroups: AdminNavGroup[] = [
     key: 'workspace',
     label: '门户管理',
     items: [
-      { key: 'admin-overview', path: '/admin', label: '概览', icon: <DashboardOutlined /> },
-      { key: 'admin-apps', path: '/admin/applications', label: '应用管理', icon: <AppstoreOutlined />, permission: 'portal.application.manage' },
-      { key: 'admin-categories', path: '/admin/categories', label: '分类管理', icon: <UnorderedListOutlined /> },
-      { key: 'admin-tags', path: '/admin/tags', label: '标签管理', icon: <TagsOutlined /> },
-      { key: 'admin-policies', path: '/admin/policies', label: '访问策略', icon: <SafetyCertificateOutlined /> },
+      { key: 'admin-overview', path: '/admin', label: '概览', icon: <DashboardOutlined />, permissions: [PORTAL_MANAGE, IDENTITY_READ, AUDIT_READ] },
+      { key: 'admin-apps', path: '/admin/applications', label: '应用管理', icon: <AppstoreOutlined />, permissions: [PORTAL_MANAGE] },
+      { key: 'admin-categories', path: '/admin/categories', label: '分类管理', icon: <UnorderedListOutlined />, permissions: [PORTAL_MANAGE] },
+      { key: 'admin-tags', path: '/admin/tags', label: '标签管理', icon: <TagsOutlined />, permissions: [PORTAL_MANAGE] },
+      { key: 'admin-policies', path: '/admin/policies', label: '访问策略', icon: <SafetyCertificateOutlined />, permissions: [PORTAL_MANAGE] },
     ],
   },
   {
     key: 'platform',
     label: '平台',
     items: [
-      { key: 'admin-audit', path: '/admin/audit', label: '审计日志', icon: <AuditOutlined /> },
-      { key: 'admin-integration-tokens', path: '/admin/integration-tokens', label: '集成令牌', icon: <ApiOutlined /> },
-      { key: 'admin-identity', path: '/admin/identity', label: '身份与单点登录', icon: <SafetyOutlined />, permission: 'iam.integration.read' },
+      { key: 'admin-audit', path: '/admin/audit', label: '审计日志', icon: <AuditOutlined />, permissions: [AUDIT_READ] },
+      { key: 'admin-integration-tokens', path: '/admin/integration-tokens', label: '集成令牌', icon: <ApiOutlined />, permissions: [API_TOKEN_MANAGE] },
+      { key: 'admin-identity', path: '/admin/identity', label: '身份与单点登录', icon: <SafetyOutlined />, permissions: [IDENTITY_READ] },
     ],
   },
 ]

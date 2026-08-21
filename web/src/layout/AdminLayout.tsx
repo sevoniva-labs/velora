@@ -9,6 +9,7 @@ import { getPortalSettings, queryKeys } from '../api/api'
 import { useMe } from '../auth/useMe'
 import { logout } from '../api/api'
 import { adminActiveKey, adminNavGroups } from './menu'
+import { hasAnyPermission } from '../auth/permissions'
 
 export interface AdminLayoutProps {
   children: ReactNode
@@ -43,8 +44,8 @@ export function AdminLayout({ children }: AdminLayoutProps) {
   })
 
   const permissions = me.data?.permissions ?? []
-  const canSee = (permission?: string) => !permission || permissions.includes(permission) || permissions.includes('system.role.manage') || (permissions.length === 0 && me.data?.roles.includes('system_admin'))
-  const visibleGroups = adminNavGroups.map((g) => ({ ...g, items: g.items.filter((item) => canSee(item.permission)) })).filter((g) => g.items.length > 0)
+  const canSee = (required?: string[]) => !required?.length || hasAnyPermission(permissions, required, me.data?.roles)
+  const visibleGroups = adminNavGroups.map((g) => ({ ...g, items: g.items.filter((item) => canSee(item.permissions)) })).filter((g) => g.items.length > 0)
   const menuItems = visibleGroups.map((g) => ({
     type: 'group' as const,
     key: g.key,

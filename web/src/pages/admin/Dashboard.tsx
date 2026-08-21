@@ -15,12 +15,14 @@ import QueryErrorState from '../../components/QueryErrorState'
 import { usePageTitle } from '../../hooks/usePageTitle'
 import { useMe } from '../../auth/useMe'
 import { useNavigate } from 'react-router-dom'
+import { IDENTITY_READ, PORTAL_MANAGE, hasPermission } from '../../auth/permissions'
 
 export default function AdminDashboard() {
   usePageTitle('门户概览')
   const me = useMe()
   const navigate = useNavigate()
-  const canManagePortal = me.data?.permissions.includes('portal.application.manage') || me.data?.permissions.includes('system.role.manage') || me.data?.roles.includes('system_admin')
+  const canManagePortal = hasPermission(me.data?.permissions, PORTAL_MANAGE, me.data?.roles)
+  const canReadIdentity = hasPermission(me.data?.permissions, IDENTITY_READ, me.data?.roles)
 
   const { data, isError, refetch } = useQuery({ queryKey: queryKeys.dashboard, queryFn: adminDashboard, enabled: Boolean(canManagePortal) })
 
@@ -38,7 +40,8 @@ export default function AdminDashboard() {
     <div>
       <AdminPageHead title="门户概览" />
 
-      {!canManagePortal ? <Alert type="info" showIcon message="当前账号为身份管理角色" description="你可以管理身份接入、验证和身份控制台入口；应用目录与发布由应用管理员负责。" action={<Button onClick={() => navigate('/admin/identity')}>进入身份接入</Button>} style={{ marginBottom: 16 }} /> : null}
+      {!canManagePortal && canReadIdentity ? <Alert type="info" showIcon message="当前账号为身份管理角色" description="你可以管理身份接入、验证和身份控制台入口；应用目录与发布由应用管理员负责。" action={<Button onClick={() => navigate('/admin/identity')}>进入身份接入</Button>} style={{ marginBottom: 16 }} /> : null}
+      {!canManagePortal && !canReadIdentity ? <Alert type="info" showIcon message="当前账号没有门户管理权限" description="请从左侧进入你被授权的管理功能。" style={{ marginBottom: 16 }} /> : null}
 
       {canManagePortal && isError ? (
         <QueryErrorState refetch={refetch} />

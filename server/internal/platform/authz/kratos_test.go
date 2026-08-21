@@ -70,6 +70,28 @@ func TestPortalConsoleRequiresDedicatedPermission(t *testing.T) {
 	}
 }
 
+func TestIdentityReaderCanListOnboardingApplicationsButCannotMutate(t *testing.T) {
+	handler := Server(PortalRules())(func(context.Context, any) (any, error) { return "ok", nil })
+	reader := domain.Principal{Permissions: []string{"iam.integration.read"}}
+	if _, err := handler(authorizationContext(forgev1.OperationPortalServiceListAdminPortalApplications, reader), nil); err != nil {
+		t.Fatalf("identity reader cannot list onboarding applications: %v", err)
+	}
+	if _, err := handler(authorizationContext(forgev1.OperationPortalServiceCreatePortalApplication, reader), nil); err == nil {
+		t.Fatal("identity reader was allowed to create an application")
+	}
+}
+
+func TestIntegrationTokenManagementRequiresDedicatedPermission(t *testing.T) {
+	handler := Server(IdentityRules())(func(context.Context, any) (any, error) { return "ok", nil })
+	operation := forgev1.OperationIdentityServiceListApiTokens
+	if _, err := handler(authorizationContext(operation, domain.Principal{Permissions: []string{"portal.application.manage"}}), nil); err == nil {
+		t.Fatal("unrelated portal permission was allowed to list integration tokens")
+	}
+	if _, err := handler(authorizationContext(operation, domain.Principal{Permissions: []string{"system.api_token.manage"}}), nil); err != nil {
+		t.Fatalf("token permission rejected: %v", err)
+	}
+}
+
 func TestAuditReadCompatibilityPermission(t *testing.T) {
 	handler := Server(PlatformRules())(func(context.Context, any) (any, error) { return "ok", nil })
 	operation := forgev1.OperationPlatformServiceListAuditLogs

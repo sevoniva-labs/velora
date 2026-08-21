@@ -3,12 +3,13 @@ import { Button, Result, Spin } from 'antd'
 import { Outlet, useNavigate } from 'react-router-dom'
 import { AdminLayout } from './layout/AdminLayout'
 import { useMe } from './auth/useMe'
+import { canAccessAdmin } from './auth/permissions'
 
 /** 管理后台外壳（由服务端权限集合控制）。 */
 export default function AdminApp() {
   const me = useMe()
   const navigate = useNavigate()
-  const isAdmin = me.data?.admin === true
+  const canEnterAdmin = canAccessAdmin(me.data?.permissions, me.data?.roles)
 
   if (me.isLoading) {
     return (
@@ -18,7 +19,7 @@ export default function AdminApp() {
     )
   }
 
-  if (!isAdmin) {
+  if (!canEnterAdmin) {
     return (
       <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <Result

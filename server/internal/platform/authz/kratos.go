@@ -120,17 +120,19 @@ func PlatformRules() map[string][]string {
 
 func PortalRules() map[string][]string {
 	return map[string][]string{
-		forgev1.OperationPortalServiceAuthorizePortalApplication:       {"portal.application.read"},
-		forgev1.OperationPortalServiceListPortalApplications:           {"portal.application.read"},
-		forgev1.OperationPortalServiceGetPortalApplication:             {"portal.application.read"},
-		forgev1.OperationPortalServiceLaunchPortalApplication:          {"portal.application.read"},
-		forgev1.OperationPortalServiceListPortalFavorites:              {"portal.application.read"},
-		forgev1.OperationPortalServiceAddPortalFavorite:                {"portal.application.read"},
-		forgev1.OperationPortalServiceRemovePortalFavorite:             {"portal.application.read"},
-		forgev1.OperationPortalServiceListRecentPortalApplications:     {"portal.application.read"},
-		forgev1.OperationPortalServiceListPortalCategories:             {"portal.application.read"},
-		forgev1.OperationPortalServiceListPortalTags:                   {"portal.application.read"},
-		forgev1.OperationPortalServiceListAdminPortalApplications:      {"portal.application.manage"},
+		forgev1.OperationPortalServiceAuthorizePortalApplication:   {"portal.application.read"},
+		forgev1.OperationPortalServiceListPortalApplications:       {"portal.application.read"},
+		forgev1.OperationPortalServiceGetPortalApplication:         {"portal.application.read"},
+		forgev1.OperationPortalServiceLaunchPortalApplication:      {"portal.application.read"},
+		forgev1.OperationPortalServiceListPortalFavorites:          {"portal.application.read"},
+		forgev1.OperationPortalServiceAddPortalFavorite:            {"portal.application.read"},
+		forgev1.OperationPortalServiceRemovePortalFavorite:         {"portal.application.read"},
+		forgev1.OperationPortalServiceListRecentPortalApplications: {"portal.application.read"},
+		forgev1.OperationPortalServiceListPortalCategories:         {"portal.application.read"},
+		forgev1.OperationPortalServiceListPortalTags:               {"portal.application.read"},
+		// Identity administrators need the sanitized admin application list to
+		// select an application for onboarding; mutation routes remain manage-only.
+		forgev1.OperationPortalServiceListAdminPortalApplications:      {"portal.application.manage", "iam.integration.read"},
 		forgev1.OperationPortalServiceCreatePortalApplication:          {"portal.application.manage"},
 		forgev1.OperationPortalServiceUpdatePortalApplication:          {"portal.application.manage"},
 		forgev1.OperationPortalServiceDeletePortalApplication:          {"portal.application.manage"},
@@ -152,8 +154,19 @@ func PortalRules() map[string][]string {
 	}
 }
 
+func IdentityRules() map[string][]string {
+	return map[string][]string{
+		forgev1.OperationIdentityServiceListApiTokens:  {"system.api_token.manage"},
+		forgev1.OperationIdentityServiceCreateApiToken: {"system.api_token.manage"},
+		forgev1.OperationIdentityServiceRevokeApiToken: {"system.api_token.manage"},
+	}
+}
+
 func Rules() map[string][]string {
 	rules := PlatformRules()
+	for operation, permissions := range IdentityRules() {
+		rules[operation] = permissions
+	}
 	for operation, permissions := range PortalRules() {
 		rules[operation] = permissions
 	}

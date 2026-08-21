@@ -26,6 +26,7 @@ import type {
   IdentityBinding,
   ApplicationVerification,
 } from '../types'
+import { canAccessAdmin } from '../auth/permissions'
 
 type AnyRecord = Record<string, any>
 
@@ -48,9 +49,9 @@ function mapUser(value: unknown): CurrentUser {
   const user = record(value)
   const roles = Array.isArray(user.roles) ? user.roles.map(String) : []
   const permissions = Array.isArray(user.permissions) ? user.permissions.map(String) : []
-  // system_admin is the backend's explicit implicit-superuser escape hatch;
-  // all other users must have an actual management permission in the payload.
-  const admin = permissions.some((permission) => permission === 'portal.application.manage' || permission.startsWith('system.') || permission.startsWith('iam.')) || (permissions.length === 0 && roles.includes('system_admin'))
+  // Keep the legacy field for old screens, but derive it from the same
+  // permission set used by navigation and route guards.
+  const admin = canAccessAdmin(permissions, roles)
   return {
     id: asId(user.id),
     username: String(user.loginName ?? user.username ?? ''),

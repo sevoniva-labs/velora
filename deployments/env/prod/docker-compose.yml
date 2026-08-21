@@ -179,6 +179,7 @@ services:
     environment: *app-env
     secrets:
       - velora_database_dsn
+      - postgres_tls_ca
       - storage_access_key
       - storage_secret_key
       - redis_password

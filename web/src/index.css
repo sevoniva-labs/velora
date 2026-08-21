@@ -782,12 +782,12 @@ button {
 
 .velora-workbench {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr) minmax(0, 1fr);
   gap: 14px;
   margin-top: 14px;
   align-items: stretch;
   /* 固定行高：面板始终等高，内容在面板内部滚动 */
-  height: 460px;
+  height: 420px;
 }
 /* 面板等高：弹性占满所在格子，内部 flex 纵向布局 */
 .velora-workbench > .velora-panel {
@@ -814,6 +814,8 @@ button {
 @media (max-width: 1200px) {
   .velora-workbench {
     grid-template-columns: 1fr 1fr;
+    height: auto;
+    min-height: 420px;
   }
 }
 @media (max-width: 900px) {
@@ -2212,13 +2214,6 @@ button {
   font-variant-numeric: tabular-nums;
 }
 
-/* 待办独立占一行，避免与分类网格互相拉伸；邮件能力先保留入口。 */
-.velora-todo-section {
-  margin-top: 14px;
-}
-.velora-todo-section > .velora-panel {
-  min-height: 248px;
-}
 
 /* ---------- 应用中心：紧凑工具栏 ---------- */
 .velora-apps-search {

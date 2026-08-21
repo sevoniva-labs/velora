@@ -284,7 +284,7 @@ export default function Home() {
         {renderMyApps()}
       </ProCard>
 
-      {/* 双栏工作台：最近使用 / 应用分类；未接入模块不渲染。 */}
+      {/* 三栏工作台：最近使用 / 待办中心 / 应用分类。 */}
       <div className="velora-workbench">
         {/* 最近使用 */}
         <section className="velora-panel">
@@ -331,6 +331,9 @@ export default function Home() {
           )}
         </section>
 
+        {/* 待办中心：多 Tab（邮件入口保留，邮件服务暂不接入）。 */}
+        <TodoCenter />
+
         {/* 应用分类（带计数，空分类不展示） */}
         <section className="velora-panel">
           <div className="velora-panel-head">
@@ -374,10 +377,6 @@ export default function Home() {
         </section>
       </div>
 
-      {/* 待办中心保留为门户工作台能力；当前 Wave 1 没有接入邮件服务，邮件仅保留占位 Tab。 */}
-      <div className="velora-todo-section">
-        <TodoCenter />
-      </div>
     </div>
   )
 }

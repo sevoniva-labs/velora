@@ -212,7 +212,7 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-    command: ["/usr/local/bin/velora-migrate"]
+    entrypoint: ["/usr/local/bin/velora-migrate"]
     environment:
       VELORA_ENV: production
       VELORA_DATABASE_PROVIDER: postgres

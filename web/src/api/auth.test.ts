@@ -45,4 +45,11 @@ describe('OIDC web adapter', () => {
     } }), { status: 200 }))
     await expect(getMe()).resolves.toMatchObject({ username: 'admin', admin: true })
   })
+
+  it('does not grant the portal entry from an arbitrary role without permission', async () => {
+    vi.mocked(globalThis.fetch).mockResolvedValue(new Response(JSON.stringify({ code: '000000', data: {
+      user: { id: 'u2', login_name: 'operator', roles: ['operator'], permissions: [] },
+    } }), { status: 200 }))
+    await expect(getMe()).resolves.toMatchObject({ username: 'operator', permissions: [], admin: false })
+  })
 })

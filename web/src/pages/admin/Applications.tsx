@@ -20,7 +20,9 @@ import type { Application } from '../../types'
 import { APP_STATUS_LABEL, SSO_TYPE_COLOR, SSO_TYPE_LABEL } from '../../labels'
 import { AppIcon } from '../../components/AppCard'
 
-const SSO_OPTIONS = ['URL', 'OIDC', 'SAML', 'CAS', 'FORWARD_AUTH']
+// Phase 0 只开放已闭环的直链。OIDC 必须经过接入向导完成真实绑定后再开放，
+// 不在这里收集无法提交到后端的 Client ID/应用名等“假配置”。
+const SSO_OPTIONS = ['URL']
 
 export default function AdminApplications() {
   usePageTitle('应用管理')
@@ -93,8 +95,6 @@ export default function AdminApplications() {
       homeUrl: app.homeUrl,
       launchUrl: app.launchUrl,
       ssoType: app.ssoType,
-      casdoorApplicationName: app.casdoorApplicationName,
-      casdoorClientId: app.casdoorClientId,
       owner: app.owner,
       department: app.department,
       status: app.status,
@@ -320,23 +320,7 @@ export default function AdminApplications() {
             <Form.Item label="接入类型" name="ssoType" rules={[{ required: true }]}>
               <Select options={SSO_OPTIONS.map((v) => ({ value: v, label: SSO_TYPE_LABEL[v as Application['ssoType']] }))} />
             </Form.Item>
-            <Form.Item
-              noStyle
-              shouldUpdate={(prev, cur) => prev.ssoType !== cur.ssoType}
-            >
-              {({ getFieldValue }) =>
-                getFieldValue('ssoType') === 'OIDC' ? (
-                  <Form.Item label="Casdoor Client ID" name="casdoorClientId" rules={[{ required: true, message: 'OIDC 应用需配置 Client ID' }]}>
-                    <Input placeholder="Casdoor 中该应用的 Client ID" />
-                  </Form.Item>
-                ) : null
-              }
-            </Form.Item>
-            {watchSsoType === 'OIDC' ? (
-              <Form.Item label="Casdoor 应用名" name="casdoorApplicationName">
-                <Input placeholder="可选" />
-              </Form.Item>
-            ) : null}
+            {watchSsoType === 'OIDC' ? <Tag color="warning">OIDC 接入请使用接入向导完成配置</Tag> : null}
           </div>
 
           <div className="velora-form-grid">

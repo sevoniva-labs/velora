@@ -45,6 +45,10 @@ function asId(value: unknown): string {
 function mapUser(value: unknown): CurrentUser {
   const user = record(value)
   const roles = Array.isArray(user.roles) ? user.roles.map(String) : []
+  const permissions = Array.isArray(user.permissions) ? user.permissions.map(String) : []
+  // system_admin is the backend's explicit implicit-superuser escape hatch;
+  // all other users must have an actual management permission in the payload.
+  const admin = permissions.some((permission) => permission === 'portal.application.manage' || permission.startsWith('system.')) || (permissions.length === 0 && roles.includes('system_admin'))
   return {
     id: asId(user.id),
     username: String(user.loginName ?? user.username ?? ''),
@@ -53,10 +57,8 @@ function mapUser(value: unknown): CurrentUser {
     avatar: String(user.avatar ?? ''),
     organization: String(user.organizationId ?? user.organization ?? 'default'),
     roles,
-    // Backend roles vary between Casdoor compatibility mode and the native
-    // scaffold. Keep the UI gate aligned with the roles that actually receive
-    // administrative permissions instead of relying on a single role name.
-    admin: Boolean(user.admin ?? roles.some((role: string) => ['admin', 'administrator', 'platform_admin', 'system_admin', 'security_admin', 'velora_admin'].includes(role.toLowerCase()))),
+    permissions,
+    admin,
     groups: Array.isArray(user.groups) ? user.groups.map(String) : [],
   }
 }
@@ -258,7 +260,7 @@ export function convertMailToTodo(_id: string | number, _input: ConvertMailToTod
 
 // --- 管理端门户 ---
 
-export interface AdminApplicationInput { code: string; name: string; description?: string; keywords?: string; icon?: string; categoryId?: string | number | null; homeUrl?: string; launchUrl?: string; ssoType: string; casdoorApplicationName?: string; casdoorClientId?: string; owner?: string; department?: string; status: string; sort?: number; isFeatured?: boolean; tagIds?: (string | number)[]; policies?: { policyType: string; value: string }[] }
+export interface AdminApplicationInput { code: string; name: string; description?: string; keywords?: string; icon?: string; categoryId?: string | number | null; homeUrl?: string; launchUrl?: string; ssoType: string; owner?: string; department?: string; status: string; sort?: number; isFeatured?: boolean; tagIds?: (string | number)[]; policies?: { policyType: string; value: string }[] }
 function applicationBody(input: AdminApplicationInput, includeCode: boolean): AnyRecord { const body: AnyRecord = { name: input.name, description: input.description ?? '', icon: input.icon ?? '', categoryId: input.categoryId == null ? '' : String(input.categoryId), homeUrl: input.homeUrl ?? '', launchUrl: input.launchUrl ?? '', launchType: input.ssoType || 'URL', status: input.status || 'ENABLED', sortOrder: input.sort ?? 0, featured: input.isFeatured ?? false, tagIds: (input.tagIds ?? []).map(String) }; if (includeCode) body.code = input.code; return body }
 export async function adminListApplications(params: ListApplicationsParams = {}): Promise<Page<Application>> { const all = await fetchPortalApplications(params, true); const page = params.page ?? 1; const pageSize = params.pageSize ?? 20; return pageOf(all.slice((page - 1) * pageSize, page * pageSize), page, pageSize, all.length) }
 export async function adminCreateApplication(input: AdminApplicationInput): Promise<Application> { const data = await apiFetch<unknown>('/admin/portal/applications', { method: 'POST', body: applicationBody(input, true) }); return mapApplication(record(data).application ?? data) }

@@ -14,7 +14,9 @@ export interface CurrentUser {
   avatar: string
   organization: string
   roles: string[]
-  /** 服务端按 VELORA_ADMIN_ROLE 计算的管理员标记 */
+  /** 服务端授权模型计算出的权限集合；界面只据此决定管理入口。 */
+  permissions: string[]
+  /** 兼容旧页面的管理员标记，来源必须是 permissions。 */
   admin?: boolean
   groups: string[]
 }
@@ -71,8 +73,6 @@ export interface Application {
   // 仅管理员视图：
   homeUrl?: string
   launchUrl?: string
-  casdoorApplicationName?: string
-  casdoorClientId?: string
   healthCheckUrl?: string
 }
 

@@ -91,7 +91,7 @@ export default function UserCenter() {
         </Descriptions>
       </Card>
 
-      {/* 密码由 Casdoor 统一管理；本地密码表单仅在后端明确声明的开发模式显示。 */}
+      {/* 密码由统一身份中心管理；本地密码表单仅在后端明确声明的开发模式显示。 */}
       {localPasswordManagement ? <Card title="修改密码" style={{ marginBottom: 16 }}>
         <Alert
           type="info"
@@ -147,9 +147,9 @@ export default function UserCenter() {
         <Alert
           type="info"
           showIcon
-          message="登录密码、MFA 和账号资料由 Casdoor 统一身份中心管理。"
+          message="登录密码、多因素认证和账号资料由统一身份中心管理。"
           description={authCapabilities?.casdoorAccountUrl ? '请前往统一身份中心修改密码或管理安全设置。' : '统一身份中心地址尚未配置，请联系管理员。'}
-          action={authCapabilities?.casdoorAccountUrl?.startsWith('https://') ? <Button href={authCapabilities.casdoorAccountUrl} target="_blank" rel="noreferrer">打开 Casdoor 账号中心</Button> : undefined}
+          action={authCapabilities?.casdoorAccountUrl?.startsWith('https://') ? <Button href={authCapabilities.casdoorAccountUrl} target="_blank" rel="noreferrer">管理账号安全</Button> : undefined}
         />
       </Card>}
 

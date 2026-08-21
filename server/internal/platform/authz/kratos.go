@@ -33,7 +33,12 @@ func Server(rules map[string][]string) middleware.Middleware {
 				}
 				return next(ctx, req)
 			}
-			if !authenticated || !principal.HasPermission(required...) {
+			// A registered operation with no explicit permissions is available to
+			// every authenticated principal. This is used by the end-user portal:
+			// application visibility is enforced by its access-policy layer, so a
+			// user with no matching applications receives an empty result instead
+			// of a misleading authorization failure.
+			if !authenticated || (len(required) > 0 && !principal.HasPermission(required...)) {
 				return nil, kratoserrors.Forbidden("PERMISSION_DENIED", "permission denied")
 			}
 			return next(ctx, req)
@@ -120,16 +125,16 @@ func PlatformRules() map[string][]string {
 
 func PortalRules() map[string][]string {
 	return map[string][]string{
-		forgev1.OperationPortalServiceAuthorizePortalApplication:   {"portal.application.read"},
-		forgev1.OperationPortalServiceListPortalApplications:       {"portal.application.read"},
-		forgev1.OperationPortalServiceGetPortalApplication:         {"portal.application.read"},
-		forgev1.OperationPortalServiceLaunchPortalApplication:      {"portal.application.read"},
-		forgev1.OperationPortalServiceListPortalFavorites:          {"portal.application.read"},
-		forgev1.OperationPortalServiceAddPortalFavorite:            {"portal.application.read"},
-		forgev1.OperationPortalServiceRemovePortalFavorite:         {"portal.application.read"},
-		forgev1.OperationPortalServiceListRecentPortalApplications: {"portal.application.read"},
-		forgev1.OperationPortalServiceListPortalCategories:         {"portal.application.read"},
-		forgev1.OperationPortalServiceListPortalTags:               {"portal.application.read"},
+		forgev1.OperationPortalServiceAuthorizePortalApplication:   {},
+		forgev1.OperationPortalServiceListPortalApplications:       {},
+		forgev1.OperationPortalServiceGetPortalApplication:         {},
+		forgev1.OperationPortalServiceLaunchPortalApplication:      {},
+		forgev1.OperationPortalServiceListPortalFavorites:          {},
+		forgev1.OperationPortalServiceAddPortalFavorite:            {},
+		forgev1.OperationPortalServiceRemovePortalFavorite:         {},
+		forgev1.OperationPortalServiceListRecentPortalApplications: {},
+		forgev1.OperationPortalServiceListPortalCategories:         {},
+		forgev1.OperationPortalServiceListPortalTags:               {},
 		// Identity administrators need the sanitized admin application list to
 		// select an application for onboarding; mutation routes remain manage-only.
 		forgev1.OperationPortalServiceListAdminPortalApplications:      {"portal.application.manage", "iam.integration.read"},

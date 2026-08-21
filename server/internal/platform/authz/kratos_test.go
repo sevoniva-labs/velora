@@ -59,6 +59,20 @@ func TestPlatformAuthorizationDeniesUnregisteredOperation(t *testing.T) {
 	}
 }
 
+func TestPortalReadAllowsAuthenticatedUserWithoutRBACPermissions(t *testing.T) {
+	handler := Server(PortalRules())(func(context.Context, any) (any, error) { return "ok", nil })
+	operation := forgev1.OperationPortalServiceListPortalApplications
+
+	if _, err := handler(authorizationContext(operation, domain.Principal{Type: "USER", UserID: "user-1"}), nil); err != nil {
+		t.Fatalf("authenticated portal user without RBAC permissions was rejected: %v", err)
+	}
+
+	ctx := transport.NewServerContext(context.Background(), fakeTransport{operation: operation})
+	if _, err := handler(ctx, nil); err == nil {
+		t.Fatal("unauthenticated portal request was accepted")
+	}
+}
+
 func TestPortalConsoleRequiresDedicatedPermission(t *testing.T) {
 	handler := Server(PortalRules())(func(context.Context, any) (any, error) { return "ok", nil })
 	operation := forgev1.OperationPortalServiceGetIdentityConsoleLink

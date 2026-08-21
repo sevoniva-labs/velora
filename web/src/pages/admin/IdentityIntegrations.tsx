@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Alert, App as AntdApp, Button, Card, Descriptions, Empty, Form, Input, List, Select, Space, Spin, Steps, Tag, Typography } from 'antd'
+import { Alert, App as AntdApp, Button, Card, Descriptions, Empty, Form, Input, List, Modal, Select, Space, Spin, Steps, Tag, Typography } from 'antd'
 import { ExportOutlined, SafetyCertificateOutlined } from '@ant-design/icons'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import AdminPageHead from '../../components/AdminPageHead'
@@ -69,7 +69,12 @@ export default function IdentityIntegrations() {
   }
   const bindingMutation = useMutation({
     mutationFn: (values: { providerApplicationRef: string; publicClientId: string; issuer: string; redirectUris: string }) => upsertApplicationIdentityBinding(selectedId!, { providerKey: 'casdoor', protocol: selected?.ssoType ?? 'OIDC', providerApplicationRef: values.providerApplicationRef, publicClientId: values.publicClientId, issuer: values.issuer, redirectUris: values.redirectUris.split(/\r?\n/).map((value) => value.trim()).filter(Boolean), expectedConfigVersion: onboarding.data?.binding?.configVersion }),
-    onSuccess: () => {
+    onSuccess: (result) => {
+      const oneTimeClientSecret = result.oneTimeClientSecret
+      result.oneTimeClientSecret = undefined
+      if (oneTimeClientSecret) {
+        Modal.info({ title: 'Client Secret（仅显示一次）', content: <Space direction="vertical" style={{ width: '100%' }}><Alert type="warning" showIcon message="请立即保存到受控 Secret Manager" description="关闭后 Velora 不再提供此值；该值不会写入草稿、审计或浏览器持久化存储。" /><Input.Password value={oneTimeClientSecret} readOnly /></Space>, okText: '已安全保存', maskClosable: false })
+      }
       if (selectedId) window.localStorage.removeItem(draftStorageKey(selectedId))
       message.success('身份绑定已保存，等待验证')
       invalidate()

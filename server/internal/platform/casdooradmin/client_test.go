@@ -2,6 +2,7 @@ package casdooradmin
 
 import (
 	"context"
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -36,5 +37,35 @@ func TestDisabledAutomationDoesNotCallRemote(t *testing.T) {
 	}
 	if _, _, err := client.GetApplication(context.Background(), "demo"); err != nil {
 		t.Fatal(err)
+	}
+}
+
+func TestUpsertReturnsClientSecretOnlyOnceInMemory(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		if r.URL.Path == "/api/get-application" {
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
+		_, _ = w.Write([]byte(`{"status":"ok","data":{"name":"demo","clientSecret":"one-time-secret"}}`))
+	}))
+	defer server.Close()
+	client, err := New(Config{BaseURL: server.URL, Token: "token", Enabled: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	application, created, err := client.UpsertApplication(context.Background(), UpsertInput{Name: "demo", Organization: "built-in", RedirectURIs: []string{"https://app.example.test/callback"}, ApprovalID: "approval-1"})
+	if err != nil || !created {
+		t.Fatalf("UpsertApplication() = created %t, err %v", created, err)
+	}
+	if got := application.TakeOneTimeClientSecret(); got != "one-time-secret" {
+		t.Fatalf("first secret = %q", got)
+	}
+	if got := application.TakeOneTimeClientSecret(); got != "" {
+		t.Fatalf("secret was not cleared: %q", got)
+	}
+	encoded, err := json.Marshal(application)
+	if err != nil || strings.Contains(string(encoded), "one-time-secret") {
+		t.Fatalf("secret serialized: %s", encoded)
 	}
 }

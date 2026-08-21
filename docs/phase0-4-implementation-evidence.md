@@ -4,11 +4,12 @@
 
 ## 已交付
 
-- Phase 0：移除未落库的 Client ID/应用名假字段，正式表单只开放已闭环的直链；普通用户界面统一使用“统一身份中心”；管理入口和菜单按细粒度权限集合渲染。
+- Phase 0：移除未落库的 Client ID/应用名假字段，正式表单只开放已闭环的直链；普通用户界面统一使用“统一身份中心”；管理入口和菜单按细粒度权限集合渲染；旧 SAML/CAS/ForwardAuth 在向导中明确禁用。
 - Phase 1：新增 `00023_portal_identity_boundary` additive migration；身份绑定、验证记录、生命周期、发布时间、操作者和 `config_version` 乐观锁；`iam.integration.*`、`iam.console.open`、`portal.application.publish` 权限；控制台 URL 仅通过受权 API 返回；后端拒绝新建未验收的 SAML/CAS/ForwardAuth 绑定。
+- 权限模型：新增目标权限 `audit.read`，同时保留 `system.audit.read` 兼容旧角色和令牌。
 - Phase 2：新增“身份与单点登录”五步向导，支持 URL/OIDC 分支、绑定保存、真实 Discovery 验证、策略跳转、验证失败恢复和发布门禁；向导草稿只保存非敏感字段到浏览器本地存储并可恢复；不收集 Client Secret；管理页展示连接状态、Issuer 和待处理应用数量。
 - Phase 3：保留并修正本地 OIDC PKCE smoke；已实测本地 Casdoor Discovery、Velora begin、`state`/`nonce`/S256 PKCE 参数、未授权管理接口拒绝和容器健康。完整登录、MFA、撤权、错误回调和登出必须使用真实测试账号执行。
-- Phase 4：新增默认关闭的最小权限 Casdoor 应用自动化客户端和只读检查命令；只允许应用客户端管理，强制 `approval_id` maker-checker，不管理用户/密码/角色/MFA，不保存或输出 Client Secret。
+- Phase 4：新增默认关闭的最小权限 Casdoor 应用自动化客户端和只读检查命令；只允许应用客户端管理，强制 `approval_id` maker-checker，不管理用户/密码/角色/MFA；新建客户端的 Secret 仅返回给同时拥有身份管理和受控控制台权限的管理员一次，随后清理内存，不进入数据库、日志、审计或浏览器持久化存储。
 
 ## 已执行命令
 
@@ -22,6 +23,7 @@ proto:  make -C server proto-check PASS
 proto:  make -C server proto-generate PASS
 shell:  bash -n smoke/init  PASS
 git:    git diff --check     PASS; 工作区仅保留本次变更
+secret: gitleaks protect --staged PASS
 ```
 
 本地 Compose 证据（2026-08-21）：

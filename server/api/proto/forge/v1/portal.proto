@@ -315,7 +315,7 @@ message UpsertApplicationIdentityBindingRequest {
   int64 expected_config_version = 8;
   string approval_id = 9;
 }
-message UpsertApplicationIdentityBindingResponse { PortalIdentityBinding binding = 1; PortalApplication application = 2; }
+message UpsertApplicationIdentityBindingResponse { PortalIdentityBinding binding = 1; PortalApplication application = 2; string one_time_client_secret = 3; }
 message VerifyApplicationIdentityRequest { string application_id = 1; int64 expected_config_version = 2; }
 message VerifyApplicationIdentityResponse { PortalIdentityBinding binding = 1; PortalApplication application = 2; repeated PortalApplicationVerification verifications = 3; bool passed = 4; }
 message SubmitApplicationPublishRequest { string application_id = 1; int64 expected_config_version = 2; }

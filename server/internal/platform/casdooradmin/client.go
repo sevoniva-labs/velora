@@ -26,13 +26,54 @@ type Config struct {
 }
 
 type Application struct {
-	Name         string
-	Organization string
-	DisplayName  string
-	ClientID     string
-	RedirectURIs []string
-	GrantTypes   []string
-	Enabled      bool
+	Name                string
+	Organization        string
+	DisplayName         string
+	ClientID            string
+	RedirectURIs        []string
+	GrantTypes          []string
+	Enabled             bool
+	oneTimeClientSecret string
+}
+
+// TakeOneTimeClientSecret returns a newly-created Casdoor client secret once
+// and clears the in-memory copy. It is intentionally absent from JSON models,
+// database records, logs and audit payloads.
+func (a *Application) TakeOneTimeClientSecret() string {
+	if a == nil {
+		return ""
+	}
+	secret := a.oneTimeClientSecret
+	a.oneTimeClientSecret = ""
+	return secret
+}
+
+type applicationWire struct {
+	Name              string   `json:"name"`
+	Organization      string   `json:"organization"`
+	Owner             string   `json:"owner"`
+	DisplayName       string   `json:"displayName"`
+	ClientID          string   `json:"clientId"`
+	RedirectURIs      []string `json:"redirectUris"`
+	GrantTypes        []string `json:"grantTypes"`
+	Enabled           bool     `json:"enableSigninSession"`
+	ClientSecret      string   `json:"clientSecret"`
+	ClientSecretSnake string   `json:"client_secret"`
+}
+
+func (w applicationWire) application(includeSecret bool) Application {
+	organization := w.Organization
+	if organization == "" {
+		organization = w.Owner
+	}
+	secret := ""
+	if includeSecret {
+		secret = w.ClientSecret
+		if secret == "" {
+			secret = w.ClientSecretSnake
+		}
+	}
+	return Application{Name: w.Name, Organization: organization, DisplayName: w.DisplayName, ClientID: w.ClientID, RedirectURIs: w.RedirectURIs, GrantTypes: w.GrantTypes, Enabled: w.Enabled, oneTimeClientSecret: secret}
 }
 
 type UpsertInput struct {
@@ -77,15 +118,15 @@ func (c *Client) GetApplication(ctx context.Context, ref string) (Application, b
 	if !c.Enabled() {
 		return Application{}, false, nil
 	}
-	var application Application
-	status, err := c.do(ctx, http.MethodGet, "/api/get-application?id="+url.QueryEscape(strings.TrimSpace(ref)), nil, &application)
+	var wire applicationWire
+	status, err := c.do(ctx, http.MethodGet, "/api/get-application?id="+url.QueryEscape(strings.TrimSpace(ref)), nil, &wire)
 	if status == http.StatusNotFound {
 		return Application{}, false, nil
 	}
 	if err != nil {
 		return Application{}, false, err
 	}
-	return application, true, nil
+	return wire.application(false), true, nil
 }
 
 func (c *Client) UpsertApplication(ctx context.Context, input UpsertInput) (Application, bool, error) {
@@ -108,10 +149,13 @@ func (c *Client) UpsertApplication(ctx context.Context, input UpsertInput) (Appl
 		method, path = http.MethodPost, "/api/update-application"
 		request["id"] = existing.Name
 	}
-	var application Application
-	if _, err := c.do(ctx, method, path, request, &application); err != nil {
+	var wire applicationWire
+	if _, err := c.do(ctx, method, path, request, &wire); err != nil {
 		return Application{}, false, err
 	}
+	// Only a newly created client may yield a one-time secret. Updates never
+	// re-expose an existing secret, even if Casdoor includes it in the payload.
+	application := wire.application(!found)
 	if application.Name == "" {
 		application = Application{Name: input.Name, Organization: input.Organization, ClientID: input.ClientID, RedirectURIs: input.RedirectURIs, GrantTypes: input.GrantTypes, Enabled: true}
 	}

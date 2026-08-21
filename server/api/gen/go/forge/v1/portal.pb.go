@@ -3413,11 +3413,12 @@ func (x *UpsertApplicationIdentityBindingRequest) GetApprovalId() string {
 }
 
 type UpsertApplicationIdentityBindingResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Binding       *PortalIdentityBinding `protobuf:"bytes,1,opt,name=binding,proto3" json:"binding,omitempty"`
-	Application   *PortalApplication     `protobuf:"bytes,2,opt,name=application,proto3" json:"application,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state               protoimpl.MessageState `protogen:"open.v1"`
+	Binding             *PortalIdentityBinding `protobuf:"bytes,1,opt,name=binding,proto3" json:"binding,omitempty"`
+	Application         *PortalApplication     `protobuf:"bytes,2,opt,name=application,proto3" json:"application,omitempty"`
+	OneTimeClientSecret string                 `protobuf:"bytes,3,opt,name=one_time_client_secret,json=oneTimeClientSecret,proto3" json:"one_time_client_secret,omitempty"`
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
 }
 
 func (x *UpsertApplicationIdentityBindingResponse) Reset() {
@@ -3462,6 +3463,13 @@ func (x *UpsertApplicationIdentityBindingResponse) GetApplication() *PortalAppli
 		return x.Application
 	}
 	return nil
+}
+
+func (x *UpsertApplicationIdentityBindingResponse) GetOneTimeClientSecret() string {
+	if x != nil {
+		return x.OneTimeClientSecret
+	}
+	return ""
 }
 
 type VerifyApplicationIdentityRequest struct {
@@ -4159,10 +4167,11 @@ const file_forge_v1_portal_proto_rawDesc = "" +
 	"\rredirect_uris\x18\a \x03(\tR\fredirectUris\x126\n" +
 	"\x17expected_config_version\x18\b \x01(\x03R\x15expectedConfigVersion\x12\x1f\n" +
 	"\vapproval_id\x18\t \x01(\tR\n" +
-	"approvalId\"\xa4\x01\n" +
+	"approvalId\"\xd9\x01\n" +
 	"(UpsertApplicationIdentityBindingResponse\x129\n" +
 	"\abinding\x18\x01 \x01(\v2\x1f.forge.v1.PortalIdentityBindingR\abinding\x12=\n" +
-	"\vapplication\x18\x02 \x01(\v2\x1b.forge.v1.PortalApplicationR\vapplication\"\x81\x01\n" +
+	"\vapplication\x18\x02 \x01(\v2\x1b.forge.v1.PortalApplicationR\vapplication\x123\n" +
+	"\x16one_time_client_secret\x18\x03 \x01(\tR\x13oneTimeClientSecret\"\x81\x01\n" +
 	" VerifyApplicationIdentityRequest\x12%\n" +
 	"\x0eapplication_id\x18\x01 \x01(\tR\rapplicationId\x126\n" +
 	"\x17expected_config_version\x18\x02 \x01(\x03R\x15expectedConfigVersion\"\x84\x02\n" +

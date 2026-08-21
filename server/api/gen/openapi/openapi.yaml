@@ -4417,6 +4417,8 @@ components:
                     $ref: '#/components/schemas/forge.v1.PortalIdentityBinding'
                 application:
                     $ref: '#/components/schemas/forge.v1.PortalApplication'
+                oneTimeClientSecret:
+                    type: string
         forge.v1.UpsertDataFieldPolicyRequest:
             type: object
             properties:

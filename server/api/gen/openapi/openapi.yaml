@@ -3221,6 +3221,8 @@ components:
                     type: string
                 pendingApplicationCount:
                     type: string
+                automationEnabled:
+                    type: boolean
         forge.v1.GetMFAStatusResponse:
             type: object
             properties:

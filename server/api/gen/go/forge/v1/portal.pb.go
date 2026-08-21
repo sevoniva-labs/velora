@@ -3029,6 +3029,7 @@ type GetIdentityOverviewResponse struct {
 	Issuer                  string                 `protobuf:"bytes,5,opt,name=issuer,proto3" json:"issuer,omitempty"`
 	ConnectionStatus        string                 `protobuf:"bytes,6,opt,name=connection_status,json=connectionStatus,proto3" json:"connection_status,omitempty"`
 	PendingApplicationCount int64                  `protobuf:"varint,7,opt,name=pending_application_count,json=pendingApplicationCount,proto3" json:"pending_application_count,omitempty"`
+	AutomationEnabled       bool                   `protobuf:"varint,8,opt,name=automation_enabled,json=automationEnabled,proto3" json:"automation_enabled,omitempty"`
 	unknownFields           protoimpl.UnknownFields
 	sizeCache               protoimpl.SizeCache
 }
@@ -3110,6 +3111,13 @@ func (x *GetIdentityOverviewResponse) GetPendingApplicationCount() int64 {
 		return x.PendingApplicationCount
 	}
 	return 0
+}
+
+func (x *GetIdentityOverviewResponse) GetAutomationEnabled() bool {
+	if x != nil {
+		return x.AutomationEnabled
+	}
+	return false
 }
 
 type GetIdentityConsoleLinkRequest struct {
@@ -4161,7 +4169,7 @@ const file_forge_v1_portal_proto_rawDesc = "" +
 	"\n" +
 	"request_id\x18\n" +
 	" \x01(\tR\trequestId\"\x1c\n" +
-	"\x1aGetIdentityOverviewRequest\"\xc6\x02\n" +
+	"\x1aGetIdentityOverviewRequest\"\xf5\x02\n" +
 	"\x1bGetIdentityOverviewResponse\x12-\n" +
 	"\x12onboarding_enabled\x18\x01 \x01(\bR\x11onboardingEnabled\x12.\n" +
 	"\x13admin_entry_enabled\x18\x02 \x01(\bR\x11adminEntryEnabled\x12!\n" +
@@ -4169,7 +4177,8 @@ const file_forge_v1_portal_proto_rawDesc = "" +
 	"\x0eadmin_url_host\x18\x04 \x01(\tR\fadminUrlHost\x12\x16\n" +
 	"\x06issuer\x18\x05 \x01(\tR\x06issuer\x12+\n" +
 	"\x11connection_status\x18\x06 \x01(\tR\x10connectionStatus\x12:\n" +
-	"\x19pending_application_count\x18\a \x01(\x03R\x17pendingApplicationCount\"\x1f\n" +
+	"\x19pending_application_count\x18\a \x01(\x03R\x17pendingApplicationCount\x12-\n" +
+	"\x12automation_enabled\x18\b \x01(\bR\x11automationEnabled\"\x1f\n" +
 	"\x1dGetIdentityConsoleLinkRequest\"U\n" +
 	"\x1eGetIdentityConsoleLinkResponse\x12\x10\n" +
 	"\x03url\x18\x01 \x01(\tR\x03url\x12!\n" +

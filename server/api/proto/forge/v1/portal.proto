@@ -300,6 +300,7 @@ message GetIdentityOverviewResponse {
   string issuer = 5;
   string connection_status = 6;
   int64 pending_application_count = 7;
+  bool automation_enabled = 8;
 }
 message GetIdentityConsoleLinkRequest {}
 message GetIdentityConsoleLinkResponse { string url = 1; string provider_key = 2; }

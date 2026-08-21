@@ -1005,9 +1005,9 @@ func (c Config) ValidateProductionAuth() error {
 	if strings.TrimSpace(c.Security.CasdoorAccountURL) == "" || !isHTTPSURL(c.Security.CasdoorAccountURL) {
 		errs = append(errs, "security.casdoor_account_url must be an https URL in production")
 	}
-	if c.Security.CasdoorAdminEntryEnabled {
+	if c.Security.CasdoorAdminEntryEnabled || c.Security.CasdoorApplicationAutomationEnabled {
 		if strings.TrimSpace(c.Security.CasdoorAdminURL) == "" || !isHTTPSURL(c.Security.CasdoorAdminURL) {
-			errs = append(errs, "security.casdoor_admin_url must be an https URL when the admin entry is enabled")
+			errs = append(errs, "security.casdoor_admin_url must be an https URL when Casdoor administration is enabled")
 		}
 		adminURL, _ := url.Parse(c.Security.CasdoorAdminURL)
 		if len(c.Security.CasdoorAllowedHosts) == 0 || adminURL == nil || !containsFold(c.Security.CasdoorAllowedHosts, adminURL.Hostname()) {

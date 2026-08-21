@@ -440,7 +440,7 @@ func (s *PortalService) GetIdentityOverview(ctx context.Context, _ *forgev1.GetI
 		}
 	}
 	connectionStatus := identityConnectionStatus(ctx, s.identityIssuer, s.identityInternalURL)
-	return &forgev1.GetIdentityOverviewResponse{OnboardingEnabled: s.identityOnboardingEnabled, AdminEntryEnabled: s.identityAdminEntryEnabled, ProviderKey: portaldomain.IdentityProviderCasdoor, AdminUrlHost: host, Issuer: s.identityIssuer, ConnectionStatus: connectionStatus, PendingApplicationCount: pending}, nil
+	return &forgev1.GetIdentityOverviewResponse{OnboardingEnabled: s.identityOnboardingEnabled, AdminEntryEnabled: s.identityAdminEntryEnabled, ProviderKey: portaldomain.IdentityProviderCasdoor, AdminUrlHost: host, Issuer: s.identityIssuer, ConnectionStatus: connectionStatus, PendingApplicationCount: pending, AutomationEnabled: s.casdoorAutomation != nil && s.casdoorAutomation.Enabled()}, nil
 }
 
 func identityConnectionStatus(ctx context.Context, issuer, internalURL string) string {

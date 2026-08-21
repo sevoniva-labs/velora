@@ -4,7 +4,7 @@
 
 ## 已交付
 
-- Phase 0：移除未落库的 Client ID/应用名假字段，正式表单只开放已闭环的直链；普通用户界面统一使用“统一身份中心”；管理入口和菜单按细粒度权限集合渲染；旧 SAML/CAS/ForwardAuth 在向导中明确禁用。
+- Phase 0：移除未落库的 Client ID/应用名假字段，正式表单开放直链并允许创建待验收的 OIDC 草稿；普通用户界面统一使用“统一身份中心”；管理入口和菜单按细粒度权限集合渲染；旧 SAML/CAS/ForwardAuth 在向导中明确禁用。
 - Phase 1：新增 `00023_portal_identity_boundary` 与 `00024_portal_identity_scopes` additive migration；身份绑定、验证记录、生命周期、发布时间、操作者、`config_version` 乐观锁和 OIDC Scopes；`iam.integration.*`、`iam.console.open`、`portal.application.publish` 权限；控制台 URL 仅通过受权 API 返回；后端拒绝新建未验收的 SAML/CAS/ForwardAuth 绑定。
 - 权限模型：新增目标权限 `audit.read`，同时保留 `system.audit.read` 兼容旧角色和令牌；管理后台入口、菜单和身份向导按钮按权限集合渲染，身份管理员可读取应用清单但不能越权修改门户或打开未授权控制台；集成令牌增加 `system.api_token.manage` 专用权限。
 - Phase 2：新增“身份与单点登录”五步向导，支持 URL/OIDC 分支、绑定保存、真实 Discovery 验证、策略跳转、验证失败恢复和发布门禁；向导草稿只保存非敏感字段到浏览器本地存储并可恢复；不收集 Client Secret；管理页展示连接状态、Issuer 和待处理应用数量。
@@ -27,7 +27,7 @@ shell:  bash -n smoke/init  PASS
 git:    git diff --check     PASS; 工作区仅保留本次变更
 secret: gitleaks protect --staged PASS
 commit: 14a45ec fix(authz): harden portal URL and permission compatibility；后续收口提交均已推送 `origin/codex/velora-forge-backend-replacement`
-commit: 6e18f1a/c5a829e/4240340/2be8c4f/9c7d73d/0fc5074/a2e368d/9cd86d4：Scopes 持久化、MFA assurance、审批重试、自动化 UI/部署 Secret、退役 stub 清理和权限驱动后台入口；均已推送
+commit: 6e18f1a/c5a829e/4240340/2be8c4f/9c7d73d/0fc5074/a2e368d/9cd86d4/0980293：Scopes 持久化、MFA assurance、审批重试、自动化 UI/部署 Secret、退役 stub 清理、权限驱动后台入口和 OIDC 草稿入口；均已推送
 ```
 
 本地 Compose 证据（2026-08-21）：
@@ -42,6 +42,7 @@ commit: 6e18f1a/c5a829e/4240340/2be8c4f/9c7d73d/0fc5074/a2e368d/9cd86d4：Scopes
 - Velora OIDC begin 返回 200，授权地址包含 `response_type=code`、`state`、`nonce`、`code_challenge_method=S256`、`code_challenge` 和配置的 redirect URI。
 - 最终镜像已由当前代码重建；server、web、Postgres、Casdoor 容器 healthy；迁移命令再次执行成功且版本为 24。
 - 生产 Compose 静态检查 `scripts/check-production-config.sh` PASS；Helm lint PASS；自动化 Token 仅通过 Secret 文件注入，默认 flag 仍为 false。
+- 旧数据兼容性：从仅执行 00001–00022 的临时 PostgreSQL 数据库开始，插入既有 URL/OIDC 应用后执行 00023/00024；结果为 URL `PUBLISHED/ENABLED`、OIDC `IDENTITY_PENDING/DISABLED`，绑定/验证表与 `scopes_json` 均创建成功；临时数据库已销毁。
 
 ## 未伪造的外部验收项
 

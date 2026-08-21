@@ -1,6 +1,6 @@
 # Velora 应用 OIDC 接入指南
 
-状态：接入规范待 Reference App 真实验收后定版
+状态：Reference App 已真实验收；本指南作为后续业务应用接入规范
 适用角色：应用开发者、Velora 应用管理员、身份管理员
 
 整体建设顺序和生产约束以[《Velora 新服务器整体建设与上线方案》](./production-clean-deployment-overall-plan.md)为准；本文件只定义下游应用如何接入。
@@ -208,22 +208,22 @@ sequenceDiagram
 
 ```text
 应用：velora-oidc-demo
-环境：production-like
-Issuer：
-Client ID 后四位：
-Redirect URI：
-Discovery：PASS/FAIL
-JWKS：PASS/FAIL
-Authorization Code + PKCE：PASS/FAIL
-ID Token 验证：PASS/FAIL
-免二次登录：PASS/FAIL
-无权限访问：PASS/FAIL
-登出：PASS/FAIL
-Secret 泄漏扫描：PASS/FAIL
-执行时间：
-执行人：
-关联提交：
-回滚点：
+环境：production（单机）
+Issuer：https://auth.sevoniva.com
+Client ID 后四位：已写入服务器 Secret/运行时配置，不写入文档
+Redirect URI：https://demo.sevoniva.com/oauth/callback
+Discovery：PASS
+JWKS：PASS
+Authorization Code + PKCE：PASS
+ID Token 验证：PASS
+免二次登录：PASS（已有 Casdoor Session 时不再显示密码页）
+无权限访问：PASS（Demo 不暴露 Velora 管理接口）
+登出：PASS（Demo 本地会话 + Casdoor RP-initiated logout）
+Secret 泄漏扫描：PASS（代码与日志不包含运行时 Secret）
+执行时间：2026-08-21
+执行人：部署验收自动化
+关联提交：`e953f03`（文档状态同步提交随后补充）
+回滚点：上一已验证 commit/image digest；数据库恢复演练已通过
 ```
 
 该模板必须由真实运行结果填写，禁止预填 PASS。

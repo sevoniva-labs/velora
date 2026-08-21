@@ -1,10 +1,24 @@
 # Velora 新服务器整体建设与上线方案
 
-状态：二次 Review 完成，待用户确认后实施
+状态：P0–P4 已实施并完成确定性验收（单机生产首发）；金融级增强项仍未声明完成
 目标服务器：`ubuntu@175.27.250.53`（4C / 8G / 约 98G 系统盘）
 建设方式：全新部署，不迁移、不读取、不依赖旧服务器数据
 环境方式：同一服务器承载逻辑隔离的开发环境和正式环境，不再依赖本地运行环境
-计划域名：`home.sevoniva.com`、`auth.sevoniva.com`、`demo.sevoniva.com`
+正式域名：`home.sevoniva.com`、`auth.sevoniva.com`、`demo.sevoniva.com`
+
+## 0. 本轮实施证据
+
+| 验收项 | 结果 |
+|---|---|
+| 代码主线 | `main`，最后提交 `e953f03`；每个切片已 Conventional Commit 并 push |
+| 服务器 | `ubuntu@175.27.250.53`；旧服务器未使用 |
+| 容器栈 | PostgreSQL、Redis、Casdoor、Server、Web、Edge、OIDC Demo 全部 healthy |
+| 公网入口 | 三域名均已解析到 `175.27.250.53`，公网 HTTPS 返回 200 |
+| OIDC | Discovery、JWKS、Authorization Code + PKCE、ID Token 验证通过 |
+| 登录 | Velora 表单→Casdoor 密码校验→OIDC Token→Session Bridge 已实测；旧密码拒绝 |
+| 存储 | 腾讯云 COS 桶 `velora-test-1314378184` 在 `ap-shanghai` HeadBucket 通过 |
+| 备份恢复 | Velora/Casdoor 双库 age 加密、SHA-256、签名、隔离 drill 恢复通过 |
+| 网络 | UFW 仅开放 22/80/443；数据库/Redis 等无宿主机端口 |
 
 ## 1. 结论
 
@@ -27,7 +41,7 @@
 | 管理边界 | 日常应用、发布和访问策略在 Velora；Casdoor 高级控制台仅给受权管理员 |
 | OIDC Provider | Velora 不实现；Casdoor 是唯一身份协议提供方 |
 | 数据 | 新环境全新初始化，不迁移旧用户、数据库和 Casdoor Application |
-| 对象存储 | 腾讯云 COS 是首发目标；已有桶仍需在新环境重跑能力合同，完成前保持 `Not certified`，同时保留通用 S3 Provider 边界 |
+| 对象存储 | 腾讯云 COS 首发目标，桶 `velora-test-1314378184` / 区域 `ap-shanghai` 基础 HeadBucket 已通过；高级能力仍保持 `Not certified` |
 | Crypto | 本轮使用 `standard` Profile + root-only 软件密钥；金融 Profile 继续保留真实国密 KMS/HSM 强制门禁 |
 | 构建源 | Go 使用 `goproxy.cn`，pnpm 使用 `npmmirror`，OCI 镜像经 DaoCloud/受控国内源并固定 digest |
 | 开发与发布 | 服务器直接开发、测试和构建；正式环境只运行通过门禁的不可变 commit 镜像 |
@@ -35,15 +49,14 @@
 
 ## 3. 当前代码与目标之间的真实差距
 
-以下项目在实施前仍是代码或真实环境缺口，不能标记为已完成：
+以下项目已在本轮完成；剩余项是单机生产的边界，不应被描述为金融级能力：
 
-1. 当前生产配置主动拒绝 Velora 代收 Casdoor 密码，与“Velora 页面是唯一登录入口”的产品决定冲突；必须以受控安全模式重构生产门禁，不能靠把环境伪装成开发环境绕过。
-2. 当前 Velora 服务端校验 Casdoor 密码后没有为浏览器建立 `auth.sevoniva.com` 的 Casdoor SSO Session，下游 OIDC App 仍可能看到二次登录页。
-3. 当前生产 Web 镜像只适合单域名入口；`home/auth/demo` 需要独立 Edge Nginx 和三个严格 Host 的 TLS Virtual Host。
-4. 当前没有可部署的真实 OIDC Demo Client。
-5. 当前应用验证主要验证 Discovery，尚未完整验证 Client ID、Redirect URI、Scopes、Grant Type 和真实浏览器登录。
-6. 当前 HSM/KMS/PKCS#11 只是 `Adapter slot`；生产配置选择它会失败关闭，不能伪装成已经接入国密硬件。
-7. 单台服务器没有 PostgreSQL/Redis/应用 HA；只能通过备份、快速重建和明确 RTO 降低风险，不能达到无单点目标。
+1. Velora 表单登录、Turnstile、Casdoor OIDC 校验、30 秒 Redis Session Bridge 和 Host-only Cookie 已完成。
+2. 三域名 Edge、真实 Go OIDC Demo、Casdoor 两个 Client、精确回调和 PKCE 已完成。
+3. 应用接入状态机、验证和管理员边界已落地；生产真实业务应用仍需按接入指南逐个配置。
+4. COS 基础连通性已验证；高级 SSE-KMS、对象锁、WORM、跨地域复制仍未认证。
+5. HSM/KMS/PKCS#11 仍是失败关闭的适配槽位，尚未接入真实国密硬件。
+6. 单机没有 PostgreSQL/Redis/应用 HA；异地灾备、WORM/SIEM、外部安全测试和容量压测不在本轮。
 
 ## 4. 最终产品与技术架构
 
@@ -139,7 +152,7 @@ flowchart TB
 
 全程直接在 `main` 开发。每个阶段开始前执行 `git pull --ff-only` 并确认工作树干净；完成聚焦测试后立即 Conventional Commit 和 push。禁止创建功能分支、强推、变基、覆盖用户修改或积压多个阶段后一次性提交。
 
-### P0：服务器开发基线与生产配置
+### P0：服务器开发基线与生产配置（已完成）
 
 - 在新服务器安装 Docker/Compose、Go、Node/pnpm、Git 和必要检查工具，全部使用受控国内源。
 - 建立 `source/dev/prod` 目录和完全隔离的两个 Compose Project；开发环境仅绑定 `127.0.0.1`。
@@ -150,7 +163,7 @@ flowchart TB
 
 退出门禁：配置单测、Secret 扫描、`make verify`、开发 Compose 和生产配置静态检查全部通过。
 
-### P1：公网身份域、Edge 与 Session Bridge
+### P1：公网身份域、Edge 与 Session Bridge（已完成）
 
 - 将公网 Issuer 统一为 `https://auth.sevoniva.com`，内网访问使用 `http://casdoor:8000`。
 - 新建全新 Casdoor Velora Client，配置精确回调和 Signin Session。
@@ -160,7 +173,7 @@ flowchart TB
 
 退出门禁：Ticket 不可重放、不进入 URL/日志，Cookie 安全属性正确，Issuer/Discovery/JWKS 一致，Turnstile 和登录失败全部失败关闭。
 
-### P2：真实 OIDC Demo Client
+### P2：真实 OIDC Demo Client（已完成）
 
 - 新增 Go 单二进制 Demo，非 root、只读根文件系统、无数据库。
 - 实现 Authorization Code + PKCE S256、State、Nonce、服务端 Session 和已定义的登出链路。
@@ -168,7 +181,7 @@ flowchart TB
 
 退出门禁：从 Velora 启动 Demo 不二次输入密码；非法 State/Nonce/PKCE/Redirect、未授权启动全部被拒绝。
 
-### P3：应用接入产品闭环
+### P3：应用接入产品闭环（已完成，等待真实业务应用逐个接入）
 
 - 将“应用管理、身份与单点登录、访问策略”整合为一个接入向导。
 - 状态固定为 `DRAFT → IDENTITY_PENDING → VERIFICATION_PENDING → READY → PUBLISHED → DISABLED`。
@@ -178,11 +191,11 @@ flowchart TB
 
 退出门禁：未验证应用不可发布，未授权用户不可见且无法绕过启动，配置漂移可诊断。
 
-### P4：正式发布与确定性验收
+### P4：正式发布与确定性验收（已完成）
 
 - 从空卷初始化正式 PostgreSQL 双库、Redis 和 Casdoor，不导入旧服务器任何数据。
 - 在服务器开发环境完成全部测试，以同一 commit SHA 构建不可变正式镜像并切换生产 Compose。
-- DNS 未切换前使用 `curl --resolve` 验证三个 HTTPS Host；通过后再切换 A 记录到 `175.27.250.53`。
+- DNS 已切换到 `175.27.250.53`；仍保留 `curl --resolve` 作为证书轮换和回滚验证手段。
 - 验证 DNS、TLS、端口、健康检查、登录、Demo SSO、管理员入口、权限拒绝、退出和容器重启恢复。
 - 完成腾讯云 COS 基础能力验证，以及一次双库备份和隔离恢复验证。
 - 输出最终账号初始化、应用接入、配置、发布、回滚和故障排查文档。
@@ -245,6 +258,6 @@ flowchart TB
 - 测试失败必须定位并修复；只有缺少 DNS 变更、外部凭据或其他不可推导的用户输入时才暂停并一次性说明。
 - 完成标准以 P0–P4 的确定性测试和真实 E2E 证据为准，不以开发耗时为准。
 
-## 12. 开始实施条件
+## 12. 收尾状态
 
-实施前只需确认这一份整体方案。确认后按 P0 → P4 在服务器 `main` 连续推进、分阶段提交和 push；任何阶段退出门禁未通过就继续修复，不部署半成品，也不提前宣称生产完成。
+本轮已按 P0 → P4 在服务器 `main` 连续实施、分阶段提交并 push。当前可作为单机生产首发基座和后续业务应用接入脚手架；接入真实业务应用前，必须按应用指南完成每个 Client 的 Redirect、权限范围、业务侧 Token 校验和回滚演练。HA、真实国密硬件、异地灾备、WORM/SIEM 和外部测评仍是后续工作，未在本轮伪造完成。

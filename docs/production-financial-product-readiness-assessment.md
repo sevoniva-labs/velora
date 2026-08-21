@@ -1,17 +1,17 @@
 # Velora 生产级、金融级与产品级就绪度评估
 
-> 评估日期：2026-08-20
-> 评估版本：历史快照；当前代码证据以 `codex/velora-forge-backend-replacement` 的 `83f7fbf` 及 [`production-implementation-status.md`](production-implementation-status.md) 为准。
+> 评估日期：2026-08-21
+> 评估版本：当前 `main`（`c88a10c`）；线上证据以 [`production-clean-deployment-overall-plan.md`](production-clean-deployment-overall-plan.md) 和 [`oidc-reference-application-implementation-plan.md`](oidc-reference-application-implementation-plan.md) 为准。
 > 范围：本仓库源码、配置、容器编排、脚本、测试、运维文档及本地登录页
 > 结论性质：工程评估，不替代等保测评、渗透测试、法律意见或金融监管验收
 
-> **状态说明（后端替换后，2026-08-20）**：本文第 1—10 节保留了替换前快照的风险证据和决策背景；下面的“当前实施状态”是本次 go-antd-fullstack 替换后的权威状态。替换后的后端源码、配置、路由和迁移以当前分支为准，不能再把旧 Gin/GORM/自建 OIDC Provider 的行号当作现状证据。
+> **状态说明（2026-08-21）**：本文第 1—10 节保留历史风险证据和决策背景；“当前实施状态”是新服务器单机生产首发的权威状态。旧 Gin/GORM、自建 OIDC Provider 和旧服务器均不属于当前运行时。
 
 ## 当前实施状态（权威）
 
 ### 结论
 
-后端已经实际切换到 `go-antd-fullstack` 的 Kratos/Proto 基座，Go module 为 `github.com/sevoniva-labs/velora/server`；`web/` 未修改，Casdoor 未修改且仅作为外部 OIDC Provider。R0—R3 的代码骨架和主要闭环已经落地，但尚未取得金融生产 Go 资格：真实 Casdoor 互操作、MinIO/COS 目标契约、国密 KMS/HSM、HA/灾备、外部渗透和等保测评仍需在目标环境验收。
+后端已经实际切换到 `go-antd-fullstack` 的 Kratos/Proto 基座，Go module 为 `github.com/sevoniva-labs/velora/server`；`web/` 未修改，Casdoor 源码未修改且仍是唯一身份提供方。P0—P4 已在 `175.27.250.53` 单机环境完成确定性验收，可作为普通企业应用的生产首发基座；金融生产仍需真实国密 KMS/HSM、HA/异地灾备、WORM/SIEM、外部安全测试和合规测评。
 
 ### 已交付
 
@@ -24,21 +24,21 @@
 
 ### 本次验收证据
 
-- 在 `server/` 中执行的 `make ci-go`、`make security-tools`、`make ci-deploy` 已通过；仓库根目录 `make test` 也通过（包含未修改前端的 lint/test/build）。
+- 服务器已通过 Go 全量测试、`go vet ./...`、错误码/契约覆盖/OpenAPI 安全、Proto lint/breaking/generated、模块边界和 AI 治理门禁；前端 lint/Vitest/build 已通过。
 - 临时 PostgreSQL 15 集群已从 00001—00022 完整迁移；启动后 `/api/v1/system/health` 和 `/api/v1/system/ready` 返回成功。
 - 真实 API smoke 已验证：登录、管理员创建分类、创建应用、门户列表、收藏、收藏列表、启动 URL；并验证了审计事务中的 PostgreSQL 游标关闭回归。
-- 生产 Compose 静态门禁通过：仅 Web 发布 80/443，数据库、Redis、Casdoor、server、监控不发布 host port，`initData=false`，无默认凭据；Docker daemon 不可用，因此未宣称容器运行时验收通过。
+- 生产 Compose 静态门禁和运行时验收通过：仅 Edge 发布 80/443，数据库、Redis、Casdoor、server 不发布 host port，七个服务均 healthy，UFW 仅开放 22/80/443，运行时不使用默认密码。
 - `git diff --name-only` 未出现 `web/`；Casdoor 服务源码未进入替换范围。
 
 ### 未完成且禁止宣称已通过的门槛
 
-1. Casdoor 真实 discovery、授权、回调、登出、MFA、claims/角色映射和撤权 E2E；需要目标 Casdoor 环境和批准的 client/redirect 配置。
-2. MinIO 与腾讯云 COS 的真实目标契约（multipart、checksum、SSE、versioning、object-lock/presign）及证据归档；代码默认对高级能力 fail-closed。
+1. 浏览器 Turnstile 成功挑战、真实业务用户与 MFA/撤权场景仍需由业务方在浏览器和目标组织中补做；后端已验证无 token/错误 token 失败关闭。
+2. 腾讯云 COS 已通过基础 HeadBucket/对象读写；multipart、checksum、SSE、versioning、object-lock/presign 等高级能力仍保持 fail-closed，未认证即不可宣称支持。
 3. `gm` 当前是软件国密 Provider 基线，不等于商密认证或 KMS/HSM；金融生产必须接入已审计的国密 KMS/HSM/PKCS#11 adapter，并完成密钥轮换演练。
 4. PostgreSQL/Redis HA、PITR、跨地域备份恢复、WORM/SIEM 审计、容量/故障注入、外部渗透、等保/金融监管测评。
 5. ForwardAuth 目标应用的可信 app-id/host 绑定和下游应用自身 OIDC 配置；门户隐藏按钮不是下游授权边界。
 
-因此当前判定为：**代码替换可实施，开发/隔离预发可继续；金融生产仍 NO-GO，必须完成上述目标环境证据后再 Go/No-Go。**
+因此当前判定为：**普通企业单机生产基座 GO（需按接入指南逐个接入业务应用）；金融生产 NO-GO，必须完成上述金融控制和外部证据后再 Go/No-Go。**
 
 ### 当前整改映射（2026-08-21）
 
@@ -54,7 +54,7 @@
 
 ## 1. 执行结论
 
-**总体结论：金融生产环境 NO-GO；普通企业生产环境 NO-GO；隔离的内部试点可在 P0 全部关闭后有条件上线。**
+**总体结论：金融生产环境 NO-GO；普通企业单机生产基座可上线；真实业务应用必须逐个完成接入、权限拒绝和回滚验收。**
 
 Velora 已具备较完整的企业门户 MVP：统一入口、Casdoor 身份集成、服务端会话、权限、应用中心、Todo、邮件、审计、隐私导出和基础可观测性均已有实现，登录页的桌面与移动端视觉质量也较好。当前问题不是“缺少功能页面”，而是身份协议、生产编排、供应链、备份恢复、审计可信性及金融控制闭环尚未达到上线门槛。
 
@@ -129,7 +129,7 @@ Velora 已具备较完整的企业门户 MVP：统一入口、Casdoor 身份集�
 - `docker compose ... config --format json`：确认生产 overlay 合并后仍发布 `5433`、`8080`、`8443`、`5173`，并同时发布 `80/443`。
 - 登录页在 1280×720 与 390×844 下完成视觉、键盘、校验和服务不可用状态检查。
 
-限制：本机 Docker daemon 不可用，因此没有启动 PostgreSQL、Casdoor 和后端；未执行真实登录、已登录业务流、负载、故障注入、恢复演练、外部渗透或等保测评。文中涉及这些环节的结论均按“缺少可验证证据”处理，而不是宣称已经通过。
+限制：本文件中的历史快照曾因本地 Docker 不可用而缺少运行时证据；当前运行时证据已迁移到 `175.27.250.53`，并在总体上线方案中记录。单机 HA、异地灾备、长期压测、外部渗透和等保测评仍未完成。
 
 ## 3. 发布阻断项（P0）
 

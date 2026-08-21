@@ -10,12 +10,24 @@
 [Velora 与 Casdoor 产品边界及应用接入实施方案](velora-casdoor-product-boundary-and-implementation-plan.md)。
 
 - Casdoor：唯一身份 / IAM / SSO（外部 OIDC Provider）。
-- Velora：OIDC Client/Relying Party、门户 / 工作台 / 应用枢纽。
-- Velora 不签发 OIDC Token，不注册 `/oidc/*`，也不接收 Casdoor 密码。
-- Velora **永不**直连 Casdoor 数据库；只通过 OIDC（登录）、Casdoor API（后续扩展）消费身份。
+- Velora：门户 / 工作台 / 应用枢纽，也是面向用户的统一登录入口；下游 OIDC 应用仍由 Casdoor 提供身份协议。
+- Velora 不签发 OIDC Token，不注册 `/oidc/*`，不保存密码；登录表单只在 TLS 请求内接收凭据并立即调用 Casdoor 的既有密码认证接口，随后建立一次性 Session Bridge，不把密码写入日志、数据库或前端存储。
+- Velora **永不**直连 Casdoor 数据库；通过 Casdoor OIDC（下游标准登录）和受控 Casdoor 登录 API（统一入口密码登录）消费身份。
 - 数据库隔离：同一 PostgreSQL Server，独立 database `casdoor` / `velora`。
 
-## 2. 登录流（OIDC Authorization Code + PKCE）
+## 2. 登录流
+
+统一入口密码登录（用户始终停留在 Velora 页面）：
+
+```text
+Velora 登录页 → POST /api/v1/auth/login（TLS + Turnstile）
+→ Velora 后端调用 Casdoor 既有密码认证接口
+→ 创建 Velora 服务端会话 + 30 秒一次性 Session Bridge
+→ POST /_velora/session/bridge（仅允许内部 Edge 路径）
+→ auth.sevoniva.com 设置 host-only Casdoor Session Cookie
+```
+
+下游应用登录使用 OIDC Authorization Code + PKCE：
 
 ```text
 访问 Velora → GET /api/v1/me 401 → 登录按钮

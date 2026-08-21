@@ -1,6 +1,6 @@
 # Velora 与 Casdoor 产品边界及应用接入实施方案
 
-> 状态：实施基线草案
+> 状态：已实施边界（`main` / `c88a10c`）；后续业务应用按本文件接入
 >
 > 适用范围：Velora 应用门户、管理后台、Casdoor 身份与单点登录集成
 >
@@ -10,7 +10,7 @@
 
 Velora 与 Casdoor 采用“一个产品入口、两个专业控制面”的模式：
 
-- **Velora 是管理员的主要工作入口**，负责应用目录、展示、分类、标签、负责人、启动地址、访问策略、发布、停用和业务审计。
+- **Velora 是所有用户和管理员的主要产品入口**，负责统一登录页面、应用目录、展示、分类、标签、负责人、启动地址、访问策略、发布、停用和业务审计。
 - **Casdoor 是唯一身份控制面**，负责用户、组织、角色、用户组、认证、MFA、OIDC/SAML/CAS 客户端、Redirect URI、Client ID、Client Secret 和身份 Claims。
 - **普通用户不接触 Casdoor 管理后台，也不需要看到 Casdoor 产品名称**；面向用户统一使用“统一身份中心”品牌。
 - **身份管理员可以从 Velora 进入 Casdoor 管理后台**，但入口必须单独授权，并通过内网、VPN、Cloudflare Access 或同等级访问控制保护。
@@ -45,7 +45,7 @@ Velora 可以保存 Casdoor 的 `provider_application_ref`、公开 `client_id` 
 - 登录、自助安全页面使用企业自己的“统一身份中心”名称和域名；
 - Casdoor 技术名称只在身份管理员页面作为次级技术信息出现。
 
-生产级认证仍建议使用标准 OIDC Authorization Code + PKCE。Casdoor 可以通过配置、主题和企业身份域名对用户隐藏产品品牌，无需修改 Casdoor 源码。将用户密码长期提交给 Velora 再转发给 Casdoor只能作为本地或过渡兼容方案，不能替代生产 OIDC、MFA、Passkey 和风险认证能力。
+生产下游应用仍使用标准 OIDC Authorization Code + PKCE。Velora 的统一登录页可以接收用户输入并通过后端调用 Casdoor 既有密码认证接口，密码只在 TLS 请求生命周期内存在；Velora 不保存密码，也不把该兼容入口扩展为自建身份系统。MFA、Passkey、风险认证和密码策略仍由 Casdoor 负责。
 
 ### 2.3 管理职责分离
 
@@ -409,8 +409,8 @@ POST /api/v1/admin/portal/applications/{id}/disable
 
 ### 11.1 认证和凭据
 
-- 生产使用标准 OIDC Code + PKCE；
-- Velora 不保存 Casdoor 密码和下游 Client Secret；
+- 下游应用生产使用标准 OIDC Code + PKCE；Velora 统一入口使用受控 Casdoor 密码认证 API；
+- Velora 不保存 Casdoor 密码和下游 Client Secret；密码仅存在于 TLS 请求处理生命周期；
 - 禁止日志记录 Authorization Code、Token、Cookie；
 - 管理员会话采用短 TTL 和 step-up MFA；
 - Casdoor 管理入口必须受网络边界和 MFA 保护。
@@ -436,7 +436,9 @@ POST /api/v1/admin/portal/applications/{id}/disable
 - 高权限用户每次敏感操作重新检查权限版本或使用短会话；
 - 下游应用仍需自行完成 Token/Session 撤销，Velora 不能替代。
 
-## 12. 实施分阶段方案
+## 12. 实施分阶段方案（已完成记录）
+
+本节保留实施拆分和产品边界；本轮 P0—P4 已在新服务器完成，线上证据、提交记录和回滚步骤以[整体上线方案](production-clean-deployment-overall-plan.md)为准。后续只新增真实业务应用接入，不再重复建设 Casdoor 或 Velora OIDC Provider。
 
 ### Phase 0：边界冻结与界面止损
 
@@ -644,12 +646,12 @@ VELORA_CASDOOR_ADMIN_ENTRY_ENABLED=false
 - 在协议未验证前宣称 SAML/CAS/ForwardAuth 已上线；
 - 用门户隐藏按钮代替下游应用鉴权。
 
-## 19. 推荐实施顺序
+## 19. 后续业务应用接入顺序
 
-1. 先做 Phase 0，消除当前假字段、假协议和 Casdoor 用户文案；
-2. 再做 Phase 1，完成数据库、Proto、权限和审计；
-3. 完成 Phase 2 接入向导和身份管理入口；
-4. 使用真实 Casdoor 和测试应用完成 Phase 3；
-5. 上线稳定后再决定是否需要 Phase 4 自动化。
+1. 在 Velora 创建应用草稿并填写 HTTPS 启动地址；
+2. 身份管理员在 Casdoor 创建 OIDC Client，配置精确 Redirect URI；
+3. 回到 Velora 保存公开 Client ID/Issuer，执行 Discovery、JWKS、PKCE 和 ID Token 验证；
+4. 配置 Velora 应用访问策略，完成无权限用户拒绝和回滚演练后发布；
+5. 只有确有业务需求时，才为已验证能力增加自动化，禁止通过修改 Casdoor 源码扩大边界。
 
 这套顺序可以保持 Casdoor 不改造、普通用户不感知其技术品牌，同时让身份管理员拥有必要入口，并让应用接入流程在 Velora 内形成可追踪、可验证、可审计的闭环。

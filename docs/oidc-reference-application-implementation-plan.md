@@ -1,12 +1,19 @@
 # Velora 公网身份域名与 Reference App 可实施方案
 
-状态：整体方案待确认；证书已完成只读预检，DNS 待切换，尚未部署
-计划身份域名：`auth.sevoniva.com`
-计划演示应用域名：`demo.sevoniva.com`
+状态：P1/P2/P4 已实施并通过确定性验收；Reference App 已在线
+正式身份域名：`auth.sevoniva.com`
+正式演示应用域名：`demo.sevoniva.com`
 生产门户：`https://home.sevoniva.com`
 目标服务器：`175.27.250.53`（4C / 8G，SSH 用户 `ubuntu`）
 
-建设原则：新服务器按全新生产环境初始化，不迁移旧服务器的数据库、账号、配置、镜像、证书目录或运行数据；旧服务器不属于本方案范围，也不作为新环境回滚依赖。只有用户确认本方案后才开始安装、开发和部署。
+建设原则：新服务器按全新生产环境初始化，不迁移旧服务器的数据库、账号、配置、镜像、证书目录或运行数据；旧服务器不属于本方案范围，也不作为新环境回滚依赖。本文件保留为已实施架构和验收记录。
+
+## 0. 实施结果
+
+- 三域名已解析到 `175.27.250.53`，线上 HTTPS 和健康探活通过。
+- Casdoor 未修改源码；已创建 Velora 与 Demo 两个 Authorization Code Client，精确配置回调和 Signin Session。
+- Velora 表单登录、OIDC Token 校验、Redis 一次性 Session Bridge、Demo PKCE/ID Token 验证已实测。
+- 双库 age 加密、签名和隔离恢复演练已通过；单机 HA、真实国密硬件和异地灾备仍不在本轮。
 
 本文件是身份域与 Demo 的专项实施细则；总体顺序、资源、安全、部署和上线结论以[《Velora 新服务器整体建设与上线方案》](./production-clean-deployment-overall-plan.md)为准。
 
@@ -32,7 +39,7 @@
 - Demo App 不承载真实业务数据，不作为业务脚手架。
 - 不把 Casdoor Client Secret、浏览器会话 ID 或 Token 写入数据库、日志、前端存储和审计详情。
 - 不迁移或复用旧服务器的 PostgreSQL 数据、Casdoor 配置、Velora 用户和 Secret。
-- 方案确认前不修改新服务器，不切换 DNS，不创建公网服务。
+- 不迁移旧环境，也不把 Casdoor 改造为 Velora 的自建 OIDC Provider。
 
 ## 3. 为什么需要两个新域名
 
@@ -66,9 +73,9 @@ Demo App 必须运行在独立域名，才能真实验证跨应用浏览器 SSO�
 
 | 项目 | 结果 |
 |---|---|
-| `home.sevoniva.com` 目标解析 | `175.27.250.53`；等待 DNS 切换后复验 |
-| `auth.sevoniva.com` 目标解析 | `175.27.250.53`；等待 DNS 切换后复验 |
-| `demo.sevoniva.com` 目标解析 | `175.27.250.53`；等待 DNS 切换后复验 |
+| `home.sevoniva.com` 目标解析 | `175.27.250.53`；线上复验通过 |
+| `auth.sevoniva.com` 目标解析 | `175.27.250.53`；线上复验通过 |
+| `demo.sevoniva.com` 目标解析 | `175.27.250.53`；线上复验通过 |
 | Home 证书包 | `/Users/chuncheng/Downloads/home.sevoniva.com_nginx.zip` |
 | Auth 证书包 | `/Users/chuncheng/Downloads/auth.sevoniva.com_nginx.zip` |
 | Demo 证书包 | `/Users/chuncheng/Downloads/demo.sevoniva.com_nginx.zip` |
@@ -83,7 +90,7 @@ Demo App 必须运行在独立域名，才能真实验证跨应用浏览器 SSO�
 | Home 有效期 | 2026-08-21 11:00:00 UTC 至 2026-11-19 10:59:59 UTC |
 | Auth/Demo 有效期 | 2026-08-21 12:00:00 UTC 至 2026-11-19 11:59:59 UTC |
 
-结论：三套证书的域名覆盖、证书链和私钥匹配满足实施前置条件；DNS 尚未切换，不能标记为已通过。证书约 90 天有效，部署时必须同步加入 30/15/7 天到期告警和续期操作说明。
+结论：三套证书的域名覆盖、证书链、私钥匹配和线上 TLS 访问均通过。证书约 90 天有效，仍需按 30/15/7 天告警和续期操作说明轮换。
 
 新环境不继承旧 Casdoor Application。实施时重新创建 Velora Client 和 Demo Client，并显式开启 `enable_signin_session`。新环境从第一次启动就使用共享 Redis，不允许先以内存 Cache 作为“临时生产方案”。
 

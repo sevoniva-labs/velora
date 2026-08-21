@@ -21,6 +21,13 @@ import (
 // safe. Responses are stored only for operations whose response is safe to
 // replay; one-time secrets deliberately do not use this helper.
 func (s *PortalService) idempotent(ctx context.Context, principal domain.Principal, scope string, request proto.Message, newResponse func() proto.Message, operation func() (proto.Message, error)) (proto.Message, error) {
+	return s.idempotentWith(ctx, principal, scope, request, newResponse, operation, nil)
+}
+
+// idempotentWith optionally transforms the response before it is persisted.
+// This is used for the one-time Casdoor client secret: the first response may
+// contain it, while a retry can only replay the non-sensitive resource state.
+func (s *PortalService) idempotentWith(ctx context.Context, principal domain.Principal, scope string, request proto.Message, newResponse func() proto.Message, operation func() (proto.Message, error), cacheResponse func(proto.Message) proto.Message) (proto.Message, error) {
 	if s.idem == nil {
 		return operation()
 	}
@@ -65,7 +72,11 @@ func (s *PortalService) idempotent(ctx context.Context, principal domain.Princip
 		_ = s.idem.Forget(ctx, begin.Record.ID)
 		return nil, errors.New("idempotency: operation returned an empty response")
 	}
-	responseBody, err := proto.Marshal(response)
+	responseToCache := response
+	if cacheResponse != nil {
+		responseToCache = cacheResponse(response)
+	}
+	responseBody, err := proto.Marshal(responseToCache)
 	if err != nil {
 		_ = s.idem.Forget(ctx, begin.Record.ID)
 		return nil, kratoserrors.InternalServer("IDEMPOTENCY_RESPONSE_INVALID", "write response could not be persisted")

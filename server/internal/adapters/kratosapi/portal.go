@@ -568,52 +568,61 @@ func (s *PortalService) UpsertApplicationIdentityBinding(ctx context.Context, re
 	if !principal.HasPermission("iam.integration.manage") {
 		return nil, kratoserrors.Forbidden("PERMISSION_DENIED", "identity integration management permission is required")
 	}
-	var oneTimeClientSecret string
 	automationEnabled := s.casdoorAutomation != nil && s.casdoorAutomation.Enabled() && strings.EqualFold(req.GetProviderKey(), portaldomain.IdentityProviderCasdoor) && strings.EqualFold(req.GetProtocol(), portaldomain.ProtocolOIDC)
 	if automationEnabled && strings.TrimSpace(req.GetApprovalId()) == "" {
 		return nil, serviceError(casdooradmin.ErrApprovalRequired)
 	}
-	var automationScopes []string
-	if automationEnabled {
-		var scopeErr error
-		automationScopes, scopeErr = portaldomain.NormalizeOIDCScopes(req.GetScopes())
-		if scopeErr != nil {
-			return nil, serviceError(scopeErr)
+	response, err := s.idempotentWith(ctx, principal, "iam.integration.update", req, func() proto.Message { return &forgev1.UpsertApplicationIdentityBindingResponse{} }, func() (proto.Message, error) {
+		var automationScopes []string
+		if automationEnabled {
+			var scopeErr error
+			automationScopes, scopeErr = portaldomain.NormalizeOIDCScopes(req.GetScopes())
+			if scopeErr != nil {
+				return nil, serviceError(scopeErr)
+			}
+			if err := s.authorizeCasdoorAutomation(ctx, principal, req.GetApprovalId(), "UPSERT", req.GetApplicationId(), map[string]any{
+				"provider":                 portaldomain.IdentityProviderCasdoor,
+				"protocol":                 req.GetProtocol(),
+				"provider_application_ref": req.GetProviderApplicationRef(),
+				"public_client_id":         req.GetPublicClientId(),
+				"issuer":                   req.GetIssuer(),
+				"redirect_uris":            req.GetRedirectUris(),
+				"scopes":                   automationScopes,
+			}); err != nil {
+				return nil, serviceError(err)
+			}
 		}
-		if err := s.authorizeCasdoorAutomation(ctx, principal, req.GetApprovalId(), "UPSERT", req.GetApplicationId(), map[string]any{
-			"provider":                 portaldomain.IdentityProviderCasdoor,
-			"protocol":                 req.GetProtocol(),
-			"provider_application_ref": req.GetProviderApplicationRef(),
-			"public_client_id":         req.GetPublicClientId(),
-			"issuer":                   req.GetIssuer(),
-			"redirect_uris":            req.GetRedirectUris(),
-			"scopes":                   automationScopes,
+		var binding portaldomain.IdentityBinding
+		var app portaldomain.Application
+		var oneTimeClientSecret string
+		event := newAuditEvent(ctx, principal, "iam.integration.update", "portal_application", req.GetApplicationId(), map[string]any{"protocol": req.GetProtocol(), "provider": portaldomain.IdentityProviderCasdoor})
+		if err := s.audited(ctx, event, func(txCtx context.Context) error {
+			var operationErr error
+			binding, app, operationErr = s.portal.UpsertApplicationIdentityBinding(txCtx, principal, req.GetApplicationId(), portaldomain.IdentityBindingInput{ProviderKey: req.GetProviderKey(), Protocol: req.GetProtocol(), ProviderApplicationRef: req.GetProviderApplicationRef(), PublicClientID: req.GetPublicClientId(), Issuer: req.GetIssuer(), RedirectURIs: req.GetRedirectUris(), Scopes: req.GetScopes()}, req.GetExpectedConfigVersion())
+			return operationErr
 		}); err != nil {
 			return nil, serviceError(err)
 		}
-	}
-	var binding portaldomain.IdentityBinding
-	var app portaldomain.Application
-	event := newAuditEvent(ctx, principal, "iam.integration.update", "portal_application", req.GetApplicationId(), map[string]any{"protocol": req.GetProtocol(), "provider": portaldomain.IdentityProviderCasdoor})
-	err = s.audited(ctx, event, func(txCtx context.Context) error {
-		var operationErr error
-		binding, app, operationErr = s.portal.UpsertApplicationIdentityBinding(txCtx, principal, req.GetApplicationId(), portaldomain.IdentityBindingInput{ProviderKey: req.GetProviderKey(), Protocol: req.GetProtocol(), ProviderApplicationRef: req.GetProviderApplicationRef(), PublicClientID: req.GetPublicClientId(), Issuer: req.GetIssuer(), RedirectURIs: req.GetRedirectUris(), Scopes: req.GetScopes()}, req.GetExpectedConfigVersion())
-		return operationErr
+		// Keep the Velora binding in VERIFICATION_PENDING when the external call
+		// fails. A later retry is safe because the Casdoor provider upsert is
+		// idempotent and the local binding is already auditable and recoverable.
+		if automationEnabled {
+			application, _, automationErr := s.casdoorAutomation.UpsertApplication(ctx, casdooradmin.UpsertInput{Name: req.GetProviderApplicationRef(), Organization: principal.OrganizationID, DisplayName: req.GetProviderApplicationRef(), ClientID: req.GetPublicClientId(), RedirectURIs: req.GetRedirectUris(), GrantTypes: []string{"authorization_code"}, Scopes: automationScopes, ApprovalID: req.GetApprovalId()})
+			if automationErr != nil {
+				return nil, serviceError(automationErr)
+			}
+			oneTimeClientSecret = application.TakeOneTimeClientSecret()
+		}
+		return &forgev1.UpsertApplicationIdentityBindingResponse{Binding: identityBindingProto(binding), Application: portalApplicationProto(app), OneTimeClientSecret: oneTimeClientSecret}, nil
+	}, func(message proto.Message) proto.Message {
+		cached := proto.Clone(message).(*forgev1.UpsertApplicationIdentityBindingResponse)
+		cached.OneTimeClientSecret = ""
+		return cached
 	})
 	if err != nil {
-		return nil, serviceError(err)
+		return nil, err
 	}
-	// Keep the Velora binding in VERIFICATION_PENDING when the external call
-	// fails. A later retry is safe because the Casdoor provider upsert is
-	// idempotent and the local binding is already auditable and recoverable.
-	if automationEnabled {
-		application, _, automationErr := s.casdoorAutomation.UpsertApplication(ctx, casdooradmin.UpsertInput{Name: req.GetProviderApplicationRef(), Organization: principal.OrganizationID, DisplayName: req.GetProviderApplicationRef(), ClientID: req.GetPublicClientId(), RedirectURIs: req.GetRedirectUris(), GrantTypes: []string{"authorization_code"}, Scopes: automationScopes, ApprovalID: req.GetApprovalId()})
-		if automationErr != nil {
-			return nil, serviceError(automationErr)
-		}
-		oneTimeClientSecret = application.TakeOneTimeClientSecret()
-	}
-	return &forgev1.UpsertApplicationIdentityBindingResponse{Binding: identityBindingProto(binding), Application: portalApplicationProto(app), OneTimeClientSecret: oneTimeClientSecret}, nil
+	return response.(*forgev1.UpsertApplicationIdentityBindingResponse), nil
 }
 
 func (s *PortalService) VerifyApplicationIdentity(ctx context.Context, req *forgev1.VerifyApplicationIdentityRequest) (*forgev1.VerifyApplicationIdentityResponse, error) {

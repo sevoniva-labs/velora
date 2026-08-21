@@ -237,27 +237,17 @@ export default function Login() {
                 />
               </Form.Item>
               {turnstileEnabled && (
-                <div className="velora-turnstile-card">
-                  <div className="velora-turnstile-heading">
-                    <span className="velora-turnstile-icon" aria-hidden="true">
-                      <SafetyCertificateOutlined />
-                    </span>
-                    <span className="velora-turnstile-title">安全验证</span>
-                    <span className="velora-turnstile-caption">保护账号安全</span>
-                  </div>
-                  <div className="velora-turnstile-widget">
-                    <TurnstileWidget
-                      key={turnstileAttempt}
-                      siteKey={turnstile.siteKey}
-                      action={turnstile.action}
-                      theme="light"
-                      onVerify={setTurnstileToken}
-                      onExpire={() => setTurnstileToken('')}
-                    />
-                  </div>
+                <div style={{ marginTop: 12, marginBottom: 4 }}>
+                  <TurnstileWidget
+                    key={turnstileAttempt}
+                    siteKey={turnstile.siteKey}
+                    action={turnstile.action}
+                    onVerify={setTurnstileToken}
+                    onExpire={() => setTurnstileToken('')}
+                  />
                 </div>
               )}
-              <Form.Item style={{ marginBottom: 0, marginTop: turnstileEnabled ? 16 : 8 }}>
+              <Form.Item style={{ marginBottom: 0, marginTop: 8 }}>
                 <Button
                   type="primary"
                   htmlType="submit"

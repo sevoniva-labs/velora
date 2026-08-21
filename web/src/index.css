@@ -1924,55 +1924,6 @@ button {
     transform: rotate(360deg);
   }
 }
-.velora-turnstile-card {
-  padding: 12px 12px 10px;
-  border: 1px solid var(--velora-border);
-  border-radius: 10px;
-  background: linear-gradient(180deg, var(--velora-primary-softer), #fff);
-  box-shadow: 0 6px 16px -12px rgba(22, 119, 255, 0.4);
-}
-.velora-turnstile-heading {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  min-height: 22px;
-}
-.velora-turnstile-icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 22px;
-  height: 22px;
-  flex: 0 0 22px;
-  border-radius: 7px;
-  color: var(--velora-primary);
-  background: var(--velora-primary-soft);
-  font-size: 13px;
-}
-.velora-turnstile-title {
-  color: var(--velora-title);
-  font-size: 13px;
-  font-weight: 600;
-}
-.velora-turnstile-caption {
-  margin-left: auto;
-  color: var(--velora-secondary);
-  font-size: 12px;
-}
-.velora-turnstile-widget {
-  display: flex;
-  justify-content: center;
-  min-height: 65px;
-  margin-top: 8px;
-  overflow: hidden;
-}
-.velora-turnstile-widget-host {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  min-height: 65px;
-}
 .velora-login-note {
   margin: 26px 0 0;
   color: var(--velora-secondary);

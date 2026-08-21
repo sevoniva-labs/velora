@@ -16,6 +16,7 @@ CASDOOR_TEST_PASSWORD="${CASDOOR_TEST_PASSWORD:-}"
 CASDOOR_APPLICATION="${CASDOOR_APPLICATION:-velora}"
 CASDOOR_ORGANIZATION="${CASDOOR_ORGANIZATION:-built-in}"
 CASDOOR_REDIRECT_URI="${CASDOOR_REDIRECT_URI:-http://localhost:5173/auth/callback}"
+CASDOOR_EXPECTED_ISSUER="${CASDOOR_EXPECTED_ISSUER:-${VELORA_OIDC_ISSUER:-$CASDOOR_BASE_URL}}"
 EVIDENCE_DIR="${VELORA_ACCEPTANCE_EVIDENCE_DIR:-./artifacts/acceptance}"
 
 for required in VELORA_OIDC_CLIENT_ID VELORA_OIDC_CLIENT_SECRET CASDOOR_TEST_USERNAME CASDOOR_TEST_PASSWORD; do
@@ -36,6 +37,7 @@ cookie_jar="$tmp_dir/cookies.txt"
 begin_json="$tmp_dir/begin.json"
 casdoor_json="$tmp_dir/casdoor.json"
 callback_json="$tmp_dir/callback.json"
+discovery_json="$tmp_dir/discovery.json"
 report="$EVIDENCE_DIR/casdoor-oidc-$(date -u +%Y%m%dT%H%M%SZ).json"
 
 status="failed"
@@ -59,6 +61,20 @@ fail() {
 begin_status="$(curl --silent --show-error --fail-with-body -c "$cookie_jar" -o "$begin_json" -w '%{http_code}' \
   "$VELORA_BASE_URL/api/v1/auth/federated/oidc/casdoor/begin?organization=default")" || fail "Velora begin 请求失败"
 [[ "$begin_status" == 2* ]] || fail "Velora begin HTTP $begin_status"
+
+discovery_status="$(curl --silent --show-error --fail-with-body -o "$discovery_json" -w '%{http_code}' \
+  "$CASDOOR_BASE_URL/.well-known/openid-configuration")" || fail "Casdoor Discovery 请求失败"
+[[ "$discovery_status" == 2* ]] || fail "Casdoor Discovery HTTP $discovery_status"
+python3 - "$discovery_json" "$CASDOOR_EXPECTED_ISSUER" <<'PY' || fail "Casdoor Discovery 缺少必需端点或 Issuer 不匹配"
+import json, sys
+with open(sys.argv[1], encoding="utf-8") as stream:
+    data = json.load(stream)
+expected = sys.argv[2].rstrip("/")
+issuer = str(data.get("issuer", "")).rstrip("/")
+required = ("authorization_endpoint", "token_endpoint", "jwks_uri")
+if issuer != expected or any(not str(data.get(key, "")) for key in required):
+    raise SystemExit(1)
+PY
 
 redirect_url="$(python3 - "$begin_json" <<'PY'
 import json, sys
@@ -115,6 +131,16 @@ print(code)
 PY
 )" || fail "Casdoor 未返回授权码"
 
+wrong_state_body="$(python3 - "$code" <<'PY'
+import json, sys
+print(json.dumps({"code": sys.argv[1], "state": "intentionally-wrong-state"}))
+PY
+)"
+wrong_state_status="$(curl --silent --show-error --fail-with-body -b "$cookie_jar" -o /dev/null -w '%{http_code}' \
+  -X POST -H 'Content-Type: application/json' --data-binary "$wrong_state_body" \
+  "$VELORA_BASE_URL/api/v1/auth/federated/oidc/casdoor/callback")"
+[[ "$wrong_state_status" != 2* ]] || fail "错误 state 被接受，未满足 state 绑定"
+
 callback_body="$(python3 - "$code" "$state" <<'PY'
 import json, sys
 print(json.dumps({"code": sys.argv[1], "state": sys.argv[2]}))
@@ -143,12 +169,12 @@ after_logout_status="$(curl --silent --show-error -b "$cookie_jar" -o /dev/null 
 
 status="passed"
 cleanup_report
-python3 - "$report" "$begin_status" "$casdoor_status" "$callback_status" "$me_status" "$replay_status" "$logout_status" "$after_logout_status" <<'PY'
+python3 - "$report" "$begin_status" "$discovery_status" "$casdoor_status" "$wrong_state_status" "$callback_status" "$me_status" "$replay_status" "$logout_status" "$after_logout_status" <<'PY'
 import json, sys
 path, *values = sys.argv[1:]
 with open(path, encoding="utf-8") as stream:
     report = json.load(stream)
-report.update({"checks": {"begin_http": values[0], "casdoor_authorize_http": values[1], "callback_http": values[2], "me_http": values[3], "replay_http": values[4], "logout_http": values[5], "after_logout_me_http": values[6]}})
+report.update({"checks": {"begin_http": values[0], "discovery_http": values[1], "casdoor_authorize_http": values[2], "wrong_state_http": values[3], "callback_http": values[4], "me_http": values[5], "replay_http": values[6], "logout_http": values[7], "after_logout_me_http": values[8]}})
 with open(path, "w", encoding="utf-8") as stream:
     json.dump(report, stream, ensure_ascii=False, indent=2)
     stream.write("\n")

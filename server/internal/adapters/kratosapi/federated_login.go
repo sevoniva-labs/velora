@@ -54,7 +54,19 @@ func (s *IdentityService) loginCasdoorPassword(ctx context.Context, req *forgev1
 		return nil, err
 	}
 	s.setLoginCookies(ctx, token, csrf, expires)
-	return &forgev1.LoginResponse{User: principalUser(principal), CsrfToken: csrf}, nil
+	response := &forgev1.LoginResponse{User: principalUser(principal), CsrfToken: csrf}
+	if s.sessionBridge != nil {
+		if strings.TrimSpace(federated.CasdoorSessionCookie) == "" {
+			return nil, federatedUnavailable()
+		}
+		ticket, err := s.sessionBridge.Create(ctx, federated.CasdoorSessionCookie, req.GetReturnPath())
+		if err != nil {
+			return nil, federatedUnavailable()
+		}
+		response.BridgeAction = s.sessionBridge.ActionURL()
+		response.BridgeTicket = ticket
+	}
+	return response, nil
 }
 
 const oidcTransactionCookieName = "velora_oidc_tx"

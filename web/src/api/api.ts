@@ -199,9 +199,28 @@ export function consumeOIDCRedirect(): string {
   }
 }
 
-export async function loginWithPassword(username: string, password: string, redirect?: string, _turnstileToken?: string): Promise<{ redirect: string }> {
-  await apiFetch('/auth/login', { method: 'POST', body: { loginName: username, organization: 'default', password, turnstileToken: _turnstileToken || undefined } })
-  return { redirect: internalRedirect(redirect) }
+export async function loginWithPassword(username: string, password: string, redirect?: string, _turnstileToken?: string): Promise<{ redirect: string; bridgeAction?: string; bridgeTicket?: string }> {
+	const data = await apiFetch<{ bridgeAction?: string; bridgeTicket?: string }>('/auth/login', {
+		method: 'POST',
+		body: { loginName: username, organization: 'default', password, returnPath: internalRedirect(redirect), turnstileToken: _turnstileToken || undefined },
+	})
+	return { redirect: internalRedirect(redirect), bridgeAction: data?.bridgeAction, bridgeTicket: data?.bridgeTicket }
+}
+
+/** Complete the cross-host Casdoor handoff without putting the ticket in a URL. */
+export function submitSessionBridge(action: string, ticket: string): void {
+	if (!/^https:\/\//i.test(action) || !ticket) throw new Error('统一认证跳转地址无效')
+	const form = document.createElement('form')
+	form.method = 'post'
+	form.action = action
+	form.style.display = 'none'
+	const input = document.createElement('input')
+	input.type = 'hidden'
+	input.name = 'ticket'
+	input.value = ticket
+	form.appendChild(input)
+	document.body.appendChild(form)
+	form.submit()
 }
 export async function getTurnstileConfig(): Promise<{ enabled: boolean; siteKey: string; action: string }> {
   const data = record(await apiFetch<unknown>('/system/health'))

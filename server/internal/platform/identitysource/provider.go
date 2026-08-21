@@ -27,14 +27,17 @@ var (
 )
 
 type FederatedIdentity struct {
-	Subject          string
-	LoginName        string
-	DisplayName      string
-	Email            string
-	Groups           []string
-	MFAVerified      bool
-	Provider         string
-	AuthenticationAt time.Time
+	Subject     string
+	LoginName   string
+	DisplayName string
+	Email       string
+	Groups      []string
+	MFAVerified bool
+	Provider    string
+	// CasdoorSessionCookie is captured only by the explicit password bridge
+	// flow. It is never logged or persisted outside the one-time bridge ticket.
+	CasdoorSessionCookie string
+	AuthenticationAt     time.Time
 }
 
 type OIDCConfig struct {
@@ -315,6 +318,12 @@ func (p *OIDCProvider) AuthenticatePassword(ctx context.Context, loginName, pass
 	identity, err := p.AuthenticateCode(ctx, code, nonce, verifier)
 	if err != nil {
 		return FederatedIdentity{}, err
+	}
+	for _, cookie := range resp.Cookies() {
+		if cookie.Name == "casdoor_session_id" && strings.TrimSpace(cookie.Value) != "" {
+			identity.CasdoorSessionCookie = cookie.Value
+			break
+		}
 	}
 	identity.MFAVerified = strings.TrimSpace(mfaCode) != "" || strings.TrimSpace(recoveryCode) != ""
 	return identity, nil

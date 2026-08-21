@@ -3527,12 +3527,20 @@ components:
                     description: |-
                         Cloudflare Turnstile token for the public login form. The server verifies
                          it against the configured siteverify endpoint and never persists it.
+                returnPath:
+                    type: string
+                    description: Browser-safe same-site path used by the Casdoor session bridge.
         forge.v1.LoginResponse:
             type: object
             properties:
                 user:
                     $ref: '#/components/schemas/forge.v1.User'
                 csrfToken:
+                    type: string
+                bridgeAction:
+                    type: string
+                    description: When present, the web client must POST bridge_ticket to the auth host.
+                bridgeTicket:
                     type: string
         forge.v1.LogoutRequest:
             type: object

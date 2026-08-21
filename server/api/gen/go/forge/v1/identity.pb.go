@@ -34,8 +34,10 @@ type LoginRequest struct {
 	// Cloudflare Turnstile token for the public login form. The server verifies
 	// it against the configured siteverify endpoint and never persists it.
 	TurnstileToken string `protobuf:"bytes,6,opt,name=turnstile_token,json=turnstileToken,proto3" json:"turnstile_token,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	// Browser-safe same-site path used by the Casdoor session bridge.
+	ReturnPath    string `protobuf:"bytes,7,opt,name=return_path,json=returnPath,proto3" json:"return_path,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *LoginRequest) Reset() {
@@ -110,10 +112,20 @@ func (x *LoginRequest) GetTurnstileToken() string {
 	return ""
 }
 
+func (x *LoginRequest) GetReturnPath() string {
+	if x != nil {
+		return x.ReturnPath
+	}
+	return ""
+}
+
 type LoginResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	User          *User                  `protobuf:"bytes,1,opt,name=user,proto3" json:"user,omitempty"`
-	CsrfToken     string                 `protobuf:"bytes,2,opt,name=csrf_token,json=csrfToken,proto3" json:"csrf_token,omitempty"`
+	state     protoimpl.MessageState `protogen:"open.v1"`
+	User      *User                  `protobuf:"bytes,1,opt,name=user,proto3" json:"user,omitempty"`
+	CsrfToken string                 `protobuf:"bytes,2,opt,name=csrf_token,json=csrfToken,proto3" json:"csrf_token,omitempty"`
+	// When present, the web client must POST bridge_ticket to the auth host.
+	BridgeAction  string `protobuf:"bytes,3,opt,name=bridge_action,json=bridgeAction,proto3" json:"bridge_action,omitempty"`
+	BridgeTicket  string `protobuf:"bytes,4,opt,name=bridge_ticket,json=bridgeTicket,proto3" json:"bridge_ticket,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -158,6 +170,20 @@ func (x *LoginResponse) GetUser() *User {
 func (x *LoginResponse) GetCsrfToken() string {
 	if x != nil {
 		return x.CsrfToken
+	}
+	return ""
+}
+
+func (x *LoginResponse) GetBridgeAction() string {
+	if x != nil {
+		return x.BridgeAction
+	}
+	return ""
+}
+
+func (x *LoginResponse) GetBridgeTicket() string {
+	if x != nil {
+		return x.BridgeTicket
 	}
 	return ""
 }
@@ -1480,7 +1506,7 @@ var File_forge_v1_identity_proto protoreflect.FileDescriptor
 
 const file_forge_v1_identity_proto_rawDesc = "" +
 	"\n" +
-	"\x17forge/v1/identity.proto\x12\bforge.v1\x1a\x15forge/v1/common.proto\x1a\x1cgoogle/api/annotations.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1bopenapiv3/annotations.proto\"\xd6\x01\n" +
+	"\x17forge/v1/identity.proto\x12\bforge.v1\x1a\x15forge/v1/common.proto\x1a\x1cgoogle/api/annotations.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1bopenapiv3/annotations.proto\"\xf7\x01\n" +
 	"\fLoginRequest\x12\"\n" +
 	"\forganization\x18\x01 \x01(\tR\forganization\x12\x1d\n" +
 	"\n" +
@@ -1488,11 +1514,15 @@ const file_forge_v1_identity_proto_rawDesc = "" +
 	"\bpassword\x18\x03 \x01(\tR\bpassword\x12\x19\n" +
 	"\bmfa_code\x18\x04 \x01(\tR\amfaCode\x12#\n" +
 	"\rrecovery_code\x18\x05 \x01(\tR\frecoveryCode\x12'\n" +
-	"\x0fturnstile_token\x18\x06 \x01(\tR\x0eturnstileToken\"R\n" +
+	"\x0fturnstile_token\x18\x06 \x01(\tR\x0eturnstileToken\x12\x1f\n" +
+	"\vreturn_path\x18\a \x01(\tR\n" +
+	"returnPath\"\x9c\x01\n" +
 	"\rLoginResponse\x12\"\n" +
 	"\x04user\x18\x01 \x01(\v2\x0e.forge.v1.UserR\x04user\x12\x1d\n" +
 	"\n" +
-	"csrf_token\x18\x02 \x01(\tR\tcsrfToken\"W\n" +
+	"csrf_token\x18\x02 \x01(\tR\tcsrfToken\x12#\n" +
+	"\rbridge_action\x18\x03 \x01(\tR\fbridgeAction\x12#\n" +
+	"\rbridge_ticket\x18\x04 \x01(\tR\fbridgeTicket\"W\n" +
 	"\x15BeginOIDCLoginRequest\x12\x1a\n" +
 	"\bprovider\x18\x01 \x01(\tR\bprovider\x12\"\n" +
 	"\forganization\x18\x02 \x01(\tR\forganization\";\n" +

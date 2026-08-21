@@ -37,6 +37,7 @@ type IdentityService struct {
 	passwordLoginEnabled        bool
 	casdoorPasswordLoginEnabled bool
 	casdoorPasswordProvider     *identitysource.OIDCProvider
+	sessionBridge               *SessionBridge
 	turnstile                   turnstileVerifier
 	federated                   *FederatedLogin
 }
@@ -59,6 +60,10 @@ func (s *IdentityService) ConfigureAuthMode(mode string) {
 func (s *IdentityService) ConfigureCasdoorPasswordLogin(enabled bool, provider *identitysource.OIDCProvider) {
 	s.casdoorPasswordLoginEnabled = enabled && provider != nil
 	s.casdoorPasswordProvider = provider
+}
+
+func (s *IdentityService) ConfigureSessionBridge(bridge *SessionBridge) {
+	s.sessionBridge = bridge
 }
 
 func (s *IdentityService) ConfigureTurnstile(verifier turnstileVerifier) {
@@ -502,6 +507,8 @@ func parseSameSite(value string) http.SameSite {
 		return http.SameSiteLaxMode
 	}
 }
+
+func SameSiteMode(value string) http.SameSite { return parseSameSite(value) }
 
 func expectedLoginFailure(err error) bool {
 	return errors.Is(err, appidentity.ErrInvalidCredentials) || errors.Is(err, appidentity.ErrLocked) || errors.Is(err, appidentity.ErrDisabled) || errors.Is(err, appidentity.ErrMFARequired) || errors.Is(err, appidentity.ErrInvalidMFA)

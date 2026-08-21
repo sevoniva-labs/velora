@@ -275,6 +275,12 @@ func New(ctx context.Context, opts Options) (*App, error) {
 			providerName = "casdoor"
 		}
 		identityService.ConfigureCasdoorPasswordLogin(true, oidcProviders[providerName])
+		bridge, bridgeErr := kratosapi.NewSessionBridge(c, cfg.Security.CasdoorAccountURL, cfg.Security.SecureCookies, kratosapi.SameSiteMode(cfg.Security.SameSite))
+		if bridgeErr != nil {
+			return nil, fmt.Errorf("Casdoor session bridge: %w", bridgeErr)
+		}
+		identityService.ConfigureSessionBridge(bridge)
+		httpServer.Handle("/_velora/session/bridge", bridge.Handler())
 	}
 	identityService.ConfigureFederatedLogin(kratosapi.FederatedLoginOptions{Cache: c, OIDC: oidcProviders, LDAP: ldapProviders})
 	approvalService := kratosapi.NewApprovalService(approvalSvc, auditWriter, db)

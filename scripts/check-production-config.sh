@@ -13,6 +13,7 @@ printf 'dummy\n' >"$tmp_dir/redis-key.pem"
 printf 'dummy-crypto-key-material-32-bytes\n' >"$tmp_dir/crypto.key"
 printf 'dummy-bootstrap-password\n' >"$tmp_dir/bootstrap.password"
 printf 'dummy-client-secret\n' >"$tmp_dir/oidc-client.secret"
+printf 'dummy-automation-token\n' >"$tmp_dir/casdoor-automation.token"
 printf 'dummy-redis-password\n' >"$tmp_dir/redis.password"
 printf 'postgres://velora_app:dummy@postgres:5432/velora?sslmode=verify-full\n' >"$tmp_dir/database.dsn"
 printf 'dummy-storage-access\n' >"$tmp_dir/storage.access"
@@ -52,6 +53,11 @@ env \
   VELORA_OIDC_POST_LOGOUT_REDIRECT_URL=https://velora.example.com/login \
   VELORA_SESSION_TTL=1h \
   VELORA_CASDOOR_ACCOUNT_URL=https://casdoor.example.com/account \
+  VELORA_CASDOOR_ADMIN_URL=https://casdoor.example.com \
+  VELORA_CASDOOR_ALLOWED_HOSTS=casdoor.example.com \
+  VELORA_APPLICATION_ONBOARDING_V2=true \
+  VELORA_CASDOOR_ADMIN_ENTRY_ENABLED=true \
+  VELORA_CASDOOR_APPLICATION_AUTOMATION_ENABLED=false \
   VELORA_OIDC_PROVIDER_ENABLED=false \
   VELORA_BOOTSTRAP_ADMIN=break-glass \
   VELORA_BOOTSTRAP_PASSWORD_FILE="$tmp_dir/bootstrap.password" \
@@ -66,6 +72,7 @@ env \
   REDIS_TLS_CERT_FILE="$tmp_dir/redis-cert.pem" \
   REDIS_TLS_KEY_FILE="$tmp_dir/redis-key.pem" \
   CASDOOR_OIDC_CLIENT_SECRET_FILE="$tmp_dir/oidc-client.secret" \
+  CASDOOR_AUTOMATION_TOKEN_FILE="$tmp_dir/casdoor-automation.token" \
   TRUSTED_PROXIES=10.0.0.0/8 \
   POSTGRES_SUPERUSER=postgres_bootstrap \
   POSTGRES_SUPERUSER_PASSWORD_FILE="$tmp_dir/postgres.superuser" \

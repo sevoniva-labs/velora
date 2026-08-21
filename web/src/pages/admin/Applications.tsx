@@ -20,9 +20,9 @@ import type { Application } from '../../types'
 import { APP_STATUS_LABEL, SSO_TYPE_COLOR, SSO_TYPE_LABEL } from '../../labels'
 import { AppIcon } from '../../components/AppCard'
 
-// Phase 0 只开放已闭环的直链。OIDC 必须经过接入向导完成真实绑定后再开放，
-// 不在这里收集无法提交到后端的 Client ID/应用名等“假配置”。
-const SSO_OPTIONS = ['URL']
+// 只开放已经有完整生命周期闭环的类型。OIDC 可以创建为待配置草稿，
+// 但必须转到接入向导完成真实绑定和验证后才允许发布；这里不收集 Secret。
+const SSO_OPTIONS = ['URL', 'OIDC'] as const
 
 export default function AdminApplications() {
   usePageTitle('应用管理')
@@ -320,7 +320,7 @@ export default function AdminApplications() {
             <Form.Item label="接入类型" name="ssoType" rules={[{ required: true }]}>
               <Select options={SSO_OPTIONS.map((v) => ({ value: v, label: SSO_TYPE_LABEL[v as Application['ssoType']] }))} />
             </Form.Item>
-            {watchSsoType === 'OIDC' ? <Tag color="warning">OIDC 接入请使用接入向导完成配置</Tag> : null}
+            {watchSsoType === 'OIDC' ? <Tag color="warning">OIDC 应用创建后请到“身份与单点登录”完成绑定和验证</Tag> : null}
           </div>
 
           <div className="velora-form-grid">

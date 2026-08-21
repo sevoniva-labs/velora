@@ -13,8 +13,10 @@ import (
 	"github.com/go-kratos/kratos/v2/transport"
 	forgev1 "github.com/sevoniva-labs/velora/server/api/gen/go/forge/v1"
 	"github.com/sevoniva-labs/velora/server/internal/adapters/repository"
+	approvalapp "github.com/sevoniva-labs/velora/server/internal/app/approval"
 	"github.com/sevoniva-labs/velora/server/internal/app/audit"
 	appportal "github.com/sevoniva-labs/velora/server/internal/app/portal"
+	domain "github.com/sevoniva-labs/velora/server/internal/domain/identity"
 	portaldomain "github.com/sevoniva-labs/velora/server/internal/domain/portal"
 	"github.com/sevoniva-labs/velora/server/internal/platform/casdooradmin"
 	"github.com/sevoniva-labs/velora/server/internal/platform/database"
@@ -33,6 +35,7 @@ type PortalService struct {
 	identityOnboardingEnabled bool
 	identityAdminEntryEnabled bool
 	casdoorAutomation         *casdooradmin.Client
+	approval                  *approvalapp.Service
 }
 
 func NewPortalService(portal *appportal.Service, auditWriter *audit.Writer, db *database.DB) *PortalService {
@@ -50,6 +53,10 @@ func (s *PortalService) ConfigureIdentityBoundary(adminURL, issuer, internalURL 
 
 func (s *PortalService) ConfigureCasdoorAutomation(client *casdooradmin.Client) {
 	s.casdoorAutomation = client
+}
+
+func (s *PortalService) ConfigureApproval(service *approvalapp.Service) {
+	s.approval = service
 }
 
 func (s *PortalService) audited(ctx context.Context, event *audit.Event, operation func(context.Context) error) error {
@@ -534,6 +541,16 @@ func (s *PortalService) UpsertApplicationIdentityBinding(ctx context.Context, re
 	// fails. A later retry is safe because the Casdoor provider upsert is
 	// idempotent and the local binding is already auditable and recoverable.
 	if automationEnabled {
+		if err := s.authorizeCasdoorAutomation(ctx, principal, req.GetApprovalId(), "UPSERT", req.GetApplicationId(), map[string]any{
+			"provider":                 portaldomain.IdentityProviderCasdoor,
+			"protocol":                 req.GetProtocol(),
+			"provider_application_ref": req.GetProviderApplicationRef(),
+			"public_client_id":         req.GetPublicClientId(),
+			"issuer":                   req.GetIssuer(),
+			"redirect_uris":            req.GetRedirectUris(),
+		}); err != nil {
+			return nil, serviceError(err)
+		}
 		application, _, automationErr := s.casdoorAutomation.UpsertApplication(ctx, casdooradmin.UpsertInput{Name: req.GetProviderApplicationRef(), Organization: principal.OrganizationID, DisplayName: req.GetProviderApplicationRef(), ClientID: req.GetPublicClientId(), RedirectURIs: req.GetRedirectUris(), GrantTypes: []string{"authorization_code"}, ApprovalID: req.GetApprovalId()})
 		if automationErr != nil {
 			return nil, serviceError(automationErr)
@@ -641,6 +658,12 @@ func (s *PortalService) DisableApplication(ctx context.Context, req *forgev1.Dis
 		return nil, serviceError(err)
 	}
 	if automationEnabled {
+		if err := s.authorizeCasdoorAutomation(ctx, principal, req.GetApprovalId(), "DISABLE", req.GetApplicationId(), map[string]any{
+			"provider":                 portaldomain.IdentityProviderCasdoor,
+			"provider_application_ref": binding.ProviderApplicationRef,
+		}); err != nil {
+			return nil, serviceError(err)
+		}
 		if err := s.casdoorAutomation.DisableApplication(ctx, binding.ProviderApplicationRef, req.GetApprovalId()); err != nil {
 			return nil, serviceError(err)
 		}
@@ -653,6 +676,23 @@ func (s *PortalService) identityOnboardingRequired() error {
 		return kratoserrors.ServiceUnavailable("APPLICATION_ONBOARDING_DISABLED", "application onboarding is disabled by configuration")
 	}
 	return nil
+}
+
+func (s *PortalService) authorizeCasdoorAutomation(ctx context.Context, principal domain.Principal, approvalID, action, resourceID string, payload map[string]any) error {
+	if s.approval == nil {
+		return errors.New("approval service is unavailable")
+	}
+	encoded, err := json.Marshal(payload)
+	if err != nil {
+		return errors.New("automation approval payload is invalid")
+	}
+	return s.approval.AuthorizeExecution(ctx, principal, approvalID, approvalapp.ExecutionInput{
+		RequestType: "CASDOOR_APPLICATION",
+		Action:      action,
+		Resource:    "portal_application",
+		ResourceID:  resourceID,
+		PayloadJSON: string(encoded),
+	})
 }
 
 func (s *PortalService) createCategory(ctx context.Context, input repository.CategoryInput) (*forgev1.CreatePortalCategoryResponse, error) {

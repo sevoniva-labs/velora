@@ -276,6 +276,7 @@ func New(ctx context.Context, opts Options) (*App, error) {
 	}
 	identityService.ConfigureFederatedLogin(kratosapi.FederatedLoginOptions{Cache: c, OIDC: oidcProviders, LDAP: ldapProviders})
 	approvalService := kratosapi.NewApprovalService(approvalSvc, auditWriter, db)
+	portalService.ConfigureApproval(approvalSvc)
 	forgev1.RegisterSystemServiceHTTPServer(httpServer, systemService)
 	forgev1.RegisterIdentityServiceHTTPServer(httpServer, identityService)
 	forgev1.RegisterPlatformServiceHTTPServer(httpServer, platformService)

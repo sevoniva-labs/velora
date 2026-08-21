@@ -113,3 +113,25 @@ func TestOIDCJSONTokenExchangeFailsClosedOnProviderError(t *testing.T) {
 		t.Fatal("provider error was accepted")
 	}
 }
+
+func TestInternalURLRoundTripperRewritesIssuerRequests(t *testing.T) {
+	internal := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/.well-known/openid-configuration" {
+			t.Fatalf("path = %q", r.URL.Path)
+		}
+		_, _ = w.Write([]byte("ok"))
+	}))
+	defer internal.Close()
+	external, _ := url.Parse("https://casdoor.example.com")
+	internalURL, _ := url.Parse(internal.URL)
+	transport := &internalURLRoundTripper{base: http.DefaultTransport, external: external, internal: internalURL}
+	client := &http.Client{Transport: transport}
+	resp, err := client.Get("https://casdoor.example.com/.well-known/openid-configuration")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("status = %d", resp.StatusCode)
+	}
+}

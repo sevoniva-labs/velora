@@ -250,6 +250,13 @@ func New(ctx context.Context, opts Options) (*App, error) {
 	portalService := kratosapi.NewPortalService(portalSvc, auditWriter, db)
 	identityService := kratosapi.NewIdentityService(identitySvc, auditWriter, db, ratelimit.New(c), cfg.Security.SecureCookies, cfg.Security.SameSite)
 	identityService.ConfigureAuthMode(cfg.Security.AuthMode)
+	if cfg.Security.CasdoorPasswordLoginEnabled {
+		providerName := strings.ToLower(strings.TrimSpace(cfg.Security.OIDCName))
+		if providerName == "" {
+			providerName = "casdoor"
+		}
+		identityService.ConfigureCasdoorPasswordLogin(true, oidcProviders[providerName])
+	}
 	identityService.ConfigureFederatedLogin(kratosapi.FederatedLoginOptions{Cache: c, OIDC: oidcProviders, LDAP: ldapProviders})
 	approvalService := kratosapi.NewApprovalService(approvalSvc, auditWriter, db)
 	forgev1.RegisterSystemServiceHTTPServer(httpServer, systemService)

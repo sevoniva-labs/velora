@@ -28,7 +28,10 @@ func newFederatedIdentityProviders(ctx context.Context, cfg config.Config) (map[
 		allowHTTP, _ := strconv.ParseBool(env("VELORA_OIDC_ALLOW_HTTP", "false"))
 		provider, err := identitysource.NewOIDCProvider(ctx, http.DefaultClient, identitysource.OIDCConfig{
 			Name: name, Issuer: issuer, ClientID: strings.TrimSpace(cfg.Security.OIDCClientID), ClientSecret: cfg.Security.OIDCClientSecret,
+			InternalURL: strings.TrimSpace(cfg.Security.OIDCInternalURL),
 			RedirectURL: strings.TrimSpace(cfg.Security.OIDCRedirectURL), PostLogoutRedirectURL: strings.TrimSpace(cfg.Security.OIDCPostLogoutRedirectURL), AllowHTTP: allowHTTP,
+			PasswordLoginEnabled: cfg.Security.CasdoorPasswordLoginEnabled,
+			Application:          strings.TrimSpace(cfg.Security.CasdoorApplication), Organization: strings.TrimSpace(cfg.Security.CasdoorOrganization),
 		})
 		if err != nil {
 			return nil, nil, fmt.Errorf("OIDC provider %q: %w", name, err)

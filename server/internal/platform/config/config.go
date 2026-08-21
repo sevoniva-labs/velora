@@ -225,9 +225,17 @@ type Security struct {
 	OIDCRedirectURL           string        `yaml:"oidc_redirect_url"`
 	OIDCPostLogoutRedirectURL string        `yaml:"oidc_post_logout_redirect_url"`
 	CasdoorAccountURL         string        `yaml:"casdoor_account_url"`
-	OIDCProviderEnabled       bool          `yaml:"oidc_provider_enabled"`
-	AllowedOrigins            []string      `yaml:"allowed_origins"`
-	TrustedProxies            []string      `yaml:"trusted_proxies"`
+	// CasdoorPasswordLoginEnabled keeps the browser login form in Velora while
+	// delegating credential verification to Casdoor's application login API.
+	// It is intentionally opt-in because this is a password-grant compatibility
+	// mode, not the preferred Authorization Code + PKCE flow.
+	CasdoorPasswordLoginEnabled bool     `yaml:"casdoor_password_login_enabled"`
+	CasdoorApplication          string   `yaml:"casdoor_application"`
+	CasdoorOrganization         string   `yaml:"casdoor_organization"`
+	OIDCInternalURL             string   `yaml:"oidc_internal_url"`
+	OIDCProviderEnabled         bool     `yaml:"oidc_provider_enabled"`
+	AllowedOrigins              []string `yaml:"allowed_origins"`
+	TrustedProxies              []string `yaml:"trusted_proxies"`
 }
 
 type Observability struct {
@@ -550,6 +558,10 @@ func ApplyEnvironment(cfg *Config) {
 	overrideString(&cfg.Security.OIDCRedirectURL, "VELORA_OIDC_REDIRECT_URL")
 	overrideString(&cfg.Security.OIDCPostLogoutRedirectURL, "VELORA_OIDC_POST_LOGOUT_REDIRECT_URL")
 	overrideString(&cfg.Security.CasdoorAccountURL, "VELORA_CASDOOR_ACCOUNT_URL")
+	overrideBool(&cfg.Security.CasdoorPasswordLoginEnabled, "VELORA_CASDOOR_PASSWORD_LOGIN_ENABLED")
+	overrideString(&cfg.Security.CasdoorApplication, "VELORA_CASDOOR_APPLICATION")
+	overrideString(&cfg.Security.CasdoorOrganization, "VELORA_CASDOOR_ORGANIZATION")
+	overrideString(&cfg.Security.OIDCInternalURL, "VELORA_OIDC_INTERNAL_URL")
 	overrideBool(&cfg.Security.OIDCProviderEnabled, "VELORA_OIDC_PROVIDER_ENABLED")
 	overrideBool(&cfg.Security.SecureCookies, "VELORA_SECURE_COOKIES")
 	overrideString(&cfg.Security.SameSite, "VELORA_SAME_SITE")
@@ -756,6 +768,17 @@ func (c Config) Validate() error {
 	case "oidc", "password":
 	default:
 		errs = append(errs, "security.auth_mode must be oidc|password")
+	}
+	if c.Security.CasdoorPasswordLoginEnabled {
+		if strings.ToLower(strings.TrimSpace(c.Security.AuthMode)) != "oidc" {
+			errs = append(errs, "security.casdoor_password_login_enabled requires auth_mode=oidc")
+		}
+		if strings.TrimSpace(c.Security.CasdoorApplication) == "" {
+			errs = append(errs, "security.casdoor_application is required when Casdoor password login is enabled")
+		}
+		if strings.TrimSpace(c.Security.CasdoorOrganization) == "" {
+			errs = append(errs, "security.casdoor_organization is required when Casdoor password login is enabled")
+		}
 	}
 	if strings.EqualFold(c.Security.SameSite, "none") && !c.Security.SecureCookies {
 		errs = append(errs, "security.same_site=none requires secure_cookies=true")

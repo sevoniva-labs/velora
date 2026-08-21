@@ -136,7 +136,9 @@ export async function getAuthCapabilities(): Promise<AuthCapabilities> {
   const authMode = String(data.authMode ?? 'oidc').toLowerCase() === 'password' ? 'password' : 'oidc'
   return {
     authMode,
-    passwordLoginEnabled: Boolean(data.passwordLoginEnabled) && authMode === 'password',
+    // In OIDC mode this flag may represent the explicitly enabled Casdoor
+    // password compatibility flow; production health must still fail closed.
+    passwordLoginEnabled: Boolean(data.passwordLoginEnabled),
     casdoorAccountUrl: String(data.casdoorAccountUrl ?? ''),
   }
 }

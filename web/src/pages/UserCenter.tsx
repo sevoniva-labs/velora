@@ -23,7 +23,7 @@ export default function UserCenter() {
 
   const { data: profile } = useQuery({ queryKey: ['user-center', 'profile'], queryFn: getUserProfile })
   const { data: authCapabilities } = useQuery({ queryKey: ['auth', 'capabilities'], queryFn: getAuthCapabilities })
-  const localPasswordManagement = authCapabilities?.passwordLoginEnabled === true
+  const localPasswordManagement = authCapabilities?.authMode === 'password' && authCapabilities?.passwordLoginEnabled === true
 
   const changePwd = useMutation({
     mutationFn: ({ oldPassword, newPassword }: { oldPassword: string; newPassword: string }) =>

@@ -25,12 +25,16 @@ func NewSystemService(cfg config.Config, version string, checks []health.Check, 
 
 func (s *SystemService) Health(context.Context, *forgev1.HealthRequest) (*forgev1.HealthResponse, error) {
 	authMode := strings.ToLower(strings.TrimSpace(s.cfg.Security.AuthMode))
+	passwordLoginEnabled := authMode == "password" && !strings.EqualFold(s.cfg.App.Environment, "production")
+	if authMode == "oidc" && s.cfg.Security.CasdoorPasswordLoginEnabled {
+		passwordLoginEnabled = true
+	}
 	return &forgev1.HealthResponse{
 		Status:               "UP",
 		Service:              s.cfg.App.Name,
 		Version:              s.version,
 		AuthMode:             authMode,
-		PasswordLoginEnabled: authMode == "password" && !strings.EqualFold(s.cfg.App.Environment, "production"),
+		PasswordLoginEnabled: passwordLoginEnabled,
 		CasdoorAccountUrl:    s.cfg.Security.CasdoorAccountURL,
 	}, nil
 }

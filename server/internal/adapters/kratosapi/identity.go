@@ -16,6 +16,7 @@ import (
 	appidentity "github.com/sevoniva-labs/velora/server/internal/app/identity"
 	domain "github.com/sevoniva-labs/velora/server/internal/domain/identity"
 	"github.com/sevoniva-labs/velora/server/internal/platform/database"
+	"github.com/sevoniva-labs/velora/server/internal/platform/identitysource"
 	"github.com/sevoniva-labs/velora/server/internal/platform/ratelimit"
 )
 
@@ -26,14 +27,16 @@ const (
 
 type IdentityService struct {
 	forgev1.UnimplementedIdentityServiceServer
-	identity             *appidentity.Service
-	audit                *audit.Writer
-	db                   *database.DB
-	limiter              *ratelimit.Limiter
-	secure               bool
-	sameSite             http.SameSite
-	passwordLoginEnabled bool
-	federated            *FederatedLogin
+	identity                    *appidentity.Service
+	audit                       *audit.Writer
+	db                          *database.DB
+	limiter                     *ratelimit.Limiter
+	secure                      bool
+	sameSite                    http.SameSite
+	passwordLoginEnabled        bool
+	casdoorPasswordLoginEnabled bool
+	casdoorPasswordProvider     *identitysource.OIDCProvider
+	federated                   *FederatedLogin
 }
 
 func NewIdentityService(identity *appidentity.Service, auditWriter *audit.Writer, db *database.DB, limiter *ratelimit.Limiter, secureCookies bool, sameSite string) *IdentityService {
@@ -47,6 +50,11 @@ func (s *IdentityService) ConfigureAuthMode(mode string) {
 	s.passwordLoginEnabled = mode == "" || strings.EqualFold(mode, "password")
 }
 
+func (s *IdentityService) ConfigureCasdoorPasswordLogin(enabled bool, provider *identitysource.OIDCProvider) {
+	s.casdoorPasswordLoginEnabled = enabled && provider != nil
+	s.casdoorPasswordProvider = provider
+}
+
 func (s *IdentityService) requirePasswordManagement() error {
 	if !s.passwordLoginEnabled {
 		return kerrors.ServiceUnavailable("PASSWORD_MANAGEMENT_DISABLED", "password and local MFA management are disabled; use the configured OIDC provider")
@@ -55,7 +63,7 @@ func (s *IdentityService) requirePasswordManagement() error {
 }
 
 func (s *IdentityService) Login(ctx context.Context, req *forgev1.LoginRequest) (*forgev1.LoginResponse, error) {
-	if !s.passwordLoginEnabled {
+	if !s.passwordLoginEnabled && !s.casdoorPasswordLoginEnabled {
 		return nil, kerrors.ServiceUnavailable("PASSWORD_LOGIN_DISABLED", "password login is disabled; use the configured OIDC provider")
 	}
 	if len(req.GetLoginName()) > 120 || len(req.GetPassword()) > 512 || len(req.GetMfaCode()) > 32 || len(req.GetRecoveryCode()) > 128 {
@@ -69,6 +77,9 @@ func (s *IdentityService) Login(ctx context.Context, req *forgev1.LoginRequest) 
 		if err := s.allow(ctx, key, 10, time.Minute, "60"); err != nil {
 			return nil, err
 		}
+	}
+	if s.casdoorPasswordLoginEnabled {
+		return s.loginCasdoorPassword(ctx, req, event)
 	}
 
 	organization := strings.TrimSpace(req.GetOrganization())

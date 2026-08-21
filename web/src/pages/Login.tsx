@@ -41,8 +41,8 @@ const DECO_TILES = [
 
 /**
  * Velora 登录页：全屏分栏（品牌叙事 / 登录入口），无顶栏。
- * 生产由公开健康能力动态决定，只显示 Casdoor Authorization Code + PKCE 入口；
- * password 仅在后端明确报告 development/password 能力时渲染。
+ * 生产由公开健康能力动态决定：标准模式显示 Casdoor Authorization Code + PKCE
+ * 入口；只有后端明确启用本地开发密码或 Casdoor 表单兼容模式时才显示表单。
  */
 export default function Login() {
   const me = useMe()
@@ -230,7 +230,7 @@ export default function Login() {
                   disabled={turnstileEnabled && !turnstileToken}
                   className="velora-login-submit"
                 >
-                  登录（开发模式）
+                  {authCapabilities?.authMode === 'oidc' ? '使用 Casdoor 账号登录' : '登录（开发模式）'}
                 </Button>
               </Form.Item>
               {turnstileEnabled && (

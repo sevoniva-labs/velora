@@ -16,6 +16,7 @@ import (
 	kerrors "github.com/go-kratos/kratos/v2/errors"
 	"github.com/go-kratos/kratos/v2/transport"
 	forgev1 "github.com/sevoniva-labs/velora/server/api/gen/go/forge/v1"
+	"github.com/sevoniva-labs/velora/server/internal/app/audit"
 	appidentity "github.com/sevoniva-labs/velora/server/internal/app/identity"
 	domain "github.com/sevoniva-labs/velora/server/internal/domain/identity"
 	"github.com/sevoniva-labs/velora/server/internal/platform/cache"
@@ -32,6 +33,28 @@ type FederatedLogin struct {
 	cache cache.Cache
 	oidc  map[string]*identitysource.OIDCProvider
 	ldap  map[string]*identitysource.LDAPProvider
+}
+
+func (s *IdentityService) loginCasdoorPassword(ctx context.Context, req *forgev1.LoginRequest, event *audit.Event) (*forgev1.LoginResponse, error) {
+	if s.casdoorPasswordProvider == nil {
+		return nil, federatedUnavailable()
+	}
+	organization := strings.TrimSpace(req.GetOrganization())
+	if organization == "" {
+		organization = "default"
+	}
+	federated, err := s.casdoorPasswordProvider.AuthenticatePassword(ctx, req.GetLoginName(), req.GetPassword(), req.GetMfaCode(), req.GetRecoveryCode())
+	if err != nil || federated.Provider != s.casdoorPasswordProvider.Name() || federated.Subject == "" {
+		_ = s.audit.Write(ctx, *event)
+		return nil, kerrors.Unauthorized("INVALID_CREDENTIALS", "invalid credentials")
+	}
+	principal, token, csrf, expires, err := s.loginFederated(ctx, organization, federated.Provider, federated.Subject)
+	if err != nil {
+		_ = s.audit.Write(ctx, *event)
+		return nil, err
+	}
+	s.setLoginCookies(ctx, token, csrf, expires)
+	return &forgev1.LoginResponse{User: principalUser(principal), CsrfToken: csrf}, nil
 }
 
 const oidcTransactionCookieName = "velora_oidc_tx"

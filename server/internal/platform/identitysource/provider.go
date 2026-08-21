@@ -3,7 +3,10 @@ package identitysource
 import (
 	"bytes"
 	"context"
+	"crypto/rand"
+	"crypto/sha256"
 	"crypto/tls"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -34,14 +37,20 @@ type FederatedIdentity struct {
 }
 
 type OIDCConfig struct {
-	Name                  string
-	Issuer                string
+	Name   string
+	Issuer string
+	// InternalURL optionally rewrites server-side calls to Issuer to an
+	// in-network address while keeping the browser-visible issuer unchanged.
+	InternalURL           string
 	ClientID              string
 	ClientSecret          string
 	RedirectURL           string
 	PostLogoutRedirectURL string
 	Scopes                []string
 	AllowHTTP             bool
+	PasswordLoginEnabled  bool
+	Application           string
+	Organization          string
 }
 
 type OIDCProvider struct {
@@ -53,6 +62,10 @@ type OIDCProvider struct {
 	postLogoutRedirectURL string
 	httpClient            *http.Client
 	tokenURL              string
+	issuer                string
+	passwordLoginEnabled  bool
+	application           string
+	organization          string
 }
 
 func NewOIDCProvider(ctx context.Context, client *http.Client, cfg OIDCConfig) (*OIDCProvider, error) {
@@ -73,6 +86,20 @@ func NewOIDCProvider(ctx context.Context, client *http.Client, cfg OIDCConfig) (
 	}
 	if client == nil {
 		client = http.DefaultClient
+	}
+	if strings.TrimSpace(cfg.InternalURL) != "" {
+		internal, err := url.Parse(strings.TrimRight(strings.TrimSpace(cfg.InternalURL), "/"))
+		if err != nil || internal.Host == "" || (internal.Scheme != "http" && internal.Scheme != "https") {
+			return nil, ErrInvalidConfiguration
+		}
+		external, _ := url.Parse(issuer)
+		transport := client.Transport
+		if transport == nil {
+			transport = http.DefaultTransport
+		}
+		clone := *client
+		clone.Transport = &internalURLRoundTripper{base: transport, external: external, internal: internal}
+		client = &clone
 	}
 	ctx = oidc.ClientContext(ctx, client)
 	provider, err := oidc.NewProvider(ctx, issuer)
@@ -100,6 +127,10 @@ func NewOIDCProvider(ctx context.Context, client *http.Client, cfg OIDCConfig) (
 		postLogoutRedirectURL: strings.TrimSpace(cfg.PostLogoutRedirectURL),
 		httpClient:            client,
 		tokenURL:              provider.Endpoint().TokenURL,
+		issuer:                issuer,
+		passwordLoginEnabled:  cfg.PasswordLoginEnabled,
+		application:           strings.TrimSpace(cfg.Application),
+		organization:          strings.TrimSpace(cfg.Organization),
 	}, nil
 }
 
@@ -145,6 +176,7 @@ func (p *OIDCProvider) AuthenticateCode(ctx context.Context, code, nonce string,
 	if len(codeVerifier) > 0 && strings.TrimSpace(codeVerifier[0]) != "" {
 		options = append(options, oauth2.SetAuthURLParam("code_verifier", codeVerifier[0]))
 	}
+	ctx = oidc.ClientContext(ctx, p.httpClient)
 	token, err := p.config.Exchange(ctx, code, options...)
 	// Casdoor's token endpoint accepts the authorization-code exchange as a
 	// JSON document, while golang.org/x/oauth2 first sends HTTP Basic/form
@@ -189,6 +221,131 @@ func (p *OIDCProvider) AuthenticateCode(ctx context.Context, code, nonce string,
 		identity.DisplayName = identity.LoginName
 	}
 	return identity, nil
+}
+
+// AuthenticatePassword is a Casdoor-specific compatibility flow for
+// deployments that require the Velora page to own the credential form. It
+// submits credentials only over the server-to-Casdoor connection, never logs
+// them, and immediately exchanges the one-time authorization code for a
+// signed ID token which still goes through the normal OIDC verification path.
+// Authorization Code + PKCE remains the preferred flow.
+func (p *OIDCProvider) AuthenticatePassword(ctx context.Context, loginName, password, mfaCode, recoveryCode string) (FederatedIdentity, error) {
+	if !p.passwordLoginEnabled || p.application == "" || p.organization == "" || strings.TrimSpace(loginName) == "" || password == "" {
+		return FederatedIdentity{}, ErrAuthenticationFailed
+	}
+	if len(loginName) > 120 || len(password) > 512 || len(mfaCode) > 32 || len(recoveryCode) > 128 {
+		return FederatedIdentity{}, ErrAuthenticationFailed
+	}
+	nonce, err := randomValue(32)
+	if err != nil {
+		return FederatedIdentity{}, ErrAuthenticationFailed
+	}
+	state, err := randomValue(32)
+	if err != nil {
+		return FederatedIdentity{}, ErrAuthenticationFailed
+	}
+	verifier, err := randomValue(32)
+	if err != nil {
+		return FederatedIdentity{}, ErrAuthenticationFailed
+	}
+	endpoint, err := url.Parse(strings.TrimRight(p.issuer, "/") + "/api/login")
+	if err != nil {
+		return FederatedIdentity{}, ErrAuthenticationFailed
+	}
+	query := endpoint.Query()
+	query.Set("clientId", p.config.ClientID)
+	query.Set("responseType", "code")
+	query.Set("redirectUri", p.config.RedirectURL)
+	query.Set("type", "code")
+	query.Set("scope", strings.Join(p.config.Scopes, " "))
+	query.Set("state", state)
+	query.Set("nonce", nonce)
+	query.Set("code_challenge_method", "S256")
+	query.Set("code_challenge", sha256Base64URL(verifier))
+	endpoint.RawQuery = query.Encode()
+
+	payload := map[string]string{
+		"application":  p.application,
+		"organization": p.organization,
+		"username":     strings.TrimSpace(loginName),
+		"password":     password,
+		"type":         "code",
+		"signinMethod": "Password",
+	}
+	if strings.TrimSpace(mfaCode) != "" {
+		payload["passcode"] = strings.TrimSpace(mfaCode)
+		payload["mfaType"] = "totp"
+	}
+	if strings.TrimSpace(recoveryCode) != "" {
+		payload["recoveryCode"] = strings.TrimSpace(recoveryCode)
+	}
+	body, err := json.Marshal(payload)
+	if err != nil {
+		return FederatedIdentity{}, ErrAuthenticationFailed
+	}
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, endpoint.String(), bytes.NewReader(body))
+	if err != nil {
+		return FederatedIdentity{}, ErrAuthenticationFailed
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Accept", "application/json")
+	client := p.httpClient
+	if client == nil {
+		client = http.DefaultClient
+	}
+	resp, err := client.Do(req)
+	if err != nil {
+		return FederatedIdentity{}, ErrAuthenticationFailed
+	}
+	defer resp.Body.Close()
+	var result struct {
+		Status string          `json:"status"`
+		Data   json.RawMessage `json:"data"`
+	}
+	if err := json.NewDecoder(io.LimitReader(resp.Body, 1<<20)).Decode(&result); err != nil || resp.StatusCode < http.StatusOK || resp.StatusCode >= http.StatusMultipleChoices || !strings.EqualFold(result.Status, "ok") {
+		return FederatedIdentity{}, ErrAuthenticationFailed
+	}
+	var code string
+	if err := json.Unmarshal(result.Data, &code); err != nil || strings.TrimSpace(code) == "" {
+		return FederatedIdentity{}, ErrAuthenticationFailed
+	}
+	return p.AuthenticateCode(ctx, code, nonce, verifier)
+}
+
+func randomValue(size int) (string, error) {
+	buf := make([]byte, size)
+	if _, err := rand.Read(buf); err != nil {
+		return "", err
+	}
+	return base64.RawURLEncoding.EncodeToString(buf), nil
+}
+
+func sha256Base64URL(value string) string {
+	sum := sha256.Sum256([]byte(value))
+	return base64.RawURLEncoding.EncodeToString(sum[:])
+}
+
+type internalURLRoundTripper struct {
+	base     http.RoundTripper
+	external *url.URL
+	internal *url.URL
+}
+
+func (t *internalURLRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
+	if req == nil || t.base == nil || t.external == nil || t.internal == nil {
+		return t.base.RoundTrip(req)
+	}
+	if req.URL.Scheme == t.external.Scheme && req.URL.Host == t.external.Host {
+		clone := req.Clone(req.Context())
+		*clone.URL = *req.URL
+		clone.URL.Scheme = t.internal.Scheme
+		clone.URL.Host = t.internal.Host
+		if t.internal.Path != "" && t.internal.Path != "/" {
+			clone.URL.Path = strings.TrimRight(t.internal.Path, "/") + "/" + strings.TrimLeft(clone.URL.Path, "/")
+		}
+		return t.base.RoundTrip(clone)
+	}
+	return t.base.RoundTrip(req)
 }
 
 type oidcJSONTokenResponse struct {

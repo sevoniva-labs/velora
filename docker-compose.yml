@@ -100,8 +100,22 @@ services:
     environment:
       VELORA_ENV: development
       VELORA_APP_NAME: Velora
-      # 本地默认密码模式；接入真实 Casdoor 时通过 --env-file 切换为 oidc。
-      VELORA_AUTH_MODE: ${VELORA_AUTH_MODE:-password}
+      # 默认由 Velora 承载登录表单，后端仅把凭据交给 Casdoor 校验并
+      # 通过标准 OIDC ID Token 建立本地 session；Casdoor 页面不会暴露给用户。
+      # 若要使用标准 Authorization Code + PKCE 跳转，可将
+      # VELORA_CASDOOR_PASSWORD_LOGIN_ENABLED=false。
+      VELORA_AUTH_MODE: ${VELORA_AUTH_MODE:-oidc}
+      VELORA_OIDC_NAME: ${VELORA_OIDC_NAME:-casdoor}
+      VELORA_OIDC_ISSUER: ${VELORA_OIDC_ISSUER:-http://localhost:8443}
+      VELORA_OIDC_INTERNAL_URL: ${VELORA_OIDC_INTERNAL_URL:-http://casdoor:8000}
+      VELORA_OIDC_CLIENT_ID: ${VELORA_OIDC_CLIENT_ID:-524bd6637c6116523eae}
+      VELORA_OIDC_CLIENT_SECRET: ${VELORA_OIDC_CLIENT_SECRET:-}
+      VELORA_OIDC_REDIRECT_URL: ${VELORA_OIDC_REDIRECT_URL:-http://localhost:5173/auth/callback}
+      VELORA_OIDC_ALLOW_HTTP: "true"
+      VELORA_CASDOOR_ACCOUNT_URL: ${VELORA_CASDOOR_ACCOUNT_URL:-http://localhost:8443/account}
+      VELORA_CASDOOR_PASSWORD_LOGIN_ENABLED: ${VELORA_CASDOOR_PASSWORD_LOGIN_ENABLED:-true}
+      VELORA_CASDOOR_APPLICATION: ${VELORA_CASDOOR_APPLICATION:-velora-local}
+      VELORA_CASDOOR_ORGANIZATION: ${VELORA_CASDOOR_ORGANIZATION:-built-in}
       VELORA_DATABASE_DSN: postgres://velora:velora@postgres:5432/velora?sslmode=disable
       VELORA_CRYPTO_KEY: ${VELORA_CRYPTO_KEY:-velora-local-development-key-change-me-32bytes}
       VELORA_BOOTSTRAP_ADMIN: ${VELORA_BOOTSTRAP_ADMIN:-admin}

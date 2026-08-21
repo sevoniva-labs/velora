@@ -23,6 +23,32 @@ import { AppIcon } from '../../components/AppCard'
 // 只开放已经有完整生命周期闭环的类型。OIDC 可以创建为待配置草稿，
 // 但必须转到接入向导完成真实绑定和验证后才允许发布；这里不收集 Secret。
 const SSO_OPTIONS = ['URL', 'OIDC'] as const
+const applicationDraftStorageKey = 'velora.application-draft.v1'
+
+function readApplicationDraft(): Partial<AdminApplicationInput> | undefined {
+  try {
+    const raw = window.localStorage.getItem(applicationDraftStorageKey)
+    return raw ? JSON.parse(raw) as Partial<AdminApplicationInput> : undefined
+  } catch {
+    return undefined
+  }
+}
+
+function writeApplicationDraft(values: Partial<AdminApplicationInput>) {
+  try {
+    window.localStorage.setItem(applicationDraftStorageKey, JSON.stringify(values))
+  } catch {
+    // 浏览器存储不可用时仍可继续提交，服务端数据不受影响。
+  }
+}
+
+function clearApplicationDraft() {
+  try {
+    window.localStorage.removeItem(applicationDraftStorageKey)
+  } catch {
+    // 浏览器存储不可用时无需阻断已完成的服务端保存。
+  }
+}
 
 export default function AdminApplications() {
   usePageTitle('应用管理')
@@ -54,6 +80,7 @@ export default function AdminApplications() {
       editing ? adminUpdateApplication(editing.id, input) : adminCreateApplication(input),
     onSuccess: () => {
       message.success(editing ? '应用已更新' : '应用已创建')
+      if (!editing) clearApplicationDraft()
       setModalOpen(false)
       setEditing(null)
       invalidate()
@@ -79,6 +106,7 @@ export default function AdminApplications() {
       sort: 0,
       isFeatured: false,
       tagIds: [],
+      ...readApplicationDraft(),
     })
     setModalOpen(true)
   }
@@ -253,7 +281,15 @@ export default function AdminApplications() {
         width={640}
         destroyOnHidden
       >
-        <Form form={form} layout="vertical" requiredMark={false} style={{ marginTop: 4 }}>
+        <Form
+          form={form}
+          layout="vertical"
+          requiredMark={false}
+          style={{ marginTop: 4 }}
+          onValuesChange={(_, values) => {
+            if (!editing) writeApplicationDraft(values as Partial<AdminApplicationInput>)
+          }}
+        >
           <div className="velora-form-grid">
             <Form.Item label="应用编码" name="code" rules={[{ required: true, message: '请输入应用编码' }]}>
               <Input placeholder="如 devops" />

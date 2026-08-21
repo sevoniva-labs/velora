@@ -1020,6 +1020,9 @@ func (c Config) ValidateProductionAuth() error {
 	if c.Security.CasdoorPasswordLoginEnabled && !c.Security.TurnstileConfigured() {
 		errs = append(errs, "Velora-hosted password login requires Turnstile configuration in production")
 	}
+	if c.Security.CasdoorPasswordLoginEnabled {
+		errs = append(errs, "security.casdoor_password_login_enabled must be false in production; use standard Casdoor OIDC Authorization Code + PKCE")
+	}
 	if len(c.Security.TrustedProxies) == 0 {
 		errs = append(errs, "security.trusted_proxies must contain approved proxy CIDRs in production")
 	}

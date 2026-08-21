@@ -42,6 +42,25 @@ func TestValidateProductionAuthRejectsVeloraOIDCProvider(t *testing.T) {
 	}
 }
 
+func TestValidateProductionAuthRejectsPasswordForwarding(t *testing.T) {
+	cfg := Default()
+	cfg.App.Environment = "production"
+	cfg.Security.AuthMode = "oidc"
+	cfg.Security.OIDCIssuer = "https://casdoor.example.test"
+	cfg.Security.OIDCClientID = "velora"
+	cfg.Security.OIDCClientSecret = "secret"
+	cfg.Security.OIDCRedirectURL = "https://velora.example.test/auth/callback"
+	cfg.Security.SessionTTL = time.Hour
+	cfg.Security.CasdoorAccountURL = "https://casdoor.example.test/account"
+	cfg.Security.CasdoorPasswordLoginEnabled = true
+	cfg.Security.TurnstileSiteKey = "site-key"
+	cfg.Security.TurnstileSecret = "secret"
+	cfg.Security.TurnstileHostnames = []string{"velora.example.test"}
+	if err := cfg.ValidateProductionAuth(); err == nil || !strings.Contains(err.Error(), "casdoor_password_login_enabled must be false") {
+		t.Fatalf("production password forwarding was not rejected: %v", err)
+	}
+}
+
 func TestValidateProductionAuthRejectsNonCasdoorIdentitySources(t *testing.T) {
 	t.Setenv("VELORA_LDAP_URL", "ldaps://directory.example.test")
 	cfg := Default()

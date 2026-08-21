@@ -6,7 +6,7 @@
 
 - Phase 0：移除未落库的 Client ID/应用名假字段，正式表单只开放已闭环的直链；普通用户界面统一使用“统一身份中心”；管理入口和菜单按细粒度权限集合渲染；旧 SAML/CAS/ForwardAuth 在向导中明确禁用。
 - Phase 1：新增 `00023_portal_identity_boundary` 与 `00024_portal_identity_scopes` additive migration；身份绑定、验证记录、生命周期、发布时间、操作者、`config_version` 乐观锁和 OIDC Scopes；`iam.integration.*`、`iam.console.open`、`portal.application.publish` 权限；控制台 URL 仅通过受权 API 返回；后端拒绝新建未验收的 SAML/CAS/ForwardAuth 绑定。
-- 权限模型：新增目标权限 `audit.read`，同时保留 `system.audit.read` 兼容旧角色和令牌。
+- 权限模型：新增目标权限 `audit.read`，同时保留 `system.audit.read` 兼容旧角色和令牌；管理后台入口、菜单和身份向导按钮按权限集合渲染，身份管理员可读取应用清单但不能越权修改门户或打开未授权控制台；集成令牌增加 `system.api_token.manage` 专用权限。
 - Phase 2：新增“身份与单点登录”五步向导，支持 URL/OIDC 分支、绑定保存、真实 Discovery 验证、策略跳转、验证失败恢复和发布门禁；向导草稿只保存非敏感字段到浏览器本地存储并可恢复；不收集 Client Secret；管理页展示连接状态、Issuer 和待处理应用数量。
 - Phase 3：保留并修正本地 OIDC PKCE smoke；已实测本地 Casdoor Discovery、Velora begin、`state`/`nonce`/S256 PKCE 参数、未授权管理接口拒绝和容器健康；OIDC `amr/acr` 中的 MFA 证据会进入 Velora 会话认证等级。完整登录、MFA、撤权、错误回调和登出必须使用真实测试账号执行。
 - Phase 4：新增默认关闭的最小权限 Casdoor 应用自动化客户端和只读检查命令；只允许应用客户端管理，强制真实 `approval_id` 执行票据和 MFA，支持 OIDC Scopes、Redirect URI 幂等更新、禁用及同票据失败重试，不管理用户/密码/角色/MFA；新建客户端的 Secret 仅返回给同时拥有身份管理和受控控制台权限的管理员一次，随后清理内存，不进入数据库、日志、审计或浏览器持久化存储。
@@ -18,7 +18,7 @@
 ```text
 server: go test ./...       PASS
 server: go vet ./...        PASS
-web:    pnpm test -- --run   PASS (38 tests)
+web:    pnpm test            PASS (42 tests)
 web:    pnpm lint            PASS
 web:    pnpm build           PASS
 proto:  make -C server proto-check PASS
@@ -27,7 +27,7 @@ shell:  bash -n smoke/init  PASS
 git:    git diff --check     PASS; 工作区仅保留本次变更
 secret: gitleaks protect --staged PASS
 commit: 14a45ec fix(authz): harden portal URL and permission compatibility；后续收口提交均已推送 `origin/codex/velora-forge-backend-replacement`
-commit: 6e18f1a/c5a829e/4240340/2be8c4f/9c7d73d/0fc5074/a2e368d：Scopes 持久化、MFA assurance、审批重试、自动化 UI/部署 Secret 和退役 stub 清理；均已推送
+commit: 6e18f1a/c5a829e/4240340/2be8c4f/9c7d73d/0fc5074/a2e368d/9cd86d4：Scopes 持久化、MFA assurance、审批重试、自动化 UI/部署 Secret、退役 stub 清理和权限驱动后台入口；均已推送
 ```
 
 本地 Compose 证据（2026-08-21）：

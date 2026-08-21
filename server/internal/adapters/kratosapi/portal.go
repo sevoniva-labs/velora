@@ -2,9 +2,12 @@ package kratosapi
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
+	"net/http"
 	"net/url"
 	"strings"
+	"time"
 
 	kratoserrors "github.com/go-kratos/kratos/v2/errors"
 	"github.com/go-kratos/kratos/v2/transport"
@@ -25,6 +28,7 @@ type PortalService struct {
 	db                        *database.DB
 	identityAdminURL          string
 	identityIssuer            string
+	identityInternalURL       string
 	identityAllowedHosts      []string
 	identityOnboardingEnabled bool
 	identityAdminEntryEnabled bool
@@ -35,9 +39,10 @@ func NewPortalService(portal *appportal.Service, auditWriter *audit.Writer, db *
 	return &PortalService{portal: portal, audit: auditWriter, db: db}
 }
 
-func (s *PortalService) ConfigureIdentityBoundary(adminURL, issuer string, allowedHosts []string, onboardingEnabled, adminEntryEnabled bool) {
+func (s *PortalService) ConfigureIdentityBoundary(adminURL, issuer, internalURL string, allowedHosts []string, onboardingEnabled, adminEntryEnabled bool) {
 	s.identityAdminURL = strings.TrimSpace(adminURL)
 	s.identityIssuer = strings.TrimRight(strings.TrimSpace(issuer), "/")
+	s.identityInternalURL = strings.TrimRight(strings.TrimSpace(internalURL), "/")
 	s.identityAllowedHosts = append([]string(nil), allowedHosts...)
 	s.identityOnboardingEnabled = onboardingEnabled
 	s.identityAdminEntryEnabled = adminEntryEnabled
@@ -427,11 +432,44 @@ func (s *PortalService) GetIdentityOverview(ctx context.Context, _ *forgev1.GetI
 			pending++
 		}
 	}
-	connectionStatus := "UNCONFIGURED"
-	if s.identityIssuer != "" {
-		connectionStatus = "CONFIGURED"
-	}
+	connectionStatus := identityConnectionStatus(ctx, s.identityIssuer, s.identityInternalURL)
 	return &forgev1.GetIdentityOverviewResponse{OnboardingEnabled: s.identityOnboardingEnabled, AdminEntryEnabled: s.identityAdminEntryEnabled, ProviderKey: portaldomain.IdentityProviderCasdoor, AdminUrlHost: host, Issuer: s.identityIssuer, ConnectionStatus: connectionStatus, PendingApplicationCount: pending}, nil
+}
+
+func identityConnectionStatus(ctx context.Context, issuer, internalURL string) string {
+	issuer = strings.TrimRight(strings.TrimSpace(issuer), "/")
+	if issuer == "" {
+		return "UNCONFIGURED"
+	}
+	target := strings.TrimRight(strings.TrimSpace(internalURL), "/")
+	if target == "" {
+		target = issuer
+	}
+	u, err := url.Parse(target + "/.well-known/openid-configuration")
+	if err != nil || u.Host == "" || (u.Scheme != "http" && u.Scheme != "https") || u.User != nil || u.RawQuery != "" || u.Fragment != "" {
+		return "UNAVAILABLE"
+	}
+	probeCtx, cancel := context.WithTimeout(ctx, 2*time.Second)
+	defer cancel()
+	req, err := http.NewRequestWithContext(probeCtx, http.MethodGet, u.String(), nil)
+	if err != nil {
+		return "UNAVAILABLE"
+	}
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return "UNAVAILABLE"
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return "UNAVAILABLE"
+	}
+	var metadata struct {
+		Issuer string `json:"issuer"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&metadata); err != nil || strings.TrimRight(strings.TrimSpace(metadata.Issuer), "/") != issuer {
+		return "MISMATCH"
+	}
+	return "CONNECTED"
 }
 
 func (s *PortalService) GetIdentityConsoleLink(ctx context.Context, _ *forgev1.GetIdentityConsoleLinkRequest) (*forgev1.GetIdentityConsoleLinkResponse, error) {

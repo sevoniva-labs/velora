@@ -33,7 +33,7 @@ secret: gitleaks protect --staged PASS
 - `portal_application_identity_bindings` 与 `portal_application_verifications` 存在；
 - `GET /api/v1/system/health` 返回 200，Turnstile enabled；
 - `GET /api/v1/admin/identity/overview` 无会话返回 401；
-- 已认证身份管理员概览返回 Issuer、连接配置状态和待处理应用数量；管理 URL 仍不进入公开健康接口；
+- 已认证身份管理员概览真实探测 Discovery 并校验 Issuer，返回连接状态、Issuer 和待处理应用数量；管理 URL 仍不进入公开健康接口；
 - 本地 Casdoor `/healthz` 返回 200，`/.well-known/openid-configuration` 返回 200，Issuer 为本地 Casdoor，Discovery 提供授权、Token、JWKS 和 RP-initiated logout 端点；
 - Velora OIDC begin 返回 200，授权地址包含 `response_type=code`、`state`、`nonce`、`code_challenge_method=S256`、`code_challenge` 和配置的 redirect URI。
 

@@ -322,5 +322,5 @@ message SubmitApplicationPublishRequest { string application_id = 1; int64 expec
 message SubmitApplicationPublishResponse { PortalApplication application = 1; }
 message PublishApplicationRequest { string application_id = 1; int64 expected_config_version = 2; }
 message PublishApplicationResponse { PortalApplication application = 1; }
-message DisableApplicationRequest { string application_id = 1; int64 expected_config_version = 2; }
+message DisableApplicationRequest { string application_id = 1; int64 expected_config_version = 2; string approval_id = 3; }
 message DisableApplicationResponse { PortalApplication application = 1; }

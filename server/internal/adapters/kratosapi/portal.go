@@ -617,8 +617,21 @@ func (s *PortalService) DisableApplication(ctx context.Context, req *forgev1.Dis
 	if err != nil {
 		return nil, err
 	}
+	_, binding, _, onboardingErr := s.portal.GetApplicationOnboarding(ctx, principal, req.GetApplicationId())
+	if onboardingErr != nil {
+		return nil, serviceError(onboardingErr)
+	}
+	automationEnabled := s.casdoorAutomation != nil && s.casdoorAutomation.Enabled() && binding.ID != "" && strings.EqualFold(binding.ProviderKey, portaldomain.IdentityProviderCasdoor)
+	if automationEnabled {
+		if !principal.HasPermission("iam.console.open") {
+			return nil, kratoserrors.Forbidden("PERMISSION_DENIED", "identity administrator permission is required")
+		}
+		if strings.TrimSpace(req.GetApprovalId()) == "" {
+			return nil, serviceError(casdooradmin.ErrApprovalRequired)
+		}
+	}
 	var app portaldomain.Application
-	event := newAuditEvent(ctx, principal, "portal.application.disable", "portal_application", req.GetApplicationId(), nil)
+	event := newAuditEvent(ctx, principal, "portal.application.disable", "portal_application", req.GetApplicationId(), map[string]any{"approval_id": req.GetApprovalId(), "casdoor_automation": automationEnabled})
 	err = s.audited(ctx, event, func(txCtx context.Context) error {
 		var operationErr error
 		app, operationErr = s.portal.DisableApplication(txCtx, principal, req.GetApplicationId(), req.GetExpectedConfigVersion())
@@ -626,6 +639,11 @@ func (s *PortalService) DisableApplication(ctx context.Context, req *forgev1.Dis
 	})
 	if err != nil {
 		return nil, serviceError(err)
+	}
+	if automationEnabled {
+		if err := s.casdoorAutomation.DisableApplication(ctx, binding.ProviderApplicationRef, req.GetApprovalId()); err != nil {
+			return nil, serviceError(err)
+		}
 	}
 	return &forgev1.DisableApplicationResponse{Application: portalApplicationProto(app)}, nil
 }

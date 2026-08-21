@@ -3788,6 +3788,7 @@ type DisableApplicationRequest struct {
 	state                 protoimpl.MessageState `protogen:"open.v1"`
 	ApplicationId         string                 `protobuf:"bytes,1,opt,name=application_id,json=applicationId,proto3" json:"application_id,omitempty"`
 	ExpectedConfigVersion int64                  `protobuf:"varint,2,opt,name=expected_config_version,json=expectedConfigVersion,proto3" json:"expected_config_version,omitempty"`
+	ApprovalId            string                 `protobuf:"bytes,3,opt,name=approval_id,json=approvalId,proto3" json:"approval_id,omitempty"`
 	unknownFields         protoimpl.UnknownFields
 	sizeCache             protoimpl.SizeCache
 }
@@ -3834,6 +3835,13 @@ func (x *DisableApplicationRequest) GetExpectedConfigVersion() int64 {
 		return x.ExpectedConfigVersion
 	}
 	return 0
+}
+
+func (x *DisableApplicationRequest) GetApprovalId() string {
+	if x != nil {
+		return x.ApprovalId
+	}
+	return ""
 }
 
 type DisableApplicationResponse struct {
@@ -4189,10 +4197,12 @@ const file_forge_v1_portal_proto_rawDesc = "" +
 	"\x0eapplication_id\x18\x01 \x01(\tR\rapplicationId\x126\n" +
 	"\x17expected_config_version\x18\x02 \x01(\x03R\x15expectedConfigVersion\"[\n" +
 	"\x1aPublishApplicationResponse\x12=\n" +
-	"\vapplication\x18\x01 \x01(\v2\x1b.forge.v1.PortalApplicationR\vapplication\"z\n" +
+	"\vapplication\x18\x01 \x01(\v2\x1b.forge.v1.PortalApplicationR\vapplication\"\x9b\x01\n" +
 	"\x19DisableApplicationRequest\x12%\n" +
 	"\x0eapplication_id\x18\x01 \x01(\tR\rapplicationId\x126\n" +
-	"\x17expected_config_version\x18\x02 \x01(\x03R\x15expectedConfigVersion\"[\n" +
+	"\x17expected_config_version\x18\x02 \x01(\x03R\x15expectedConfigVersion\x12\x1f\n" +
+	"\vapproval_id\x18\x03 \x01(\tR\n" +
+	"approvalId\"[\n" +
 	"\x1aDisableApplicationResponse\x12=\n" +
 	"\vapplication\x18\x01 \x01(\v2\x1b.forge.v1.PortalApplicationR\vapplication2\xfc,\n" +
 	"\rPortalService\x12\xd0\x01\n" +

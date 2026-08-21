@@ -3109,6 +3109,8 @@ components:
                     type: string
                 expectedConfigVersion:
                     type: string
+                approvalId:
+                    type: string
         forge.v1.DisableApplicationResponse:
             type: object
             properties:

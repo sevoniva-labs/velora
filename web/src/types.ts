@@ -90,6 +90,7 @@ export interface IdentityBinding {
   publicClientId: string
   issuer: string
   redirectUris: string[]
+  scopes: string[]
   configurationStatus: string
   verificationStatus: string
   verifiedAt?: string

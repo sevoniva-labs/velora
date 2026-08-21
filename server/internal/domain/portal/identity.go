@@ -26,6 +26,8 @@ const (
 	VerificationFailed      = "FAILED"
 )
 
+var DefaultOIDCScopes = []string{"openid", "profile", "email"}
+
 var (
 	ErrIdentityBindingRequired = errors.New("identity binding is required")
 	ErrOptimisticConflict      = errors.New("configuration was changed by another operator")
@@ -43,6 +45,7 @@ type IdentityBinding struct {
 	PublicClientID         string
 	Issuer                 string
 	RedirectURIs           []string
+	Scopes                 []string
 	ConfigurationStatus    string
 	VerificationStatus     string
 	VerifiedAt             *time.Time
@@ -60,6 +63,7 @@ type IdentityBindingInput struct {
 	PublicClientID         string
 	Issuer                 string
 	RedirectURIs           []string
+	Scopes                 []string
 	ConfigurationStatus    string
 	VerificationStatus     string
 }
@@ -109,7 +113,46 @@ func (b IdentityBindingInput) Validate() error {
 			return ErrInvalidIdentityBinding
 		}
 	}
+	if _, err := NormalizeOIDCScopes(b.Scopes); err != nil {
+		return ErrInvalidIdentityBinding
+	}
 	return nil
+}
+
+func NormalizeOIDCScopes(values []string) ([]string, error) {
+	if len(values) == 0 {
+		return append([]string(nil), DefaultOIDCScopes...), nil
+	}
+	seen := make(map[string]struct{}, len(values))
+	out := make([]string, 0, len(values))
+	for _, raw := range values {
+		if strings.ContainsAny(raw, "\r\n\t,;\"'") {
+			return nil, ErrInvalidIdentityBinding
+		}
+		for _, value := range strings.Fields(raw) {
+			value = strings.TrimSpace(value)
+			if value == "" || len(value) > 64 {
+				return nil, ErrInvalidIdentityBinding
+			}
+			for _, r := range value {
+				if !(r == '_' || r == '-' || r == '.' || r == ':' || r >= 'a' && r <= 'z' || r >= 'A' && r <= 'Z' || r >= '0' && r <= '9') {
+					return nil, ErrInvalidIdentityBinding
+				}
+			}
+			if _, exists := seen[value]; exists {
+				continue
+			}
+			seen[value] = struct{}{}
+			out = append(out, value)
+			if len(out) > 32 {
+				return nil, ErrInvalidIdentityBinding
+			}
+		}
+	}
+	if len(out) == 0 {
+		return nil, ErrInvalidIdentityBinding
+	}
+	return out, nil
 }
 
 func validIdentityURL(u *url.URL) bool {

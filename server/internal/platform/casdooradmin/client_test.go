@@ -47,16 +47,19 @@ func TestUpsertReturnsClientSecretOnlyOnceInMemory(t *testing.T) {
 			w.WriteHeader(http.StatusNotFound)
 			return
 		}
-		_, _ = w.Write([]byte(`{"status":"ok","data":{"name":"demo","clientSecret":"one-time-secret"}}`))
+		_, _ = w.Write([]byte(`{"status":"ok","data":{"name":"demo","scopes":["openid","profile"],"clientSecret":"one-time-secret"}}`))
 	}))
 	defer server.Close()
 	client, err := New(Config{BaseURL: server.URL, Token: "token", Enabled: true})
 	if err != nil {
 		t.Fatal(err)
 	}
-	application, created, err := client.UpsertApplication(context.Background(), UpsertInput{Name: "demo", Organization: "built-in", RedirectURIs: []string{"https://app.example.test/callback"}, ApprovalID: "approval-1"})
+	application, created, err := client.UpsertApplication(context.Background(), UpsertInput{Name: "demo", Organization: "built-in", RedirectURIs: []string{"https://app.example.test/callback"}, Scopes: []string{"openid", "profile"}, ApprovalID: "approval-1"})
 	if err != nil || !created {
 		t.Fatalf("UpsertApplication() = created %t, err %v", created, err)
+	}
+	if len(application.Scopes) != 2 || application.Scopes[0] != "openid" {
+		t.Fatalf("scopes were not returned: %#v", application.Scopes)
 	}
 	if got := application.TakeOneTimeClientSecret(); got != "one-time-secret" {
 		t.Fatalf("first secret = %q", got)

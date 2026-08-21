@@ -531,7 +531,7 @@ func (s *PortalService) UpsertApplicationIdentityBinding(ctx context.Context, re
 	event := newAuditEvent(ctx, principal, "iam.integration.update", "portal_application", req.GetApplicationId(), map[string]any{"protocol": req.GetProtocol(), "provider": portaldomain.IdentityProviderCasdoor})
 	err = s.audited(ctx, event, func(txCtx context.Context) error {
 		var operationErr error
-		binding, app, operationErr = s.portal.UpsertApplicationIdentityBinding(txCtx, principal, req.GetApplicationId(), portaldomain.IdentityBindingInput{ProviderKey: req.GetProviderKey(), Protocol: req.GetProtocol(), ProviderApplicationRef: req.GetProviderApplicationRef(), PublicClientID: req.GetPublicClientId(), Issuer: req.GetIssuer(), RedirectURIs: req.GetRedirectUris()}, req.GetExpectedConfigVersion())
+		binding, app, operationErr = s.portal.UpsertApplicationIdentityBinding(txCtx, principal, req.GetApplicationId(), portaldomain.IdentityBindingInput{ProviderKey: req.GetProviderKey(), Protocol: req.GetProtocol(), ProviderApplicationRef: req.GetProviderApplicationRef(), PublicClientID: req.GetPublicClientId(), Issuer: req.GetIssuer(), RedirectURIs: req.GetRedirectUris(), Scopes: req.GetScopes()}, req.GetExpectedConfigVersion())
 		return operationErr
 	})
 	if err != nil {
@@ -541,6 +541,10 @@ func (s *PortalService) UpsertApplicationIdentityBinding(ctx context.Context, re
 	// fails. A later retry is safe because the Casdoor provider upsert is
 	// idempotent and the local binding is already auditable and recoverable.
 	if automationEnabled {
+		scopes, scopeErr := portaldomain.NormalizeOIDCScopes(req.GetScopes())
+		if scopeErr != nil {
+			return nil, serviceError(scopeErr)
+		}
 		if err := s.authorizeCasdoorAutomation(ctx, principal, req.GetApprovalId(), "UPSERT", req.GetApplicationId(), map[string]any{
 			"provider":                 portaldomain.IdentityProviderCasdoor,
 			"protocol":                 req.GetProtocol(),
@@ -548,10 +552,11 @@ func (s *PortalService) UpsertApplicationIdentityBinding(ctx context.Context, re
 			"public_client_id":         req.GetPublicClientId(),
 			"issuer":                   req.GetIssuer(),
 			"redirect_uris":            req.GetRedirectUris(),
+			"scopes":                   scopes,
 		}); err != nil {
 			return nil, serviceError(err)
 		}
-		application, _, automationErr := s.casdoorAutomation.UpsertApplication(ctx, casdooradmin.UpsertInput{Name: req.GetProviderApplicationRef(), Organization: principal.OrganizationID, DisplayName: req.GetProviderApplicationRef(), ClientID: req.GetPublicClientId(), RedirectURIs: req.GetRedirectUris(), GrantTypes: []string{"authorization_code"}, ApprovalID: req.GetApprovalId()})
+		application, _, automationErr := s.casdoorAutomation.UpsertApplication(ctx, casdooradmin.UpsertInput{Name: req.GetProviderApplicationRef(), Organization: principal.OrganizationID, DisplayName: req.GetProviderApplicationRef(), ClientID: req.GetPublicClientId(), RedirectURIs: req.GetRedirectUris(), GrantTypes: []string{"authorization_code"}, Scopes: scopes, ApprovalID: req.GetApprovalId()})
 		if automationErr != nil {
 			return nil, serviceError(automationErr)
 		}
@@ -749,7 +754,7 @@ func identityBindingProto(item portaldomain.IdentityBinding) *forgev1.PortalIden
 	if item.ID == "" {
 		return nil
 	}
-	return &forgev1.PortalIdentityBinding{Id: item.ID, OrganizationId: item.OrganizationID, ApplicationId: item.ApplicationID, ProviderKey: item.ProviderKey, Protocol: item.Protocol, ProviderApplicationRef: item.ProviderApplicationRef, PublicClientId: item.PublicClientID, Issuer: item.Issuer, RedirectUris: item.RedirectURIs, ConfigurationStatus: item.ConfigurationStatus, VerificationStatus: item.VerificationStatus, VerifiedAt: optionalTimestamp(item.VerifiedAt), VerifiedBy: item.VerifiedBy, VerificationError: item.VerificationError, ConfigVersion: item.ConfigVersion, CreatedAt: timestamp(item.CreatedAt), UpdatedAt: timestamp(item.UpdatedAt)}
+	return &forgev1.PortalIdentityBinding{Id: item.ID, OrganizationId: item.OrganizationID, ApplicationId: item.ApplicationID, ProviderKey: item.ProviderKey, Protocol: item.Protocol, ProviderApplicationRef: item.ProviderApplicationRef, PublicClientId: item.PublicClientID, Issuer: item.Issuer, RedirectUris: item.RedirectURIs, Scopes: item.Scopes, ConfigurationStatus: item.ConfigurationStatus, VerificationStatus: item.VerificationStatus, VerifiedAt: optionalTimestamp(item.VerifiedAt), VerifiedBy: item.VerifiedBy, VerificationError: item.VerificationError, ConfigVersion: item.ConfigVersion, CreatedAt: timestamp(item.CreatedAt), UpdatedAt: timestamp(item.UpdatedAt)}
 }
 
 func verificationsProto(items []portaldomain.Verification) []*forgev1.PortalApplicationVerification {

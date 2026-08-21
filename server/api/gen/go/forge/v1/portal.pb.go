@@ -2707,6 +2707,7 @@ type PortalIdentityBinding struct {
 	ConfigVersion          int64                  `protobuf:"varint,15,opt,name=config_version,json=configVersion,proto3" json:"config_version,omitempty"`
 	CreatedAt              *timestamppb.Timestamp `protobuf:"bytes,16,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
 	UpdatedAt              *timestamppb.Timestamp `protobuf:"bytes,17,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
+	Scopes                 []string               `protobuf:"bytes,18,rep,name=scopes,proto3" json:"scopes,omitempty"`
 	unknownFields          protoimpl.UnknownFields
 	sizeCache              protoimpl.SizeCache
 }
@@ -2856,6 +2857,13 @@ func (x *PortalIdentityBinding) GetCreatedAt() *timestamppb.Timestamp {
 func (x *PortalIdentityBinding) GetUpdatedAt() *timestamppb.Timestamp {
 	if x != nil {
 		return x.UpdatedAt
+	}
+	return nil
+}
+
+func (x *PortalIdentityBinding) GetScopes() []string {
+	if x != nil {
+		return x.Scopes
 	}
 	return nil
 }
@@ -3315,6 +3323,7 @@ type UpsertApplicationIdentityBindingRequest struct {
 	RedirectUris           []string               `protobuf:"bytes,7,rep,name=redirect_uris,json=redirectUris,proto3" json:"redirect_uris,omitempty"`
 	ExpectedConfigVersion  int64                  `protobuf:"varint,8,opt,name=expected_config_version,json=expectedConfigVersion,proto3" json:"expected_config_version,omitempty"`
 	ApprovalId             string                 `protobuf:"bytes,9,opt,name=approval_id,json=approvalId,proto3" json:"approval_id,omitempty"`
+	Scopes                 []string               `protobuf:"bytes,10,rep,name=scopes,proto3" json:"scopes,omitempty"`
 	unknownFields          protoimpl.UnknownFields
 	sizeCache              protoimpl.SizeCache
 }
@@ -3410,6 +3419,13 @@ func (x *UpsertApplicationIdentityBindingRequest) GetApprovalId() string {
 		return x.ApprovalId
 	}
 	return ""
+}
+
+func (x *UpsertApplicationIdentityBindingRequest) GetScopes() []string {
+	if x != nil {
+		return x.Scopes
+	}
+	return nil
 }
 
 type UpsertApplicationIdentityBindingResponse struct {
@@ -4102,7 +4118,7 @@ const file_forge_v1_portal_proto_rawDesc = "" +
 	"\x0eapplication_id\x18\x01 \x01(\tR\rapplicationId\x128\n" +
 	"\bpolicies\x18\x02 \x03(\v2\x1c.forge.v1.PortalAccessPolicyR\bpolicies\"d\n" +
 	"(ReplacePortalApplicationPoliciesResponse\x128\n" +
-	"\bpolicies\x18\x01 \x03(\v2\x1c.forge.v1.PortalAccessPolicyR\bpolicies\"\xe5\x05\n" +
+	"\bpolicies\x18\x01 \x03(\v2\x1c.forge.v1.PortalAccessPolicyR\bpolicies\"\xfd\x05\n" +
 	"\x15PortalIdentityBinding\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12'\n" +
 	"\x0forganization_id\x18\x02 \x01(\tR\x0eorganizationId\x12%\n" +
@@ -4125,7 +4141,8 @@ const file_forge_v1_portal_proto_rawDesc = "" +
 	"\n" +
 	"created_at\x18\x10 \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x129\n" +
 	"\n" +
-	"updated_at\x18\x11 \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\"\xed\x02\n" +
+	"updated_at\x18\x11 \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\x12\x16\n" +
+	"\x06scopes\x18\x12 \x03(\tR\x06scopes\"\xed\x02\n" +
 	"\x1dPortalApplicationVerification\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12%\n" +
 	"\x0eapplication_id\x18\x02 \x01(\tR\rapplicationId\x12\x1d\n" +
@@ -4164,7 +4181,7 @@ const file_forge_v1_portal_proto_rawDesc = "" +
 	"\abinding\x18\x02 \x01(\v2\x1f.forge.v1.PortalIdentityBindingR\abinding\x12M\n" +
 	"\rverifications\x18\x03 \x03(\v2'.forge.v1.PortalApplicationVerificationR\rverifications\x12\x1f\n" +
 	"\vcan_publish\x18\x04 \x01(\bR\n" +
-	"canPublish\"\x89\x03\n" +
+	"canPublish\"\xa1\x03\n" +
 	"'UpsertApplicationIdentityBindingRequest\x12%\n" +
 	"\x0eapplication_id\x18\x01 \x01(\tR\rapplicationId\x12!\n" +
 	"\fprovider_key\x18\x02 \x01(\tR\vproviderKey\x12\x1a\n" +
@@ -4175,7 +4192,9 @@ const file_forge_v1_portal_proto_rawDesc = "" +
 	"\rredirect_uris\x18\a \x03(\tR\fredirectUris\x126\n" +
 	"\x17expected_config_version\x18\b \x01(\x03R\x15expectedConfigVersion\x12\x1f\n" +
 	"\vapproval_id\x18\t \x01(\tR\n" +
-	"approvalId\"\xd9\x01\n" +
+	"approvalId\x12\x16\n" +
+	"\x06scopes\x18\n" +
+	" \x03(\tR\x06scopes\"\xd9\x01\n" +
 	"(UpsertApplicationIdentityBindingResponse\x129\n" +
 	"\abinding\x18\x01 \x01(\v2\x1f.forge.v1.PortalIdentityBindingR\abinding\x12=\n" +
 	"\vapplication\x18\x02 \x01(\v2\x1b.forge.v1.PortalApplicationR\vapplication\x123\n" +

@@ -32,6 +32,7 @@ type Application struct {
 	ClientID            string
 	RedirectURIs        []string
 	GrantTypes          []string
+	Scopes              []string
 	Enabled             bool
 	oneTimeClientSecret string
 }
@@ -56,6 +57,7 @@ type applicationWire struct {
 	ClientID          string   `json:"clientId"`
 	RedirectURIs      []string `json:"redirectUris"`
 	GrantTypes        []string `json:"grantTypes"`
+	Scopes            []string `json:"scopes"`
 	Enabled           bool     `json:"enableSigninSession"`
 	ClientSecret      string   `json:"clientSecret"`
 	ClientSecretSnake string   `json:"client_secret"`
@@ -73,7 +75,7 @@ func (w applicationWire) application(includeSecret bool) Application {
 			secret = w.ClientSecretSnake
 		}
 	}
-	return Application{Name: w.Name, Organization: organization, DisplayName: w.DisplayName, ClientID: w.ClientID, RedirectURIs: w.RedirectURIs, GrantTypes: w.GrantTypes, Enabled: w.Enabled, oneTimeClientSecret: secret}
+	return Application{Name: w.Name, Organization: organization, DisplayName: w.DisplayName, ClientID: w.ClientID, RedirectURIs: w.RedirectURIs, GrantTypes: w.GrantTypes, Scopes: w.Scopes, Enabled: w.Enabled, oneTimeClientSecret: secret}
 }
 
 type UpsertInput struct {
@@ -83,6 +85,7 @@ type UpsertInput struct {
 	ClientID     string
 	RedirectURIs []string
 	GrantTypes   []string
+	Scopes       []string
 	ApprovalID   string
 }
 
@@ -143,7 +146,7 @@ func (c *Client) UpsertApplication(ctx context.Context, input UpsertInput) (Appl
 	if err != nil {
 		return Application{}, false, err
 	}
-	request := map[string]any{"owner": input.Organization, "name": input.Name, "organization": input.Organization, "displayName": input.DisplayName, "clientId": input.ClientID, "redirectUris": input.RedirectURIs, "grantTypes": input.GrantTypes, "enableSigninSession": true}
+	request := map[string]any{"owner": input.Organization, "name": input.Name, "organization": input.Organization, "displayName": input.DisplayName, "clientId": input.ClientID, "redirectUris": input.RedirectURIs, "grantTypes": input.GrantTypes, "scopes": input.Scopes, "enableSigninSession": true}
 	method, path := http.MethodPost, "/api/add-application"
 	if found {
 		method, path = http.MethodPost, "/api/update-application"
@@ -157,7 +160,7 @@ func (c *Client) UpsertApplication(ctx context.Context, input UpsertInput) (Appl
 	// re-expose an existing secret, even if Casdoor includes it in the payload.
 	application := wire.application(!found)
 	if application.Name == "" {
-		application = Application{Name: input.Name, Organization: input.Organization, ClientID: input.ClientID, RedirectURIs: input.RedirectURIs, GrantTypes: input.GrantTypes, Enabled: true}
+		application = Application{Name: input.Name, Organization: input.Organization, ClientID: input.ClientID, RedirectURIs: input.RedirectURIs, GrantTypes: input.GrantTypes, Scopes: input.Scopes, Enabled: true}
 	}
 	return application, !found, nil
 }

@@ -277,6 +277,7 @@ message PortalIdentityBinding {
   int64 config_version = 15;
   google.protobuf.Timestamp created_at = 16;
   google.protobuf.Timestamp updated_at = 17;
+  repeated string scopes = 18;
 }
 message PortalApplicationVerification {
   string id = 1;
@@ -314,6 +315,7 @@ message UpsertApplicationIdentityBindingRequest {
   repeated string redirect_uris = 7;
   int64 expected_config_version = 8;
   string approval_id = 9;
+  repeated string scopes = 10;
 }
 message UpsertApplicationIdentityBindingResponse { PortalIdentityBinding binding = 1; PortalApplication application = 2; string one_time_client_secret = 3; }
 message VerifyApplicationIdentityRequest { string application_id = 1; int64 expected_config_version = 2; }

@@ -81,6 +81,17 @@ func TestIdentityReaderCanListOnboardingApplicationsButCannotMutate(t *testing.T
 	}
 }
 
+func TestIdentityBindingMutationUsesIntegrationManageNotConsoleAccess(t *testing.T) {
+	handler := Server(PortalRules())(func(context.Context, any) (any, error) { return "ok", nil })
+	operation := forgev1.OperationPortalServiceUpsertApplicationIdentityBinding
+	if _, err := handler(authorizationContext(operation, domain.Principal{Permissions: []string{"iam.integration.manage"}}), nil); err != nil {
+		t.Fatalf("identity integration manager was rejected without console access: %v", err)
+	}
+	if _, err := handler(authorizationContext(operation, domain.Principal{Permissions: []string{"iam.console.open"}}), nil); err == nil {
+		t.Fatal("console-only administrator was allowed to mutate identity bindings")
+	}
+}
+
 func TestIntegrationTokenManagementRequiresDedicatedPermission(t *testing.T) {
 	handler := Server(IdentityRules())(func(context.Context, any) (any, error) { return "ok", nil })
 	operation := forgev1.OperationIdentityServiceListApiTokens

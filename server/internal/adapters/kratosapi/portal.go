@@ -518,8 +518,8 @@ func (s *PortalService) UpsertApplicationIdentityBinding(ctx context.Context, re
 	if err != nil {
 		return nil, err
 	}
-	if !principal.HasPermission("iam.console.open") {
-		return nil, kratoserrors.Forbidden("PERMISSION_DENIED", "identity administrator permission is required")
+	if !principal.HasPermission("iam.integration.manage") {
+		return nil, kratoserrors.Forbidden("PERMISSION_DENIED", "identity integration management permission is required")
 	}
 	var oneTimeClientSecret string
 	automationEnabled := s.casdoorAutomation != nil && s.casdoorAutomation.Enabled() && strings.EqualFold(req.GetProviderKey(), portaldomain.IdentityProviderCasdoor) && strings.EqualFold(req.GetProtocol(), portaldomain.ProtocolOIDC)

@@ -116,7 +116,7 @@ var basePermissions = []struct{ Key, Name string }{
 	{"system.identity_mapping.read", "查看外部身份绑定"}, {"system.identity_mapping.manage", "管理外部身份绑定"},
 	{"system.access_review.read", "查看访问复核"}, {"system.access_review.manage", "管理访问复核"},
 	{"system.session.read", "查看在线会话"}, {"system.session.revoke", "强制下线会话"},
-	{"system.audit.read", "查看审计日志"}, {"system.audit.export", "导出审计日志"}, {"system.audit.verify", "校验审计完整性"},
+	{"system.audit.read", "查看审计日志"}, {"audit.read", "查看审计日志（兼容权限）"}, {"system.audit.export", "导出审计日志"}, {"system.audit.verify", "校验审计完整性"},
 	{"system.temporary_grant.read", "查看临时授权"}, {"system.temporary_grant.manage", "管理临时授权"},
 	{"system.config.read", "查看系统配置"}, {"system.config.manage", "管理配置变更"}, {"system.security.manage", "管理安全配置"},
 	{"portal.application.read", "查看门户应用"}, {"portal.application.manage", "管理门户应用"}, {"portal.application.publish", "发布门户应用"},
@@ -173,7 +173,7 @@ func (s *Service) Bootstrap(ctx context.Context, orgKey, orgName, admin, passwor
 			return err
 		}
 	}
-	for _, k := range []string{"system.audit.read", "system.audit.export", "system.audit.verify", "system.temporary_grant.read"} {
+	for _, k := range []string{"system.audit.read", "audit.read", "system.audit.export", "system.audit.verify", "system.temporary_grant.read"} {
 		if err = s.repo.GrantPermissionToRole(ctx, orgID, "auditor", k); err != nil {
 			return err
 		}

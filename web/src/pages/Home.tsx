@@ -18,6 +18,7 @@ import { useNavigate } from 'react-router-dom'
 import { ProCard } from '@ant-design/pro-components'
 import { launchApplication, listApplications, listCategories, listRecent, getPortalSettings, queryKeys } from '../api/api'
 import { AppIcon } from '../components/AppCard'
+import TodoCenter from '../components/TodoCenter'
 import QueryErrorState from '../components/QueryErrorState'
 import { formatRelativeTime } from '../utils/format'
 import { usePageTitle } from '../hooks/usePageTitle'
@@ -371,6 +372,11 @@ export default function Home() {
             <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="暂无分类" style={{ padding: '24px 0' }} />
           )}
         </section>
+      </div>
+
+      {/* 待办中心保留为门户工作台能力；当前 Wave 1 没有接入邮件服务，邮件仅保留占位 Tab。 */}
+      <div className="velora-todo-section">
+        <TodoCenter />
       </div>
     </div>
   )

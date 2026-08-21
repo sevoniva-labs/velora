@@ -245,12 +245,19 @@ func (r *ApprovalRepo) ClaimExecution(ctx context.Context, orgID, requestID, act
 		if actualDigest != expectedDigest {
 			return domain.ErrDigestMismatch
 		}
-		var count int
-		if err := tx.QueryRowContext(ctx, r.db.Rebind(`SELECT COUNT(*) FROM approval_executions WHERE request_id=?`), requestID).Scan(&count); err != nil {
-			return err
-		}
-		if count > 0 {
+		var executedBy, executedDigest string
+		lookupErr := tx.QueryRowContext(ctx, r.db.Rebind(`SELECT executed_by,request_digest FROM approval_executions WHERE request_id=?`), requestID).Scan(&executedBy, &executedDigest)
+		if lookupErr == nil {
+			if executedBy == actorID && executedDigest == expectedDigest {
+				// An external side effect may have timed out after the execution
+				// ticket was claimed. Reusing the exact ticket and digest is safe
+				// because the provider operation is itself idempotent.
+				return nil
+			}
 			return domain.ErrAlreadyExecuted
+		}
+		if lookupErr != sql.ErrNoRows {
+			return lookupErr
 		}
 		_, err := tx.ExecContext(ctx, r.db.Rebind(`INSERT INTO approval_executions(id,request_id,executed_by,request_digest,executed_at) VALUES(?,?,?,?,?)`), uuid.NewString(), requestID, actorID, expectedDigest, time.Now().UTC())
 		return err

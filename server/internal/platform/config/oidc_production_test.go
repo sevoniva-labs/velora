@@ -42,6 +42,23 @@ func TestValidateProductionAuthRejectsVeloraOIDCProvider(t *testing.T) {
 	}
 }
 
+func TestValidateProductionAuthRejectsNonCasdoorIdentitySources(t *testing.T) {
+	t.Setenv("VELORA_LDAP_URL", "ldaps://directory.example.test")
+	cfg := Default()
+	cfg.App.Environment = "production"
+	cfg.Security.AuthMode = "oidc"
+	cfg.Security.OIDCIssuer = "https://casdoor.example.test"
+	cfg.Security.OIDCClientID = "velora"
+	cfg.Security.OIDCClientSecret = "secret"
+	cfg.Security.OIDCRedirectURL = "https://velora.example.test/auth/callback"
+	cfg.Security.SessionTTL = time.Hour
+	cfg.Security.CasdoorAccountURL = "https://casdoor.example.test/account"
+	cfg.Security.OIDCName = "other"
+	if err := cfg.ValidateProductionAuth(); err == nil || !strings.Contains(err.Error(), "oidc_name must be casdoor") || !strings.Contains(err.Error(), "VELORA_LDAP_URL must be unset") {
+		t.Fatalf("non-Casdoor identity sources were accepted: %v", err)
+	}
+}
+
 func TestValidateProductionAuthRejectsSoftwareGMTrustRoot(t *testing.T) {
 	cfg := Default()
 	cfg.App.Environment = "production"

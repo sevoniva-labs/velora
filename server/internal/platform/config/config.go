@@ -981,6 +981,12 @@ func (c Config) ValidateProductionAuth() error {
 	if strings.TrimSpace(c.Security.OIDCIssuer) == "" || !isHTTPSURL(c.Security.OIDCIssuer) {
 		errs = append(errs, "security.oidc_issuer must be an https URL in production")
 	}
+	if name := strings.ToLower(strings.TrimSpace(c.Security.OIDCName)); name != "" && name != "casdoor" {
+		errs = append(errs, "security.oidc_name must be casdoor in production")
+	}
+	if strings.TrimSpace(os.Getenv("VELORA_LDAP_URL")) != "" {
+		errs = append(errs, "VELORA_LDAP_URL must be unset in production; Casdoor is the only identity provider")
+	}
 	if strings.TrimSpace(c.Security.OIDCClientID) == "" {
 		errs = append(errs, "security.oidc_client_id is required in production")
 	}

@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { Col, Row } from 'antd'
+import { Alert, Button, Col, Row } from 'antd'
 import {
   AppstoreOutlined,
   CheckCircleOutlined,
@@ -13,11 +13,16 @@ import AdminPageHead from '../../components/AdminPageHead'
 import { adminDashboard, queryKeys } from '../../api/api'
 import QueryErrorState from '../../components/QueryErrorState'
 import { usePageTitle } from '../../hooks/usePageTitle'
+import { useMe } from '../../auth/useMe'
+import { useNavigate } from 'react-router-dom'
 
 export default function AdminDashboard() {
   usePageTitle('门户概览')
+  const me = useMe()
+  const navigate = useNavigate()
+  const canManagePortal = me.data?.permissions.includes('portal.application.manage') || me.data?.permissions.includes('system.role.manage') || me.data?.roles.includes('system_admin')
 
-  const { data, isError, refetch } = useQuery({ queryKey: queryKeys.dashboard, queryFn: adminDashboard })
+  const { data, isError, refetch } = useQuery({ queryKey: queryKeys.dashboard, queryFn: adminDashboard, enabled: Boolean(canManagePortal) })
 
   const stats = [
     { title: '应用总数', value: data?.applicationCount ?? '-', icon: <AppstoreOutlined />, color: '#1677FF' },
@@ -33,9 +38,11 @@ export default function AdminDashboard() {
     <div>
       <AdminPageHead title="门户概览" />
 
-      {isError ? (
+      {!canManagePortal ? <Alert type="info" showIcon message="当前账号为身份管理角色" description="你可以管理身份接入、验证和身份控制台入口；应用目录与发布由应用管理员负责。" action={<Button onClick={() => navigate('/admin/identity')}>进入身份接入</Button>} style={{ marginBottom: 16 }} /> : null}
+
+      {canManagePortal && isError ? (
         <QueryErrorState refetch={refetch} />
-      ) : (
+      ) : canManagePortal ? (
         <Row gutter={[16, 16]}>
           {stats.map((s) => (
             <Col xs={12} md={8} lg={6} key={s.title}>
@@ -54,7 +61,7 @@ export default function AdminDashboard() {
             </Col>
           ))}
         </Row>
-      )}
+      ) : null}
     </div>
   )
 }

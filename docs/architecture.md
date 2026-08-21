@@ -6,6 +6,9 @@
 
 > **Casdoor manages identity. Velora manages the workspace.**
 
+产品职责矩阵、管理员入口、应用接入向导、权限模型、迁移与回滚方案见
+[Velora 与 Casdoor 产品边界及应用接入实施方案](velora-casdoor-product-boundary-and-implementation-plan.md)。
+
 - Casdoor：唯一身份 / IAM / SSO（外部 OIDC Provider）。
 - Velora：OIDC Client/Relying Party、门户 / 工作台 / 应用枢纽。
 - Velora 不签发 OIDC Token，不注册 `/oidc/*`，也不接收 Casdoor 密码。

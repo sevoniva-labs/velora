@@ -22,7 +22,7 @@ server {
     add_header Permissions-Policy "camera=(), microphone=(), geolocation=()" always;
     # 管理员可配置 http:// 图标，img-src 显式放行 http/https
     # Turnstile 人机验证（登录页）：script/frame/style/font 来自 challenges.cloudflare.com
-    add_header Content-Security-Policy "default-src 'self'; script-src 'self' https://challenges.cloudflare.com; style-src 'self' 'unsafe-inline' https://challenges.cloudflare.com; img-src 'self' data: http: https:; font-src 'self' data: https://challenges.cloudflare.com; connect-src 'self'; frame-src https://challenges.cloudflare.com; frame-ancestors 'none'; base-uri 'self'; form-action 'self'" always;
+    add_header Content-Security-Policy "default-src 'self'; script-src 'self' https://challenges.cloudflare.com; style-src 'self' 'unsafe-inline' https://challenges.cloudflare.com; img-src 'self' data: http: https:; font-src 'self' data: https://challenges.cloudflare.com; connect-src 'self'; frame-src https://challenges.cloudflare.com; frame-ancestors 'none'; base-uri 'self'; form-action 'self' ${VELORA_FORM_ACTION_SOURCES}" always;
 
     # SPA 路由回退（index.html 与非指纹化公共文件：每次加载协商缓存，保证更新即时生效）
     location / {

@@ -245,6 +245,7 @@ services:
       VELORA_CASDOOR_PROXY_PASS: http://casdoor:8000/
       VELORA_DNS_RESOLVER: "${VELORA_DNS_RESOLVER:-127.0.0.11}"
       VELORA_NGINX_RESOLVE_MODE: "${VELORA_NGINX_RESOLVE_MODE:-dynamic}"
+      VELORA_FORM_ACTION_SOURCES: "https://auth.sevoniva.com"
       VELORA_TLS_ENABLED: "false"
     networks:
       - app

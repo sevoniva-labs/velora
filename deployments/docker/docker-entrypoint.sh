@@ -12,6 +12,7 @@ CONF_DIR=/etc/nginx/conf.d
 : "${VELORA_CASDOOR_PROXY_PASS:=http://casdoor:8000/}"
 : "${VELORA_DNS_RESOLVER:=127.0.0.11}"
 : "${VELORA_NGINX_RESOLVE_MODE:=dynamic}"
+: "${VELORA_FORM_ACTION_SOURCES:=}"
 
 # nerdctl/Lima uses /etc/hosts for service discovery but does not provide
 # Docker's 127.0.0.11 resolver. In static mode resolve both service names from
@@ -32,7 +33,7 @@ if [ "$VELORA_NGINX_RESOLVE_MODE" = "static" ]; then
 fi
 
 export VELORA_API_PROXY_PASS VELORA_DNS_RESOLVER
-export VELORA_CASDOOR_PROXY_PASS
+export VELORA_CASDOOR_PROXY_PASS VELORA_FORM_ACTION_SOURCES
 defined_envs=$(printf '${%s} ' $(env | cut -d= -f1))
 
 render() {

@@ -80,7 +80,7 @@ aliases = (("clientId", "client_id"), ("redirectUri", "redirect_uri"), ("state",
 for names in aliases:
     values = next((query.get(name, []) for name in names if query.get(name)), [])
     if not values:
-        raise SystemExit(f"missing {key}")
+        raise SystemExit(f"missing {'/'.join(names)}")
     print(values[0], end="\t")
 PY
 )" || fail "OIDC 授权地址缺少必要参数"

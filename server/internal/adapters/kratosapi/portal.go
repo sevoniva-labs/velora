@@ -426,6 +426,9 @@ func (s *PortalService) GetIdentityConsoleLink(ctx context.Context, _ *forgev1.G
 }
 
 func (s *PortalService) GetApplicationOnboarding(ctx context.Context, req *forgev1.GetApplicationOnboardingRequest) (*forgev1.GetApplicationOnboardingResponse, error) {
+	if err := s.identityOnboardingRequired(); err != nil {
+		return nil, err
+	}
 	principal, err := requiredPrincipal(ctx)
 	if err != nil {
 		return nil, err
@@ -439,6 +442,9 @@ func (s *PortalService) GetApplicationOnboarding(ctx context.Context, req *forge
 }
 
 func (s *PortalService) UpsertApplicationIdentityBinding(ctx context.Context, req *forgev1.UpsertApplicationIdentityBindingRequest) (*forgev1.UpsertApplicationIdentityBindingResponse, error) {
+	if err := s.identityOnboardingRequired(); err != nil {
+		return nil, err
+	}
 	principal, err := requiredPrincipal(ctx)
 	if err != nil {
 		return nil, err
@@ -458,6 +464,9 @@ func (s *PortalService) UpsertApplicationIdentityBinding(ctx context.Context, re
 }
 
 func (s *PortalService) VerifyApplicationIdentity(ctx context.Context, req *forgev1.VerifyApplicationIdentityRequest) (*forgev1.VerifyApplicationIdentityResponse, error) {
+	if err := s.identityOnboardingRequired(); err != nil {
+		return nil, err
+	}
 	principal, err := requiredPrincipal(ctx)
 	if err != nil {
 		return nil, err
@@ -479,6 +488,9 @@ func (s *PortalService) VerifyApplicationIdentity(ctx context.Context, req *forg
 }
 
 func (s *PortalService) SubmitApplicationPublish(ctx context.Context, req *forgev1.SubmitApplicationPublishRequest) (*forgev1.SubmitApplicationPublishResponse, error) {
+	if err := s.identityOnboardingRequired(); err != nil {
+		return nil, err
+	}
 	principal, err := requiredPrincipal(ctx)
 	if err != nil {
 		return nil, err
@@ -497,6 +509,9 @@ func (s *PortalService) SubmitApplicationPublish(ctx context.Context, req *forge
 }
 
 func (s *PortalService) PublishApplication(ctx context.Context, req *forgev1.PublishApplicationRequest) (*forgev1.PublishApplicationResponse, error) {
+	if err := s.identityOnboardingRequired(); err != nil {
+		return nil, err
+	}
 	principal, err := requiredPrincipal(ctx)
 	if err != nil {
 		return nil, err
@@ -515,6 +530,9 @@ func (s *PortalService) PublishApplication(ctx context.Context, req *forgev1.Pub
 }
 
 func (s *PortalService) DisableApplication(ctx context.Context, req *forgev1.DisableApplicationRequest) (*forgev1.DisableApplicationResponse, error) {
+	if err := s.identityOnboardingRequired(); err != nil {
+		return nil, err
+	}
 	principal, err := requiredPrincipal(ctx)
 	if err != nil {
 		return nil, err
@@ -530,6 +548,13 @@ func (s *PortalService) DisableApplication(ctx context.Context, req *forgev1.Dis
 		return nil, serviceError(err)
 	}
 	return &forgev1.DisableApplicationResponse{Application: portalApplicationProto(app)}, nil
+}
+
+func (s *PortalService) identityOnboardingRequired() error {
+	if !s.identityOnboardingEnabled {
+		return kratoserrors.ServiceUnavailable("APPLICATION_ONBOARDING_DISABLED", "application onboarding is disabled by configuration")
+	}
+	return nil
 }
 
 func (s *PortalService) createCategory(ctx context.Context, input repository.CategoryInput) (*forgev1.CreatePortalCategoryResponse, error) {
@@ -599,7 +624,8 @@ func verificationsProto(items []portaldomain.Verification) []*forgev1.PortalAppl
 
 func safeIdentityAdminURL(raw string, allowedHosts []string) bool {
 	u, err := url.Parse(strings.TrimSpace(raw))
-	if err != nil || !strings.EqualFold(u.Scheme, "https") || u.Hostname() == "" || u.User != nil || u.RawQuery != "" || u.Fragment != "" {
+	localHTTP := strings.EqualFold(u.Scheme, "http") && (strings.EqualFold(u.Hostname(), "localhost") || u.Hostname() == "127.0.0.1" || u.Hostname() == "::1")
+	if err != nil || (!strings.EqualFold(u.Scheme, "https") && !localHTTP) || u.Hostname() == "" || u.User != nil || u.RawQuery != "" || u.Fragment != "" {
 		return false
 	}
 	for _, host := range allowedHosts {

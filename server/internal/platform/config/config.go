@@ -230,6 +230,7 @@ type Security struct {
 	ApplicationOnboardingV2             bool          `yaml:"application_onboarding_v2"`
 	CasdoorAdminEntryEnabled            bool          `yaml:"casdoor_admin_entry_enabled"`
 	CasdoorApplicationAutomationEnabled bool          `yaml:"casdoor_application_automation_enabled"`
+	CasdoorAutomationToken              string        `yaml:"-"`
 	// CasdoorPasswordLoginEnabled keeps the browser login form in Velora while
 	// delegating credential verification to Casdoor's application login API.
 	// It is intentionally opt-in because this is a password-grant compatibility
@@ -444,6 +445,7 @@ func ApplyEnvironment(cfg *Config) {
 	cfg.RemoteConfig.Password = secret("VELORA_NACOS_PASSWORD")
 	cfg.Security.CryptoKey = secret("VELORA_CRYPTO_KEY")
 	cfg.Security.OIDCClientSecret = secret("VELORA_OIDC_CLIENT_SECRET")
+	cfg.Security.CasdoorAutomationToken = secret("VELORA_CASDOOR_AUTOMATION_TOKEN")
 	cfg.Security.TurnstileSecret = secret("VELORA_TURNSTILE_SECRET")
 
 	overrideString(&cfg.App.Name, "VELORA_APP_NAME")

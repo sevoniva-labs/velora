@@ -55,7 +55,7 @@ export default function IdentityIntegrations() {
   const openConsole = async () => {
     try {
       const result = await getIdentityConsoleLink()
-      if (!/^https:\/\//i.test(result.url)) throw new Error('身份管理控制台地址未配置')
+      if (!/^https:\/\//i.test(result.url) && !/^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?(?:\/|$)/i.test(result.url)) throw new Error('身份管理控制台地址未配置')
       window.open(result.url, '_blank', 'noopener,noreferrer')
     } catch (err) { message.error(err instanceof Error ? err.message : '无法打开身份管理控制台') }
   }

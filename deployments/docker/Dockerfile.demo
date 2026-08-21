@@ -1,0 +1,22 @@
+ARG DOCKER_REGISTRY=docker.m.daocloud.io
+
+FROM ${DOCKER_REGISTRY}/library/golang:1.26.6-alpine AS builder
+ARG GOPROXY=https://goproxy.cn
+WORKDIR /src
+ENV GOPROXY=${GOPROXY} CGO_ENABLED=0 GOOS=linux GOARCH=amd64
+COPY server/go.mod server/go.sum ./server/
+WORKDIR /src/server
+RUN go mod download
+COPY server/ ./
+RUN go build -trimpath -ldflags "-s -w" -o /out/velora-oidc-demo ./cmd/oidc-demo
+
+FROM ${DOCKER_REGISTRY}/library/alpine:3.22
+RUN sed -i 's#https\?://dl-cdn.alpinelinux.org/alpine#https://mirrors.aliyun.com/alpine#g' /etc/apk/repositories \
+    && apk add --no-cache ca-certificates \
+    && addgroup -S velora && adduser -S -G velora -H -s /sbin/nologin velora
+COPY --from=builder /out/velora-oidc-demo /usr/local/bin/velora-oidc-demo
+USER velora
+WORKDIR /app
+EXPOSE 8090
+HEALTHCHECK --interval=15s --timeout=5s --retries=5 CMD wget -qO- http://127.0.0.1:8090/healthz >/dev/null 2>&1 || exit 1
+ENTRYPOINT ["/usr/local/bin/velora-oidc-demo"]

@@ -41,6 +41,7 @@ x-app-env: &app-env
   VELORA_AUTH_MODE: oidc
   VELORA_OIDC_NAME: casdoor
   VELORA_OIDC_ISSUER: "${VELORA_OIDC_ISSUER:?VELORA_OIDC_ISSUER is required}"
+  VELORA_OIDC_INTERNAL_URL: "${VELORA_OIDC_INTERNAL_URL:?VELORA_OIDC_INTERNAL_URL is required}"
   VELORA_OIDC_CLIENT_ID: "${VELORA_OIDC_CLIENT_ID:?VELORA_OIDC_CLIENT_ID is required}"
   VELORA_OIDC_CLIENT_SECRET_FILE: /run/secrets/casdoor_oidc_client_secret
   VELORA_OIDC_REDIRECT_URL: "${VELORA_OIDC_REDIRECT_URL:?VELORA_OIDC_REDIRECT_URL is required}"
@@ -51,6 +52,13 @@ x-app-env: &app-env
   VELORA_CASDOOR_ADMIN_ENTRY_ENABLED: "${VELORA_CASDOOR_ADMIN_ENTRY_ENABLED:-true}"
   VELORA_CASDOOR_APPLICATION_AUTOMATION_ENABLED: "${VELORA_CASDOOR_APPLICATION_AUTOMATION_ENABLED:-false}"
   VELORA_CASDOOR_AUTOMATION_TOKEN_FILE: /run/secrets/casdoor_automation_token
+  VELORA_CASDOOR_PASSWORD_LOGIN_ENABLED: "${VELORA_CASDOOR_PASSWORD_LOGIN_ENABLED:-true}"
+  VELORA_CASDOOR_APPLICATION: "${VELORA_CASDOOR_APPLICATION:?VELORA_CASDOOR_APPLICATION is required}"
+  VELORA_CASDOOR_ORGANIZATION: "${VELORA_CASDOOR_ORGANIZATION:?VELORA_CASDOOR_ORGANIZATION is required}"
+  VELORA_TURNSTILE_SITE_KEY: "${VELORA_TURNSTILE_SITE_KEY:?VELORA_TURNSTILE_SITE_KEY is required}"
+  VELORA_TURNSTILE_SECRET_FILE: /run/secrets/turnstile_secret
+  VELORA_TURNSTILE_HOSTNAMES: "${VELORA_TURNSTILE_HOSTNAMES:?VELORA_TURNSTILE_HOSTNAMES is required}"
+  VELORA_TURNSTILE_ACTION: "${VELORA_TURNSTILE_ACTION:-login}"
   VELORA_OIDC_PROVIDER_ENABLED: "false"
   VELORA_BOOTSTRAP_ADMIN: "${VELORA_BOOTSTRAP_ADMIN:?VELORA_BOOTSTRAP_ADMIN is required}"
   VELORA_BOOTSTRAP_PASSWORD_FILE: /run/secrets/velora_bootstrap_password
@@ -58,7 +66,7 @@ x-app-env: &app-env
   VELORA_TRUSTED_PROXIES: "${TRUSTED_PROXIES:?TRUSTED_PROXIES is required}"
   VELORA_SECURE_COOKIES: "true"
   VELORA_SAME_SITE: lax
-  VELORA_COMPLIANCE_PROFILE: financial
+  VELORA_COMPLIANCE_PROFILE: "${VELORA_COMPLIANCE_PROFILE:-standard}"
   VELORA_LOG_LEVEL: "${LOG_LEVEL:-info}"
   VELORA_WEB_DIR: /app/web
 
@@ -130,7 +138,7 @@ services:
       dbName: casdoor
       dataSourceName: "${CASDOOR_DATA_SOURCE_NAME:?CASDOOR_DATA_SOURCE_NAME is required}"
       initData: "false"
-      origin: "https://${VELORA_EXTERNAL_URL:?VELORA_EXTERNAL_URL is required}/casdoor"
+      origin: "https://${VELORA_AUTH_HOST:?VELORA_AUTH_HOST is required}"
     expose:
       - "8000"
     networks:
@@ -173,6 +181,7 @@ services:
       - velora_crypto_key
       - velora_bootstrap_password
       - casdoor_oidc_client_secret
+      - turnstile_secret
     expose:
       - "8080"
     networks:
@@ -218,16 +227,72 @@ services:
     depends_on:
       server:
         condition: service_healthy
-      casdoor:
-        condition: service_healthy
     environment:
       VELORA_API_PROXY_PASS: http://server:8080
       VELORA_CASDOOR_PROXY_PASS: http://casdoor:8000/
       VELORA_DNS_RESOLVER: "${VELORA_DNS_RESOLVER:-127.0.0.11}"
       VELORA_NGINX_RESOLVE_MODE: "${VELORA_NGINX_RESOLVE_MODE:-dynamic}"
-      VELORA_TLS_ENABLED: "true"
+      VELORA_TLS_ENABLED: "false"
+    networks:
+      - app
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1/healthz >/dev/null 2>&1 || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+
+  oidc-demo:
+    container_name: velora-prod-oidc-demo
+    build:
+      context: ../../..
+      dockerfile: deployments/docker/Dockerfile.demo
+      args:
+        DOCKER_REGISTRY: "${DOCKER_REGISTRY:-docker.m.daocloud.io}"
+        GOPROXY: "${GOPROXY:-https://goproxy.cn}"
+    restart: unless-stopped
+    logging: *default-logging
+    depends_on:
+      casdoor:
+        condition: service_healthy
+    environment:
+      DEMO_OIDC_ISSUER: "${DEMO_OIDC_ISSUER:?DEMO_OIDC_ISSUER is required}"
+      DEMO_OIDC_CLIENT_ID: "${DEMO_OIDC_CLIENT_ID:?DEMO_OIDC_CLIENT_ID is required}"
+      DEMO_OIDC_CLIENT_SECRET_FILE: /run/secrets/demo_oidc_client_secret
+      DEMO_OIDC_REDIRECT_URL: "${DEMO_OIDC_REDIRECT_URL:?DEMO_OIDC_REDIRECT_URL is required}"
+      DEMO_PUBLIC_URL: "${DEMO_PUBLIC_URL:?DEMO_PUBLIC_URL is required}"
+      DEMO_POST_LOGOUT_REDIRECT_URL: "${DEMO_POST_LOGOUT_REDIRECT_URL:?DEMO_POST_LOGOUT_REDIRECT_URL is required}"
+    secrets:
+      - demo_oidc_client_secret
+    expose:
+      - "8090"
+    networks:
+      - app
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8090/healthz >/dev/null 2>&1 || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+
+  edge:
+    container_name: velora-prod-edge
+    build:
+      context: ../../..
+      dockerfile: deployments/docker/Dockerfile.edge
+      args:
+        DOCKER_REGISTRY: "${DOCKER_REGISTRY:-docker.m.daocloud.io}"
+    restart: unless-stopped
+    logging: *default-logging
+    depends_on:
+      web:
+        condition: service_healthy
+      server:
+        condition: service_healthy
+      casdoor:
+        condition: service_healthy
+      oidc-demo:
+        condition: service_healthy
     volumes:
-      - ./certs:/etc/nginx/certs:ro
+      - "${VELORA_CERTS_DIR:?VELORA_CERTS_DIR is required}:/etc/nginx/certs:ro"
     ports:
       - "80:80"
       - "443:443"
@@ -235,53 +300,14 @@ services:
       - edge
       - app
     healthcheck:
-      test: ["CMD-SHELL", "wget --no-check-certificate -qO- https://127.0.0.1/healthz >/dev/null 2>&1 || exit 1"]
+      test: ["CMD-SHELL", "nginx -t >/dev/null 2>&1"]
       interval: 15s
       timeout: 5s
       retries: 5
 
-  prometheus:
-    image: "${PROMETHEUS_IMAGE:?PROMETHEUS_IMAGE must be an approved internal image digest}"
-    container_name: velora-prod-prometheus
-    restart: unless-stopped
-    logging: *default-logging
-    profiles: [monitoring]
-    volumes:
-      - ../../monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
-      - ../../monitoring/alerts.yml:/etc/prometheus/alerts.yml:ro
-      - velora-prod-promdata:/prometheus
-    command:
-      - --config.file=/etc/prometheus/prometheus.yml
-      - --storage.tsdb.retention.time=30d
-    expose:
-      - "9090"
-    networks:
-      - app
-
-  grafana:
-    image: "${GRAFANA_IMAGE:?GRAFANA_IMAGE must be an approved internal image digest}"
-    container_name: velora-prod-grafana
-    restart: unless-stopped
-    logging: *default-logging
-    profiles: [monitoring]
-    depends_on:
-      - prometheus
-    environment:
-      GF_SECURITY_ADMIN_USER: "${GRAFANA_ADMIN_USER:?GRAFANA_ADMIN_USER is required when monitoring is enabled}"
-      GF_SECURITY_ADMIN_PASSWORD: "${GRAFANA_ADMIN_PASSWORD:?GRAFANA_ADMIN_PASSWORD is required when monitoring is enabled}"
-      GF_USERS_ALLOW_SIGN_UP: "false"
-    volumes:
-      - velora-prod-grafanadata:/var/lib/grafana
-    expose:
-      - "3000"
-    networks:
-      - app
-
 volumes:
   velora-prod-pgdata:
   velora-prod-redisdata:
-  velora-prod-promdata:
-  velora-prod-grafanadata:
 
 secrets:
   postgres_superuser_password:
@@ -312,6 +338,10 @@ secrets:
     file: "${CASDOOR_OIDC_CLIENT_SECRET_FILE:?CASDOOR_OIDC_CLIENT_SECRET_FILE is required}"
   casdoor_automation_token:
     file: "${CASDOOR_AUTOMATION_TOKEN_FILE:-/dev/null}"
+  turnstile_secret:
+    file: "${VELORA_TURNSTILE_SECRET_FILE:?VELORA_TURNSTILE_SECRET_FILE is required}"
+  demo_oidc_client_secret:
+    file: "${DEMO_OIDC_CLIENT_SECRET_FILE:?DEMO_OIDC_CLIENT_SECRET_FILE is required}"
 
 networks:
   edge:

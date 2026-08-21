@@ -1,0 +1,9 @@
+ARG DOCKER_REGISTRY=docker.m.daocloud.io
+FROM ${DOCKER_REGISTRY}/library/nginx:1.27-alpine
+COPY deployments/docker/edge.conf /etc/nginx/conf.d/default.conf
+COPY deployments/docker/edge-tls.conf /etc/nginx/snippets/velora-tls.conf
+COPY deployments/docker/edge-security.conf /etc/nginx/snippets/velora-security.conf
+COPY deployments/docker/edge-proxy.conf /etc/nginx/snippets/velora-proxy.conf
+RUN rm -f /etc/nginx/conf.d/*.conf.default
+EXPOSE 80 443
+HEALTHCHECK --interval=15s --timeout=5s --retries=5 CMD wget --no-check-certificate -qO- https://127.0.0.1/healthz >/dev/null 2>&1 || exit 1

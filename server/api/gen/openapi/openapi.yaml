@@ -3213,6 +3213,12 @@ components:
                     type: string
                 adminUrlHost:
                     type: string
+                issuer:
+                    type: string
+                connectionStatus:
+                    type: string
+                pendingApplicationCount:
+                    type: string
         forge.v1.GetMFAStatusResponse:
             type: object
             properties:

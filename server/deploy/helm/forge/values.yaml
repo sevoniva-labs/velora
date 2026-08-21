@@ -230,6 +230,11 @@ config:
   oidcRedirectURL: ""
   oidcPostLogoutRedirectURL: ""
   casdoorAccountURL: ""
+  casdoorAdminURL: ""
+  casdoorAllowedHosts: ""
+  applicationOnboardingV2: "false"
+  casdoorAdminEntryEnabled: "false"
+  casdoorApplicationAutomationEnabled: "false"
   oidcProviderEnabled: "false"
   passwordMinLength: "14"
   passwordRequireUpper: "true"
@@ -297,6 +302,7 @@ secretEnv:
   bootstrapAdmin: ""
   bootstrapPassword: ""
   oidcClientSecret: ""
+  casdoorAutomationToken: ""
 
 # Additional environment variables, e.g. Downward API or CSI/ExternalSecret references.
 extraEnv: []

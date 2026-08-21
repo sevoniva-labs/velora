@@ -82,9 +82,10 @@ func (b IdentityBindingInput) Validate() error {
 	if strings.ToLower(strings.TrimSpace(b.ProviderKey)) != IdentityProviderCasdoor {
 		return ErrInvalidIdentityBinding
 	}
-	switch strings.ToUpper(strings.TrimSpace(b.Protocol)) {
-	case ProtocolOIDC, ProtocolSAML, ProtocolCAS, ProtocolForwardAuth:
-	default:
+	// Only the OIDC path is part of the verified Phase 0-4 contract. Legacy
+	// SAML/CAS/ForwardAuth records remain readable for migration, but cannot be
+	// newly saved or published until their own verified integration is designed.
+	if strings.ToUpper(strings.TrimSpace(b.Protocol)) != ProtocolOIDC {
 		return ErrInvalidIdentityBinding
 	}
 	if strings.TrimSpace(b.ProviderApplicationRef) == "" || len(b.ProviderApplicationRef) > 255 {

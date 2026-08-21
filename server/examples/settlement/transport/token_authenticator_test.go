@@ -4,11 +4,12 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
+	"strings"
 	"testing"
 )
 
 func TestTokenAuthenticatorAcceptsOnlyStrongMatchingBearerToken(t *testing.T) {
-	token := "0123456789abcdef0123456789abcdef"
+	token := strings.Repeat("fixture", 5)
 	digest := sha256.Sum256([]byte(token))
 	authenticator, err := NewTokenAuthenticator(hex.EncodeToString(digest[:]), "settlement-client", "org-1")
 	if err != nil {

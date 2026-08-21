@@ -169,6 +169,9 @@ func (s *Service) GetApplicationOnboarding(ctx context.Context, principal domain
 }
 
 func (s *Service) UpsertApplicationIdentityBinding(ctx context.Context, principal domain.Principal, id string, input portaldomain.IdentityBindingInput, expectedVersion int64) (portaldomain.IdentityBinding, portaldomain.Application, error) {
+	if err := input.Validate(); err != nil {
+		return portaldomain.IdentityBinding{}, portaldomain.Application{}, err
+	}
 	app, err := s.repo.GetApplication(ctx, principal.OrganizationID, principal.UserID, strings.TrimSpace(id), true)
 	if errors.Is(err, sql.ErrNoRows) {
 		return portaldomain.IdentityBinding{}, portaldomain.Application{}, ErrNotFound

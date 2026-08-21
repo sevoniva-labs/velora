@@ -291,7 +291,15 @@ message PortalApplicationVerification {
   string request_id = 10;
 }
 message GetIdentityOverviewRequest {}
-message GetIdentityOverviewResponse { bool onboarding_enabled = 1; bool admin_entry_enabled = 2; string provider_key = 3; string admin_url_host = 4; }
+message GetIdentityOverviewResponse {
+  bool onboarding_enabled = 1;
+  bool admin_entry_enabled = 2;
+  string provider_key = 3;
+  string admin_url_host = 4;
+  string issuer = 5;
+  string connection_status = 6;
+  int64 pending_application_count = 7;
+}
 message GetIdentityConsoleLinkRequest {}
 message GetIdentityConsoleLinkResponse { string url = 1; string provider_key = 2; }
 message GetApplicationOnboardingRequest { string application_id = 1; }

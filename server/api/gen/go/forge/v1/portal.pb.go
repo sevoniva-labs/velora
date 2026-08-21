@@ -3013,13 +3013,16 @@ func (*GetIdentityOverviewRequest) Descriptor() ([]byte, []int) {
 }
 
 type GetIdentityOverviewResponse struct {
-	state             protoimpl.MessageState `protogen:"open.v1"`
-	OnboardingEnabled bool                   `protobuf:"varint,1,opt,name=onboarding_enabled,json=onboardingEnabled,proto3" json:"onboarding_enabled,omitempty"`
-	AdminEntryEnabled bool                   `protobuf:"varint,2,opt,name=admin_entry_enabled,json=adminEntryEnabled,proto3" json:"admin_entry_enabled,omitempty"`
-	ProviderKey       string                 `protobuf:"bytes,3,opt,name=provider_key,json=providerKey,proto3" json:"provider_key,omitempty"`
-	AdminUrlHost      string                 `protobuf:"bytes,4,opt,name=admin_url_host,json=adminUrlHost,proto3" json:"admin_url_host,omitempty"`
-	unknownFields     protoimpl.UnknownFields
-	sizeCache         protoimpl.SizeCache
+	state                   protoimpl.MessageState `protogen:"open.v1"`
+	OnboardingEnabled       bool                   `protobuf:"varint,1,opt,name=onboarding_enabled,json=onboardingEnabled,proto3" json:"onboarding_enabled,omitempty"`
+	AdminEntryEnabled       bool                   `protobuf:"varint,2,opt,name=admin_entry_enabled,json=adminEntryEnabled,proto3" json:"admin_entry_enabled,omitempty"`
+	ProviderKey             string                 `protobuf:"bytes,3,opt,name=provider_key,json=providerKey,proto3" json:"provider_key,omitempty"`
+	AdminUrlHost            string                 `protobuf:"bytes,4,opt,name=admin_url_host,json=adminUrlHost,proto3" json:"admin_url_host,omitempty"`
+	Issuer                  string                 `protobuf:"bytes,5,opt,name=issuer,proto3" json:"issuer,omitempty"`
+	ConnectionStatus        string                 `protobuf:"bytes,6,opt,name=connection_status,json=connectionStatus,proto3" json:"connection_status,omitempty"`
+	PendingApplicationCount int64                  `protobuf:"varint,7,opt,name=pending_application_count,json=pendingApplicationCount,proto3" json:"pending_application_count,omitempty"`
+	unknownFields           protoimpl.UnknownFields
+	sizeCache               protoimpl.SizeCache
 }
 
 func (x *GetIdentityOverviewResponse) Reset() {
@@ -3078,6 +3081,27 @@ func (x *GetIdentityOverviewResponse) GetAdminUrlHost() string {
 		return x.AdminUrlHost
 	}
 	return ""
+}
+
+func (x *GetIdentityOverviewResponse) GetIssuer() string {
+	if x != nil {
+		return x.Issuer
+	}
+	return ""
+}
+
+func (x *GetIdentityOverviewResponse) GetConnectionStatus() string {
+	if x != nil {
+		return x.ConnectionStatus
+	}
+	return ""
+}
+
+func (x *GetIdentityOverviewResponse) GetPendingApplicationCount() int64 {
+	if x != nil {
+		return x.PendingApplicationCount
+	}
+	return 0
 }
 
 type GetIdentityConsoleLinkRequest struct {
@@ -4104,12 +4128,15 @@ const file_forge_v1_portal_proto_rawDesc = "" +
 	"\n" +
 	"request_id\x18\n" +
 	" \x01(\tR\trequestId\"\x1c\n" +
-	"\x1aGetIdentityOverviewRequest\"\xc5\x01\n" +
+	"\x1aGetIdentityOverviewRequest\"\xc6\x02\n" +
 	"\x1bGetIdentityOverviewResponse\x12-\n" +
 	"\x12onboarding_enabled\x18\x01 \x01(\bR\x11onboardingEnabled\x12.\n" +
 	"\x13admin_entry_enabled\x18\x02 \x01(\bR\x11adminEntryEnabled\x12!\n" +
 	"\fprovider_key\x18\x03 \x01(\tR\vproviderKey\x12$\n" +
-	"\x0eadmin_url_host\x18\x04 \x01(\tR\fadminUrlHost\"\x1f\n" +
+	"\x0eadmin_url_host\x18\x04 \x01(\tR\fadminUrlHost\x12\x16\n" +
+	"\x06issuer\x18\x05 \x01(\tR\x06issuer\x12+\n" +
+	"\x11connection_status\x18\x06 \x01(\tR\x10connectionStatus\x12:\n" +
+	"\x19pending_application_count\x18\a \x01(\x03R\x17pendingApplicationCount\"\x1f\n" +
 	"\x1dGetIdentityConsoleLinkRequest\"U\n" +
 	"\x1eGetIdentityConsoleLinkResponse\x12\x10\n" +
 	"\x03url\x18\x01 \x01(\tR\x03url\x12!\n" +

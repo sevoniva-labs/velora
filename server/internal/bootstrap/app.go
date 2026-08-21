@@ -250,7 +250,7 @@ func New(ctx context.Context, opts Options) (*App, error) {
 	systemService := kratosapi.NewSystemService(cfg, opts.Version, checks, providers)
 	platformService := kratosapi.NewPlatformService(identitySvc, approvalSvc, configChangeSvc, dataPolicySvc, auditWriter, db)
 	portalService := kratosapi.NewPortalService(portalSvc, auditWriter, db)
-	portalService.ConfigureIdentityBoundary(cfg.Security.CasdoorAdminURL, cfg.Security.CasdoorAllowedHosts, cfg.Security.ApplicationOnboardingV2, cfg.Security.CasdoorAdminEntryEnabled)
+	portalService.ConfigureIdentityBoundary(cfg.Security.CasdoorAdminURL, cfg.Security.OIDCIssuer, cfg.Security.CasdoorAllowedHosts, cfg.Security.ApplicationOnboardingV2, cfg.Security.CasdoorAdminEntryEnabled)
 	casdoorAutomation, err := casdooradmin.New(casdooradmin.Config{BaseURL: cfg.Security.CasdoorAdminURL, Token: cfg.Security.CasdoorAutomationToken, Enabled: cfg.Security.CasdoorApplicationAutomationEnabled})
 	if err != nil {
 		return nil, fmt.Errorf("Casdoor application automation: %w", err)

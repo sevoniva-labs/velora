@@ -24,6 +24,7 @@ type PortalService struct {
 	audit                     *audit.Writer
 	db                        *database.DB
 	identityAdminURL          string
+	identityIssuer            string
 	identityAllowedHosts      []string
 	identityOnboardingEnabled bool
 	identityAdminEntryEnabled bool
@@ -34,8 +35,9 @@ func NewPortalService(portal *appportal.Service, auditWriter *audit.Writer, db *
 	return &PortalService{portal: portal, audit: auditWriter, db: db}
 }
 
-func (s *PortalService) ConfigureIdentityBoundary(adminURL string, allowedHosts []string, onboardingEnabled, adminEntryEnabled bool) {
+func (s *PortalService) ConfigureIdentityBoundary(adminURL, issuer string, allowedHosts []string, onboardingEnabled, adminEntryEnabled bool) {
 	s.identityAdminURL = strings.TrimSpace(adminURL)
+	s.identityIssuer = strings.TrimRight(strings.TrimSpace(issuer), "/")
 	s.identityAllowedHosts = append([]string(nil), allowedHosts...)
 	s.identityOnboardingEnabled = onboardingEnabled
 	s.identityAdminEntryEnabled = adminEntryEnabled
@@ -406,14 +408,30 @@ func (s *PortalService) ReplacePortalApplicationPolicies(ctx context.Context, re
 }
 
 func (s *PortalService) GetIdentityOverview(ctx context.Context, _ *forgev1.GetIdentityOverviewRequest) (*forgev1.GetIdentityOverviewResponse, error) {
-	if _, err := requiredPrincipal(ctx); err != nil {
+	principal, err := requiredPrincipal(ctx)
+	if err != nil {
 		return nil, err
 	}
 	host := ""
 	if parsed, err := url.Parse(s.identityAdminURL); err == nil {
 		host = parsed.Hostname()
 	}
-	return &forgev1.GetIdentityOverviewResponse{OnboardingEnabled: s.identityOnboardingEnabled, AdminEntryEnabled: s.identityAdminEntryEnabled, ProviderKey: portaldomain.IdentityProviderCasdoor, AdminUrlHost: host}, nil
+	pending := int64(0)
+	items, listErr := s.portal.AdminListApplications(ctx, principal, 1000)
+	if listErr != nil {
+		return nil, internalError(listErr)
+	}
+	for _, item := range items {
+		switch item.LifecycleStatus {
+		case portaldomain.LifecycleDraft, portaldomain.LifecycleIdentityPending, portaldomain.LifecycleVerificationPending, portaldomain.LifecycleVerificationFailed, portaldomain.LifecycleReady:
+			pending++
+		}
+	}
+	connectionStatus := "UNCONFIGURED"
+	if s.identityIssuer != "" {
+		connectionStatus = "CONFIGURED"
+	}
+	return &forgev1.GetIdentityOverviewResponse{OnboardingEnabled: s.identityOnboardingEnabled, AdminEntryEnabled: s.identityAdminEntryEnabled, ProviderKey: portaldomain.IdentityProviderCasdoor, AdminUrlHost: host, Issuer: s.identityIssuer, ConnectionStatus: connectionStatus, PendingApplicationCount: pending}, nil
 }
 
 func (s *PortalService) GetIdentityConsoleLink(ctx context.Context, _ *forgev1.GetIdentityConsoleLinkRequest) (*forgev1.GetIdentityConsoleLinkResponse, error) {
@@ -455,7 +473,7 @@ func (s *PortalService) UpsertApplicationIdentityBinding(ctx context.Context, re
 	if err != nil {
 		return nil, err
 	}
-	if s.casdoorAutomation != nil && s.casdoorAutomation.Enabled() {
+	if s.casdoorAutomation != nil && s.casdoorAutomation.Enabled() && strings.EqualFold(req.GetProviderKey(), portaldomain.IdentityProviderCasdoor) && strings.EqualFold(req.GetProtocol(), portaldomain.ProtocolOIDC) {
 		if _, _, automationErr := s.casdoorAutomation.UpsertApplication(ctx, casdooradmin.UpsertInput{Name: req.GetProviderApplicationRef(), Organization: principal.OrganizationID, DisplayName: req.GetProviderApplicationRef(), ClientID: req.GetPublicClientId(), RedirectURIs: req.GetRedirectUris(), GrantTypes: []string{"authorization_code"}, ApprovalID: req.GetApprovalId()}); automationErr != nil {
 			return nil, serviceError(automationErr)
 		}

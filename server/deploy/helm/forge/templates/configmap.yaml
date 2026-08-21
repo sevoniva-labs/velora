@@ -113,6 +113,11 @@ data:
   VELORA_OIDC_REDIRECT_URL: {{ .Values.config.oidcRedirectURL | quote }}
   VELORA_OIDC_POST_LOGOUT_REDIRECT_URL: {{ .Values.config.oidcPostLogoutRedirectURL | quote }}
   VELORA_CASDOOR_ACCOUNT_URL: {{ .Values.config.casdoorAccountURL | quote }}
+  VELORA_CASDOOR_ADMIN_URL: {{ .Values.config.casdoorAdminURL | quote }}
+  VELORA_CASDOOR_ALLOWED_HOSTS: {{ .Values.config.casdoorAllowedHosts | quote }}
+  VELORA_APPLICATION_ONBOARDING_V2: {{ .Values.config.applicationOnboardingV2 | quote }}
+  VELORA_CASDOOR_ADMIN_ENTRY_ENABLED: {{ .Values.config.casdoorAdminEntryEnabled | quote }}
+  VELORA_CASDOOR_APPLICATION_AUTOMATION_ENABLED: {{ .Values.config.casdoorApplicationAutomationEnabled | quote }}
   VELORA_OIDC_PROVIDER_ENABLED: {{ .Values.config.oidcProviderEnabled | quote }}
   VELORA_PASSWORD_MIN_LENGTH: {{ .Values.config.passwordMinLength | quote }}
   VELORA_PASSWORD_REQUIRE_UPPER: {{ .Values.config.passwordRequireUpper | quote }}

@@ -12,3 +12,13 @@ func TestIdentityBindingValidationAllowsOnlyLoopbackHTTPInDevelopment(t *testing
 		t.Fatal("non-loopback HTTP issuer should be rejected")
 	}
 }
+
+func TestIdentityBindingValidationRejectsUnverifiedProtocols(t *testing.T) {
+	base := IdentityBindingInput{ProviderKey: IdentityProviderCasdoor, ProviderApplicationRef: "demo", PublicClientID: "client", Issuer: "https://identity.example.test", RedirectURIs: []string{"https://app.example.test/auth/callback"}}
+	for _, protocol := range []string{ProtocolSAML, ProtocolCAS, ProtocolForwardAuth} {
+		base.Protocol = protocol
+		if err := base.Validate(); err == nil {
+			t.Fatalf("protocol %s: Validate() error = nil, want rejection", protocol)
+		}
+	}
+}

@@ -219,6 +219,7 @@ services:
       VELORA_DATABASE_DSN_FILE: /run/secrets/velora_database_dsn
     secrets:
       - velora_database_dsn
+      - postgres_tls_ca
     networks:
       - app
 

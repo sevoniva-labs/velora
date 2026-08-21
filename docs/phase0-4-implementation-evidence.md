@@ -43,6 +43,7 @@ commit: 6e18f1a/c5a829e/4240340/2be8c4f/9c7d73d/0fc5074/a2e368d/9cd86d4/0980293�
 - 最终镜像已由当前代码重建；server、web、Postgres、Casdoor 容器 healthy；迁移命令再次执行成功且版本为 24。
 - 生产 Compose 静态检查 `scripts/check-production-config.sh` PASS；Helm lint PASS；自动化 Token 仅通过 Secret 文件注入，默认 flag 仍为 false。
 - 旧数据兼容性：从仅执行 00001–00022 的临时 PostgreSQL 数据库开始，插入既有 URL/OIDC 应用后执行 00023/00024；结果为 URL `PUBLISHED/ENABLED`、OIDC `IDENTITY_PENDING/DISABLED`，绑定/验证表与 `scopes_json` 均创建成功；临时数据库已销毁。
+- 浏览器基础验收：本地登录页在桌面默认视口可读取账号/密码输入框、登录按钮和可访问名称；键盘填充账号/密码控件可正常获得焦点；移动视口 `390×844` 下页面保持 `body.scrollWidth=390`，无横向溢出且登录结构正常。后台完整菜单和发布流程仍需使用批准的 Casdoor 测试账号验收。
 
 ## 未伪造的外部验收项
 

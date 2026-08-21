@@ -804,6 +804,12 @@ func serviceError(err error) error {
 		return kratoserrors.Forbidden("PERMISSION_DENIED", "portal access denied")
 	case errors.Is(err, appportal.ErrInvalid), errors.Is(err, appportal.ErrDisabled), errors.Is(err, portaldomain.ErrInvalidApplication), errors.Is(err, portaldomain.ErrInvalidLaunchURL):
 		return kratoserrors.BadRequest("INVALID_ARGUMENT", "portal request violates policy")
+	case errors.Is(err, portaldomain.ErrInvalidIdentityBinding), errors.Is(err, portaldomain.ErrIdentityBindingRequired):
+		return kratoserrors.BadRequest("INVALID_IDENTITY_BINDING", "identity binding violates policy")
+	case errors.Is(err, portaldomain.ErrPublishNotReady):
+		return kratoserrors.BadRequest("PUBLISH_NOT_READY", "application has not passed identity verification")
+	case errors.Is(err, portaldomain.ErrOptimisticConflict):
+		return kratoserrors.Conflict("CONFIG_VERSION_CONFLICT", "configuration was changed by another operator")
 	case errors.Is(err, sql.ErrNoRows):
 		return kratoserrors.NotFound("NOT_FOUND", "resource not found")
 	case errors.Is(err, appidentity.ErrGrantCeiling), errors.Is(err, appidentity.ErrLastSystemAdmin):

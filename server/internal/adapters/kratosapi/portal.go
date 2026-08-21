@@ -19,13 +19,24 @@ import (
 
 type PortalService struct {
 	forgev1.UnimplementedPortalServiceServer
-	portal *appportal.Service
-	audit  *audit.Writer
-	db     *database.DB
+	portal                    *appportal.Service
+	audit                     *audit.Writer
+	db                        *database.DB
+	identityAdminURL          string
+	identityAllowedHosts      []string
+	identityOnboardingEnabled bool
+	identityAdminEntryEnabled bool
 }
 
 func NewPortalService(portal *appportal.Service, auditWriter *audit.Writer, db *database.DB) *PortalService {
 	return &PortalService{portal: portal, audit: auditWriter, db: db}
+}
+
+func (s *PortalService) ConfigureIdentityBoundary(adminURL string, allowedHosts []string, onboardingEnabled, adminEntryEnabled bool) {
+	s.identityAdminURL = strings.TrimSpace(adminURL)
+	s.identityAllowedHosts = append([]string(nil), allowedHosts...)
+	s.identityOnboardingEnabled = onboardingEnabled
+	s.identityAdminEntryEnabled = adminEntryEnabled
 }
 
 func (s *PortalService) audited(ctx context.Context, event *audit.Event, operation func(context.Context) error) error {
@@ -388,6 +399,139 @@ func (s *PortalService) ReplacePortalApplicationPolicies(ctx context.Context, re
 	return &forgev1.ReplacePortalApplicationPoliciesResponse{Policies: portalPoliciesProto(out)}, nil
 }
 
+func (s *PortalService) GetIdentityOverview(ctx context.Context, _ *forgev1.GetIdentityOverviewRequest) (*forgev1.GetIdentityOverviewResponse, error) {
+	if _, err := requiredPrincipal(ctx); err != nil {
+		return nil, err
+	}
+	host := ""
+	if parsed, err := url.Parse(s.identityAdminURL); err == nil {
+		host = parsed.Hostname()
+	}
+	return &forgev1.GetIdentityOverviewResponse{OnboardingEnabled: s.identityOnboardingEnabled, AdminEntryEnabled: s.identityAdminEntryEnabled, ProviderKey: portaldomain.IdentityProviderCasdoor, AdminUrlHost: host}, nil
+}
+
+func (s *PortalService) GetIdentityConsoleLink(ctx context.Context, _ *forgev1.GetIdentityConsoleLinkRequest) (*forgev1.GetIdentityConsoleLinkResponse, error) {
+	principal, err := requiredPrincipal(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if !s.identityAdminEntryEnabled || !safeIdentityAdminURL(s.identityAdminURL, s.identityAllowedHosts) {
+		return nil, kratoserrors.NotFound("IDENTITY_CONSOLE_UNAVAILABLE", "identity console is not available")
+	}
+	event := newAuditEvent(ctx, principal, "iam.console.open", "identity_console", "", map[string]any{"provider": portaldomain.IdentityProviderCasdoor})
+	if err := s.audited(ctx, event, func(context.Context) error { return nil }); err != nil {
+		return nil, internalError(err)
+	}
+	return &forgev1.GetIdentityConsoleLinkResponse{Url: s.identityAdminURL, ProviderKey: portaldomain.IdentityProviderCasdoor}, nil
+}
+
+func (s *PortalService) GetApplicationOnboarding(ctx context.Context, req *forgev1.GetApplicationOnboardingRequest) (*forgev1.GetApplicationOnboardingResponse, error) {
+	principal, err := requiredPrincipal(ctx)
+	if err != nil {
+		return nil, err
+	}
+	app, binding, verifications, err := s.portal.GetApplicationOnboarding(ctx, principal, req.GetApplicationId())
+	if err != nil {
+		return nil, serviceError(err)
+	}
+	canPublish := strings.EqualFold(app.LaunchType, "URL") || (binding.ID != "" && binding.VerificationStatus == portaldomain.VerificationPassed && app.LifecycleStatus == portaldomain.LifecycleReady)
+	return &forgev1.GetApplicationOnboardingResponse{Application: portalApplicationProto(app), Binding: identityBindingProto(binding), Verifications: verificationsProto(verifications), CanPublish: canPublish}, nil
+}
+
+func (s *PortalService) UpsertApplicationIdentityBinding(ctx context.Context, req *forgev1.UpsertApplicationIdentityBindingRequest) (*forgev1.UpsertApplicationIdentityBindingResponse, error) {
+	principal, err := requiredPrincipal(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var binding portaldomain.IdentityBinding
+	var app portaldomain.Application
+	event := newAuditEvent(ctx, principal, "iam.integration.update", "portal_application", req.GetApplicationId(), map[string]any{"protocol": req.GetProtocol(), "provider": portaldomain.IdentityProviderCasdoor})
+	err = s.audited(ctx, event, func(txCtx context.Context) error {
+		var operationErr error
+		binding, app, operationErr = s.portal.UpsertApplicationIdentityBinding(txCtx, principal, req.GetApplicationId(), portaldomain.IdentityBindingInput{ProviderKey: req.GetProviderKey(), Protocol: req.GetProtocol(), ProviderApplicationRef: req.GetProviderApplicationRef(), PublicClientID: req.GetPublicClientId(), Issuer: req.GetIssuer(), RedirectURIs: req.GetRedirectUris()}, req.GetExpectedConfigVersion())
+		return operationErr
+	})
+	if err != nil {
+		return nil, serviceError(err)
+	}
+	return &forgev1.UpsertApplicationIdentityBindingResponse{Binding: identityBindingProto(binding), Application: portalApplicationProto(app)}, nil
+}
+
+func (s *PortalService) VerifyApplicationIdentity(ctx context.Context, req *forgev1.VerifyApplicationIdentityRequest) (*forgev1.VerifyApplicationIdentityResponse, error) {
+	principal, err := requiredPrincipal(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var binding portaldomain.IdentityBinding
+	var app portaldomain.Application
+	var verifications []portaldomain.Verification
+	var passed bool
+	event := newAuditEvent(ctx, principal, "iam.integration.verify", "portal_application", req.GetApplicationId(), nil)
+	err = s.audited(ctx, event, func(txCtx context.Context) error {
+		var operationErr error
+		binding, app, verifications, passed, operationErr = s.portal.VerifyApplicationIdentity(txCtx, principal, req.GetApplicationId())
+		return operationErr
+	})
+	if err != nil {
+		return nil, serviceError(err)
+	}
+	return &forgev1.VerifyApplicationIdentityResponse{Binding: identityBindingProto(binding), Application: portalApplicationProto(app), Verifications: verificationsProto(verifications), Passed: passed}, nil
+}
+
+func (s *PortalService) SubmitApplicationPublish(ctx context.Context, req *forgev1.SubmitApplicationPublishRequest) (*forgev1.SubmitApplicationPublishResponse, error) {
+	principal, err := requiredPrincipal(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var app portaldomain.Application
+	event := newAuditEvent(ctx, principal, "portal.application.submit_publish", "portal_application", req.GetApplicationId(), nil)
+	err = s.audited(ctx, event, func(txCtx context.Context) error {
+		var operationErr error
+		app, operationErr = s.portal.SubmitApplicationPublish(txCtx, principal, req.GetApplicationId(), req.GetExpectedConfigVersion())
+		return operationErr
+	})
+	if err != nil {
+		return nil, serviceError(err)
+	}
+	return &forgev1.SubmitApplicationPublishResponse{Application: portalApplicationProto(app)}, nil
+}
+
+func (s *PortalService) PublishApplication(ctx context.Context, req *forgev1.PublishApplicationRequest) (*forgev1.PublishApplicationResponse, error) {
+	principal, err := requiredPrincipal(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var app portaldomain.Application
+	event := newAuditEvent(ctx, principal, "portal.application.publish", "portal_application", req.GetApplicationId(), nil)
+	err = s.audited(ctx, event, func(txCtx context.Context) error {
+		var operationErr error
+		app, operationErr = s.portal.PublishApplication(txCtx, principal, req.GetApplicationId(), req.GetExpectedConfigVersion())
+		return operationErr
+	})
+	if err != nil {
+		return nil, serviceError(err)
+	}
+	return &forgev1.PublishApplicationResponse{Application: portalApplicationProto(app)}, nil
+}
+
+func (s *PortalService) DisableApplication(ctx context.Context, req *forgev1.DisableApplicationRequest) (*forgev1.DisableApplicationResponse, error) {
+	principal, err := requiredPrincipal(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var app portaldomain.Application
+	event := newAuditEvent(ctx, principal, "portal.application.disable", "portal_application", req.GetApplicationId(), nil)
+	err = s.audited(ctx, event, func(txCtx context.Context) error {
+		var operationErr error
+		app, operationErr = s.portal.DisableApplication(txCtx, principal, req.GetApplicationId(), req.GetExpectedConfigVersion())
+		return operationErr
+	})
+	if err != nil {
+		return nil, serviceError(err)
+	}
+	return &forgev1.DisableApplicationResponse{Application: portalApplicationProto(app)}, nil
+}
+
 func (s *PortalService) createCategory(ctx context.Context, input repository.CategoryInput) (*forgev1.CreatePortalCategoryResponse, error) {
 	principal, err := requiredPrincipal(ctx)
 	if err != nil {
@@ -435,7 +579,35 @@ func portalApplicationsProto(items []portaldomain.Application) []*forgev1.Portal
 }
 
 func portalApplicationProto(item portaldomain.Application) *forgev1.PortalApplication {
-	return &forgev1.PortalApplication{Id: item.ID, OrganizationId: item.OrganizationID, Code: item.Code, Name: item.Name, Description: item.Description, Icon: item.Icon, CategoryId: item.CategoryID, CategoryName: item.CategoryName, HomeUrl: item.HomeURL, LaunchUrl: item.LaunchURL, LaunchType: item.LaunchType, Status: item.Status, SortOrder: int64(item.SortOrder), Featured: item.Featured, Favorite: item.Favorite, VisitCount: item.VisitCount, Tags: portalTagsProto(item.Tags), Policies: portalPoliciesProto(item.Policies), CreatedAt: timestamp(item.CreatedAt), UpdatedAt: timestamp(item.UpdatedAt)}
+	return &forgev1.PortalApplication{Id: item.ID, OrganizationId: item.OrganizationID, Code: item.Code, Name: item.Name, Description: item.Description, Icon: item.Icon, CategoryId: item.CategoryID, CategoryName: item.CategoryName, HomeUrl: item.HomeURL, LaunchUrl: item.LaunchURL, LaunchType: item.LaunchType, Status: item.Status, SortOrder: int64(item.SortOrder), Featured: item.Featured, Favorite: item.Favorite, VisitCount: item.VisitCount, Tags: portalTagsProto(item.Tags), Policies: portalPoliciesProto(item.Policies), CreatedAt: timestamp(item.CreatedAt), UpdatedAt: timestamp(item.UpdatedAt), LifecycleStatus: item.LifecycleStatus, ConfigVersion: item.ConfigVersion, PublishedAt: optionalTimestamp(item.PublishedAt), PublishedBy: item.PublishedBy}
+}
+
+func identityBindingProto(item portaldomain.IdentityBinding) *forgev1.PortalIdentityBinding {
+	if item.ID == "" {
+		return nil
+	}
+	return &forgev1.PortalIdentityBinding{Id: item.ID, OrganizationId: item.OrganizationID, ApplicationId: item.ApplicationID, ProviderKey: item.ProviderKey, Protocol: item.Protocol, ProviderApplicationRef: item.ProviderApplicationRef, PublicClientId: item.PublicClientID, Issuer: item.Issuer, RedirectUris: item.RedirectURIs, ConfigurationStatus: item.ConfigurationStatus, VerificationStatus: item.VerificationStatus, VerifiedAt: optionalTimestamp(item.VerifiedAt), VerifiedBy: item.VerifiedBy, VerificationError: item.VerificationError, ConfigVersion: item.ConfigVersion, CreatedAt: timestamp(item.CreatedAt), UpdatedAt: timestamp(item.UpdatedAt)}
+}
+
+func verificationsProto(items []portaldomain.Verification) []*forgev1.PortalApplicationVerification {
+	out := make([]*forgev1.PortalApplicationVerification, 0, len(items))
+	for _, item := range items {
+		out = append(out, &forgev1.PortalApplicationVerification{Id: item.ID, ApplicationId: item.ApplicationID, BindingId: item.BindingID, CheckType: item.CheckType, Result: item.Result, ErrorCode: item.ErrorCode, EvidenceJson: item.Evidence, VerifiedBy: item.VerifiedBy, OccurredAt: timestamp(item.OccurredAt), RequestId: item.RequestID})
+	}
+	return out
+}
+
+func safeIdentityAdminURL(raw string, allowedHosts []string) bool {
+	u, err := url.Parse(strings.TrimSpace(raw))
+	if err != nil || !strings.EqualFold(u.Scheme, "https") || u.Hostname() == "" || u.User != nil || u.RawQuery != "" || u.Fragment != "" {
+		return false
+	}
+	for _, host := range allowedHosts {
+		if strings.EqualFold(strings.TrimSpace(host), u.Hostname()) {
+			return true
+		}
+	}
+	return false
 }
 
 func portalCategoriesProto(items []portaldomain.Category) []*forgev1.PortalCategory {

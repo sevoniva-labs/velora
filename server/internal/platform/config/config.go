@@ -201,30 +201,35 @@ type RemoteConfig struct {
 }
 
 type Security struct {
-	AuthMode                  string        `yaml:"auth_mode"` // oidc | password (development only)
-	SessionTTL                time.Duration `yaml:"session_ttl"`
-	SecureCookies             bool          `yaml:"secure_cookies"`
-	SameSite                  string        `yaml:"same_site"`
-	PasswordMinLength         int           `yaml:"password_min_length"`
-	PasswordUpper             bool          `yaml:"password_require_upper"`
-	PasswordLower             bool          `yaml:"password_require_lower"`
-	PasswordDigit             bool          `yaml:"password_require_digit"`
-	PasswordSymbol            bool          `yaml:"password_require_symbol"`
-	PasswordHistory           int           `yaml:"password_history"`
-	PasswordMaxAgeDay         int           `yaml:"password_max_age_days"`
-	LoginMaxFailures          int           `yaml:"login_max_failures"`
-	LoginLockDuration         time.Duration `yaml:"login_lock_duration"`
-	CryptoProvider            string        `yaml:"crypto_provider"` // standard | gm
-	CryptoAdapter             string        `yaml:"crypto_adapter"`  // software | kms | hsm | pkcs11
-	CryptoKey                 string        `yaml:"-"`
-	CryptoKeyVersion          string        `yaml:"crypto_key_version"`
-	OIDCIssuer                string        `yaml:"oidc_issuer"`
-	OIDCName                  string        `yaml:"oidc_name"`
-	OIDCClientID              string        `yaml:"oidc_client_id"`
-	OIDCClientSecret          string        `yaml:"-"`
-	OIDCRedirectURL           string        `yaml:"oidc_redirect_url"`
-	OIDCPostLogoutRedirectURL string        `yaml:"oidc_post_logout_redirect_url"`
-	CasdoorAccountURL         string        `yaml:"casdoor_account_url"`
+	AuthMode                            string        `yaml:"auth_mode"` // oidc | password (development only)
+	SessionTTL                          time.Duration `yaml:"session_ttl"`
+	SecureCookies                       bool          `yaml:"secure_cookies"`
+	SameSite                            string        `yaml:"same_site"`
+	PasswordMinLength                   int           `yaml:"password_min_length"`
+	PasswordUpper                       bool          `yaml:"password_require_upper"`
+	PasswordLower                       bool          `yaml:"password_require_lower"`
+	PasswordDigit                       bool          `yaml:"password_require_digit"`
+	PasswordSymbol                      bool          `yaml:"password_require_symbol"`
+	PasswordHistory                     int           `yaml:"password_history"`
+	PasswordMaxAgeDay                   int           `yaml:"password_max_age_days"`
+	LoginMaxFailures                    int           `yaml:"login_max_failures"`
+	LoginLockDuration                   time.Duration `yaml:"login_lock_duration"`
+	CryptoProvider                      string        `yaml:"crypto_provider"` // standard | gm
+	CryptoAdapter                       string        `yaml:"crypto_adapter"`  // software | kms | hsm | pkcs11
+	CryptoKey                           string        `yaml:"-"`
+	CryptoKeyVersion                    string        `yaml:"crypto_key_version"`
+	OIDCIssuer                          string        `yaml:"oidc_issuer"`
+	OIDCName                            string        `yaml:"oidc_name"`
+	OIDCClientID                        string        `yaml:"oidc_client_id"`
+	OIDCClientSecret                    string        `yaml:"-"`
+	OIDCRedirectURL                     string        `yaml:"oidc_redirect_url"`
+	OIDCPostLogoutRedirectURL           string        `yaml:"oidc_post_logout_redirect_url"`
+	CasdoorAccountURL                   string        `yaml:"casdoor_account_url"`
+	CasdoorAdminURL                     string        `yaml:"casdoor_admin_url"`
+	CasdoorAllowedHosts                 []string      `yaml:"casdoor_allowed_hosts"`
+	ApplicationOnboardingV2             bool          `yaml:"application_onboarding_v2"`
+	CasdoorAdminEntryEnabled            bool          `yaml:"casdoor_admin_entry_enabled"`
+	CasdoorApplicationAutomationEnabled bool          `yaml:"casdoor_application_automation_enabled"`
 	// CasdoorPasswordLoginEnabled keeps the browser login form in Velora while
 	// delegating credential verification to Casdoor's application login API.
 	// It is intentionally opt-in because this is a password-grant compatibility
@@ -577,6 +582,11 @@ func ApplyEnvironment(cfg *Config) {
 	overrideString(&cfg.Security.OIDCRedirectURL, "VELORA_OIDC_REDIRECT_URL")
 	overrideString(&cfg.Security.OIDCPostLogoutRedirectURL, "VELORA_OIDC_POST_LOGOUT_REDIRECT_URL")
 	overrideString(&cfg.Security.CasdoorAccountURL, "VELORA_CASDOOR_ACCOUNT_URL")
+	overrideString(&cfg.Security.CasdoorAdminURL, "VELORA_CASDOOR_ADMIN_URL")
+	overrideCSV(&cfg.Security.CasdoorAllowedHosts, "VELORA_CASDOOR_ALLOWED_HOSTS")
+	overrideBool(&cfg.Security.ApplicationOnboardingV2, "VELORA_APPLICATION_ONBOARDING_V2")
+	overrideBool(&cfg.Security.CasdoorAdminEntryEnabled, "VELORA_CASDOOR_ADMIN_ENTRY_ENABLED")
+	overrideBool(&cfg.Security.CasdoorApplicationAutomationEnabled, "VELORA_CASDOOR_APPLICATION_AUTOMATION_ENABLED")
 	overrideBool(&cfg.Security.CasdoorPasswordLoginEnabled, "VELORA_CASDOOR_PASSWORD_LOGIN_ENABLED")
 	overrideString(&cfg.Security.CasdoorApplication, "VELORA_CASDOOR_APPLICATION")
 	overrideString(&cfg.Security.CasdoorOrganization, "VELORA_CASDOOR_ORGANIZATION")
@@ -987,6 +997,15 @@ func (c Config) ValidateProductionAuth() error {
 	if strings.TrimSpace(c.Security.CasdoorAccountURL) == "" || !isHTTPSURL(c.Security.CasdoorAccountURL) {
 		errs = append(errs, "security.casdoor_account_url must be an https URL in production")
 	}
+	if c.Security.CasdoorAdminEntryEnabled {
+		if strings.TrimSpace(c.Security.CasdoorAdminURL) == "" || !isHTTPSURL(c.Security.CasdoorAdminURL) {
+			errs = append(errs, "security.casdoor_admin_url must be an https URL when the admin entry is enabled")
+		}
+		adminURL, _ := url.Parse(c.Security.CasdoorAdminURL)
+		if len(c.Security.CasdoorAllowedHosts) == 0 || adminURL == nil || !containsFold(c.Security.CasdoorAllowedHosts, adminURL.Hostname()) {
+			errs = append(errs, "security.casdoor_allowed_hosts must contain the admin URL hostname")
+		}
+	}
 	if c.Security.OIDCProviderEnabled {
 		errs = append(errs, "security.oidc_provider_enabled must be false in production; Casdoor is the only OIDC provider")
 	}
@@ -1023,6 +1042,15 @@ func validWebCSPOrigin(source string, production bool) bool {
 		return parsed.Scheme == "https"
 	}
 	return parsed.Scheme == "https" || parsed.Scheme == "http"
+}
+
+func containsFold(values []string, want string) bool {
+	for _, value := range values {
+		if strings.EqualFold(strings.TrimSpace(value), strings.TrimSpace(want)) {
+			return true
+		}
+	}
+	return false
 }
 
 func validProductionPublicURL(value string) bool {

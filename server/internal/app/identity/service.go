@@ -119,7 +119,8 @@ var basePermissions = []struct{ Key, Name string }{
 	{"system.audit.read", "查看审计日志"}, {"system.audit.export", "导出审计日志"}, {"system.audit.verify", "校验审计完整性"},
 	{"system.temporary_grant.read", "查看临时授权"}, {"system.temporary_grant.manage", "管理临时授权"},
 	{"system.config.read", "查看系统配置"}, {"system.config.manage", "管理配置变更"}, {"system.security.manage", "管理安全配置"},
-	{"portal.application.read", "查看门户应用"}, {"portal.application.manage", "管理门户应用"},
+	{"portal.application.read", "查看门户应用"}, {"portal.application.manage", "管理门户应用"}, {"portal.application.publish", "发布门户应用"},
+	{"iam.integration.read", "查看身份接入"}, {"iam.integration.manage", "管理身份接入"}, {"iam.integration.verify", "验证身份接入"}, {"iam.console.open", "打开身份管理控制台"},
 	{"approval.request.create", "发起审批"}, {"approval.request.read", "查看审批"}, {"approval.task.decide", "处理审批"}, {"approval.task.transfer", "转办审批"}, {"approval.request.withdraw", "撤回审批"},
 }
 
@@ -132,6 +133,8 @@ func (s *Service) Bootstrap(ctx context.Context, orgKey, orgName, admin, passwor
 		{"system_admin", "系统管理员", domain.DataScopeOrganization},
 		{"security_admin", "安全管理员", domain.DataScopeOrganization},
 		{"auditor", "审计员", domain.DataScopeOrganization},
+		{"application_admin", "应用管理员", domain.DataScopeOrganization},
+		{"iam_admin", "身份管理员", domain.DataScopeOrganization},
 		{"user", "普通用户", domain.DataScopeSelf},
 	} {
 		if _, err = s.repo.EnsureRole(ctx, orgID, r.k, r.n, r.scope); err != nil {
@@ -155,8 +158,18 @@ func (s *Service) Bootstrap(ctx context.Context, orgKey, orgName, admin, passwor
 	// Keep system_admin as implicit superuser in code; seed explicit grants for
 	// other built-in roles to make the model extensible without hard-coding
 	// every endpoint to a role name.
-	for _, k := range []string{"system.user.read", "system.user.assignment.read", "system.user.assignment.manage", "system.role.read", "system.organization.read", "system.organization.manage", "system.department.read", "system.department.manage", "system.position.read", "system.position.manage", "system.user_group.read", "system.user_group.manage", "system.menu.read", "system.menu.manage", "system.identity_mapping.read", "system.identity_mapping.manage", "system.access_review.read", "system.access_review.manage", "system.session.read", "system.session.revoke", "system.temporary_grant.read", "system.temporary_grant.manage", "system.config.read", "system.config.manage", "system.security.manage", "system.data_policy.read", "system.data_policy.manage", "system.data.export", "system.data.retention.read", "system.data.retention.manage", "portal.application.read", "portal.application.manage"} {
+	for _, k := range []string{"system.user.read", "system.user.assignment.read", "system.user.assignment.manage", "system.role.read", "system.organization.read", "system.organization.manage", "system.department.read", "system.department.manage", "system.position.read", "system.position.manage", "system.user_group.read", "system.user_group.manage", "system.menu.read", "system.menu.manage", "system.identity_mapping.read", "system.identity_mapping.manage", "system.access_review.read", "system.access_review.manage", "system.session.read", "system.session.revoke", "system.temporary_grant.read", "system.temporary_grant.manage", "system.config.read", "system.config.manage", "system.security.manage", "system.data_policy.read", "system.data_policy.manage", "system.data.export", "system.data.retention.read", "system.data.retention.manage", "portal.application.read", "portal.application.manage", "portal.application.publish", "iam.integration.read", "iam.integration.manage", "iam.integration.verify", "iam.console.open"} {
 		if err = s.repo.GrantPermissionToRole(ctx, orgID, "security_admin", k); err != nil {
+			return err
+		}
+	}
+	for _, k := range []string{"portal.application.read", "portal.application.manage", "portal.application.publish"} {
+		if err = s.repo.GrantPermissionToRole(ctx, orgID, "application_admin", k); err != nil {
+			return err
+		}
+	}
+	for _, k := range []string{"iam.integration.read", "iam.integration.manage", "iam.integration.verify", "iam.console.open"} {
+		if err = s.repo.GrantPermissionToRole(ctx, orgID, "iam_admin", k); err != nil {
 			return err
 		}
 	}

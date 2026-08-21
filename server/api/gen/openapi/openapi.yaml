@@ -540,6 +540,30 @@ paths:
                 - SessionCookie: []
                   CsrfToken: []
                 - BearerAuth: []
+    /api/v1/admin/identity/console-link:
+        get:
+            tags:
+                - PortalService
+            operationId: PortalService_GetIdentityConsoleLink
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/forge.v1.GetIdentityConsoleLinkResponse'
+    /api/v1/admin/identity/overview:
+        get:
+            tags:
+                - PortalService
+            operationId: PortalService_GetIdentityOverview
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/forge.v1.GetIdentityOverviewResponse'
     /api/v1/admin/menus:
         get:
             tags:
@@ -725,6 +749,72 @@ paths:
                 - SessionCookie: []
                   CsrfToken: []
                 - BearerAuth: []
+    /api/v1/admin/portal/applications/{applicationId}/disable:
+        post:
+            tags:
+                - PortalService
+            operationId: PortalService_DisableApplication
+            parameters:
+                - name: applicationId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/forge.v1.DisableApplicationRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/forge.v1.DisableApplicationResponse'
+    /api/v1/admin/portal/applications/{applicationId}/identity-binding:
+        put:
+            tags:
+                - PortalService
+            operationId: PortalService_UpsertApplicationIdentityBinding
+            parameters:
+                - name: applicationId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/forge.v1.UpsertApplicationIdentityBindingRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/forge.v1.UpsertApplicationIdentityBindingResponse'
+    /api/v1/admin/portal/applications/{applicationId}/onboarding:
+        get:
+            tags:
+                - PortalService
+            operationId: PortalService_GetApplicationOnboarding
+            parameters:
+                - name: applicationId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/forge.v1.GetApplicationOnboardingResponse'
     /api/v1/admin/portal/applications/{applicationId}/policies:
         put:
             tags:
@@ -753,6 +843,78 @@ paths:
                 - SessionCookie: []
                   CsrfToken: []
                 - BearerAuth: []
+    /api/v1/admin/portal/applications/{applicationId}/publish:
+        post:
+            tags:
+                - PortalService
+            operationId: PortalService_PublishApplication
+            parameters:
+                - name: applicationId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/forge.v1.PublishApplicationRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/forge.v1.PublishApplicationResponse'
+    /api/v1/admin/portal/applications/{applicationId}/submit-publish:
+        post:
+            tags:
+                - PortalService
+            operationId: PortalService_SubmitApplicationPublish
+            parameters:
+                - name: applicationId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/forge.v1.SubmitApplicationPublishRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/forge.v1.SubmitApplicationPublishResponse'
+    /api/v1/admin/portal/applications/{applicationId}/verify:
+        post:
+            tags:
+                - PortalService
+            operationId: PortalService_VerifyApplicationIdentity
+            parameters:
+                - name: applicationId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/forge.v1.VerifyApplicationIdentityRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/forge.v1.VerifyApplicationIdentityResponse'
     /api/v1/admin/portal/categories:
         post:
             tags:
@@ -2940,6 +3102,18 @@ components:
                     type: string
                 message:
                     type: string
+        forge.v1.DisableApplicationRequest:
+            type: object
+            properties:
+                applicationId:
+                    type: string
+                expectedConfigVersion:
+                    type: string
+        forge.v1.DisableApplicationResponse:
+            type: object
+            properties:
+                application:
+                    $ref: '#/components/schemas/forge.v1.PortalApplication'
         forge.v1.DisableMFARequest:
             type: object
             properties:
@@ -2998,6 +3172,19 @@ components:
                 lastAuthenticatedAt:
                     type: string
                     format: date-time
+        forge.v1.GetApplicationOnboardingResponse:
+            type: object
+            properties:
+                application:
+                    $ref: '#/components/schemas/forge.v1.PortalApplication'
+                binding:
+                    $ref: '#/components/schemas/forge.v1.PortalIdentityBinding'
+                verifications:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/forge.v1.PortalApplicationVerification'
+                canPublish:
+                    type: boolean
         forge.v1.GetApprovalResponse:
             type: object
             properties:
@@ -3008,6 +3195,24 @@ components:
             properties:
                 user:
                     $ref: '#/components/schemas/forge.v1.User'
+        forge.v1.GetIdentityConsoleLinkResponse:
+            type: object
+            properties:
+                url:
+                    type: string
+                providerKey:
+                    type: string
+        forge.v1.GetIdentityOverviewResponse:
+            type: object
+            properties:
+                onboardingEnabled:
+                    type: boolean
+                adminEntryEnabled:
+                    type: boolean
+                providerKey:
+                    type: string
+                adminUrlHost:
+                    type: string
         forge.v1.GetMFAStatusResponse:
             type: object
             properties:
@@ -3456,6 +3661,39 @@ components:
                 updatedAt:
                     type: string
                     format: date-time
+                lifecycleStatus:
+                    type: string
+                configVersion:
+                    type: string
+                publishedAt:
+                    type: string
+                    format: date-time
+                publishedBy:
+                    type: string
+        forge.v1.PortalApplicationVerification:
+            type: object
+            properties:
+                id:
+                    type: string
+                applicationId:
+                    type: string
+                bindingId:
+                    type: string
+                checkType:
+                    type: string
+                result:
+                    type: string
+                errorCode:
+                    type: string
+                evidenceJson:
+                    type: string
+                verifiedBy:
+                    type: string
+                occurredAt:
+                    type: string
+                    format: date-time
+                requestId:
+                    type: string
         forge.v1.PortalCategory:
             type: object
             properties:
@@ -3472,6 +3710,48 @@ components:
                 status:
                     type: string
                 sortOrder:
+                    type: string
+                createdAt:
+                    type: string
+                    format: date-time
+                updatedAt:
+                    type: string
+                    format: date-time
+        forge.v1.PortalIdentityBinding:
+            type: object
+            properties:
+                id:
+                    type: string
+                organizationId:
+                    type: string
+                applicationId:
+                    type: string
+                providerKey:
+                    type: string
+                protocol:
+                    type: string
+                providerApplicationRef:
+                    type: string
+                publicClientId:
+                    type: string
+                issuer:
+                    type: string
+                redirectUris:
+                    type: array
+                    items:
+                        type: string
+                configurationStatus:
+                    type: string
+                verificationStatus:
+                    type: string
+                verifiedAt:
+                    type: string
+                    format: date-time
+                verifiedBy:
+                    type: string
+                verificationError:
+                    type: string
+                configVersion:
                     type: string
                 createdAt:
                     type: string
@@ -3523,6 +3803,18 @@ components:
                 updatedAt:
                     type: string
                     format: date-time
+        forge.v1.PublishApplicationRequest:
+            type: object
+            properties:
+                applicationId:
+                    type: string
+                expectedConfigVersion:
+                    type: string
+        forge.v1.PublishApplicationResponse:
+            type: object
+            properties:
+                application:
+                    $ref: '#/components/schemas/forge.v1.PortalApplication'
         forge.v1.PublishConfigChangeRequest:
             type: object
             properties:
@@ -3754,6 +4046,18 @@ components:
                 verifiedAt:
                     type: string
                     format: date-time
+        forge.v1.SubmitApplicationPublishRequest:
+            type: object
+            properties:
+                applicationId:
+                    type: string
+                expectedConfigVersion:
+                    type: string
+        forge.v1.SubmitApplicationPublishResponse:
+            type: object
+            properties:
+                application:
+                    $ref: '#/components/schemas/forge.v1.PortalApplication'
         forge.v1.TemporaryRoleGrant:
             type: object
             properties:
@@ -4077,6 +4381,34 @@ components:
             properties:
                 user:
                     $ref: '#/components/schemas/forge.v1.User'
+        forge.v1.UpsertApplicationIdentityBindingRequest:
+            type: object
+            properties:
+                applicationId:
+                    type: string
+                providerKey:
+                    type: string
+                protocol:
+                    type: string
+                providerApplicationRef:
+                    type: string
+                publicClientId:
+                    type: string
+                issuer:
+                    type: string
+                redirectUris:
+                    type: array
+                    items:
+                        type: string
+                expectedConfigVersion:
+                    type: string
+        forge.v1.UpsertApplicationIdentityBindingResponse:
+            type: object
+            properties:
+                binding:
+                    $ref: '#/components/schemas/forge.v1.PortalIdentityBinding'
+                application:
+                    $ref: '#/components/schemas/forge.v1.PortalApplication'
         forge.v1.UpsertDataFieldPolicyRequest:
             type: object
             properties:
@@ -4183,6 +4515,26 @@ components:
                 updatedAt:
                     type: string
                     format: date-time
+        forge.v1.VerifyApplicationIdentityRequest:
+            type: object
+            properties:
+                applicationId:
+                    type: string
+                expectedConfigVersion:
+                    type: string
+        forge.v1.VerifyApplicationIdentityResponse:
+            type: object
+            properties:
+                binding:
+                    $ref: '#/components/schemas/forge.v1.PortalIdentityBinding'
+                application:
+                    $ref: '#/components/schemas/forge.v1.PortalApplication'
+                verifications:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/forge.v1.PortalApplicationVerification'
+                passed:
+                    type: boolean
         forge.v1.VerifyAuditIntegrityResponse:
             type: object
             properties:

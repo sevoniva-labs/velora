@@ -93,6 +93,30 @@ service PortalService {
     option (google.api.http) = {put: "/api/v1/admin/portal/applications/{application_id}/policies" body: "*"};
     option (openapi.v3.operation) = {security: [{additional_properties: [{name: "SessionCookie" value: {value: []}}, {name: "CsrfToken" value: {value: []}}]}, {additional_properties: [{name: "BearerAuth" value: {value: []}}]}]};
   }
+  rpc GetIdentityOverview(GetIdentityOverviewRequest) returns (GetIdentityOverviewResponse) {
+    option (google.api.http) = {get: "/api/v1/admin/identity/overview"};
+  }
+  rpc GetIdentityConsoleLink(GetIdentityConsoleLinkRequest) returns (GetIdentityConsoleLinkResponse) {
+    option (google.api.http) = {get: "/api/v1/admin/identity/console-link"};
+  }
+  rpc GetApplicationOnboarding(GetApplicationOnboardingRequest) returns (GetApplicationOnboardingResponse) {
+    option (google.api.http) = {get: "/api/v1/admin/portal/applications/{application_id}/onboarding"};
+  }
+  rpc UpsertApplicationIdentityBinding(UpsertApplicationIdentityBindingRequest) returns (UpsertApplicationIdentityBindingResponse) {
+    option (google.api.http) = {put: "/api/v1/admin/portal/applications/{application_id}/identity-binding" body: "*"};
+  }
+  rpc VerifyApplicationIdentity(VerifyApplicationIdentityRequest) returns (VerifyApplicationIdentityResponse) {
+    option (google.api.http) = {post: "/api/v1/admin/portal/applications/{application_id}/verify" body: "*"};
+  }
+  rpc SubmitApplicationPublish(SubmitApplicationPublishRequest) returns (SubmitApplicationPublishResponse) {
+    option (google.api.http) = {post: "/api/v1/admin/portal/applications/{application_id}/submit-publish" body: "*"};
+  }
+  rpc PublishApplication(PublishApplicationRequest) returns (PublishApplicationResponse) {
+    option (google.api.http) = {post: "/api/v1/admin/portal/applications/{application_id}/publish" body: "*"};
+  }
+  rpc DisableApplication(DisableApplicationRequest) returns (DisableApplicationResponse) {
+    option (google.api.http) = {post: "/api/v1/admin/portal/applications/{application_id}/disable" body: "*"};
+  }
 }
 
 message PortalApplication {
@@ -116,6 +140,10 @@ message PortalApplication {
   repeated PortalAccessPolicy policies = 18;
   google.protobuf.Timestamp created_at = 19;
   google.protobuf.Timestamp updated_at = 20;
+  string lifecycle_status = 21;
+  int64 config_version = 22;
+  google.protobuf.Timestamp published_at = 23;
+  string published_by = 24;
 }
 
 message PortalCategory {
@@ -230,3 +258,60 @@ message DeletePortalTagRequest { string tag_id = 1; }
 message DeletePortalTagResponse {}
 message ReplacePortalApplicationPoliciesRequest { string application_id = 1; repeated PortalAccessPolicy policies = 2; }
 message ReplacePortalApplicationPoliciesResponse { repeated PortalAccessPolicy policies = 1; }
+
+message PortalIdentityBinding {
+  string id = 1;
+  string organization_id = 2;
+  string application_id = 3;
+  string provider_key = 4;
+  string protocol = 5;
+  string provider_application_ref = 6;
+  string public_client_id = 7;
+  string issuer = 8;
+  repeated string redirect_uris = 9;
+  string configuration_status = 10;
+  string verification_status = 11;
+  google.protobuf.Timestamp verified_at = 12;
+  string verified_by = 13;
+  string verification_error = 14;
+  int64 config_version = 15;
+  google.protobuf.Timestamp created_at = 16;
+  google.protobuf.Timestamp updated_at = 17;
+}
+message PortalApplicationVerification {
+  string id = 1;
+  string application_id = 2;
+  string binding_id = 3;
+  string check_type = 4;
+  string result = 5;
+  string error_code = 6;
+  string evidence_json = 7;
+  string verified_by = 8;
+  google.protobuf.Timestamp occurred_at = 9;
+  string request_id = 10;
+}
+message GetIdentityOverviewRequest {}
+message GetIdentityOverviewResponse { bool onboarding_enabled = 1; bool admin_entry_enabled = 2; string provider_key = 3; string admin_url_host = 4; }
+message GetIdentityConsoleLinkRequest {}
+message GetIdentityConsoleLinkResponse { string url = 1; string provider_key = 2; }
+message GetApplicationOnboardingRequest { string application_id = 1; }
+message GetApplicationOnboardingResponse { PortalApplication application = 1; PortalIdentityBinding binding = 2; repeated PortalApplicationVerification verifications = 3; bool can_publish = 4; }
+message UpsertApplicationIdentityBindingRequest {
+  string application_id = 1;
+  string provider_key = 2;
+  string protocol = 3;
+  string provider_application_ref = 4;
+  string public_client_id = 5;
+  string issuer = 6;
+  repeated string redirect_uris = 7;
+  int64 expected_config_version = 8;
+}
+message UpsertApplicationIdentityBindingResponse { PortalIdentityBinding binding = 1; PortalApplication application = 2; }
+message VerifyApplicationIdentityRequest { string application_id = 1; int64 expected_config_version = 2; }
+message VerifyApplicationIdentityResponse { PortalIdentityBinding binding = 1; PortalApplication application = 2; repeated PortalApplicationVerification verifications = 3; bool passed = 4; }
+message SubmitApplicationPublishRequest { string application_id = 1; int64 expected_config_version = 2; }
+message SubmitApplicationPublishResponse { PortalApplication application = 1; }
+message PublishApplicationRequest { string application_id = 1; int64 expected_config_version = 2; }
+message PublishApplicationResponse { PortalApplication application = 1; }
+message DisableApplicationRequest { string application_id = 1; int64 expected_config_version = 2; }
+message DisableApplicationResponse { PortalApplication application = 1; }

@@ -53,28 +53,32 @@ type AccessPolicy struct {
 }
 
 type Application struct {
-	ID             string
-	OrganizationID string
-	Code           string
-	Name           string
-	Description    string
-	Icon           string
-	CategoryID     string
-	CategoryName   string
-	HomeURL        string
-	LaunchURL      string
-	LaunchType     string
-	Status         string
-	SortOrder      int
-	Featured       bool
-	Favorite       bool
-	VisitCount     int64
-	Tags           []Tag
-	Policies       []AccessPolicy
-	CreatedBy      string
-	UpdatedBy      string
-	CreatedAt      time.Time
-	UpdatedAt      time.Time
+	ID              string
+	OrganizationID  string
+	Code            string
+	Name            string
+	Description     string
+	Icon            string
+	CategoryID      string
+	CategoryName    string
+	HomeURL         string
+	LaunchURL       string
+	LaunchType      string
+	Status          string
+	SortOrder       int
+	Featured        bool
+	Favorite        bool
+	VisitCount      int64
+	Tags            []Tag
+	Policies        []AccessPolicy
+	CreatedBy       string
+	UpdatedBy       string
+	CreatedAt       time.Time
+	UpdatedAt       time.Time
+	LifecycleStatus string
+	PublishedAt     *time.Time
+	PublishedBy     string
+	ConfigVersion   int64
 }
 
 type AccessContext struct {
@@ -84,6 +88,9 @@ type AccessContext struct {
 
 func CanAccess(app Application, ctx AccessContext) bool {
 	if app.OrganizationID == "" || ctx.Principal.OrganizationID != app.OrganizationID || app.Status != StatusEnabled {
+		return false
+	}
+	if app.LifecycleStatus != "" && app.LifecycleStatus != LifecyclePublished {
 		return false
 	}
 	if len(app.Policies) == 0 {

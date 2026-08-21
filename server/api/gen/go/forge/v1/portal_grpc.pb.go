@@ -40,6 +40,14 @@ const (
 	PortalService_UpdatePortalTag_FullMethodName                  = "/forge.v1.PortalService/UpdatePortalTag"
 	PortalService_DeletePortalTag_FullMethodName                  = "/forge.v1.PortalService/DeletePortalTag"
 	PortalService_ReplacePortalApplicationPolicies_FullMethodName = "/forge.v1.PortalService/ReplacePortalApplicationPolicies"
+	PortalService_GetIdentityOverview_FullMethodName              = "/forge.v1.PortalService/GetIdentityOverview"
+	PortalService_GetIdentityConsoleLink_FullMethodName           = "/forge.v1.PortalService/GetIdentityConsoleLink"
+	PortalService_GetApplicationOnboarding_FullMethodName         = "/forge.v1.PortalService/GetApplicationOnboarding"
+	PortalService_UpsertApplicationIdentityBinding_FullMethodName = "/forge.v1.PortalService/UpsertApplicationIdentityBinding"
+	PortalService_VerifyApplicationIdentity_FullMethodName        = "/forge.v1.PortalService/VerifyApplicationIdentity"
+	PortalService_SubmitApplicationPublish_FullMethodName         = "/forge.v1.PortalService/SubmitApplicationPublish"
+	PortalService_PublishApplication_FullMethodName               = "/forge.v1.PortalService/PublishApplication"
+	PortalService_DisableApplication_FullMethodName               = "/forge.v1.PortalService/DisableApplication"
 )
 
 // PortalServiceClient is the client API for PortalService service.
@@ -67,6 +75,14 @@ type PortalServiceClient interface {
 	UpdatePortalTag(ctx context.Context, in *UpdatePortalTagRequest, opts ...grpc.CallOption) (*UpdatePortalTagResponse, error)
 	DeletePortalTag(ctx context.Context, in *DeletePortalTagRequest, opts ...grpc.CallOption) (*DeletePortalTagResponse, error)
 	ReplacePortalApplicationPolicies(ctx context.Context, in *ReplacePortalApplicationPoliciesRequest, opts ...grpc.CallOption) (*ReplacePortalApplicationPoliciesResponse, error)
+	GetIdentityOverview(ctx context.Context, in *GetIdentityOverviewRequest, opts ...grpc.CallOption) (*GetIdentityOverviewResponse, error)
+	GetIdentityConsoleLink(ctx context.Context, in *GetIdentityConsoleLinkRequest, opts ...grpc.CallOption) (*GetIdentityConsoleLinkResponse, error)
+	GetApplicationOnboarding(ctx context.Context, in *GetApplicationOnboardingRequest, opts ...grpc.CallOption) (*GetApplicationOnboardingResponse, error)
+	UpsertApplicationIdentityBinding(ctx context.Context, in *UpsertApplicationIdentityBindingRequest, opts ...grpc.CallOption) (*UpsertApplicationIdentityBindingResponse, error)
+	VerifyApplicationIdentity(ctx context.Context, in *VerifyApplicationIdentityRequest, opts ...grpc.CallOption) (*VerifyApplicationIdentityResponse, error)
+	SubmitApplicationPublish(ctx context.Context, in *SubmitApplicationPublishRequest, opts ...grpc.CallOption) (*SubmitApplicationPublishResponse, error)
+	PublishApplication(ctx context.Context, in *PublishApplicationRequest, opts ...grpc.CallOption) (*PublishApplicationResponse, error)
+	DisableApplication(ctx context.Context, in *DisableApplicationRequest, opts ...grpc.CallOption) (*DisableApplicationResponse, error)
 }
 
 type portalServiceClient struct {
@@ -287,6 +303,86 @@ func (c *portalServiceClient) ReplacePortalApplicationPolicies(ctx context.Conte
 	return out, nil
 }
 
+func (c *portalServiceClient) GetIdentityOverview(ctx context.Context, in *GetIdentityOverviewRequest, opts ...grpc.CallOption) (*GetIdentityOverviewResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetIdentityOverviewResponse)
+	err := c.cc.Invoke(ctx, PortalService_GetIdentityOverview_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *portalServiceClient) GetIdentityConsoleLink(ctx context.Context, in *GetIdentityConsoleLinkRequest, opts ...grpc.CallOption) (*GetIdentityConsoleLinkResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetIdentityConsoleLinkResponse)
+	err := c.cc.Invoke(ctx, PortalService_GetIdentityConsoleLink_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *portalServiceClient) GetApplicationOnboarding(ctx context.Context, in *GetApplicationOnboardingRequest, opts ...grpc.CallOption) (*GetApplicationOnboardingResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetApplicationOnboardingResponse)
+	err := c.cc.Invoke(ctx, PortalService_GetApplicationOnboarding_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *portalServiceClient) UpsertApplicationIdentityBinding(ctx context.Context, in *UpsertApplicationIdentityBindingRequest, opts ...grpc.CallOption) (*UpsertApplicationIdentityBindingResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(UpsertApplicationIdentityBindingResponse)
+	err := c.cc.Invoke(ctx, PortalService_UpsertApplicationIdentityBinding_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *portalServiceClient) VerifyApplicationIdentity(ctx context.Context, in *VerifyApplicationIdentityRequest, opts ...grpc.CallOption) (*VerifyApplicationIdentityResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(VerifyApplicationIdentityResponse)
+	err := c.cc.Invoke(ctx, PortalService_VerifyApplicationIdentity_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *portalServiceClient) SubmitApplicationPublish(ctx context.Context, in *SubmitApplicationPublishRequest, opts ...grpc.CallOption) (*SubmitApplicationPublishResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(SubmitApplicationPublishResponse)
+	err := c.cc.Invoke(ctx, PortalService_SubmitApplicationPublish_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *portalServiceClient) PublishApplication(ctx context.Context, in *PublishApplicationRequest, opts ...grpc.CallOption) (*PublishApplicationResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(PublishApplicationResponse)
+	err := c.cc.Invoke(ctx, PortalService_PublishApplication_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *portalServiceClient) DisableApplication(ctx context.Context, in *DisableApplicationRequest, opts ...grpc.CallOption) (*DisableApplicationResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(DisableApplicationResponse)
+	err := c.cc.Invoke(ctx, PortalService_DisableApplication_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // PortalServiceServer is the server API for PortalService service.
 // All implementations must embed UnimplementedPortalServiceServer
 // for forward compatibility.
@@ -312,6 +408,14 @@ type PortalServiceServer interface {
 	UpdatePortalTag(context.Context, *UpdatePortalTagRequest) (*UpdatePortalTagResponse, error)
 	DeletePortalTag(context.Context, *DeletePortalTagRequest) (*DeletePortalTagResponse, error)
 	ReplacePortalApplicationPolicies(context.Context, *ReplacePortalApplicationPoliciesRequest) (*ReplacePortalApplicationPoliciesResponse, error)
+	GetIdentityOverview(context.Context, *GetIdentityOverviewRequest) (*GetIdentityOverviewResponse, error)
+	GetIdentityConsoleLink(context.Context, *GetIdentityConsoleLinkRequest) (*GetIdentityConsoleLinkResponse, error)
+	GetApplicationOnboarding(context.Context, *GetApplicationOnboardingRequest) (*GetApplicationOnboardingResponse, error)
+	UpsertApplicationIdentityBinding(context.Context, *UpsertApplicationIdentityBindingRequest) (*UpsertApplicationIdentityBindingResponse, error)
+	VerifyApplicationIdentity(context.Context, *VerifyApplicationIdentityRequest) (*VerifyApplicationIdentityResponse, error)
+	SubmitApplicationPublish(context.Context, *SubmitApplicationPublishRequest) (*SubmitApplicationPublishResponse, error)
+	PublishApplication(context.Context, *PublishApplicationRequest) (*PublishApplicationResponse, error)
+	DisableApplication(context.Context, *DisableApplicationRequest) (*DisableApplicationResponse, error)
 	mustEmbedUnimplementedPortalServiceServer()
 }
 
@@ -384,6 +488,30 @@ func (UnimplementedPortalServiceServer) DeletePortalTag(context.Context, *Delete
 }
 func (UnimplementedPortalServiceServer) ReplacePortalApplicationPolicies(context.Context, *ReplacePortalApplicationPoliciesRequest) (*ReplacePortalApplicationPoliciesResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ReplacePortalApplicationPolicies not implemented")
+}
+func (UnimplementedPortalServiceServer) GetIdentityOverview(context.Context, *GetIdentityOverviewRequest) (*GetIdentityOverviewResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetIdentityOverview not implemented")
+}
+func (UnimplementedPortalServiceServer) GetIdentityConsoleLink(context.Context, *GetIdentityConsoleLinkRequest) (*GetIdentityConsoleLinkResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetIdentityConsoleLink not implemented")
+}
+func (UnimplementedPortalServiceServer) GetApplicationOnboarding(context.Context, *GetApplicationOnboardingRequest) (*GetApplicationOnboardingResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetApplicationOnboarding not implemented")
+}
+func (UnimplementedPortalServiceServer) UpsertApplicationIdentityBinding(context.Context, *UpsertApplicationIdentityBindingRequest) (*UpsertApplicationIdentityBindingResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method UpsertApplicationIdentityBinding not implemented")
+}
+func (UnimplementedPortalServiceServer) VerifyApplicationIdentity(context.Context, *VerifyApplicationIdentityRequest) (*VerifyApplicationIdentityResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method VerifyApplicationIdentity not implemented")
+}
+func (UnimplementedPortalServiceServer) SubmitApplicationPublish(context.Context, *SubmitApplicationPublishRequest) (*SubmitApplicationPublishResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method SubmitApplicationPublish not implemented")
+}
+func (UnimplementedPortalServiceServer) PublishApplication(context.Context, *PublishApplicationRequest) (*PublishApplicationResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method PublishApplication not implemented")
+}
+func (UnimplementedPortalServiceServer) DisableApplication(context.Context, *DisableApplicationRequest) (*DisableApplicationResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method DisableApplication not implemented")
 }
 func (UnimplementedPortalServiceServer) mustEmbedUnimplementedPortalServiceServer() {}
 func (UnimplementedPortalServiceServer) testEmbeddedByValue()                       {}
@@ -784,6 +912,150 @@ func _PortalService_ReplacePortalApplicationPolicies_Handler(srv interface{}, ct
 	return interceptor(ctx, in, info, handler)
 }
 
+func _PortalService_GetIdentityOverview_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetIdentityOverviewRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PortalServiceServer).GetIdentityOverview(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: PortalService_GetIdentityOverview_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PortalServiceServer).GetIdentityOverview(ctx, req.(*GetIdentityOverviewRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _PortalService_GetIdentityConsoleLink_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetIdentityConsoleLinkRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PortalServiceServer).GetIdentityConsoleLink(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: PortalService_GetIdentityConsoleLink_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PortalServiceServer).GetIdentityConsoleLink(ctx, req.(*GetIdentityConsoleLinkRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _PortalService_GetApplicationOnboarding_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetApplicationOnboardingRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PortalServiceServer).GetApplicationOnboarding(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: PortalService_GetApplicationOnboarding_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PortalServiceServer).GetApplicationOnboarding(ctx, req.(*GetApplicationOnboardingRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _PortalService_UpsertApplicationIdentityBinding_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpsertApplicationIdentityBindingRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PortalServiceServer).UpsertApplicationIdentityBinding(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: PortalService_UpsertApplicationIdentityBinding_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PortalServiceServer).UpsertApplicationIdentityBinding(ctx, req.(*UpsertApplicationIdentityBindingRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _PortalService_VerifyApplicationIdentity_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(VerifyApplicationIdentityRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PortalServiceServer).VerifyApplicationIdentity(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: PortalService_VerifyApplicationIdentity_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PortalServiceServer).VerifyApplicationIdentity(ctx, req.(*VerifyApplicationIdentityRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _PortalService_SubmitApplicationPublish_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SubmitApplicationPublishRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PortalServiceServer).SubmitApplicationPublish(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: PortalService_SubmitApplicationPublish_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PortalServiceServer).SubmitApplicationPublish(ctx, req.(*SubmitApplicationPublishRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _PortalService_PublishApplication_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(PublishApplicationRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PortalServiceServer).PublishApplication(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: PortalService_PublishApplication_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PortalServiceServer).PublishApplication(ctx, req.(*PublishApplicationRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _PortalService_DisableApplication_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DisableApplicationRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PortalServiceServer).DisableApplication(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: PortalService_DisableApplication_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PortalServiceServer).DisableApplication(ctx, req.(*DisableApplicationRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // PortalService_ServiceDesc is the grpc.ServiceDesc for PortalService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -874,6 +1146,38 @@ var PortalService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ReplacePortalApplicationPolicies",
 			Handler:    _PortalService_ReplacePortalApplicationPolicies_Handler,
+		},
+		{
+			MethodName: "GetIdentityOverview",
+			Handler:    _PortalService_GetIdentityOverview_Handler,
+		},
+		{
+			MethodName: "GetIdentityConsoleLink",
+			Handler:    _PortalService_GetIdentityConsoleLink_Handler,
+		},
+		{
+			MethodName: "GetApplicationOnboarding",
+			Handler:    _PortalService_GetApplicationOnboarding_Handler,
+		},
+		{
+			MethodName: "UpsertApplicationIdentityBinding",
+			Handler:    _PortalService_UpsertApplicationIdentityBinding_Handler,
+		},
+		{
+			MethodName: "VerifyApplicationIdentity",
+			Handler:    _PortalService_VerifyApplicationIdentity_Handler,
+		},
+		{
+			MethodName: "SubmitApplicationPublish",
+			Handler:    _PortalService_SubmitApplicationPublish_Handler,
+		},
+		{
+			MethodName: "PublishApplication",
+			Handler:    _PortalService_PublishApplication_Handler,
+		},
+		{
+			MethodName: "DisableApplication",
+			Handler:    _PortalService_DisableApplication_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

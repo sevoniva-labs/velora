@@ -249,6 +249,7 @@ func New(ctx context.Context, opts Options) (*App, error) {
 	systemService := kratosapi.NewSystemService(cfg, opts.Version, checks, providers)
 	platformService := kratosapi.NewPlatformService(identitySvc, approvalSvc, configChangeSvc, dataPolicySvc, auditWriter, db)
 	portalService := kratosapi.NewPortalService(portalSvc, auditWriter, db)
+	portalService.ConfigureIdentityBoundary(cfg.Security.CasdoorAdminURL, cfg.Security.CasdoorAllowedHosts, cfg.Security.ApplicationOnboardingV2, cfg.Security.CasdoorAdminEntryEnabled)
 	identityService := kratosapi.NewIdentityService(identitySvc, auditWriter, db, ratelimit.New(c), cfg.Security.SecureCookies, cfg.Security.SameSite)
 	identityService.ConfigureAuthMode(cfg.Security.AuthMode)
 	if cfg.Security.TurnstileConfigured() {

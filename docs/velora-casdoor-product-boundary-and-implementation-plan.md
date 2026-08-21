@@ -1,7 +1,9 @@
 # Velora 与 Casdoor 产品边界及应用接入实施方案
 
-> 状态：实施基线草案  
-> 适用范围：Velora 应用门户、管理后台、Casdoor 身份与单点登录集成  
+> 状态：实施基线草案
+>
+> 适用范围：Velora 应用门户、管理后台、Casdoor 身份与单点登录集成
+>
 > 核心约束：不修改 Casdoor 源码；不恢复 Velora 自建 OIDC Provider；不让两套后台重复维护同一事实
 
 ## 1. 结论

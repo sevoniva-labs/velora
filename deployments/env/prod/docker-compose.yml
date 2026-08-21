@@ -159,6 +159,9 @@ services:
 
   server:
     container_name: velora-prod-server
+    dns:
+      - 223.5.5.5
+      - 119.29.29.29
     build:
       # Compose resolves build paths relative to this file. Three levels are
       # required to reach the repository root from deployments/env/prod.

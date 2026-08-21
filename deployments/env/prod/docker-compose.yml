@@ -162,10 +162,6 @@ services:
     dns:
       - 223.5.5.5
       - 119.29.29.29
-    # The hosting network's Docker DNS cannot forward UDP queries reliably;
-    # keep COS reachable during bootstrap while the provider DNS is repaired.
-    extra_hosts:
-      - "velora-test-1314378184.cos.ap-guangzhou.myqcloud.com:159.75.57.118"
     build:
       # Compose resolves build paths relative to this file. Three levels are
       # required to reach the repository root from deployments/env/prod.

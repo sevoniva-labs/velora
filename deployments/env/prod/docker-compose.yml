@@ -84,7 +84,8 @@ services:
       POSTGRES_APP_PASSWORD_FILE: /run/secrets/postgres_app_password
       POSTGRES_IDP_USER: "${POSTGRES_IDP_USER:?POSTGRES_IDP_USER is required}"
       POSTGRES_IDP_PASSWORD_FILE: /run/secrets/postgres_idp_password
-    command: ["postgres", "-c", "ssl=on", "-c", "ssl_cert_file=/run/secrets/postgres_tls_cert", "-c", "ssl_key_file=/run/secrets/postgres_tls_key", "-c", "ssl_ca_file=/run/secrets/postgres_tls_ca"]
+    entrypoint: ["/usr/local/bin/velora-postgres-entrypoint.sh"]
+    command: ["postgres", "-c", "ssl=on", "-c", "ssl_cert_file=/var/lib/postgresql/tls/server.crt", "-c", "ssl_key_file=/var/lib/postgresql/tls/server.key", "-c", "ssl_ca_file=/var/lib/postgresql/tls/ca.crt"]
     secrets:
       - postgres_superuser_password
       - postgres_app_password
@@ -95,6 +96,7 @@ services:
     volumes:
       - velora-prod-pgdata:/var/lib/postgresql/data
       - ../../compose/init-db-prod.sh:/docker-entrypoint-initdb.d/10-init-db-prod.sh:ro
+      - ../../docker/postgres-entrypoint.sh:/usr/local/bin/velora-postgres-entrypoint.sh:ro
     expose:
       - "5432"
     networks:

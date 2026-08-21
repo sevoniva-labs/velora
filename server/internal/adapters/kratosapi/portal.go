@@ -36,7 +36,7 @@ type PortalService struct {
 	identityAllowedHosts      []string
 	identityOnboardingEnabled bool
 	identityAdminEntryEnabled bool
-	casdoorAutomation         *casdooradmin.Client
+	casdoorAutomation         casdooradmin.ApplicationProvider
 	approval                  *approvalapp.Service
 	idem                      *idempotency.Store
 }
@@ -54,8 +54,8 @@ func (s *PortalService) ConfigureIdentityBoundary(adminURL, issuer, internalURL 
 	s.identityAdminEntryEnabled = adminEntryEnabled
 }
 
-func (s *PortalService) ConfigureCasdoorAutomation(client *casdooradmin.Client) {
-	s.casdoorAutomation = client
+func (s *PortalService) ConfigureCasdoorAutomation(provider casdooradmin.ApplicationProvider) {
+	s.casdoorAutomation = provider
 }
 
 func (s *PortalService) ConfigureApproval(service *approvalapp.Service) {

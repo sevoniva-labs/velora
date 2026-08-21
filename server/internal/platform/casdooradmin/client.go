@@ -89,12 +89,24 @@ type UpsertInput struct {
 	ApprovalID   string
 }
 
+// ApplicationProvider is the narrow boundary Velora uses for external
+// identity-client lifecycle management. Implementations must not expose APIs
+// for users, passwords, roles, organizations or MFA.
+type ApplicationProvider interface {
+	Enabled() bool
+	GetApplication(context.Context, string) (Application, bool, error)
+	UpsertApplication(context.Context, UpsertInput) (Application, bool, error)
+	DisableApplication(context.Context, string, string) error
+}
+
 type Client struct {
 	baseURL    string
 	token      string
 	enabled    bool
 	httpClient *http.Client
 }
+
+var _ ApplicationProvider = (*Client)(nil)
 
 func New(cfg Config) (*Client, error) {
 	base := strings.TrimRight(strings.TrimSpace(cfg.BaseURL), "/")

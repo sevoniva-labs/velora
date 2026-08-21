@@ -106,5 +106,5 @@ export default function TurnstileWidget({ siteKey, action = 'login', onVerify, o
   if (failed) {
     return <div style={{ color: '#fa541c', fontSize: 13 }}>安全验证加载失败，请刷新页面后重试。</div>
   }
-  return <div ref={containerRef} data-testid="turnstile-widget" style={{ minHeight: 65 }} />
+  return <div ref={containerRef} className="velora-turnstile-widget-host" data-testid="turnstile-widget" />
 }

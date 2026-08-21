@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { App as AntdApp, Button, Form, Input } from 'antd'
 import {
   AppstoreOutlined,
@@ -47,7 +47,11 @@ export default function Login() {
   const [searchParams] = useSearchParams()
   const { message } = AntdApp.useApp()
   const [submitting, setSubmitting] = useState(false)
-  const [authCapabilities, setAuthCapabilities] = useState<AuthCapabilities | null>(null)
+  const { data: authCapabilities, isPending: authCapabilitiesPending } = useQuery<AuthCapabilities>({
+    queryKey: ['auth-capabilities'],
+    queryFn: getAuthCapabilities,
+    retry: false,
+  })
   // Cloudflare Turnstile 人机验证（登录防 bot；后端配置启用后必须通过验证才能登录）
   const [turnstileToken, setTurnstileToken] = useState('')
   // Turnstile token 一次性有效：登录失败/过期后递增 key 强制重挂载 widget 获取新 token。
@@ -60,13 +64,6 @@ export default function Login() {
   })
   const turnstileEnabled = turnstile?.enabled && !!turnstile.siteKey
 
-  useEffect(() => {
-    void getAuthCapabilities().then(setAuthCapabilities).catch(() => {
-      // 能力发现失败时默认使用统一身份登录，不在页面展示密码表单。
-      setAuthCapabilities({ authMode: 'oidc', passwordLoginEnabled: false, casdoorAccountUrl: '' })
-    })
-  }, [])
-
   // 门户展示配置：名称 / 欢迎语 / 页脚（未登录也可读，后端为公开只读接口）。
   const { data: settings } = useQuery({ queryKey: queryKeys.portalSettings, queryFn: getPortalSettings, retry: false })
   const valueOf = (key: string) => settings?.find((s) => s.key === key)?.value ?? ''
@@ -76,6 +73,7 @@ export default function Login() {
 
   // 未登录访问受保护页面时，携带 redirect 以便登录后跳回。
   const redirect = searchParams.get('redirect')
+  // 能力接口返回前保持稳定的登录骨架，避免刷新时先闪出错误的 OIDC 按钮。
   const oidcOnly = !authCapabilities || !authCapabilities.passwordLoginEnabled
 
   const loginErrorMessage = (error: unknown, fallback: string): string => {
@@ -203,7 +201,12 @@ export default function Login() {
           <h2 className="velora-login-title">登录</h2>
           <p className="velora-login-desc">使用企业账号登录</p>
 
-          {oidcOnly ? (
+          {authCapabilitiesPending ? (
+            <div className="velora-login-method-loading" role="status" aria-live="polite">
+              <span className="velora-login-loading-bar" aria-hidden="true" />
+              <span>正在准备登录入口…</span>
+            </div>
+          ) : oidcOnly ? (
             <>
               <Button type="primary" block loading={submitting} onClick={() => void onOIDCLogin()} className="velora-login-submit">
                 使用统一身份登录
@@ -233,7 +236,28 @@ export default function Login() {
                   maxLength={128}
                 />
               </Form.Item>
-              <Form.Item style={{ marginBottom: 0, marginTop: 8 }}>
+              {turnstileEnabled && (
+                <div className="velora-turnstile-card">
+                  <div className="velora-turnstile-heading">
+                    <span className="velora-turnstile-icon" aria-hidden="true">
+                      <SafetyCertificateOutlined />
+                    </span>
+                    <span className="velora-turnstile-title">安全验证</span>
+                    <span className="velora-turnstile-caption">保护账号安全</span>
+                  </div>
+                  <div className="velora-turnstile-widget">
+                    <TurnstileWidget
+                      key={turnstileAttempt}
+                      siteKey={turnstile.siteKey}
+                      action={turnstile.action}
+                      theme="light"
+                      onVerify={setTurnstileToken}
+                      onExpire={() => setTurnstileToken('')}
+                    />
+                  </div>
+                </div>
+              )}
+              <Form.Item style={{ marginBottom: 0, marginTop: turnstileEnabled ? 16 : 8 }}>
                 <Button
                   type="primary"
                   htmlType="submit"
@@ -245,17 +269,6 @@ export default function Login() {
                   登录
                 </Button>
               </Form.Item>
-              {turnstileEnabled && (
-                <div style={{ marginTop: 16, marginBottom: 4 }}>
-                  <TurnstileWidget
-                    key={turnstileAttempt}
-                    siteKey={turnstile.siteKey}
-                    action={turnstile.action}
-                    onVerify={setTurnstileToken}
-                    onExpire={() => setTurnstileToken('')}
-                  />
-                </div>
-              )}
             </Form>
           )}
 

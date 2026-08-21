@@ -645,7 +645,10 @@ func (s *Service) LoginFederated(ctx context.Context, orgID, provider, subject, 
 		_ = s.repo.DeleteSessionByID(ctx, sessionID)
 		return domain.Principal{}, "", "", time.Time{}, err
 	}
-	mustChange := user.MustChangePassword || s.passwordExpiredAt(user.PasswordChangedAt, policy.maxAge)
+	// Passwords for federated identities are owned by the external IdP. The
+	// local bootstrap flag and local password age must not block a successful
+	// Casdoor login; the IdP remains responsible for its own password policy.
+	mustChange := false
 	p := domain.Principal{Type: "USER", UserID: user.ID, OrganizationID: user.OrganizationID, LoginName: user.LoginName, DisplayName: user.DisplayName, Roles: user.Roles, Permissions: user.Permissions, MustChangePassword: mustChange, SessionID: sessionID, PasswordChangedAt: user.PasswordChangedAt, AuthenticationLevel: authenticationLevel, MFAVerifiedAt: mfaVerifiedAt}
 	return p, token, csrf, expires, nil
 }

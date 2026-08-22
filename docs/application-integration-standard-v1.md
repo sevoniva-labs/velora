@@ -1,6 +1,6 @@
 # Velora 应用接入规范 V1
 
-状态：强制执行（唯一权威清单）  
+状态：强制执行（唯一权威清单，2026-08-23 修订）
 适用范围：所有新接入 Velora 的生产应用  
 当前样板：Spectra  
 协议范围：OIDC Authorization Code + PKCE S256、账号与权限事件下发
@@ -48,6 +48,8 @@ RedirectURI=https://<application-domain>/<exact-callback>
 - 创建时间、五分钟以内的过期时间和安全站内回跳路径。
 
 事务 Cookie 必须为 Host-only、Secure、HttpOnly、SameSite=Lax，回调后立即删除；事务只能消费一次。应用不能让 Velora 为自己生成 state、nonce 或 verifier。
+
+Velora 的跨域会话桥接还会在 `auth` 域设置一次性浏览器 nonce，并把摘要绑定到 30 秒票据。票据必须同时满足可信 `Origin`、非 cross-site Fetch Metadata、原浏览器 nonce 和原子单次消费；应用不得读取、转发或自行模拟该票据。
 
 ## 4. Callback 与 Token 校验
 
@@ -128,6 +130,7 @@ Velora 负责平台角色与应用角色的映射。下游应用仍负责把收�
 | 默认入口 | `/login` 进入 Velora，用户看不到 Casdoor UI |
 | 站内回跳 | 登录后回原业务路径；`//host`、绝对 URL、反斜杠和 Fragment 被拒绝 |
 | Callback 攻击 | 错 state、nonce、aud、iss、过期 Token、重放 Code 全部拒绝 |
+| 会话桥接 | 浏览器 A 生成的票据在浏览器 B 拒绝；跨站表单拒绝；票据不进入 URL/日志 |
 | 无账号 | OIDC 身份有效但未预配时拒绝应用 Session |
 | 无权限 | 返回空态/403，不报网络异常、不默认授权 |
 | 角色变化 | 更高版本事件生效，旧版本不能覆盖 |
@@ -183,5 +186,17 @@ PROVISIONING_SECRET_FILE=/run/secrets/<application>-provisioning-secret
 | 账号下发 | `/api/v1/provisioning/events`，HMAC、幂等、版本、事务与审计 |
 | MFA 自助 | 账户安全页开启、校验、恢复码再生成、关闭 |
 | 联邦退出 | 本地撤销后跳受信任的 Velora logout URL |
+| SecretStore | `SPECTRA_MASTER_KEY_FILE` 只读 Secret 文件，禁止写入环境变量、镜像或 Git |
 
-代码验收基线：Spectra `main` 的 `4426886`、`4644f50`、`8c19d0c`。这些提交已通过后端 focused test、Go vet、前端测试、lint 和生产构建；只有部署并完成第 10 节真实浏览器验收后，才可更新为“生产 PASS”。
+代码验收基线：Velora `main` 的 `05f1216`，Spectra `main` 的 `c5e3c40`。自动化测试、部署状态和仍需人工完成的真实浏览器验收见[生产 V1 收口记录](./production-v1-closure-2026-08-23.md)。
+
+## 14. 每个接入应用必须交付
+
+- 应用登记表：编码、负责人、生产域名、精确 Callback、登出回跳、角色目录和数据分级；
+- 配置清单：Issuer、Client ID、Secret 文件路径、Provisioning URL 与 Secret 文件路径；
+- 自动化证据：state/nonce/PKCE、错误 Callback、幂等/旧版本、停用撤权、无权限空态和安全回跳；
+- 生产证据：真实浏览器登录/退出、commit、镜像摘要、配置摘要、健康检查和审计事件；
+- 回滚包：上一制品、上一配置、数据库备份、应用下架与 Client 停用步骤；
+- 运维归属：告警接收人、Secret/证书轮换人、故障升级路径和维护窗口。
+
+缺少任一项，应用状态只能是 `DRAFT` 或 `VERIFICATION_PENDING`，不能标记为 `PUBLISHED`。

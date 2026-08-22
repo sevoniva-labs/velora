@@ -1,0 +1,12 @@
+[Unit]
+Description=Run Velora encrypted dual-database backup daily
+
+[Timer]
+OnCalendar=*-*-* 03:17:00 Asia/Shanghai
+RandomizedDelaySec=15m
+Persistent=true
+AccuracySec=1m
+Unit=velora-backup.service
+
+[Install]
+WantedBy=timers.target

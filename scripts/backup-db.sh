@@ -183,9 +183,13 @@ if [ -n "${BACKUP_S3:-}" ]; then
     s5cmd cp "$MANIFEST" "$BACKUP_S3/"
     [ -z "$SIGNATURE" ] || s5cmd cp "$SIGNATURE" "$BACKUP_S3/"
   elif command -v aws >/dev/null 2>&1; then
-    aws s3 cp "$TARGET" "$BACKUP_S3/"
-    aws s3 cp "$MANIFEST" "$BACKUP_S3/"
-    [ -z "$SIGNATURE" ] || aws s3 cp "$SIGNATURE" "$BACKUP_S3/"
+    aws_args=()
+    if [[ -n "${BACKUP_S3_ENDPOINT:-${AWS_ENDPOINT_URL:-}}" ]]; then
+      aws_args+=(--endpoint-url "${BACKUP_S3_ENDPOINT:-${AWS_ENDPOINT_URL}}")
+    fi
+    aws "${aws_args[@]}" s3 cp "$TARGET" "$BACKUP_S3/"
+    aws "${aws_args[@]}" s3 cp "$MANIFEST" "$BACKUP_S3/"
+    [ -z "$SIGNATURE" ] || aws "${aws_args[@]}" s3 cp "$SIGNATURE" "$BACKUP_S3/"
   else
     echo "错误：设置 BACKUP_S3 时必须安装 s5cmd 或 aws" >&2
     exit 1

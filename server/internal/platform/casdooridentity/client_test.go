@@ -3,6 +3,7 @@ package casdooridentity
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -72,7 +73,7 @@ func TestCreateUserRecoversExactManagedPartialCreation(t *testing.T) {
 		case "/api/get-user":
 			_, _ = w.Write([]byte(`{"status":"ok","data":{"owner":"built-in","name":"carson","id":"subject-1","displayName":"Carson","email":"","signupApplication":"app-velora","isForbidden":true}}`))
 		case "/api/update-user":
-			if r.URL.Query().Get("columns") != "password,isForbidden" {
+			if r.URL.Query().Get("columns") != "password,is_forbidden" {
 				t.Fatalf("columns = %q", r.URL.Query().Get("columns"))
 			}
 			var body userWire
@@ -96,5 +97,60 @@ func TestCreateUserRecoversExactManagedPartialCreation(t *testing.T) {
 	subject, err := client.CreateUser(context.Background(), appidentity.ManagedUserInput{LoginName: "carson", DisplayName: "Carson", Password: "Strong#Password123"})
 	if err != nil || subject != "subject-1" || !updated {
 		t.Fatalf("CreateUser() = %q, %v, updated=%t", subject, err, updated)
+	}
+}
+
+func TestSetUserStatusUsesVersionCompatibleColumnAndVerifiesPersistence(t *testing.T) {
+	forbidden := false
+	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		switch r.URL.Path {
+		case "/api/get-user":
+			_, _ = w.Write([]byte(fmt.Sprintf(`{"status":"ok","data":{"owner":"built-in","name":"carson","id":"subject-1","displayName":"Carson","isForbidden":%t}}`, forbidden)))
+		case "/api/update-user":
+			if r.URL.Query().Get("columns") != "is_forbidden" {
+				t.Fatalf("columns = %q", r.URL.Query().Get("columns"))
+			}
+			var body userWire
+			if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+				t.Fatal(err)
+			}
+			forbidden = body.IsForbidden
+			_, _ = w.Write([]byte(`{"status":"ok","data":"Affected"}`))
+		case "/api/get-sessions", "/api/get-tokens":
+			_, _ = w.Write([]byte(`{"status":"ok","data":[]}`))
+		default:
+			t.Fatalf("unexpected path %s", r.URL.Path)
+		}
+	}))
+	defer server.Close()
+	client, err := New(Config{BaseURL: server.URL, ClientID: "client", ClientSecret: "secret", Organization: "built-in", Enabled: true, HTTPClient: server.Client()})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := client.SetUserStatus(context.Background(), "carson", false); err != nil {
+		t.Fatal(err)
+	}
+	if !forbidden {
+		t.Fatal("user status was not persisted")
+	}
+}
+
+func TestModifyRejectsUnchangedResponse(t *testing.T) {
+	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		if r.URL.Path == "/api/get-user" {
+			_, _ = w.Write([]byte(`{"status":"ok","data":{"owner":"built-in","name":"carson","id":"subject-1","displayName":"Carson"}}`))
+			return
+		}
+		_, _ = w.Write([]byte(`{"status":"ok","data":"Unchanged"}`))
+	}))
+	defer server.Close()
+	client, err := New(Config{BaseURL: server.URL, ClientID: "client", ClientSecret: "secret", Organization: "built-in", Enabled: true, HTTPClient: server.Client()})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := client.SetUserStatus(context.Background(), "carson", false); err == nil {
+		t.Fatal("expected unchanged update to fail")
 	}
 }

@@ -86,7 +86,7 @@ func (c *Client) CreateUser(ctx context.Context, in appidentity.ManagedUserInput
 		}
 		existing.Password = in.Password
 		existing.IsForbidden = false
-		if err := c.modify(ctx, "update-user", existing.Owner+"/"+existing.Name, []string{"password", "isForbidden"}, existing); err != nil {
+		if err := c.modify(ctx, "update-user", existing.Owner+"/"+existing.Name, []string{"password", "is_forbidden"}, existing); err != nil {
 			return "", err
 		}
 		return existing.ID, nil
@@ -115,8 +115,18 @@ func (c *Client) SetUserStatus(ctx context.Context, login string, active bool) e
 	}
 	u.Password = ""
 	u.IsForbidden = !active
-	if err := c.modify(ctx, "update-user", u.Owner+"/"+u.Name, []string{"isForbidden"}, u); err != nil {
+	// Casdoor versions before v1.800 pass column names directly to XORM,
+	// while newer versions normalize camelCase. Database column names work on
+	// both, so keep this boundary version-compatible.
+	if err := c.modify(ctx, "update-user", u.Owner+"/"+u.Name, []string{"is_forbidden"}, u); err != nil {
 		return err
+	}
+	updated, found, err := c.get(ctx, login)
+	if err != nil {
+		return err
+	}
+	if !found || updated.IsForbidden != !active {
+		return errors.New("Casdoor user status update was not persisted")
 	}
 	if !active {
 		return c.revokeUserAccess(ctx, login)
@@ -196,8 +206,15 @@ func (c *Client) modify(ctx context.Context, action, id string, columns []string
 	if len(columns) > 0 {
 		path += "&columns=" + url.QueryEscape(strings.Join(columns, ","))
 	}
-	_, err := c.do(ctx, http.MethodPost, path, body, nil)
-	return err
+	var result string
+	_, err := c.do(ctx, http.MethodPost, path, body, &result)
+	if err != nil {
+		return err
+	}
+	if !strings.EqualFold(result, "Affected") {
+		return errors.New("Casdoor identity API did not persist the change")
+	}
+	return nil
 }
 
 func (c *Client) do(ctx context.Context, method, path string, body any, out any) (int, error) {

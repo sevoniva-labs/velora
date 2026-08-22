@@ -3,6 +3,8 @@
 状态：Reference App 与 Spectra 已真实验收；本指南作为后续业务应用接入规范
 适用角色：应用开发者、Velora 应用管理员、身份管理员
 
+强制验收清单以[《Velora 应用接入规范 V1》](./application-integration-standard-v1.md)为唯一权威；本文件保留 OIDC 原理、排障和历史验收细节。
+
 整体建设顺序和生产约束以[《Velora 新服务器整体建设与上线方案》](./production-clean-deployment-overall-plan.md)为准；本文件只定义下游应用如何接入。
 
 账号创建、停用、应用角色下发和对账以[《Velora 统一账号与应用接入标准》](./account-provisioning-and-application-onboarding.md)为准。OIDC 只解决认证，不承载 Spectra 等应用业务角色；生产应用不得再使用 JIT 建号或默认授权。

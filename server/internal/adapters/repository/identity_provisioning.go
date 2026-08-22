@@ -53,7 +53,7 @@ func (r *IdentityRepo) FederatedManagedUser(ctx context.Context, organizationID,
 }
 
 func (r *IdentityRepo) ListUserEntitlements(ctx context.Context, userID string) ([]identity.ApplicationEntitlement, error) {
-	rows, err := r.db.QueryContext(ctx, r.db.Rebind(`SELECT a.application_code,a.name,e.status,e.roles_json,e.version FROM user_application_entitlements e JOIN portal_applications a ON a.id=e.application_id WHERE e.user_id=? ORDER BY a.name`), userID)
+	rows, err := r.db.QueryContext(ctx, r.db.Rebind(`SELECT a.code,a.name,e.status,e.roles_json,e.version FROM user_application_entitlements e JOIN portal_applications a ON a.id=e.application_id WHERE e.user_id=? ORDER BY a.name`), userID)
 	if err != nil {
 		return nil, err
 	}
@@ -104,7 +104,7 @@ func (r *IdentityRepo) UpsertUserEntitlement(ctx context.Context, actorID, userI
 			return errors.New("user is not managed by Casdoor")
 		}
 		var appID, appName string
-		if err := tx.QueryRowContext(ctx, r.db.Rebind(`SELECT id,name FROM portal_applications WHERE organization_id=? AND application_code=?`), u.OrganizationID, applicationCode).Scan(&appID, &appName); err != nil {
+		if err := tx.QueryRowContext(ctx, r.db.Rebind(`SELECT id,name FROM portal_applications WHERE organization_id=? AND code=?`), u.OrganizationID, applicationCode).Scan(&appID, &appName); err != nil {
 			return err
 		}
 		version := u.ProvisioningVersion + 1

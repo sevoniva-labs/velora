@@ -63,3 +63,38 @@ func TestErrorDoesNotLeakCredentials(t *testing.T) {
 		t.Fatalf("unsafe error: %v", err)
 	}
 }
+
+func TestCreateUserRecoversExactManagedPartialCreation(t *testing.T) {
+	updated := false
+	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		switch r.URL.Path {
+		case "/api/get-user":
+			_, _ = w.Write([]byte(`{"status":"ok","data":{"owner":"built-in","name":"carson","id":"subject-1","displayName":"Carson","email":"","signupApplication":"app-velora","isForbidden":true}}`))
+		case "/api/update-user":
+			if r.URL.Query().Get("columns") != "password,isForbidden" {
+				t.Fatalf("columns = %q", r.URL.Query().Get("columns"))
+			}
+			var body userWire
+			if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+				t.Fatal(err)
+			}
+			if body.Password != "Strong#Password123" || body.IsForbidden {
+				t.Fatalf("unexpected recovery body: %#v", body)
+			}
+			updated = true
+			_, _ = w.Write([]byte(`{"status":"ok","data":"Affected"}`))
+		default:
+			t.Fatalf("unexpected path %s", r.URL.Path)
+		}
+	}))
+	defer server.Close()
+	client, err := New(Config{BaseURL: server.URL, ClientID: "client", ClientSecret: "secret", Organization: "built-in", Application: "app-velora", Enabled: true, HTTPClient: server.Client()})
+	if err != nil {
+		t.Fatal(err)
+	}
+	subject, err := client.CreateUser(context.Background(), appidentity.ManagedUserInput{LoginName: "carson", DisplayName: "Carson", Password: "Strong#Password123"})
+	if err != nil || subject != "subject-1" || !updated {
+		t.Fatalf("CreateUser() = %q, %v, updated=%t", subject, err, updated)
+	}
+}

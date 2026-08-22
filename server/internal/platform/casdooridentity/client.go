@@ -71,10 +71,25 @@ func (c *Client) CreateUser(ctx context.Context, in appidentity.ManagedUserInput
 		return "", errors.New("managed identity provider is disabled")
 	}
 	login := strings.TrimSpace(in.LoginName)
-	if _, found, err := c.get(ctx, login); err != nil {
+	existing, found, err := c.get(ctx, login)
+	if err != nil {
 		return "", err
-	} else if found {
-		return "", fmt.Errorf("Casdoor user %q already exists", login)
+	}
+	if found {
+		// A prior request may have created the Casdoor identity before the
+		// Velora audit transaction failed. Adopt only the exact identity owned
+		// by this application; unrelated name collisions remain fail-closed.
+		if existing.ID == "" || existing.SignupApplication != c.application ||
+			strings.TrimSpace(existing.DisplayName) != strings.TrimSpace(in.DisplayName) ||
+			strings.TrimSpace(existing.Email) != strings.TrimSpace(in.Email) {
+			return "", fmt.Errorf("Casdoor user %q already exists and is not managed by this application", login)
+		}
+		existing.Password = in.Password
+		existing.IsForbidden = false
+		if err := c.modify(ctx, "update-user", existing.Owner+"/"+existing.Name, []string{"password", "isForbidden"}, existing); err != nil {
+			return "", err
+		}
+		return existing.ID, nil
 	}
 	u := userWire{Owner: c.organization, Name: login, DisplayName: strings.TrimSpace(in.DisplayName), Email: strings.TrimSpace(in.Email), Password: in.Password, Type: "normal-user", SignupApplication: c.application}
 	if err := c.modify(ctx, "add-user", c.organization+"/"+login, nil, u); err != nil {

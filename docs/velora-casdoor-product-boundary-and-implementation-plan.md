@@ -1,6 +1,6 @@
 # Velora 与 Casdoor 产品边界及应用接入实施方案
 
-> 状态：已实施边界（`main` / `c88a10c`）；后续业务应用按本文件接入
+> 状态：历史边界文档，账号与应用授权边界已由[《Velora 统一账号与应用接入标准》](./account-provisioning-and-application-onboarding.md)更新
 >
 > 适用范围：Velora 应用门户、管理后台、Casdoor 身份与单点登录集成
 >
@@ -11,7 +11,8 @@
 Velora 与 Casdoor 采用“一个产品入口、两个专业控制面”的模式：
 
 - **Velora 是所有用户和管理员的主要产品入口**，负责统一登录页面、应用目录、展示、分类、标签、负责人、启动地址、访问策略、发布、停用和业务审计。
-- **Casdoor 是唯一身份控制面**，负责用户、组织、角色、用户组、认证、MFA、OIDC/SAML/CAS 客户端、Redirect URI、Client ID、Client Secret 和身份 Claims。
+- **Velora 是账号生命周期与应用授权控制面**，管理员在 Velora 创建、停用账号并分配下游应用角色。
+- **Casdoor 是唯一认证事实来源**，负责密码、MFA、SSO Session、OIDC/SAML/CAS 客户端、Redirect URI、Client ID、Client Secret 和身份 Claims；账号状态由 Velora 通过受控服务端 API 同步。
 - **普通用户不接触 Casdoor 管理后台，也不需要看到 Casdoor 产品名称**；面向用户统一使用“统一身份中心”品牌。
 - **身份管理员可以从 Velora 进入 Casdoor 管理后台**，但入口必须单独授权，并通过内网、VPN、Cloudflare Access 或同等级访问控制保护。
 - **OIDC/SAML/CAS 应用仍需在 Casdoor 注册客户端**；Velora 只保存非敏感引用、接入状态和验证证据，不复制 Casdoor 的完整配置，不保存下游应用 Client Secret。
@@ -30,7 +31,7 @@ Velora 与 Casdoor 采用“一个产品入口、两个专业控制面”的模�
 
 每一类数据只能有一个权威来源：
 
-- 身份事实以 Casdoor 为准；
+- 账号控制状态、平台角色和应用授权以 Velora 为准；密码、MFA、认证 Subject 和会话事实以 Casdoor 为准；
 - 门户应用和访问策略以 Velora 为准；
 - 下游应用自己的会话、业务权限和 Client Secret 由下游应用负责。
 

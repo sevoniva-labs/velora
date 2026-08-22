@@ -5,6 +5,8 @@
 
 整体建设顺序和生产约束以[《Velora 新服务器整体建设与上线方案》](./production-clean-deployment-overall-plan.md)为准；本文件只定义下游应用如何接入。
 
+账号创建、停用、应用角色下发和对账以[《Velora 统一账号与应用接入标准》](./account-provisioning-and-application-onboarding.md)为准。OIDC 只解决认证，不承载 Spectra 等应用业务角色；生产应用不得再使用 JIT 建号或默认授权。
+
 ## 0. 五分钟接入版
 
 应用团队只需要完成下面五件事：
@@ -29,7 +31,8 @@ OIDC_REDIRECT_URL=https://<应用域名>/<callback>
 ## 1. 接入边界
 
 - Velora 是应用目录、接入流程、访问范围、发布和审计平台。
-- Casdoor 是 OIDC Identity Provider，负责账号、MFA、SSO Session、Client 和 Token。
+- Velora 也是账号生命周期与应用授权控制面；管理员只在 Velora 开通、停用账号和分配应用角色。
+- Casdoor 是认证事实来源，负责密码、MFA、SSO Session、Client 和 Token，并由 Velora 通过受控 M2M API 写入账号状态。
 - 目标应用是 OIDC Relying Party，必须自行校验 Token 并实施业务权限。
 - Velora 的门户访问策略只控制“谁能看到和启动应用”，不能替代目标应用内部授权。
 
@@ -164,7 +167,7 @@ sequenceDiagram
 - 可以执行的业务操作。
 - 交易、审批、导出等高风险动作。
 
-目标应用必须默认拒绝未知用户/角色；不能因为用户能从 Velora 启动应用就授予管理员权限。
+目标应用必须默认拒绝未知用户/角色；不能因为用户能从 Velora 启动应用就授予管理员权限。应用只能为 Velora 已预配且状态为 `ACTIVE` 的账号建立会话。
 
 ## 10. 发布前验收清单
 

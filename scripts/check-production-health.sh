@@ -6,7 +6,9 @@ umask 077
 RUNTIME_DIR="${VELORA_RUNTIME_DIR:-/opt/velora/prod/runtime}"
 STATUS_FILE="${VELORA_HEALTH_STATUS_FILE:-$RUNTIME_DIR/evidence/health-last.json}"
 BACKUP_STATUS="$RUNTIME_DIR/evidence/backup-last-success.json"
+AUDIT_ARCHIVE_STATUS="$RUNTIME_DIR/evidence/audit-archive-last-success.json"
 MAX_BACKUP_AGE_SECONDS="${VELORA_MAX_BACKUP_AGE_SECONDS:-129600}"
+MAX_AUDIT_ARCHIVE_AGE_SECONDS="${VELORA_MAX_AUDIT_ARCHIVE_AGE_SECONDS:-172800}"
 CERT_WARN_DAYS="${VELORA_CERT_WARN_DAYS:-30}"
 failures=()
 
@@ -27,6 +29,18 @@ check_url "Spectra readiness" "https://spectra.sevoniva.com/api/v1/system/health
 oidc_metadata="$(curl --fail --silent --show-error --max-time 10 --connect-timeout 3 https://auth.sevoniva.com/.well-known/openid-configuration || true)"
 if ! jq -e '.issuer == "https://auth.sevoniva.com" and (.authorization_endpoint | startswith("https://auth.sevoniva.com/")) and (.token_endpoint | startswith("https://auth.sevoniva.com/")) and (.jwks_uri | startswith("https://auth.sevoniva.com/"))' <<<"$oidc_metadata" >/dev/null 2>&1; then
   failures+=("OIDC discovery unavailable or inconsistent")
+fi
+
+if [[ ! -s "$AUDIT_ARCHIVE_STATUS" ]]; then
+  failures+=("audit archive success evidence missing")
+else
+  audit_archive_time="$(jq -r '.completed_at // empty' "$AUDIT_ARCHIVE_STATUS")"
+  audit_archive_epoch="$(date -d "$audit_archive_time" +%s 2>/dev/null || printf 0)"
+  if (( audit_archive_epoch == 0 || now_epoch - audit_archive_epoch > MAX_AUDIT_ARCHIVE_AGE_SECONDS )); then
+    failures+=("latest audit archive is stale")
+  elif ! jq -e '.status == "passed" and .encrypted == true and .signed == true and .remote_copy == true' "$AUDIT_ARCHIVE_STATUS" >/dev/null 2>&1; then
+    failures+=("latest audit archive evidence is invalid")
+  fi
 fi
 
 for container in velora-prod-postgres velora-prod-redis velora-prod-casdoor velora-prod-server velora-prod-worker velora-prod-web velora-prod-edge; do

@@ -44,25 +44,34 @@ UPDATE audit_logs SET prev_hash='', hash='';
 | 归档   | 3 年     | CSV 冷存储，满足合规取证               |
 
 ```bash
-# 归档 180 天前的记录（导出 CSV 后删除，含 hash 链字段便于事后校验）
+# 导出 180 天前的记录（只导出，不删除在线记录）
 ./scripts/audit-archive.sh
 # 自定义保留天数
 AUDIT_RETENTION_DAYS=365 ./scripts/audit-archive.sh
-# 归档目录（默认 ./backups/audit，建议挂载对象存储）
+# 归档目录（默认 ./backups/audit）
 AUDIT_ARCHIVE_DIR=/srv/audit-archive ./scripts/audit-archive.sh
 ```
 
 脚本行为：
 
-1. `\copy` 导出 `created_at < cutoff` 的记录为 CSV（含 `prev_hash/hash`）
-2. 校验导出行数 == 待删行数，不一致则中止（防止误删）
-3. `DELETE` 时保留最新一条作为链锚（`id < max(id)`），避免破坏后续新链
+1. `\copy` 导出 `occurred_at < cutoff` 的记录为 CSV（含 `prev_hash/event_hash`）；
+2. 用 CSV 解析器校验导出行数等于数据库计数；
+3. 生成 SHA-256 清单和带 cutoff、行数、schema 的元数据；
+4. 始终保留在线记录。删除只能由验证 WORM receipt 并写入 `audit_chain_anchors` 的应用归档流程执行。
 
-**cron 建议**（每日 03:30）：
+标准生产由 `velora-audit-archive.timer` 每日 03:30 执行 `run-production-audit-archive.sh`：导出当前时间前的完整快照，打包后使用 age 加密、OpenSSL 签名并上传腾讯 COS，结果写入 `runtime/evidence/audit-archive-last-success.json`，健康检查要求 48 小时内存在有效成功证据。
 
-```cron
-30 3 * * * cd /opt/velora && ./scripts/audit-archive.sh >> /var/log/velora-audit-archive.log 2>&1
+安装与验收：
+
+```bash
+install -m 0644 deployments/systemd/velora-audit-archive.{service,timer} /etc/systemd/system/
+systemctl daemon-reload
+systemctl enable --now velora-audit-archive.timer
+systemctl start velora-audit-archive.service
+jq . /opt/velora/prod/runtime/evidence/audit-archive-last-success.json
 ```
+
+该标准归档是独立、加密、签名的可恢复副本，但 `immutable=false`。未启用并验证 COS 对象锁、WORM receipt、外部链头锚定和 SIEM 前，不得宣称不可抵赖或金融级审计。
 
 ## 5. 安全事件联动
 
@@ -73,6 +82,6 @@ AUDIT_ARCHIVE_DIR=/srv/audit-archive ./scripts/audit-archive.sh
 
 ## 6. 注意事项
 
-- 归档删除采用"先导出、校验、再删"三步，防止数据丢失
+- 标准归档不删除在线数据，避免在没有 WORM receipt 时破坏审计链
 - 防篡改链不替代备份：`scripts/backup-db.sh` 每日全量备份仍是恢复的最终保障
 - 如需离线审计导出，直接查 `audit_logs` 表或使用归档 CSV

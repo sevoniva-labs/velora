@@ -30,6 +30,7 @@ Spectra：`c5e3c40`（`main`）
 | 备份恢复 | Velora/Casdoor 每日双库加密签名备份上传 COS；`20260822_224011` 隔离恢复与行数核对通过 |
 | 健康监控 | 两分钟 systemd synthetic check 覆盖 Portal、OIDC、Spectra、容器、备份和证书；最新状态 `passed` |
 | TLS 续期 | 三域已签发独立 Let's Encrypt 证书，过期日 2026-11-20；受控 timer 启用，三域 staging dry-run 全通过 |
+| 标准审计归档 | 每日完整快照经 age 加密、OpenSSL 签名后上传 COS；独立状态证据进入健康检查。该副本不宣称 WORM |
 
 ## 3. Spectra 标准样板
 

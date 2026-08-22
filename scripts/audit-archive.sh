@@ -15,6 +15,7 @@ umask 077
 
 RETENTION_DAYS="${AUDIT_RETENTION_DAYS:-180}"
 ARCHIVE_DIR="${AUDIT_ARCHIVE_DIR:-./backups/audit}"
+EXPORT_CUTOFF="${AUDIT_EXPORT_CUTOFF:-}"
 DATABASE_URL="${DATABASE_URL:-}"
 POSTGRES_CONTAINER="${POSTGRES_CONTAINER:-}"
 if ! [[ "$RETENTION_DAYS" =~ ^[1-9][0-9]*$ ]]; then
@@ -43,11 +44,17 @@ STAMP="$(date +%Y%m%d_%H%M%S)"
 CSV="$ARCHIVE_DIR/audit_until_${STAMP}.csv"
 MANIFEST="$CSV.sha256"
 METADATA="$CSV.metadata"
-if date -u -d "$RETENTION_DAYS days ago" +%Y-%m-%dT%H:%M:%SZ >/tmp/velora-audit-cutoff.$$ 2>/dev/null; then
-  CUTOFF="$(cat /tmp/velora-audit-cutoff.$$)"
-  rm -f /tmp/velora-audit-cutoff.$$
+if [[ -n "$EXPORT_CUTOFF" ]]; then
+  if ! [[ "$EXPORT_CUTOFF" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$ ]]; then
+    echo "错误：AUDIT_EXPORT_CUTOFF 必须为 UTC RFC3339 秒级时间" >&2
+    exit 1
+  fi
+  CUTOFF="$EXPORT_CUTOFF"
+elif date -u -d "$RETENTION_DAYS days ago" +%Y-%m-%dT%H:%M:%SZ >"/tmp/velora-audit-cutoff.$$" 2>/dev/null; then
+  CUTOFF="$(<"/tmp/velora-audit-cutoff.$$")"
+  unlink "/tmp/velora-audit-cutoff.$$"
 else
-  rm -f /tmp/velora-audit-cutoff.$$
+  [[ ! -e "/tmp/velora-audit-cutoff.$$" ]] || unlink "/tmp/velora-audit-cutoff.$$"
   CUTOFF="$(date -u -v-"${RETENTION_DAYS}"d +%Y-%m-%dT%H:%M:%SZ)"
 fi
 

@@ -1,0 +1,23 @@
+[Unit]
+Description=Velora encrypted production audit archive
+Wants=network-online.target docker.service
+After=network-online.target docker.service
+ConditionPathExists=/opt/velora/prod/runtime/compose/prod.env
+
+[Service]
+Type=oneshot
+User=root
+Group=root
+WorkingDirectory=/opt/velora/source
+ExecStart=/usr/bin/flock -n /run/velora-audit-archive.lock /opt/velora/source/scripts/run-production-audit-archive.sh
+Nice=10
+IOSchedulingClass=best-effort
+IOSchedulingPriority=7
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict
+ReadWritePaths=/opt/velora/prod/runtime/audit-archive /opt/velora/prod/runtime/evidence /run
+
+[Install]
+WantedBy=multi-user.target

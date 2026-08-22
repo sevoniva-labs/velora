@@ -29,10 +29,6 @@ export default defineConfig({
               test: /node_modules\/(react|react-dom|react-router|react-router-dom|@tanstack|scheduler|use-sync-external-store)/,
             },
             {
-              name: 'antd-core',
-              test: /node_modules\/antd/,
-            },
-            {
               name: 'pro-vendor',
               test: /node_modules\/@ant-design\/(pro|icons|cssinjs|fast-color|colors)/,
             },

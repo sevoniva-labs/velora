@@ -9,12 +9,14 @@ import {
   TagsOutlined,
   UnorderedListOutlined,
   SafetyOutlined,
+  TeamOutlined,
 } from '@ant-design/icons'
 import {
   API_TOKEN_MANAGE,
   AUDIT_READ,
   IDENTITY_READ,
   PORTAL_MANAGE,
+  SYSTEM_USER_READ,
 } from '../auth/permissions'
 
 export interface AdminNavItem {
@@ -47,6 +49,7 @@ export const adminNavGroups: AdminNavGroup[] = [
     key: 'platform',
     label: '平台',
     items: [
+      { key: 'admin-users', path: '/admin/users', label: '账号与访问', icon: <TeamOutlined />, permissions: [SYSTEM_USER_READ] },
       { key: 'admin-audit', path: '/admin/audit', label: '审计日志', icon: <AuditOutlined />, permissions: [AUDIT_READ] },
       { key: 'admin-integration-tokens', path: '/admin/integration-tokens', label: '集成令牌', icon: <ApiOutlined />, permissions: [API_TOKEN_MANAGE] },
       { key: 'admin-identity', path: '/admin/identity', label: '身份与单点登录', icon: <SafetyOutlined />, permissions: [IDENTITY_READ] },
@@ -55,6 +58,7 @@ export const adminNavGroups: AdminNavGroup[] = [
 ]
 
 export function adminActiveKey(pathname: string): string {
+  if (pathname.startsWith('/admin/users')) return 'admin-users'
   if (pathname.startsWith('/admin/applications')) return 'admin-apps'
   if (pathname.startsWith('/admin/categories')) return 'admin-categories'
   if (pathname.startsWith('/admin/tags')) return 'admin-tags'

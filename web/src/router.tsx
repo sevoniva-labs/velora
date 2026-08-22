@@ -50,6 +50,7 @@ const AdminPolicies = lazyWithReload(() => import('./pages/admin/Policies'))
 const AdminAudit = lazyWithReload(() => import('./pages/admin/Audit'))
 const AdminIntegrationTokens = lazyWithReload(() => import('./pages/admin/IntegrationTokens'))
 const AdminIdentityIntegrations = lazyWithReload(() => import('./pages/admin/IdentityIntegrations'))
+const AdminUsers = lazyWithReload(() => import('./pages/admin/Users'))
 
 export const router = createBrowserRouter([
   {
@@ -97,6 +98,7 @@ export const router = createBrowserRouter([
       { path: 'audit', element: <AdminAudit /> },
       { path: 'integration-tokens', element: <AdminIntegrationTokens /> },
       { path: 'identity', element: <AdminIdentityIntegrations /> },
+      { path: 'users', element: <AdminUsers /> },
       { path: '*', element: <NotFound /> },
     ],
   },

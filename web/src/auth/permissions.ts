@@ -13,6 +13,10 @@ export const IDENTITY_CONSOLE = 'iam.console.open'
 export const AUDIT_READ = 'audit.read'
 export const SYSTEM_AUDIT_READ = 'system.audit.read'
 export const API_TOKEN_MANAGE = 'system.api_token.manage'
+export const SYSTEM_USER_READ = 'system.user.read'
+export const SYSTEM_USER_CREATE = 'system.user.create'
+export const SYSTEM_USER_UPDATE = 'system.user.update'
+export const SYSTEM_USER_ROLE_MANAGE = 'system.user.role.manage'
 
 /** Built-in system_admin has an explicit backend superuser boundary. */
 export function hasPermission(permissions: string[] | undefined, required: string, roles: string[] = []): boolean {
@@ -38,6 +42,7 @@ export const ADMIN_ENTRY_PERMISSIONS = [
   IDENTITY_CONSOLE,
   AUDIT_READ,
   API_TOKEN_MANAGE,
+  SYSTEM_USER_READ,
 ]
 
 export function canAccessAdmin(permissions: string[] | undefined, roles: string[] = []): boolean {

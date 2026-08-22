@@ -25,6 +25,8 @@ import type {
   AccessPolicy,
   IdentityBinding,
   ApplicationVerification,
+  AdminUser,
+  ApplicationEntitlement,
 } from '../types'
 import { canAccessAdmin } from '../auth/permissions'
 
@@ -109,6 +111,33 @@ function mapIdentityBinding(value: unknown): IdentityBinding | undefined {
 function mapVerification(value: unknown): ApplicationVerification {
   const item = record(value)
   return { id: asId(item.id), applicationId: asId(item.applicationId), bindingId: asId(item.bindingId), checkType: String(item.checkType ?? ''), result: String(item.result ?? ''), errorCode: String(item.errorCode ?? ''), evidenceJson: String(item.evidenceJson ?? ''), verifiedBy: String(item.verifiedBy ?? ''), occurredAt: String(item.occurredAt ?? ''), requestId: String(item.requestId ?? '') }
+}
+
+function mapEntitlement(value: unknown): ApplicationEntitlement {
+  const item = record(value)
+  return {
+    applicationCode: String(item.applicationCode ?? ''),
+    status: String(item.status ?? 'DISABLED').toUpperCase() as ApplicationEntitlement['status'],
+    roles: Array.isArray(item.roles) ? item.roles.map(String) : [],
+    version: Number(item.version ?? 0),
+    updatedAt: item.updatedAt ? String(item.updatedAt) : undefined,
+  }
+}
+
+function mapAdminUser(value: unknown): AdminUser {
+  const item = record(value)
+  return {
+    id: asId(item.id),
+    organizationId: asId(item.organizationId),
+    loginName: String(item.loginName ?? ''),
+    displayName: String(item.displayName ?? item.loginName ?? ''),
+    email: String(item.email ?? ''),
+    status: String(item.status ?? 'DISABLED').toUpperCase() as AdminUser['status'],
+    identitySource: String(item.identitySource ?? 'LOCAL'),
+    roles: Array.isArray(item.roles) ? item.roles.map(String) : [],
+    entitlements: listFrom(item, 'entitlements').map(mapEntitlement),
+    createdAt: String(item.createdAt ?? ''),
+  }
 }
 
 function pageOf<T>(items: T[], page = 1, pageSize = items.length || 1, total = items.length): Page<T> { return { items, total, page, pageSize } }
@@ -315,6 +344,43 @@ export function adminDeleteTag(id: string | number): Promise<void> { return apiF
 export async function adminListAuditLogs(params: { page?: number; pageSize?: number; operator?: string; action?: string } = {}): Promise<Page<AuditLog>> { const data = await apiFetch<unknown>(`/admin/audit-logs${buildQuery({ limit: 500 })}`); const items = listFrom(data, 'events', 'items').map((item): AuditLog => ({ id: item.id ?? '', operator: String(item.actorName ?? item.actorId ?? ''), action: String(item.action ?? ''), resource: String(item.resourceType ?? ''), resourceId: String(item.resourceId ?? ''), ip: String(item.clientIp ?? ''), userAgent: '', requestId: String(item.requestId ?? ''), detail: String(item.detailsJson ?? ''), createdAt: String(item.occurredAt ?? '') })).filter((item) => (!params.operator || item.operator.includes(params.operator)) && (!params.action || item.action === params.action)); const page = params.page ?? 1; const pageSize = params.pageSize ?? 20; return pageOf(items.slice((page - 1) * pageSize, page * pageSize), page, pageSize, items.length) }
 export async function adminDashboard(): Promise<DashboardStats> { const [apps, categories, tags] = await Promise.all([adminListApplications({ page: 1, pageSize: 500 }), listCategories(), listTags()]); return { applicationCount: apps.total, categoryCount: categories.length, tagCount: tags.length, favoriteCount: apps.items.filter((item) => item.isFavorite).length, totalLaunches: apps.items.reduce((sum, item) => sum + Number((item as any).visitCount ?? 0), 0), enabledAppCount: apps.items.filter((item) => item.status === 'ENABLED').length, disabledAppCount: apps.items.filter((item) => item.status !== 'ENABLED').length } }
 
+export interface CreateAdminUserInput {
+  loginName: string
+  displayName: string
+  email?: string
+  password: string
+  roles: string[]
+  entitlements: Array<{ applicationCode: string; status: 'ACTIVE' | 'DISABLED'; roles: string[] }>
+}
+
+export async function adminListUsers(): Promise<AdminUser[]> {
+  const data = await apiFetch<unknown>('/admin/users')
+  return listFrom(data, 'users', 'items').map(mapAdminUser)
+}
+
+export async function adminCreateUser(input: CreateAdminUserInput): Promise<AdminUser> {
+  const data = await apiFetch<unknown>('/admin/users', { method: 'POST', body: input })
+  return mapAdminUser(record(data).user ?? data)
+}
+
+export async function adminUpdateUserStatus(userId: string, status: 'ACTIVE' | 'DISABLED'): Promise<AdminUser> {
+  const data = await apiFetch<unknown>(`/admin/users/${encodeURIComponent(userId)}/status`, { method: 'PATCH', body: { status } })
+  return mapAdminUser(record(data).user ?? data)
+}
+
+export async function adminUpdateUserEntitlement(
+  userId: string,
+  applicationCode: string,
+  status: 'ACTIVE' | 'DISABLED',
+  roles: string[],
+): Promise<AdminUser> {
+  const data = await apiFetch<unknown>(`/admin/users/${encodeURIComponent(userId)}/entitlements/${encodeURIComponent(applicationCode)}`, {
+    method: 'PUT',
+    body: { status, roles },
+  })
+  return mapAdminUser(record(data).user ?? data)
+}
+
 // Wave 1 没有门户设置表。设置页使用浏览器本地存储作为明确的临时适配，避免继续访问旧 /portal/settings。
 const defaultSettings = [{ key: 'portal_name', value: 'Velora' }, { key: 'portal_welcome', value: '企业应用门户' }, { key: 'portal_footer', value: '' }, { key: 'announcement', value: '' }, { key: 'ui_scale', value: '1' }, { key: 'new_badge_days', value: '7' }]
 // Wave 1 后端没有共享门户设置服务；固定只读默认值，避免把 localStorage 误当成生产配置。
@@ -322,4 +388,4 @@ export function getPortalSettings(): Promise<{ key: string; value: string }[]> {
 export function updatePortalSetting(_key: string, _value: string): Promise<unknown> { return Promise.reject(unavailable('门户设置服务')) }
 export async function getSystemVersion(): Promise<{ application: string; version?: string }> { const data = record(await apiFetch<unknown>('/system/info')); return { application: String(data.service ?? data.application ?? 'Velora'), version: data.version ? String(data.version) : undefined } }
 
-export const queryKeys = { me: ['me'] as const, applications: (params?: unknown) => ['applications', params] as const, application: (id: string | number) => ['applications', id] as const, recent: ['recent'] as const, popular: ['popular'] as const, categories: ['categories'] as const, tags: ['tags'] as const, favorites: ['favorites'] as const, todos: ['todos'] as const, mailAccounts: ['mail', 'accounts'] as const, mailProviders: ['mail', 'providers'] as const, mailMessages: (params?: unknown) => ['mail', 'messages', params] as const, mailMessage: (id: string | number) => ['mail', 'messages', 'detail', id] as const, adminApplications: (params?: unknown) => ['admin', 'applications', params] as const, auditLogs: (params?: unknown) => ['admin', 'audit-logs', params] as const, dashboard: ['admin', 'dashboard'] as const, identityOverview: ['admin', 'identity', 'overview'] as const, applicationOnboarding: (id: string | number) => ['admin', 'identity', 'onboarding', id] as const, portalSettings: ['portal', 'settings'] as const }
+export const queryKeys = { me: ['me'] as const, applications: (params?: unknown) => ['applications', params] as const, application: (id: string | number) => ['applications', id] as const, recent: ['recent'] as const, popular: ['popular'] as const, categories: ['categories'] as const, tags: ['tags'] as const, favorites: ['favorites'] as const, todos: ['todos'] as const, mailAccounts: ['mail', 'accounts'] as const, mailProviders: ['mail', 'providers'] as const, mailMessages: (params?: unknown) => ['mail', 'messages', params] as const, mailMessage: (id: string | number) => ['mail', 'messages', 'detail', id] as const, adminApplications: (params?: unknown) => ['admin', 'applications', params] as const, adminUsers: ['admin', 'users'] as const, auditLogs: (params?: unknown) => ['admin', 'audit-logs', params] as const, dashboard: ['admin', 'dashboard'] as const, identityOverview: ['admin', 'identity', 'overview'] as const, applicationOnboarding: (id: string | number) => ['admin', 'identity', 'onboarding', id] as const, portalSettings: ['portal', 'settings'] as const }

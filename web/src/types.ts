@@ -21,6 +21,27 @@ export interface CurrentUser {
   groups: string[]
 }
 
+export interface ApplicationEntitlement {
+  applicationCode: string
+  status: 'ACTIVE' | 'DISABLED'
+  roles: string[]
+  version: number
+  updatedAt?: string
+}
+
+export interface AdminUser {
+  id: string
+  organizationId: string
+  loginName: string
+  displayName: string
+  email: string
+  status: 'ACTIVE' | 'DISABLED' | 'LOCKED'
+  identitySource: string
+  roles: string[]
+  entitlements: ApplicationEntitlement[]
+  createdAt: string
+}
+
 export interface Category {
   id: string | number
   code: string

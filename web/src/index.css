@@ -1440,6 +1440,28 @@ button {
   flex-shrink: 0;
 }
 
+.velora-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+@media (max-width: 640px) {
+  .velora-admin-page-head {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .velora-admin-page-extra,
+  .velora-admin-page-extra .ant-space,
+  .velora-admin-page-extra .ant-input-affix-wrapper {
+    width: 100% !important;
+  }
+  .velora-form-grid {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+}
+
 /* 内容卡片：玻璃质感统一 */
 .velora-admin-content .ant-card {
   border-radius: 14px;

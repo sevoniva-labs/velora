@@ -31,6 +31,7 @@ if ! jq -e '.issuer == "https://auth.sevoniva.com" and (.authorization_endpoint 
   failures+=("OIDC discovery unavailable or inconsistent")
 fi
 
+now_epoch="$(date +%s)"
 if [[ ! -s "$AUDIT_ARCHIVE_STATUS" ]]; then
   failures+=("audit archive success evidence missing")
 else
@@ -51,7 +52,6 @@ for container in velora-prod-postgres velora-prod-redis velora-prod-casdoor velo
   fi
 done
 
-now_epoch="$(date +%s)"
 if [[ ! -s "$BACKUP_STATUS" ]]; then
   failures+=("backup success evidence missing")
 else

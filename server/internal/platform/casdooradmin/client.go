@@ -114,11 +114,11 @@ func New(cfg Config) (*Client, error) {
 		return &Client{baseURL: base, enabled: false, httpClient: cfg.HTTPClient}, nil
 	}
 	if base == "" || strings.TrimSpace(cfg.Token) == "" {
-		return nil, errors.New("Casdoor automation requires base URL and a secret token")
+		return nil, errors.New("casdoor automation requires base URL and a secret token")
 	}
 	u, err := url.Parse(base)
 	if err != nil || u.Host == "" || (u.Scheme != "https" && !isLocalHTTP(u)) {
-		return nil, errors.New("Casdoor automation base URL must use HTTPS (local HTTP is allowed only on loopback)")
+		return nil, errors.New("casdoor automation base URL must use HTTPS (local HTTP is allowed only on loopback)")
 	}
 	client := cfg.HTTPClient
 	if client == nil {
@@ -146,7 +146,7 @@ func (c *Client) GetApplication(ctx context.Context, ref string) (Application, b
 
 func (c *Client) UpsertApplication(ctx context.Context, input UpsertInput) (Application, bool, error) {
 	if !c.Enabled() {
-		return Application{}, false, errors.New("Casdoor automation is disabled")
+		return Application{}, false, errors.New("casdoor automation is disabled")
 	}
 	if strings.TrimSpace(input.ApprovalID) == "" {
 		return Application{}, false, ErrApprovalRequired
@@ -189,7 +189,7 @@ func (c *Client) UpsertApplication(ctx context.Context, input UpsertInput) (Appl
 
 func (c *Client) DisableApplication(ctx context.Context, ref, approvalID string) error {
 	if !c.Enabled() {
-		return errors.New("Casdoor automation is disabled")
+		return errors.New("casdoor automation is disabled")
 	}
 	if strings.TrimSpace(approvalID) == "" {
 		return ErrApprovalRequired
@@ -221,13 +221,13 @@ func (c *Client) do(ctx context.Context, method, path string, body any, out any)
 	if err != nil {
 		return 0, err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	data, err := io.ReadAll(io.LimitReader(resp.Body, 2<<20))
 	if err != nil {
 		return resp.StatusCode, err
 	}
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return resp.StatusCode, fmt.Errorf("Casdoor API returned HTTP %d", resp.StatusCode)
+		return resp.StatusCode, fmt.Errorf("casdoor API returned HTTP %d", resp.StatusCode)
 	}
 	if len(data) == 0 || out == nil {
 		return resp.StatusCode, nil
@@ -238,16 +238,16 @@ func (c *Client) do(ctx context.Context, method, path string, body any, out any)
 		Data    json.RawMessage `json:"data"`
 	}
 	if err := json.Unmarshal(data, &envelope); err != nil {
-		return resp.StatusCode, errors.New("Casdoor API returned invalid JSON")
+		return resp.StatusCode, errors.New("casdoor API returned invalid JSON")
 	}
 	if envelope.Status != "" && !strings.EqualFold(envelope.Status, "ok") && !strings.EqualFold(envelope.Status, "success") {
-		return resp.StatusCode, errors.New("Casdoor API rejected the request")
+		return resp.StatusCode, errors.New("casdoor API rejected the request")
 	}
 	if len(envelope.Data) == 0 || string(envelope.Data) == "null" {
 		return resp.StatusCode, nil
 	}
 	if err := json.Unmarshal(envelope.Data, out); err != nil {
-		return resp.StatusCode, errors.New("Casdoor API response shape is unsupported")
+		return resp.StatusCode, errors.New("casdoor API response shape is unsupported")
 	}
 	return resp.StatusCode, nil
 }

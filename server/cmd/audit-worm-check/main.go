@@ -108,6 +108,7 @@ func main() {
 		Certification:            "not_certified: local target evidence only; production WORM policy, SIEM endpoint, retention/legal approval and recovery drills remain required",
 	}
 	if path := strings.TrimSpace(os.Getenv("VELORA_ACCEPTANCE_EVIDENCE_DIR")); path != "" {
+		// #nosec G703 -- this acceptance-only command writes to an operator-selected evidence directory, never a request-derived path.
 		if err := os.MkdirAll(path, 0o750); err != nil {
 			fail(fmt.Errorf("create evidence directory: %w", err))
 		}
@@ -116,6 +117,7 @@ func main() {
 		if err != nil {
 			fail(err)
 		}
+		// #nosec G703 -- name is a fixed timestamped filename beneath the operator-selected evidence directory.
 		if err := os.WriteFile(name, append(data, '\n'), 0o600); err != nil {
 			fail(fmt.Errorf("write evidence: %w", err))
 		}

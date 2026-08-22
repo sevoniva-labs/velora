@@ -89,7 +89,7 @@ func (v *Verifier) Verify(ctx context.Context, token, remoteIP string) error {
 	if err != nil {
 		return errors.New("turnstile verification request failed")
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("turnstile verification returned status %d", resp.StatusCode)
 	}

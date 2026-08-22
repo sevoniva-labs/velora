@@ -170,6 +170,7 @@ func (d *demo) login(w http.ResponseWriter, r *http.Request) {
 	d.mu.Lock()
 	d.tx[state] = transaction{State: state, Nonce: nonce, Verifier: verifier, ExpiresAt: time.Now().Add(transactionTTL)}
 	d.mu.Unlock()
+	// #nosec G124 -- the production demo configuration requires HTTPS; dynamic Secure supports explicit local HTTP testing.
 	http.SetCookie(w, &http.Cookie{Name: transactionCookie, Value: state, Path: "/", HttpOnly: true, Secure: d.secure, SameSite: http.SameSiteLaxMode, MaxAge: int(transactionTTL.Seconds())})
 	u := d.client.AuthCodeURL(state, oauth2.SetAuthURLParam("nonce", nonce), oauth2.SetAuthURLParam("code_challenge", pkce(verifier)), oauth2.SetAuthURLParam("code_challenge_method", "S256"))
 	http.Redirect(w, r, u, http.StatusFound)
@@ -217,7 +218,9 @@ func (d *demo) callback(w http.ResponseWriter, r *http.Request) {
 	d.mu.Lock()
 	d.sessions[sessionID] = session{Subject: claims.Subject, Name: claims.Name, Email: claims.Email, IDToken: rawIDToken, ExpiresAt: time.Now().Add(sessionTTL)}
 	d.mu.Unlock()
+	// #nosec G124 -- deletion mirrors the dynamically secured transaction cookie.
 	http.SetCookie(w, &http.Cookie{Name: transactionCookie, Value: "", Path: "/", MaxAge: -1, HttpOnly: true, Secure: d.secure, SameSite: http.SameSiteLaxMode})
+	// #nosec G124 -- the production demo configuration requires HTTPS; dynamic Secure supports explicit local HTTP testing.
 	http.SetCookie(w, &http.Cookie{Name: sessionCookie, Value: sessionID, Path: "/", MaxAge: int(sessionTTL.Seconds()), HttpOnly: true, Secure: d.secure, SameSite: http.SameSiteLaxMode})
 	http.Redirect(w, r, "/", http.StatusSeeOther)
 }
@@ -230,6 +233,7 @@ func (d *demo) logout(w http.ResponseWriter, r *http.Request) {
 		delete(d.sessions, cookie.Value)
 		d.mu.Unlock()
 	}
+	// #nosec G124 -- deletion mirrors the dynamically secured session cookie.
 	http.SetCookie(w, &http.Cookie{Name: sessionCookie, Value: "", Path: "/", MaxAge: -1, HttpOnly: true, Secure: d.secure, SameSite: http.SameSiteLaxMode})
 	if d.endSessionURL != "" {
 		u, err := url.Parse(d.endSessionURL)
@@ -275,6 +279,7 @@ func securityHeaders(next http.Handler) http.Handler {
 
 func readSecret(name string) (string, error) {
 	if path := strings.TrimSpace(os.Getenv(name + "_FILE")); path != "" {
+		// #nosec G304 G703 -- the operator-supplied secret-file path is required for mounted container secrets and is never request-derived.
 		data, err := os.ReadFile(path)
 		if err != nil {
 			return "", fmt.Errorf("read %s file: %w", name, err)

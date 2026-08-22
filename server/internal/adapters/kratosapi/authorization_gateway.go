@@ -172,5 +172,6 @@ func (b *SessionBridge) portalLoginURL(app authorizationApplication, rawQuery st
 }
 
 func (b *SessionBridge) clearGatewayCookie(w http.ResponseWriter) {
+	// #nosec G124 -- deletion mirrors a cookie whose Secure flag is mandatory in production configuration.
 	http.SetCookie(w, &http.Cookie{Name: gatewaySessionCookie, Value: "", Path: "/", HttpOnly: true, Secure: b.secure, SameSite: b.sameSite, MaxAge: -1})
 }

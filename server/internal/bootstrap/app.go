@@ -258,7 +258,7 @@ func New(ctx context.Context, opts Options) (*App, error) {
 	portalService.ConfigureIdentityBoundary(cfg.Security.CasdoorAdminURL, cfg.Security.OIDCIssuer, cfg.Security.OIDCInternalURL, cfg.Security.CasdoorAllowedHosts, cfg.Security.ApplicationOnboardingV2, cfg.Security.CasdoorAdminEntryEnabled)
 	casdoorAutomation, err := casdooradmin.New(casdooradmin.Config{BaseURL: cfg.Security.CasdoorAdminURL, Token: cfg.Security.CasdoorAutomationToken, Enabled: cfg.Security.CasdoorApplicationAutomationEnabled})
 	if err != nil {
-		return nil, fmt.Errorf("Casdoor application automation: %w", err)
+		return nil, fmt.Errorf("casdoor application automation: %w", err)
 	}
 	portalService.ConfigureCasdoorAutomation(casdoorAutomation)
 	casdoorIdentity, err := casdooridentity.New(casdooridentity.Config{
@@ -267,7 +267,7 @@ func New(ctx context.Context, opts Options) (*App, error) {
 		Application: cfg.Security.CasdoorApplication, Enabled: cfg.Security.CasdoorIdentityManagementEnabled,
 	})
 	if err != nil {
-		return nil, fmt.Errorf("Casdoor identity management: %w", err)
+		return nil, fmt.Errorf("casdoor identity management: %w", err)
 	}
 	identitySvc.ConfigureManagedIdentityProvider(casdoorIdentity, cfg.Security.OIDCIssuer)
 	identityService := kratosapi.NewIdentityService(identitySvc, auditWriter, db, ratelimit.New(c), cfg.Security.SecureCookies, cfg.Security.SameSite)
@@ -289,7 +289,7 @@ func New(ctx context.Context, opts Options) (*App, error) {
 		identityService.ConfigureCasdoorPasswordLogin(true, oidcProviders[providerName])
 		bridge, bridgeErr := kratosapi.NewSessionBridge(c, db, cfg.Security.CasdoorAccountURL, cfg.Server.PublicURL, cfg.Security.SecureCookies, kratosapi.SameSiteMode(cfg.Security.SameSite))
 		if bridgeErr != nil {
-			return nil, fmt.Errorf("Casdoor session bridge: %w", bridgeErr)
+			return nil, fmt.Errorf("casdoor session bridge: %w", bridgeErr)
 		}
 		bridge.ConfigureAccessControl(identitySvc.AuthenticateSessionID, func(ctx context.Context, principal domain.Principal, applicationID string) error {
 			_, err := portalSvc.GetApplication(ctx, principal, applicationID)

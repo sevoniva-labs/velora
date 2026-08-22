@@ -274,7 +274,7 @@ func verifyBinding(ctx context.Context, binding portaldomain.IdentityBinding, al
 		if err != nil {
 			return false, "oidc_discovery", "DISCOVERY_UNREACHABLE", `{"reason":"discovery endpoint unavailable"}`
 		}
-		defer resp.Body.Close()
+		defer func() { _ = resp.Body.Close() }()
 		if resp.StatusCode != http.StatusOK {
 			return false, "oidc_discovery", fmt.Sprintf("DISCOVERY_HTTP_%d", resp.StatusCode), `{"reason":"discovery endpoint returned non-200"}`
 		}

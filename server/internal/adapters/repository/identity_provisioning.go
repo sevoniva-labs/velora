@@ -57,7 +57,7 @@ func (r *IdentityRepo) ListUserEntitlements(ctx context.Context, userID string) 
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 	out := make([]identity.ApplicationEntitlement, 0)
 	for rows.Next() {
 		var item identity.ApplicationEntitlement

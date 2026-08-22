@@ -29,7 +29,7 @@ type Client struct {
 	httpClient                                                 *http.Client
 }
 
-var errNotFound = errors.New("Casdoor identity not found")
+var errNotFound = errors.New("casdoor identity not found")
 
 var _ appidentity.ManagedIdentityProvider = (*Client)(nil)
 
@@ -39,11 +39,11 @@ func New(cfg Config) (*Client, error) {
 		return &Client{}, nil
 	}
 	u, err := url.Parse(base)
-	if err != nil || u.Host == "" || (u.Scheme != "https" && !(u.Scheme == "http" && (u.Hostname() == "casdoor" || u.Hostname() == "localhost" || u.Hostname() == "127.0.0.1"))) {
-		return nil, errors.New("Casdoor identity API must use HTTPS or an approved internal hostname")
+	if err != nil || u.Host == "" || (u.Scheme != "https" && (u.Scheme != "http" || u.Hostname() != "casdoor" && u.Hostname() != "localhost" && u.Hostname() != "127.0.0.1")) {
+		return nil, errors.New("casdoor identity API must use HTTPS or an approved internal hostname")
 	}
 	if strings.TrimSpace(cfg.ClientID) == "" || strings.TrimSpace(cfg.ClientSecret) == "" || strings.TrimSpace(cfg.Organization) == "" {
-		return nil, errors.New("Casdoor identity API requires client credentials and organization")
+		return nil, errors.New("casdoor identity API requires client credentials and organization")
 	}
 	httpClient := cfg.HTTPClient
 	if httpClient == nil {
@@ -82,7 +82,7 @@ func (c *Client) CreateUser(ctx context.Context, in appidentity.ManagedUserInput
 		if existing.ID == "" || existing.SignupApplication != c.application ||
 			strings.TrimSpace(existing.DisplayName) != strings.TrimSpace(in.DisplayName) ||
 			strings.TrimSpace(existing.Email) != strings.TrimSpace(in.Email) {
-			return "", fmt.Errorf("Casdoor user %q already exists and is not managed by this application", login)
+			return "", fmt.Errorf("casdoor user %q already exists and is not managed by this application", login)
 		}
 		existing.Password = in.Password
 		existing.IsForbidden = false
@@ -100,7 +100,7 @@ func (c *Client) CreateUser(ctx context.Context, in appidentity.ManagedUserInput
 		return "", err
 	}
 	if !found || created.ID == "" {
-		return "", errors.New("Casdoor created user without a stable subject")
+		return "", errors.New("casdoor created user without a stable subject")
 	}
 	return created.ID, nil
 }
@@ -111,7 +111,7 @@ func (c *Client) SetUserStatus(ctx context.Context, login string, active bool) e
 		return err
 	}
 	if !found {
-		return errors.New("Casdoor user not found")
+		return errors.New("casdoor user not found")
 	}
 	u.Password = ""
 	u.IsForbidden = !active
@@ -126,7 +126,7 @@ func (c *Client) SetUserStatus(ctx context.Context, login string, active bool) e
 		return err
 	}
 	if !found || updated.IsForbidden != !active {
-		return errors.New("Casdoor user status update was not persisted")
+		return errors.New("casdoor user status update was not persisted")
 	}
 	if !active {
 		return c.revokeUserAccess(ctx, login)
@@ -177,7 +177,7 @@ func (c *Client) SetUserPassword(ctx context.Context, login, password string) er
 		return err
 	}
 	if !found {
-		return errors.New("Casdoor user not found")
+		return errors.New("casdoor user not found")
 	}
 	u.Password = password
 	if err := c.modify(ctx, "update-user", u.Owner+"/"+u.Name, []string{"password"}, u); err != nil {
@@ -212,7 +212,7 @@ func (c *Client) modify(ctx context.Context, action, id string, columns []string
 		return err
 	}
 	if !strings.EqualFold(result, "Affected") {
-		return errors.New("Casdoor identity API did not persist the change")
+		return errors.New("casdoor identity API did not persist the change")
 	}
 	return nil
 }
@@ -240,31 +240,31 @@ func (c *Client) do(ctx context.Context, method, path string, body any, out any)
 	if err != nil {
 		return 0, err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	data, err := io.ReadAll(io.LimitReader(resp.Body, 2<<20))
 	if err != nil {
 		return resp.StatusCode, err
 	}
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return resp.StatusCode, fmt.Errorf("Casdoor identity API returned HTTP %d", resp.StatusCode)
+		return resp.StatusCode, fmt.Errorf("casdoor identity API returned HTTP %d", resp.StatusCode)
 	}
 	var envelope struct {
 		Status, Msg string
 		Data        json.RawMessage `json:"data"`
 	}
 	if err := json.Unmarshal(data, &envelope); err != nil {
-		return resp.StatusCode, errors.New("Casdoor identity API returned invalid JSON")
+		return resp.StatusCode, errors.New("casdoor identity API returned invalid JSON")
 	}
 	if !strings.EqualFold(envelope.Status, "ok") {
 		message := strings.ToLower(envelope.Msg)
 		if strings.Contains(message, "not exist") || strings.Contains(message, "not found") {
 			return resp.StatusCode, errNotFound
 		}
-		return resp.StatusCode, errors.New("Casdoor identity API rejected the request")
+		return resp.StatusCode, errors.New("casdoor identity API rejected the request")
 	}
 	if out != nil && len(envelope.Data) > 0 && string(envelope.Data) != "null" {
 		if err := json.Unmarshal(envelope.Data, out); err != nil {
-			return resp.StatusCode, errors.New("Casdoor identity API response shape is unsupported")
+			return resp.StatusCode, errors.New("casdoor identity API response shape is unsupported")
 		}
 	}
 	return resp.StatusCode, nil

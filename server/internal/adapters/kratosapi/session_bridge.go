@@ -12,7 +12,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/go-kratos/kratos/v2/transport"
 	domain "github.com/sevoniva-labs/velora/server/internal/domain/identity"
 	"github.com/sevoniva-labs/velora/server/internal/platform/cache"
 	"github.com/sevoniva-labs/velora/server/internal/platform/database"
@@ -166,7 +165,9 @@ func (b *SessionBridge) Handler() http.Handler {
 			return
 		}
 		// Domain is intentionally omitted: this is a host-only Casdoor cookie.
+		// #nosec G124 -- production configuration rejects insecure cookies; local HTTP is an explicit development-only mode.
 		http.SetCookie(w, &http.Cookie{Name: casdoorSessionCookie, Value: handoff.Cookie, Path: "/", HttpOnly: true, Secure: b.secure, SameSite: b.sameSite})
+		// #nosec G124 -- production configuration rejects insecure cookies; local HTTP is an explicit development-only mode.
 		http.SetCookie(w, &http.Cookie{Name: gatewaySessionCookie, Value: gatewayToken, Path: "/", HttpOnly: true, Secure: b.secure, SameSite: b.sameSite, MaxAge: int(gatewaySessionTTL.Seconds())})
 		http.Redirect(w, r, b.returnURL(handoff.ReturnPath), http.StatusSeeOther)
 	})
@@ -222,17 +223,4 @@ func safeBridgeReturnPath(value string) string {
 		return "/"
 	}
 	return value
-}
-
-func bridgeRequestCookie(ctx context.Context, name string) string {
-	tr, ok := transport.FromServerContext(ctx)
-	if !ok {
-		return ""
-	}
-	request := &http.Request{Header: http.Header{"Cookie": tr.RequestHeader().Values("Cookie")}}
-	cookie, err := request.Cookie(name)
-	if err != nil {
-		return ""
-	}
-	return strings.TrimSpace(cookie.Value)
 }

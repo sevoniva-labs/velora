@@ -74,7 +74,7 @@ func TestSessionBridgeConsumesTicketAndSetsHostOnlyCookie(t *testing.T) {
 
 func TestSessionBridgeRejectsCrossSiteTicketConsumption(t *testing.T) {
 	bridge, c := newTestBridge(t)
-	defer c.Close()
+	defer func() { _ = c.Close() }()
 	ticket, err := bridge.Create(context.Background(), "casdoor-cookie", "/", testGatewayPrincipal)
 	if err != nil {
 		t.Fatal(err)
@@ -101,7 +101,7 @@ func TestSessionBridgeRejectsInvalidPortalURL(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer c.Close()
+	defer func() { _ = c.Close() }()
 	if _, err := NewSessionBridge(c, &database.DB{}, "https://auth.example.test/account", "/relative", true, http.SameSiteLaxMode); err == nil {
 		t.Fatal("expected invalid portal URL to fail")
 	}
@@ -109,7 +109,7 @@ func TestSessionBridgeRejectsInvalidPortalURL(t *testing.T) {
 
 func TestSessionBridgeReturnsAuthorizationContinuationToAuthHost(t *testing.T) {
 	bridge, c := newTestBridge(t)
-	defer c.Close()
+	defer func() { _ = c.Close() }()
 	ticket, err := bridge.Create(context.Background(), "casdoor-cookie", "/login/oauth/authorize?client_id=spectra&state=opaque", testGatewayPrincipal)
 	if err != nil {
 		t.Fatal(err)
@@ -128,7 +128,7 @@ func TestSessionBridgeReturnsAuthorizationContinuationToAuthHost(t *testing.T) {
 
 func TestAuthorizationGatewayKeepsCasdoorBehindPortalLogin(t *testing.T) {
 	bridge, c := newTestBridge(t)
-	defer c.Close()
+	defer func() { _ = c.Close() }()
 	bridge.resolveApplication = func(_ context.Context, _ string, organizationID string) (authorizationApplication, error) {
 		if organizationID != "" && organizationID != testGatewayPrincipal.OrganizationID {
 			return authorizationApplication{}, errors.New("organization mismatch")
@@ -150,6 +150,9 @@ func TestAuthorizationGatewayKeepsCasdoorBehindPortalLogin(t *testing.T) {
 	}
 
 	token, err := cache.RandomToken(32)
+	if err != nil {
+		t.Fatal(err)
+	}
 	linked, err := json.Marshal(gatewaySession{UserID: testGatewayPrincipal.UserID, OrganizationID: testGatewayPrincipal.OrganizationID, SessionID: testGatewayPrincipal.SessionID})
 	if err != nil || c.Set(context.Background(), gatewaySessionKey(token), string(linked), time.Minute) != nil {
 		t.Fatal("failed to seed gateway session")
@@ -166,7 +169,7 @@ func TestAuthorizationGatewayKeepsCasdoorBehindPortalLogin(t *testing.T) {
 
 func TestAuthorizationGatewayRevalidatesApplicationAccess(t *testing.T) {
 	bridge, c := newTestBridge(t)
-	defer c.Close()
+	defer func() { _ = c.Close() }()
 	bridge.resolveApplication = func(context.Context, string, string) (authorizationApplication, error) {
 		return authorizationApplication{ID: "app-1", OrganizationID: "org-1", Code: "spectra", Name: "Spectra", RedirectURIs: []string{"https://spectra.example.test/callback"}}, nil
 	}

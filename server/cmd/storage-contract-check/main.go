@@ -144,6 +144,7 @@ func main() {
 	if err != nil {
 		fail(err)
 	}
+	// #nosec G703 -- this operator-only acceptance command writes the explicitly requested output contract path.
 	if err := os.WriteFile(outPath, append(data, '\n'), 0o600); err != nil {
 		fail(fmt.Errorf("write contract: %w", err))
 	}

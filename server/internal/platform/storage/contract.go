@@ -97,6 +97,7 @@ func LoadCapabilityContract(path string) (CapabilityContract, error) {
 	if path == "" {
 		return CapabilityContract{}, errors.New("storage capability contract file is required")
 	}
+	// #nosec G304 -- path is a trusted deployment configuration location, not request input; arbitrary mounted paths are supported intentionally.
 	raw, err := os.ReadFile(path)
 	if err != nil {
 		return CapabilityContract{}, fmt.Errorf("read storage capability contract: %w", err)

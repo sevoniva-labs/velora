@@ -135,7 +135,7 @@ func NormalizeOIDCScopes(values []string) ([]string, error) {
 				return nil, ErrInvalidIdentityBinding
 			}
 			for _, r := range value {
-				if !(r == '_' || r == '-' || r == '.' || r == ':' || r >= 'a' && r <= 'z' || r >= 'A' && r <= 'Z' || r >= '0' && r <= '9') {
+				if r != '_' && r != '-' && r != '.' && r != ':' && (r < 'a' || r > 'z') && (r < 'A' || r > 'Z') && (r < '0' || r > '9') {
 					return nil, ErrInvalidIdentityBinding
 				}
 			}

@@ -669,7 +669,7 @@ func (r *PortalRepo) ListIdentityVerifications(ctx context.Context, orgID, appID
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 	out := make([]portaldomain.Verification, 0)
 	for rows.Next() {
 		var v portaldomain.Verification

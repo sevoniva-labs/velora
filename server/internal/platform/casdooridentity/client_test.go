@@ -106,7 +106,7 @@ func TestSetUserStatusUsesVersionCompatibleColumnAndVerifiesPersistence(t *testi
 		w.Header().Set("Content-Type", "application/json")
 		switch r.URL.Path {
 		case "/api/get-user":
-			_, _ = w.Write([]byte(fmt.Sprintf(`{"status":"ok","data":{"owner":"built-in","name":"carson","id":"subject-1","displayName":"Carson","isForbidden":%t}}`, forbidden)))
+			_, _ = fmt.Fprintf(w, `{"status":"ok","data":{"owner":"built-in","name":"carson","id":"subject-1","displayName":"Carson","isForbidden":%t}}`, forbidden)
 		case "/api/update-user":
 			if r.URL.Query().Get("columns") != "is_forbidden" {
 				t.Fatalf("columns = %q", r.URL.Query().Get("columns"))

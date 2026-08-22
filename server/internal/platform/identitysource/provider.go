@@ -305,7 +305,7 @@ func (p *OIDCProvider) AuthenticatePassword(ctx context.Context, loginName, pass
 	if err != nil {
 		return FederatedIdentity{}, ErrAuthenticationFailed
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	var result struct {
 		Status string          `json:"status"`
 		Data   json.RawMessage `json:"data"`
@@ -427,7 +427,7 @@ func (p *OIDCProvider) exchangeJSON(ctx context.Context, code, verifier string) 
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	data, err := io.ReadAll(io.LimitReader(resp.Body, 1<<20))
 	if err != nil {
 		return nil, err

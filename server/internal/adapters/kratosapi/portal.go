@@ -513,7 +513,7 @@ func identityConnectionStatus(ctx context.Context, issuer, internalURL string) s
 	if err != nil {
 		return "UNAVAILABLE"
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	if resp.StatusCode != http.StatusOK {
 		return "UNAVAILABLE"
 	}

@@ -135,6 +135,10 @@ if ! jq -e '(.services.edge.volumes | any(.type == "bind" and .target == "/etc/n
   echo "错误：生产 Edge 必须以只读方式挂载证书目录" >&2
   exit 1
 fi
+if ! jq -e '(.services.edge.volumes | any(.type == "bind" and .target == "/var/www/acme" and .read_only == true))' "$config_json" >/dev/null; then
+  echo "错误：生产 Edge 必须只读挂载 ACME HTTP-01 webroot" >&2
+  exit 1
+fi
 
 if ! jq -e '[.services[]] | all(.[]; (.mem_limit > 0) and (.cpus > 0) and (.pids_limit > 0) and (.security_opt | index("no-new-privileges:true") != null))' "$config_json" >/dev/null; then
   echo "错误：所有生产服务必须配置内存、CPU、PID 和 no-new-privileges 限制" >&2

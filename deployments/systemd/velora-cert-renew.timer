@@ -1,0 +1,11 @@
+[Unit]
+Description=Check Velora TLS certificate renewal twice daily
+
+[Timer]
+OnCalendar=*-*-* 02,14:21:00 Asia/Shanghai
+RandomizedDelaySec=30m
+Persistent=true
+Unit=velora-cert-renew.service
+
+[Install]
+WantedBy=timers.target

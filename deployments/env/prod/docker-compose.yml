@@ -404,6 +404,7 @@ services:
         condition: service_healthy
     volumes:
       - "${VELORA_CERTS_DIR:?VELORA_CERTS_DIR is required}:/etc/nginx/certs:ro"
+      - "${VELORA_ACME_WEBROOT:-/opt/velora/prod/runtime/acme}:/var/www/acme:ro"
     ports:
       - "80:80"
       - "443:443"

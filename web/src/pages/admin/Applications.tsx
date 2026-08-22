@@ -385,17 +385,13 @@ export default function AdminApplications() {
           <Space size={24} wrap>
             <Form.Item
               label="状态"
+              name="status"
+              valuePropName="checked"
+              getValueProps={(value: string) => ({ checked: value === 'ENABLED' })}
+              getValueFromEvent={(checked: boolean) => checked ? 'ENABLED' : 'DISABLED'}
               style={{ marginBottom: 8 }}
-              shouldUpdate={(prev, cur) => prev.status !== cur.status}
             >
-              {({ getFieldValue, setFieldValue }) => (
-                <Switch
-                  checked={getFieldValue('status') === 'ENABLED'}
-                  checkedChildren="启用"
-                  unCheckedChildren="停用"
-                  onChange={(checked) => setFieldValue('status', checked ? 'ENABLED' : 'DISABLED')}
-                />
-              )}
+              <Switch checkedChildren="启用" unCheckedChildren="停用" />
             </Form.Item>
             <Form.Item label="精选展示" name="isFeatured" valuePropName="checked" style={{ marginBottom: 8 }}>
               <Switch />

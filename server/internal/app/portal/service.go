@@ -303,6 +303,13 @@ func (s *Service) CreateApplication(ctx context.Context, principal domain.Princi
 }
 
 func (s *Service) UpdateApplication(ctx context.Context, principal domain.Principal, id string, input repository.ApplicationInput) (portaldomain.Application, error) {
+	existing, err := s.repo.GetApplication(ctx, principal.OrganizationID, principal.UserID, strings.TrimSpace(id), true)
+	if errors.Is(err, sql.ErrNoRows) {
+		return portaldomain.Application{}, ErrNotFound
+	}
+	if err != nil {
+		return portaldomain.Application{}, err
+	}
 	input.Name = strings.TrimSpace(input.Name)
 	input.Status = strings.ToUpper(strings.TrimSpace(input.Status))
 	if input.Status == "" {
@@ -319,13 +326,40 @@ func (s *Service) UpdateApplication(ctx context.Context, principal domain.Princi
 		return portaldomain.Application{}, ErrNotFound
 	}
 	if err == nil {
-		lifecycle, status := portaldomain.LifecyclePublished, portaldomain.StatusEnabled
-		if !strings.EqualFold(input.LaunchType, "URL") {
-			lifecycle, status = portaldomain.LifecycleIdentityPending, portaldomain.StatusDisabled
+		verified := false
+		if !strings.EqualFold(input.LaunchType, "URL") && strings.EqualFold(existing.LaunchType, input.LaunchType) {
+			binding, bindingErr := s.repo.GetIdentityBinding(ctx, principal.OrganizationID, item.ID)
+			verified = bindingErr == nil && binding.VerificationStatus == portaldomain.VerificationPassed
 		}
-		item, err = s.repo.SetApplicationLifecycle(ctx, principal.OrganizationID, principal.UserID, item.ID, lifecycle, status, item.ConfigVersion, lifecycle == portaldomain.LifecyclePublished)
+		lifecycle, status, publish := applicationLifecycleAfterUpdate(existing, input, verified)
+		item, err = s.repo.SetApplicationLifecycle(ctx, principal.OrganizationID, principal.UserID, item.ID, lifecycle, status, item.ConfigVersion, publish)
 	}
 	return item, err
+}
+
+// applicationLifecycleAfterUpdate keeps ordinary metadata edits from
+// invalidating an already published OIDC application. Identity onboarding is
+// restarted only when the launch protocol changes; a previously verified
+// binding may also recover an application disabled by the legacy edit bug.
+func applicationLifecycleAfterUpdate(existing portaldomain.Application, input repository.ApplicationInput, bindingVerified bool) (string, string, bool) {
+	requestedStatus := strings.ToUpper(strings.TrimSpace(input.Status))
+	if requestedStatus != portaldomain.StatusDisabled {
+		requestedStatus = portaldomain.StatusEnabled
+	}
+	if strings.EqualFold(input.LaunchType, "URL") {
+		return portaldomain.LifecyclePublished, requestedStatus, requestedStatus == portaldomain.StatusEnabled
+	}
+	if !strings.EqualFold(existing.LaunchType, input.LaunchType) {
+		return portaldomain.LifecycleIdentityPending, portaldomain.StatusDisabled, false
+	}
+	if existing.LifecycleStatus == portaldomain.LifecyclePublished || bindingVerified {
+		return portaldomain.LifecyclePublished, requestedStatus, requestedStatus == portaldomain.StatusEnabled
+	}
+	lifecycle := existing.LifecycleStatus
+	if lifecycle == "" || lifecycle == portaldomain.LifecycleDisabled {
+		lifecycle = portaldomain.LifecycleIdentityPending
+	}
+	return lifecycle, portaldomain.StatusDisabled, false
 }
 
 func (s *Service) DeleteApplication(ctx context.Context, principal domain.Principal, id string) error {

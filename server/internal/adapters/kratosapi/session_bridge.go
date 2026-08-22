@@ -14,26 +14,31 @@ import (
 
 	"github.com/go-kratos/kratos/v2/transport"
 	"github.com/sevoniva-labs/velora/server/internal/platform/cache"
+	"github.com/sevoniva-labs/velora/server/internal/platform/database"
 )
 
 const (
-	bridgeTicketTTL       = 30 * time.Second
-	bridgeTicketKeyPrefix = "auth:session-bridge:"
-	casdoorSessionCookie  = "casdoor_session_id"
-	maxBridgeTicket       = 128
-	maxBridgeCookie       = 4096
-	maxBridgeReturnPath   = 2048
+	bridgeTicketTTL         = 30 * time.Second
+	bridgeTicketKeyPrefix   = "auth:session-bridge:"
+	gatewaySessionKeyPrefix = "auth:gateway-session:"
+	casdoorSessionCookie    = "casdoor_session_id"
+	gatewaySessionCookie    = "velora_auth_session"
+	gatewaySessionTTL       = 4 * time.Hour
+	maxBridgeTicket         = 128
+	maxBridgeCookie         = 4096
+	maxBridgeReturnPath     = 2048
 )
 
 // SessionBridge is a one-time, server-side handoff from the Velora portal to
 // the Casdoor host. The ticket contains no credentials and expires quickly.
 type SessionBridge struct {
-	cache     cache.Cache
-	authHost  string
-	actionURL string
-	portalURL *url.URL
-	secure    bool
-	sameSite  http.SameSite
+	cache              cache.Cache
+	resolveApplication func(context.Context, string) (authorizationApplication, error)
+	authHost           string
+	actionURL          string
+	portalURL          *url.URL
+	secure             bool
+	sameSite           http.SameSite
 }
 
 type bridgePayload struct {
@@ -41,9 +46,9 @@ type bridgePayload struct {
 	ReturnPath string `json:"return_path"`
 }
 
-func NewSessionBridge(c cache.Cache, accountURL, portalURL string, secure bool, sameSite http.SameSite) (*SessionBridge, error) {
-	if c == nil {
-		return nil, errors.New("session bridge cache is required")
+func NewSessionBridge(c cache.Cache, db *database.DB, accountURL, portalURL string, secure bool, sameSite http.SameSite) (*SessionBridge, error) {
+	if c == nil || db == nil {
+		return nil, errors.New("session bridge cache and database are required")
 	}
 	u, err := url.Parse(strings.TrimSpace(accountURL))
 	if err != nil || u.Hostname() == "" || (u.Scheme != "https" && secure) {
@@ -59,7 +64,7 @@ func NewSessionBridge(c cache.Cache, accountURL, portalURL string, secure bool, 
 	if err != nil || portal.Hostname() == "" || (portal.Scheme != "https" && secure) || portal.User != nil || portal.RawQuery != "" || portal.Fragment != "" {
 		return nil, errors.New("session bridge portal URL must have a valid host")
 	}
-	return &SessionBridge{cache: c, authHost: strings.ToLower(u.Hostname()), actionURL: action, portalURL: portal, secure: secure, sameSite: sameSite}, nil
+	return &SessionBridge{cache: c, resolveApplication: resolveAuthorizationApplication(db), authHost: strings.ToLower(u.Hostname()), actionURL: action, portalURL: portal, secure: secure, sameSite: sameSite}, nil
 }
 
 func (b *SessionBridge) ActionURL() string {
@@ -129,8 +134,14 @@ func (b *SessionBridge) Handler() http.Handler {
 			http.Error(w, "invalid ticket", http.StatusGone)
 			return
 		}
+		gatewayToken, err := cache.RandomToken(32)
+		if err != nil || b.cache.Set(r.Context(), gatewaySessionKey(gatewayToken), "active", gatewaySessionTTL) != nil {
+			http.Error(w, "session unavailable", http.StatusServiceUnavailable)
+			return
+		}
 		// Domain is intentionally omitted: this is a host-only Casdoor cookie.
 		http.SetCookie(w, &http.Cookie{Name: casdoorSessionCookie, Value: handoff.Cookie, Path: "/", HttpOnly: true, Secure: b.secure, SameSite: b.sameSite})
+		http.SetCookie(w, &http.Cookie{Name: gatewaySessionCookie, Value: gatewayToken, Path: "/", HttpOnly: true, Secure: b.secure, SameSite: b.sameSite, MaxAge: int(gatewaySessionTTL.Seconds())})
 		http.Redirect(w, r, b.returnURL(handoff.ReturnPath), http.StatusSeeOther)
 	})
 }
@@ -141,6 +152,10 @@ func (b *SessionBridge) returnURL(returnPath string) string {
 		relative = &url.URL{Path: "/"}
 	}
 	target := *b.portalURL
+	if relative.Path == "/login/oauth/authorize" {
+		target.Scheme = "https"
+		target.Host = b.authHost
+	}
 	target.Path = relative.Path
 	target.RawPath = relative.RawPath
 	target.RawQuery = relative.RawQuery
@@ -157,6 +172,11 @@ func (b *SessionBridge) allowedHost(raw string) bool {
 }
 
 func bridgeTicketKey(digest string) string { return bridgeTicketKeyPrefix + digest }
+
+func gatewaySessionKey(token string) string {
+	digest := sha256.Sum256([]byte(strings.TrimSpace(token)))
+	return gatewaySessionKeyPrefix + hex.EncodeToString(digest[:])
+}
 
 func safeBridgeReturnPath(value string) string {
 	value = strings.TrimSpace(value)

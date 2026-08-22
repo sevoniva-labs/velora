@@ -74,6 +74,8 @@ export default function Login() {
 
   // 未登录访问受保护页面时，携带 redirect 以便登录后跳回。
   const redirect = searchParams.get('redirect')
+  const applicationName = String(searchParams.get('app_name') || searchParams.get('app') || '').trim().slice(0, 80)
+  const authorizationContinuation = Boolean(redirect?.startsWith('/login/oauth/authorize?'))
   // 能力接口返回前保持稳定的登录骨架，避免刷新时先闪出错误的 OIDC 按钮。
   const oidcOnly = !authCapabilities || !authCapabilities.passwordLoginEnabled
 
@@ -134,7 +136,7 @@ export default function Login() {
   }
 
   // 已登录用户直接进入工作台（置于所有 hooks 之后）。
-  if (me.data) {
+  if (me.data && !authorizationContinuation) {
     return <Navigate to="/home" replace />
   }
 
@@ -205,7 +207,9 @@ export default function Login() {
       <div className="velora-login-panel">
         <div className="velora-login-panel-inner">
           <h2 className="velora-login-title">登录</h2>
-          <p className="velora-login-desc">使用企业账号登录</p>
+          <p className="velora-login-desc">
+            {applicationName ? `使用企业账号登录后继续访问 ${applicationName}` : '使用企业账号登录'}
+          </p>
 
           {authCapabilitiesPending ? (
             <div className="velora-login-method-loading" role="status" aria-live="polite">

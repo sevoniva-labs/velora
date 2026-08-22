@@ -26,7 +26,7 @@ OIDC_CLIENT_SECRET_FILE=/run/secrets/oidc-client-secret
 OIDC_REDIRECT_URL=https://<应用域名>/<callback>
 ```
 
-用户从 Velora 点击应用后，Velora 只负责权限检查和跳转；应用与 Casdoor 直接完成标准 OIDC 协议，登录成功后由应用创建自己的业务 Session。
+用户从 Velora 点击应用后，应用仍按标准 OIDC 协议访问公开 Issuer；`auth.sevoniva.com` 的 Velora 授权网关负责隐藏 Casdoor 交互页面、恢复门户登录和校验应用登记状态，登录成功后由应用创建自己的业务 Session。
 
 ## 1. 接入边界
 
@@ -109,11 +109,21 @@ OIDC_SCOPES=openid profile email
 sequenceDiagram
     participant U as 用户浏览器
     participant A as 目标应用
-    participant I as auth.sevoniva.com
+    participant G as Velora授权网关
+    participant H as home.sevoniva.com
+    participant I as Casdoor协议引擎
     U->>A: 打开应用
     A->>A: 生成 State、Nonce、PKCE
-    A-->>U: 302 到 Authorization Endpoint
-    U->>I: 携带 Casdoor SSO Cookie
+    A-->>U: 302 到 auth Authorization Endpoint
+    U->>G: State + Nonce + PKCE
+    alt 已有有效统一会话
+        G->>I: 内部转交授权请求
+    else 无有效统一会话
+        G-->>U: 302 home/login?app=应用编码&redirect=受控授权请求
+        U->>H: 账号密码 + Turnstile
+        H->>G: 一次性 Session Bridge
+        G->>I: 内部恢复原始授权请求
+    end
     I-->>U: 302 回调并携带 Code
     U->>A: /oauth/callback
     A->>I: Code + PKCE Verifier 换 Token
@@ -122,7 +132,9 @@ sequenceDiagram
     A-->>U: 建立应用本地 Session
 ```
 
-正常情况下，用户已在 Velora 建立 Casdoor SSO Session，授权端点会直接回调，不再显示账号密码页面。
+正常情况下，用户已有有效统一会话，授权网关会直接回调，不再显示账号密码页面。会话缺失或过期时必须回到 `home.sevoniva.com/login`，并携带由已登记 Client ID 解析出的 `app=<应用编码>`；任何情况下都不得把 Casdoor 登录页作为用户入口。
+
+授权网关在转交 Casdoor 前强制校验：应用为已启用且已发布、身份绑定已配置且验证通过、Client ID 精确匹配、Callback 在登记白名单中、Flow 为 Authorization Code、PKCE 为 S256。任一条件不满足均失败关闭。
 
 由 Velora 自动创建 Casdoor Client 时，必须同时启用 Signin Session 与 Auto Signin，并把 `providers`、`signupItems`、`signinItems`、`tags`、`samlAttributes`、`tokenFields` 等可选集合写成空数组而不是 `null`。否则 Casdoor 授权页可能白屏，或向已登录用户再次展示 Casdoor 登录入口。
 

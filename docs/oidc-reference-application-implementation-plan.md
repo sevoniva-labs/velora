@@ -216,8 +216,8 @@ flowchart TB
    ```
 
 8. 前端创建隐藏表单，将 Ticket 放入 `application/x-www-form-urlencoded` Body，整页 `POST` 到 Bridge Action；禁止把 Ticket 拼入 URL。
-9. `auth.sevoniva.com` 的 Nginx 仅将 `/_velora/session/bridge` 代理到 Velora Server，其他路径全部代理到 Casdoor。
-10. Bridge Handler 原子消费 Ticket，在 `auth.sevoniva.com` 响应中设置 Host-only `casdoor_session_id`，然后以 HTTP 303 跳回服务器预先保存的 Velora 内部路径。
+9. `auth.sevoniva.com` 的 Nginx 将 `/_velora/session/bridge`、`/_velora/session/logout` 和 `/login/oauth/authorize` 交给 Velora 统一认证网关；Casdoor 授权路径只能由网关通过内部 Nginx 路由访问。
+10. Bridge Handler 原子消费 Ticket，在 `auth.sevoniva.com` 响应中设置 Host-only `casdoor_session_id` 和短期网关会话，然后以 HTTP 303 跳回服务器预先保存的门户路径或已验证授权请求。
 11. Bridge 只接受 POST；GET、Ticket 被使用/过期、Host 不符或 Cookie 缺失时全部失败关闭，不进入门户。
 
 ### Bridge 安全要求

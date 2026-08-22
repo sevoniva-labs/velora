@@ -30,14 +30,13 @@ Velora 登录页 → POST /api/v1/auth/login（TLS + Turnstile）
 下游应用登录使用 OIDC Authorization Code + PKCE：
 
 ```text
-访问 Velora → GET /api/v1/me 401 → 登录按钮
-→ GET /api/v1/auth/federated/oidc/casdoor/begin
-   （服务端保存一次性 state、PKCE verifier、nonce、组织和 5 分钟 TTL）
-→ 设置 HttpOnly/Secure/SameSite=Lax 交易 cookie
-→ 302 Casdoor authorize?code_challenge=...&code_challenge_method=S256
-→ Casdoor 认证 → 302 回调 /api/v1/auth/federated/oidc/casdoor/callback?code&state
-→ 校验 state、交易 cookie、issuer、nonce、PKCE 和一次性消费
-→ code 换 token，校验 ID Token，建立可撤销服务端 session
+下游应用生成 state、nonce、PKCE → 302 auth.sevoniva.com/login/oauth/authorize
+→ Velora 授权网关校验应用发布状态、Client ID、Callback、Flow 和 PKCE
+→ 有有效统一会话：内部转交 Casdoor 协议引擎
+→ 无有效统一会话：302 home.sevoniva.com/login?app=<应用编码>&redirect=<受控授权请求>
+→ 门户登录 + 一次性 Session Bridge → 恢复原始授权请求
+→ Casdoor 生成 Code → 302 下游 Callback
+→ 下游校验 state、issuer、audience、nonce、PKCE 和 ID Token，建立自己的服务端 Session
 ```
 
 安全要点：

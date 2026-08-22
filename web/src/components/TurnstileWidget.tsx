@@ -17,6 +17,8 @@ interface TurnstileRenderOptions {
   'error-callback'?: (errorCode?: string) => void
   'expired-callback'?: () => void
   'timeout-callback'?: () => void
+  'before-interactive-callback'?: () => void
+  'after-interactive-callback'?: () => void
   theme?: 'light' | 'dark' | 'auto'
   size?: 'normal' | 'compact' | 'flexible'
   appearance?: 'always' | 'execute' | 'interaction-only'
@@ -33,6 +35,7 @@ interface TurnstileWidgetProps {
 let scriptPromise: Promise<void> | null = null
 const SCRIPT_ID = 'cloudflare-turnstile-script'
 const SCRIPT_LOAD_TIMEOUT_MS = 8_000
+const AUTOMATIC_VERIFICATION_TIMEOUT_MS = 12_000
 
 /** 幂等加载 Turnstile 官方脚本（challenges.cloudflare.com）。 */
 function loadTurnstileScript(): Promise<void> {
@@ -86,9 +89,21 @@ export default function TurnstileWidget({ siteKey, action = 'login', onVerify, o
   useEffect(() => {
     let cancelled = false
     let widgetId: string | null = null
+    let verificationTimer: number | undefined
     const el = containerRef.current
     setFailed(false)
     onVerify('')
+
+    const clearVerificationTimer = () => window.clearTimeout(verificationTimer)
+    const failVerification = () => {
+      clearVerificationTimer()
+      onVerify('')
+      setFailed(true)
+    }
+    const startVerificationTimer = () => {
+      clearVerificationTimer()
+      verificationTimer = window.setTimeout(failVerification, AUTOMATIC_VERIFICATION_TIMEOUT_MS)
+    }
 
     loadTurnstileScript()
       .then(() => {
@@ -96,24 +111,25 @@ export default function TurnstileWidget({ siteKey, action = 'login', onVerify, o
         widgetId = window.turnstile.render(el, {
           sitekey: siteKey,
           action,
-          callback: (token: string) => onVerify(token),
+          callback: (token: string) => {
+            clearVerificationTimer()
+            onVerify(token)
+          },
           'expired-callback': () => {
             onExpire?.()
             onVerify('')
           },
-          'error-callback': () => {
-            onVerify('')
-            setFailed(true)
-          },
-          'timeout-callback': () => {
-            onVerify('')
-            setFailed(true)
-          },
+          'error-callback': failVerification,
+          'timeout-callback': failVerification,
+          // 自动挑战必须有界；真正需要用户操作时暂停计时，避免打断用户。
+          'before-interactive-callback': clearVerificationTimer,
+          'after-interactive-callback': startVerificationTimer,
           theme,
           size: 'flexible',
           appearance: 'interaction-only',
         })
         widgetIdRef.current = widgetId
+        startVerificationTimer()
       })
       .catch(() => {
         if (!cancelled) setFailed(true)
@@ -121,6 +137,7 @@ export default function TurnstileWidget({ siteKey, action = 'login', onVerify, o
 
     return () => {
       cancelled = true
+      clearVerificationTimer()
       if (widgetIdRef.current && window.turnstile) {
         try {
           window.turnstile.remove(widgetIdRef.current)

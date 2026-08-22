@@ -95,9 +95,9 @@ if [ "$EXPORTED" != "$PENDING" ]; then
 fi
 
 if command -v sha256sum >/dev/null 2>&1; then
-  sha256sum "$CSV" > "$MANIFEST"
+  (cd "$(dirname "$CSV")" && sha256sum "$(basename "$CSV")") > "$MANIFEST"
 else
-  shasum -a 256 "$CSV" > "$MANIFEST"
+  (cd "$(dirname "$CSV")" && shasum -a 256 "$(basename "$CSV")") > "$MANIFEST"
 fi
 {
   echo "cutoff=$CUTOFF"

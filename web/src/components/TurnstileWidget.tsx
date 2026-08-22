@@ -14,10 +14,12 @@ interface TurnstileRenderOptions {
   sitekey: string
   action?: string
   callback: (token: string) => void
-  'error-callback'?: () => void
+  'error-callback'?: (errorCode?: string) => void
   'expired-callback'?: () => void
+  'timeout-callback'?: () => void
   theme?: 'light' | 'dark' | 'auto'
   size?: 'normal' | 'compact' | 'flexible'
+  appearance?: 'always' | 'execute' | 'interaction-only'
 }
 
 interface TurnstileWidgetProps {
@@ -29,6 +31,8 @@ interface TurnstileWidgetProps {
 }
 
 let scriptPromise: Promise<void> | null = null
+const SCRIPT_ID = 'cloudflare-turnstile-script'
+const SCRIPT_LOAD_TIMEOUT_MS = 8_000
 
 /** 幂等加载 Turnstile 官方脚本（challenges.cloudflare.com）。 */
 function loadTurnstileScript(): Promise<void> {
@@ -38,13 +42,31 @@ function loadTurnstileScript(): Promise<void> {
       resolve()
       return
     }
+    document.getElementById(SCRIPT_ID)?.remove()
     const s = document.createElement('script')
+    s.id = SCRIPT_ID
     s.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit'
     s.async = true
-    s.onload = () => resolve()
+    const finish = (error?: Error) => {
+      window.clearTimeout(timeout)
+      s.onload = null
+      s.onerror = null
+      if (error) {
+        s.remove()
+        scriptPromise = null
+        reject(error)
+        return
+      }
+      resolve()
+    }
+    const timeout = window.setTimeout(() => finish(new Error('Turnstile 脚本加载超时')), SCRIPT_LOAD_TIMEOUT_MS)
+    s.onload = () => {
+      if (window.turnstile) finish()
+      else finish(new Error('Turnstile 未正确初始化'))
+    }
     s.onerror = () => {
       scriptPromise = null // 允许重试
-      reject(new Error('Turnstile 脚本加载失败'))
+      finish(new Error('Turnstile 脚本加载失败'))
     }
     document.head.appendChild(s)
   })
@@ -59,11 +81,14 @@ export default function TurnstileWidget({ siteKey, action = 'login', onVerify, o
   const containerRef = useRef<HTMLDivElement>(null)
   const widgetIdRef = useRef<string | null>(null)
   const [failed, setFailed] = useState(false)
+  const [retryAttempt, setRetryAttempt] = useState(0)
 
   useEffect(() => {
     let cancelled = false
     let widgetId: string | null = null
     const el = containerRef.current
+    setFailed(false)
+    onVerify('')
 
     loadTurnstileScript()
       .then(() => {
@@ -76,9 +101,17 @@ export default function TurnstileWidget({ siteKey, action = 'login', onVerify, o
             onExpire?.()
             onVerify('')
           },
-          'error-callback': () => setFailed(true),
+          'error-callback': () => {
+            onVerify('')
+            setFailed(true)
+          },
+          'timeout-callback': () => {
+            onVerify('')
+            setFailed(true)
+          },
           theme,
           size: 'flexible',
+          appearance: 'interaction-only',
         })
         widgetIdRef.current = widgetId
       })
@@ -101,10 +134,23 @@ export default function TurnstileWidget({ siteKey, action = 'login', onVerify, o
     }
     // siteKey/action 变化即重建，避免把旧 action 的 token 发给后端。
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [siteKey, action])
+  }, [siteKey, action, retryAttempt])
 
-  if (failed) {
-    return <div style={{ color: '#fa541c', fontSize: 13 }}>安全验证加载失败，请刷新页面后重试。</div>
-  }
-  return <div ref={containerRef} data-testid="turnstile-widget" style={{ minHeight: 65 }} />
+  return (
+    <div>
+      <div ref={containerRef} data-testid="turnstile-widget" style={{ display: failed ? 'none' : undefined, minHeight: 65 }} />
+      {failed && (
+        <div role="alert" style={{ minHeight: 32, color: '#667085', fontSize: 13, lineHeight: '32px' }}>
+          安全验证暂不可用，
+          <button
+            type="button"
+            onClick={() => setRetryAttempt((attempt) => attempt + 1)}
+            style={{ border: 0, padding: 0, color: '#1677ff', background: 'transparent', cursor: 'pointer' }}
+          >
+            重新加载
+          </button>
+        </div>
+      )}
+    </div>
+  )
 }

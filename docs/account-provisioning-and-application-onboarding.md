@@ -123,7 +123,7 @@ X-Velora-Signature: v1=<hex HMAC-SHA256(secret, timestamp + "." + raw-body)>
 | 角色目录 | `system_admin`、`security_admin`、`project_admin`、`developer`、`auditor`、`ci_service` |
 | Secret 文件 | `/run/secrets/spectra_provisioning_secret` |
 
-Spectra 的接收端迁移、实现和测试位于 Spectra `main` 的 `454d4fa`。真实生产验收结果只在执行后填写，不预填 PASS。
+Spectra 的接收端基线为 `454d4fa`，生产文档提交为 `963321e`，均位于 Spectra `main`。
 
 ## 6. 运维、对账与告警
 
@@ -162,3 +162,23 @@ Audit and reliable-message evidence: PASS/FAIL
 Rollback point:
 Executed at/by:
 ```
+
+### 2026-08-22 Spectra 生产验收
+
+```text
+Velora commit: 3b51f2d
+Spectra commit: 963321e
+Test account: carson
+Create identity + stable subject: PASS
+Provision APPLIED: PASS（version 8，developer）
+Disable + roles cleared + Casdoor forbidden: PASS（version 6）
+Restore + explicit regrant: PASS（version 8）
+Duplicate event: PASS（HTTP 200 / DUPLICATE）
+Stale event: PASS（HTTP 200 / STALE，version 1 未覆盖 version 8）
+Invalid signature: PASS（HTTP 401）
+Reliable-message delivery: PASS（全部 PUBLISHED，attempts=0）
+Final state: Velora ACTIVE / Casdoor isForbidden=false / Spectra ACTIVE+developer
+Executed at: 2026-08-22
+```
+
+应用编辑生产缺陷已修复：已发布 OIDC 应用编辑普通资料时保持 `PUBLISHED/ENABLED`；显式停用仍生效，协议切换仍重新进入接入流程。旧的 `IDENTITY_PENDING/DISABLED` 异常数据可在已验证绑定下恢复。

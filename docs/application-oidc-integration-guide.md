@@ -282,13 +282,13 @@ Velora 状态：ENABLED / PUBLISHED
 Discovery：PASS（Velora 服务端真实请求）
 跳转参数：PASS（公网 302，State、Nonce、PKCE、Client ID、Callback 已核对）
 事务 Cookie：PASS（HttpOnly、Secure、SameSite=Lax）
-Spectra 健康检查：PASS（数据库迁移版本 44）
+Spectra 健康检查：PASS（数据库迁移版本 45）
 Velora 登录与跨域 Session Bridge：PASS（公网 303、Host-only Secure Cookie、一次性票据重放 410）
 Casdoor 无感授权：PASS（已登录用户不再展示 Casdoor 账号密码页）
 OIDC Callback 与 Spectra 本地 Session：PASS（真实浏览器最终进入 /home）
 执行时间：2026-08-22
-Spectra main：69e3b02
+Spectra main：963321e
 服务器回滚点：/home/ubuntu/spectra-deploy/backup-20260821T231748Z-main
 ```
 
-涉及真实用户身份的 Token 交换、ID Token、UserInfo 和免二次登录由用户首次登录完成最终业务验收；在此之前不得把这些项目标为 PASS。
+账号生命周期生产验收：PASS（carson 创建、停用、恢复、developer 角色、重复和乱序事件）。OIDC 浏览器登录仍按每个新应用执行一次业务验收。

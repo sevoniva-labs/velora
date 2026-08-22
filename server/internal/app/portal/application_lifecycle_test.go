@@ -18,33 +18,33 @@ func TestApplicationLifecycleAfterUpdate(t *testing.T) {
 		publish   bool
 	}{
 		{
-			name: "published OIDC metadata edit stays enabled",
-			existing: portaldomain.Application{LaunchType: "OIDC", LifecycleStatus: portaldomain.LifecyclePublished},
-			input: repository.ApplicationInput{LaunchType: "OIDC", Status: portaldomain.StatusEnabled},
+			name:      "published OIDC metadata edit stays enabled",
+			existing:  portaldomain.Application{LaunchType: "OIDC", LifecycleStatus: portaldomain.LifecyclePublished},
+			input:     repository.ApplicationInput{LaunchType: "OIDC", Status: portaldomain.StatusEnabled},
 			lifecycle: portaldomain.LifecyclePublished, status: portaldomain.StatusEnabled, publish: true,
 		},
 		{
-			name: "verified OIDC recovers from legacy disabled state",
+			name:     "verified OIDC recovers from legacy disabled state",
 			existing: portaldomain.Application{LaunchType: "OIDC", LifecycleStatus: portaldomain.LifecycleIdentityPending},
-			input: repository.ApplicationInput{LaunchType: "OIDC", Status: portaldomain.StatusEnabled}, verified: true,
+			input:    repository.ApplicationInput{LaunchType: "OIDC", Status: portaldomain.StatusEnabled}, verified: true,
 			lifecycle: portaldomain.LifecyclePublished, status: portaldomain.StatusEnabled, publish: true,
 		},
 		{
-			name: "unverified OIDC cannot bypass onboarding",
-			existing: portaldomain.Application{LaunchType: "OIDC", LifecycleStatus: portaldomain.LifecycleIdentityPending},
-			input: repository.ApplicationInput{LaunchType: "OIDC", Status: portaldomain.StatusEnabled},
+			name:      "unverified OIDC cannot bypass onboarding",
+			existing:  portaldomain.Application{LaunchType: "OIDC", LifecycleStatus: portaldomain.LifecycleIdentityPending},
+			input:     repository.ApplicationInput{LaunchType: "OIDC", Status: portaldomain.StatusEnabled},
 			lifecycle: portaldomain.LifecycleIdentityPending, status: portaldomain.StatusDisabled,
 		},
 		{
-			name: "switching protocol restarts onboarding",
+			name:     "switching protocol restarts onboarding",
 			existing: portaldomain.Application{LaunchType: "URL", LifecycleStatus: portaldomain.LifecyclePublished},
-			input: repository.ApplicationInput{LaunchType: "OIDC", Status: portaldomain.StatusEnabled}, verified: true,
+			input:    repository.ApplicationInput{LaunchType: "OIDC", Status: portaldomain.StatusEnabled}, verified: true,
 			lifecycle: portaldomain.LifecycleIdentityPending, status: portaldomain.StatusDisabled,
 		},
 		{
-			name: "URL application honors explicit disable",
-			existing: portaldomain.Application{LaunchType: "URL", LifecycleStatus: portaldomain.LifecyclePublished},
-			input: repository.ApplicationInput{LaunchType: "URL", Status: portaldomain.StatusDisabled},
+			name:      "URL application honors explicit disable",
+			existing:  portaldomain.Application{LaunchType: "URL", LifecycleStatus: portaldomain.LifecyclePublished},
+			input:     repository.ApplicationInput{LaunchType: "URL", Status: portaldomain.StatusDisabled},
 			lifecycle: portaldomain.LifecyclePublished, status: portaldomain.StatusDisabled,
 		},
 	}

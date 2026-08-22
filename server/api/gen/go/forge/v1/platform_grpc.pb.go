@@ -51,6 +51,7 @@ const (
 	PlatformService_UpdateRolePermissions_FullMethodName      = "/forge.v1.PlatformService/UpdateRolePermissions"
 	PlatformService_UpdateUserRoles_FullMethodName            = "/forge.v1.PlatformService/UpdateUserRoles"
 	PlatformService_UpdateUserStatus_FullMethodName           = "/forge.v1.PlatformService/UpdateUserStatus"
+	PlatformService_UpdateUserEntitlement_FullMethodName      = "/forge.v1.PlatformService/UpdateUserEntitlement"
 	PlatformService_UnlockUser_FullMethodName                 = "/forge.v1.PlatformService/UnlockUser"
 	PlatformService_ResetUserPassword_FullMethodName          = "/forge.v1.PlatformService/ResetUserPassword"
 	PlatformService_ListSessions_FullMethodName               = "/forge.v1.PlatformService/ListSessions"
@@ -112,6 +113,7 @@ type PlatformServiceClient interface {
 	UpdateRolePermissions(ctx context.Context, in *UpdateRolePermissionsRequest, opts ...grpc.CallOption) (*UpdateRolePermissionsResponse, error)
 	UpdateUserRoles(ctx context.Context, in *UpdateUserRolesRequest, opts ...grpc.CallOption) (*UpdateUserRolesResponse, error)
 	UpdateUserStatus(ctx context.Context, in *UpdateUserStatusRequest, opts ...grpc.CallOption) (*UpdateUserStatusResponse, error)
+	UpdateUserEntitlement(ctx context.Context, in *UpdateUserEntitlementRequest, opts ...grpc.CallOption) (*UpdateUserEntitlementResponse, error)
 	UnlockUser(ctx context.Context, in *UnlockUserRequest, opts ...grpc.CallOption) (*UnlockUserResponse, error)
 	ResetUserPassword(ctx context.Context, in *ResetUserPasswordRequest, opts ...grpc.CallOption) (*ResetUserPasswordResponse, error)
 	ListSessions(ctx context.Context, in *ListSessionsRequest, opts ...grpc.CallOption) (*ListSessionsResponse, error)
@@ -465,6 +467,16 @@ func (c *platformServiceClient) UpdateUserStatus(ctx context.Context, in *Update
 	return out, nil
 }
 
+func (c *platformServiceClient) UpdateUserEntitlement(ctx context.Context, in *UpdateUserEntitlementRequest, opts ...grpc.CallOption) (*UpdateUserEntitlementResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(UpdateUserEntitlementResponse)
+	err := c.cc.Invoke(ctx, PlatformService_UpdateUserEntitlement_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *platformServiceClient) UnlockUser(ctx context.Context, in *UnlockUserRequest, opts ...grpc.CallOption) (*UnlockUserResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(UnlockUserResponse)
@@ -731,6 +743,7 @@ type PlatformServiceServer interface {
 	UpdateRolePermissions(context.Context, *UpdateRolePermissionsRequest) (*UpdateRolePermissionsResponse, error)
 	UpdateUserRoles(context.Context, *UpdateUserRolesRequest) (*UpdateUserRolesResponse, error)
 	UpdateUserStatus(context.Context, *UpdateUserStatusRequest) (*UpdateUserStatusResponse, error)
+	UpdateUserEntitlement(context.Context, *UpdateUserEntitlementRequest) (*UpdateUserEntitlementResponse, error)
 	UnlockUser(context.Context, *UnlockUserRequest) (*UnlockUserResponse, error)
 	ResetUserPassword(context.Context, *ResetUserPasswordRequest) (*ResetUserPasswordResponse, error)
 	ListSessions(context.Context, *ListSessionsRequest) (*ListSessionsResponse, error)
@@ -859,6 +872,9 @@ func (UnimplementedPlatformServiceServer) UpdateUserRoles(context.Context, *Upda
 }
 func (UnimplementedPlatformServiceServer) UpdateUserStatus(context.Context, *UpdateUserStatusRequest) (*UpdateUserStatusResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method UpdateUserStatus not implemented")
+}
+func (UnimplementedPlatformServiceServer) UpdateUserEntitlement(context.Context, *UpdateUserEntitlementRequest) (*UpdateUserEntitlementResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method UpdateUserEntitlement not implemented")
 }
 func (UnimplementedPlatformServiceServer) UnlockUser(context.Context, *UnlockUserRequest) (*UnlockUserResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method UnlockUser not implemented")
@@ -1526,6 +1542,24 @@ func _PlatformService_UpdateUserStatus_Handler(srv interface{}, ctx context.Cont
 	return interceptor(ctx, in, info, handler)
 }
 
+func _PlatformService_UpdateUserEntitlement_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdateUserEntitlementRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PlatformServiceServer).UpdateUserEntitlement(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: PlatformService_UpdateUserEntitlement_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PlatformServiceServer).UpdateUserEntitlement(ctx, req.(*UpdateUserEntitlementRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _PlatformService_UnlockUser_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(UnlockUserRequest)
 	if err := dec(in); err != nil {
@@ -2074,6 +2108,10 @@ var PlatformService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "UpdateUserStatus",
 			Handler:    _PlatformService_UpdateUserStatus_Handler,
+		},
+		{
+			MethodName: "UpdateUserEntitlement",
+			Handler:    _PlatformService_UpdateUserEntitlement_Handler,
 		},
 		{
 			MethodName: "UnlockUser",

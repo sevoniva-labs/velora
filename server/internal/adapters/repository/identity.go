@@ -124,8 +124,8 @@ func (r *IdentityRepo) GrantPermissionToRole(ctx context.Context, orgID, roleKey
 func (r *IdentityRepo) UserByLogin(ctx context.Context, orgID, login string) (userRow, error) {
 	var out userRow
 	var locked sql.NullTime
-	err := r.db.QueryRowContext(ctx, r.db.Rebind(`SELECT id,organization_id,login_name,display_name,password_hash,status,must_change_password,failed_login_count,locked_until,password_changed_at,created_at,updated_at FROM users WHERE organization_id=? AND login_name=?`), orgID, login).
-		Scan(&out.User.ID, &out.User.OrganizationID, &out.User.LoginName, &out.User.DisplayName, &out.PasswordHash, &out.User.Status, &out.User.MustChangePassword, &out.User.FailedLoginCount, &locked, &out.User.PasswordChangedAt, &out.User.CreatedAt, &out.User.UpdatedAt)
+	err := r.db.QueryRowContext(ctx, r.db.Rebind(`SELECT id,organization_id,login_name,display_name,email,identity_source,external_subject,provisioning_version,password_hash,status,must_change_password,failed_login_count,locked_until,password_changed_at,created_at,updated_at FROM users WHERE organization_id=? AND login_name=?`), orgID, login).
+		Scan(&out.User.ID, &out.User.OrganizationID, &out.User.LoginName, &out.User.DisplayName, &out.User.Email, &out.User.IdentitySource, &out.User.ExternalSubject, &out.User.ProvisioningVersion, &out.PasswordHash, &out.User.Status, &out.User.MustChangePassword, &out.User.FailedLoginCount, &locked, &out.User.PasswordChangedAt, &out.User.CreatedAt, &out.User.UpdatedAt)
 	if locked.Valid {
 		t := locked.Time
 		out.User.LockedUntil = &t
@@ -133,6 +133,7 @@ func (r *IdentityRepo) UserByLogin(ctx context.Context, orgID, login string) (us
 	if err == nil {
 		out.User.Roles, _ = r.RolesForUser(ctx, out.User.ID)
 		out.User.Permissions, _ = r.PermissionsForUser(ctx, out.User.ID)
+		out.User.Entitlements, _ = r.ListUserEntitlements(ctx, out.User.ID)
 	}
 	return out, err
 }
@@ -140,8 +141,8 @@ func (r *IdentityRepo) UserByID(ctx context.Context, id string) (identity.User, 
 	var out identity.User
 	var locked sql.NullTime
 	var hash string
-	err := r.db.QueryRowContext(ctx, r.db.Rebind(`SELECT id,organization_id,login_name,display_name,password_hash,status,must_change_password,failed_login_count,locked_until,password_changed_at,created_at,updated_at FROM users WHERE id=?`), id).
-		Scan(&out.ID, &out.OrganizationID, &out.LoginName, &out.DisplayName, &hash, &out.Status, &out.MustChangePassword, &out.FailedLoginCount, &locked, &out.PasswordChangedAt, &out.CreatedAt, &out.UpdatedAt)
+	err := r.db.QueryRowContext(ctx, r.db.Rebind(`SELECT id,organization_id,login_name,display_name,email,identity_source,external_subject,provisioning_version,password_hash,status,must_change_password,failed_login_count,locked_until,password_changed_at,created_at,updated_at FROM users WHERE id=?`), id).
+		Scan(&out.ID, &out.OrganizationID, &out.LoginName, &out.DisplayName, &out.Email, &out.IdentitySource, &out.ExternalSubject, &out.ProvisioningVersion, &hash, &out.Status, &out.MustChangePassword, &out.FailedLoginCount, &locked, &out.PasswordChangedAt, &out.CreatedAt, &out.UpdatedAt)
 	if locked.Valid {
 		t := locked.Time
 		out.LockedUntil = &t
@@ -149,6 +150,7 @@ func (r *IdentityRepo) UserByID(ctx context.Context, id string) (identity.User, 
 	if err == nil {
 		out.Roles, _ = r.RolesForUser(ctx, id)
 		out.Permissions, _ = r.PermissionsForUser(ctx, id)
+		out.Entitlements, _ = r.ListUserEntitlements(ctx, id)
 	}
 	return out, err
 }
@@ -383,7 +385,7 @@ func (r *IdentityRepo) UpdatePasswordAndRevokeOtherSessions(ctx context.Context,
 	})
 }
 func (r *IdentityRepo) ListUsers(ctx context.Context, orgID, actorUserID string, scope identity.EffectiveDataScope, limit int) ([]identity.User, error) {
-	query := `SELECT u.id,u.organization_id,u.login_name,u.display_name,u.status,u.must_change_password,u.locked_until,u.password_changed_at,u.created_at,u.updated_at FROM users u WHERE u.organization_id=?`
+	query := `SELECT u.id,u.organization_id,u.login_name,u.display_name,u.email,u.identity_source,u.external_subject,u.provisioning_version,u.status,u.must_change_password,u.locked_until,u.password_changed_at,u.created_at,u.updated_at FROM users u WHERE u.organization_id=?`
 	args := []any{orgID}
 	if !scope.OrganizationWide {
 		conditions := make([]string, 0, 2)
@@ -417,7 +419,7 @@ func (r *IdentityRepo) ListUsers(ctx context.Context, orgID, actorUserID string,
 	for rows.Next() {
 		var u identity.User
 		var locked sql.NullTime
-		if err := rows.Scan(&u.ID, &u.OrganizationID, &u.LoginName, &u.DisplayName, &u.Status, &u.MustChangePassword, &locked, &u.PasswordChangedAt, &u.CreatedAt, &u.UpdatedAt); err != nil {
+		if err := rows.Scan(&u.ID, &u.OrganizationID, &u.LoginName, &u.DisplayName, &u.Email, &u.IdentitySource, &u.ExternalSubject, &u.ProvisioningVersion, &u.Status, &u.MustChangePassword, &locked, &u.PasswordChangedAt, &u.CreatedAt, &u.UpdatedAt); err != nil {
 			return nil, err
 		}
 		if locked.Valid {
@@ -426,6 +428,7 @@ func (r *IdentityRepo) ListUsers(ctx context.Context, orgID, actorUserID string,
 		}
 		u.Roles, _ = r.RolesForUser(ctx, u.ID)
 		u.Permissions, _ = r.PermissionsForUser(ctx, u.ID)
+		u.Entitlements, _ = r.ListUserEntitlements(ctx, u.ID)
 		out = append(out, u)
 	}
 	return out, rows.Err()
@@ -1379,6 +1382,9 @@ func (r *IdentityRepo) SetUserStatus(ctx context.Context, orgID, userID, status 
 		}
 		if status != "ACTIVE" {
 			if _, err := tx.ExecContext(ctx, r.db.Rebind(`DELETE FROM sessions WHERE user_id=?`), userID); err != nil {
+				return err
+			}
+			if _, err := tx.ExecContext(ctx, r.db.Rebind(`UPDATE api_tokens SET revoked_at=? WHERE user_id=? AND revoked_at IS NULL`), time.Now().UTC(), userID); err != nil {
 				return err
 			}
 		}

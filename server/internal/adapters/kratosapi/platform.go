@@ -57,13 +57,28 @@ func (s *PlatformService) CreateUser(ctx context.Context, req *forgev1.CreateUse
 	event := newAuditEvent(ctx, principal, "user.create", "user", "", map[string]any{"login_name": req.GetLoginName(), "roles": req.GetRoles()})
 	err = s.audited(ctx, event, func(txCtx context.Context) error {
 		var createErr error
-		created, createErr = s.identity.CreateUser(txCtx, principal, principal.OrganizationID, req.GetLoginName(), req.GetDisplayName(), req.GetPassword(), req.GetRoles())
+		if s.identity.ManagedIdentityEnabled() {
+			created, createErr = s.identity.CreateManagedUser(txCtx, principal, principal.OrganizationID, req.GetLoginName(), req.GetDisplayName(), req.GetEmail(), req.GetPassword(), req.GetRoles())
+		} else {
+			created, createErr = s.identity.CreateUser(txCtx, principal, principal.OrganizationID, req.GetLoginName(), req.GetDisplayName(), req.GetPassword(), req.GetRoles())
+		}
+		if createErr == nil {
+			for _, entitlement := range req.GetEntitlements() {
+				created, createErr = s.identity.UpdateUserEntitlement(txCtx, principal, created.ID, entitlement.GetApplicationCode(), entitlement.GetStatus(), entitlement.GetRoles())
+				if createErr != nil {
+					break
+				}
+			}
+		}
 		if createErr == nil {
 			event.ResourceID = created.ID
 		}
 		return createErr
 	})
 	if err != nil {
+		if s.identity.ManagedIdentityEnabled() {
+			s.identity.CompensateManagedUser(context.WithoutCancel(ctx), req.GetLoginName())
+		}
 		return nil, serviceError(err)
 	}
 	return &forgev1.CreateUserResponse{User: userProto(created)}, nil
@@ -497,12 +512,30 @@ func (s *PlatformService) UpdateUserStatus(ctx context.Context, req *forgev1.Upd
 	}
 	event := newAuditEvent(ctx, principal, "user.status.update", "user", req.GetUserId(), map[string]any{"status": req.GetStatus()})
 	err = s.audited(ctx, event, func(txCtx context.Context) error {
-		return s.identity.SetUserStatus(txCtx, principal.OrganizationID, req.GetUserId(), req.GetStatus())
+		return s.identity.SetManagedUserStatus(txCtx, principal, req.GetUserId(), req.GetStatus())
 	})
 	if err != nil {
 		return nil, serviceError(err)
 	}
 	return &forgev1.UpdateUserStatusResponse{User: &forgev1.User{Id: req.GetUserId(), OrganizationId: principal.OrganizationID, Status: req.GetStatus()}}, nil
+}
+
+func (s *PlatformService) UpdateUserEntitlement(ctx context.Context, req *forgev1.UpdateUserEntitlementRequest) (*forgev1.UpdateUserEntitlementResponse, error) {
+	principal, err := requiredPrincipal(ctx)
+	if err != nil {
+		return nil, err
+	}
+	event := newAuditEvent(ctx, principal, "user.entitlement.update", "user", req.GetUserId(), map[string]any{"application_code": req.GetApplicationCode(), "status": req.GetStatus(), "roles": req.GetRoles()})
+	var updated domain.User
+	err = s.audited(ctx, event, func(txCtx context.Context) error {
+		var updateErr error
+		updated, updateErr = s.identity.UpdateUserEntitlement(txCtx, principal, req.GetUserId(), req.GetApplicationCode(), req.GetStatus(), req.GetRoles())
+		return updateErr
+	})
+	if err != nil {
+		return nil, serviceError(err)
+	}
+	return &forgev1.UpdateUserEntitlementResponse{User: userProto(updated)}, nil
 }
 
 func (s *PlatformService) UnlockUser(ctx context.Context, req *forgev1.UnlockUserRequest) (*forgev1.UnlockUserResponse, error) {
@@ -915,12 +948,16 @@ func optionalTimestamp(value *time.Time) *timestamppb.Timestamp {
 }
 
 func userProto(user domain.User) *forgev1.User {
-	return &forgev1.User{
+	out := &forgev1.User{
 		Id: user.ID, OrganizationId: user.OrganizationID, LoginName: user.LoginName,
-		DisplayName: user.DisplayName, Status: user.Status, MustChangePassword: user.MustChangePassword,
+		DisplayName: user.DisplayName, Email: user.Email, IdentitySource: user.IdentitySource, Status: user.Status, MustChangePassword: user.MustChangePassword,
 		LockedUntil: optionalTimestamp(user.LockedUntil), PasswordChangedAt: timestamp(user.PasswordChangedAt),
 		CreatedAt: timestamp(user.CreatedAt), Roles: user.Roles, Permissions: user.Permissions,
 	}
+	for _, entitlement := range user.Entitlements {
+		out.Entitlements = append(out.Entitlements, &forgev1.ApplicationEntitlement{ApplicationCode: entitlement.ApplicationCode, ApplicationName: entitlement.ApplicationName, Status: entitlement.Status, Roles: entitlement.Roles, Version: entitlement.Version})
+	}
+	return out
 }
 
 func organizationProto(organization domain.Organization) *forgev1.Organization {

@@ -32,6 +32,7 @@ type Config struct {
 	Resilience    Resilience    `yaml:"resilience"`
 	Compliance    Compliance    `yaml:"compliance"`
 	Features      Features      `yaml:"features"`
+	Provisioning  Provisioning  `yaml:"provisioning"`
 }
 
 type App struct {
@@ -231,6 +232,9 @@ type Security struct {
 	CasdoorAdminEntryEnabled            bool          `yaml:"casdoor_admin_entry_enabled"`
 	CasdoorApplicationAutomationEnabled bool          `yaml:"casdoor_application_automation_enabled"`
 	CasdoorAutomationToken              string        `yaml:"-"`
+	CasdoorIdentityManagementEnabled    bool          `yaml:"casdoor_identity_management_enabled"`
+	CasdoorIdentityClientID             string        `yaml:"casdoor_identity_client_id"`
+	CasdoorIdentityClientSecret         string        `yaml:"-"`
 	// CasdoorPasswordLoginEnabled keeps the browser login form in Velora while
 	// delegating credential verification to Casdoor's application login API.
 	// It is intentionally opt-in because this is a password-grant compatibility
@@ -249,6 +253,12 @@ type Security struct {
 	OIDCProviderEnabled bool     `yaml:"oidc_provider_enabled"`
 	AllowedOrigins      []string `yaml:"allowed_origins"`
 	TrustedProxies      []string `yaml:"trusted_proxies"`
+}
+
+type Provisioning struct {
+	SpectraEnabled bool   `yaml:"spectra_enabled"`
+	SpectraURL     string `yaml:"spectra_url"`
+	SpectraSecret  string `yaml:"-"`
 }
 
 func (s Security) TurnstileConfigured() bool {
@@ -446,7 +456,9 @@ func ApplyEnvironment(cfg *Config) {
 	cfg.Security.CryptoKey = secret("VELORA_CRYPTO_KEY")
 	cfg.Security.OIDCClientSecret = secret("VELORA_OIDC_CLIENT_SECRET")
 	cfg.Security.CasdoorAutomationToken = secret("VELORA_CASDOOR_AUTOMATION_TOKEN")
+	cfg.Security.CasdoorIdentityClientSecret = secret("VELORA_CASDOOR_IDENTITY_CLIENT_SECRET")
 	cfg.Security.TurnstileSecret = secret("VELORA_TURNSTILE_SECRET")
+	cfg.Provisioning.SpectraSecret = secret("VELORA_PROVISIONING_SPECTRA_SECRET")
 
 	overrideString(&cfg.App.Name, "VELORA_APP_NAME")
 	overrideString(&cfg.App.Environment, "VELORA_ENV")
@@ -589,6 +601,8 @@ func ApplyEnvironment(cfg *Config) {
 	overrideBool(&cfg.Security.ApplicationOnboardingV2, "VELORA_APPLICATION_ONBOARDING_V2")
 	overrideBool(&cfg.Security.CasdoorAdminEntryEnabled, "VELORA_CASDOOR_ADMIN_ENTRY_ENABLED")
 	overrideBool(&cfg.Security.CasdoorApplicationAutomationEnabled, "VELORA_CASDOOR_APPLICATION_AUTOMATION_ENABLED")
+	overrideBool(&cfg.Security.CasdoorIdentityManagementEnabled, "VELORA_CASDOOR_IDENTITY_MANAGEMENT_ENABLED")
+	overrideString(&cfg.Security.CasdoorIdentityClientID, "VELORA_CASDOOR_IDENTITY_CLIENT_ID")
 	overrideBool(&cfg.Security.CasdoorPasswordLoginEnabled, "VELORA_CASDOOR_PASSWORD_LOGIN_ENABLED")
 	overrideString(&cfg.Security.CasdoorApplication, "VELORA_CASDOOR_APPLICATION")
 	overrideString(&cfg.Security.CasdoorOrganization, "VELORA_CASDOOR_ORGANIZATION")
@@ -598,6 +612,8 @@ func ApplyEnvironment(cfg *Config) {
 	overrideString(&cfg.Security.OIDCInternalURL, "VELORA_OIDC_INTERNAL_URL")
 	overrideBool(&cfg.Security.OIDCProviderEnabled, "VELORA_OIDC_PROVIDER_ENABLED")
 	overrideBool(&cfg.Security.SecureCookies, "VELORA_SECURE_COOKIES")
+	overrideBool(&cfg.Provisioning.SpectraEnabled, "VELORA_PROVISIONING_SPECTRA_ENABLED")
+	overrideString(&cfg.Provisioning.SpectraURL, "VELORA_PROVISIONING_SPECTRA_URL")
 	overrideString(&cfg.Security.SameSite, "VELORA_SAME_SITE")
 	overrideCSV(&cfg.Security.AllowedOrigins, "VELORA_ALLOWED_ORIGINS")
 	overrideCSV(&cfg.Security.TrustedProxies, "VELORA_TRUSTED_PROXIES")

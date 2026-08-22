@@ -649,6 +649,10 @@ service PlatformService {
       ]
     };
   }
+  rpc UpdateUserEntitlement(UpdateUserEntitlementRequest) returns (UpdateUserEntitlementResponse) {
+    option (google.api.http) = {put: "/api/v1/admin/users/{user_id}/entitlements/{application_code}" body: "*"};
+    option (openapi.v3.operation) = {security: [{additional_properties: [{name: "SessionCookie" value: {value: []}}, {name: "CsrfToken" value: {value: []}}]}, {additional_properties: [{name: "BearerAuth" value: {value: []}}]}]};
+  }
   rpc UnlockUser(UnlockUserRequest) returns (UnlockUserResponse) {
     option (google.api.http) = {
       post: "/api/v1/admin/users/{user_id}/unlock"
@@ -923,6 +927,8 @@ message CreateUserRequest {
   string display_name = 2;
   string password = 3;
   repeated string roles = 4;
+  string email = 5;
+  repeated ApplicationEntitlement entitlements = 6;
 }
 message CreateUserResponse {
   User user = 1;
@@ -1240,6 +1246,16 @@ message UpdateUserStatusRequest {
   string status = 2;
 }
 message UpdateUserStatusResponse {
+  User user = 1;
+}
+
+message UpdateUserEntitlementRequest {
+  string user_id = 1;
+  string application_code = 2;
+  string status = 3;
+  repeated string roles = 4;
+}
+message UpdateUserEntitlementResponse {
   User user = 1;
 }
 

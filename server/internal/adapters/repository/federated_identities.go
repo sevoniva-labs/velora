@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"strings"
 	"time"
 
@@ -30,6 +31,9 @@ func (r *IdentityRepo) ListFederatedIdentityLinks(ctx context.Context, organizat
 func (r *IdentityRepo) FederatedIdentityByProviderSubject(ctx context.Context, organizationID, provider, subject string) (identity.FederatedIdentityLink, error) {
 	var link identity.FederatedIdentityLink
 	err := r.db.QueryRowContext(ctx, r.db.Rebind(`SELECT e.id,e.organization_id,e.provider,e.subject,e.user_id,u.login_name,e.created_by,e.approval_id,e.created_at,e.last_authenticated_at FROM external_identities e JOIN users u ON u.id=e.user_id WHERE e.organization_id=? AND e.provider=? AND e.subject=?`), organizationID, provider, subject).Scan(&link.ID, &link.OrganizationID, &link.Provider, &link.Subject, &link.UserID, &link.LoginName, &link.CreatedBy, &link.ApprovalID, &link.CreatedAt, &link.LastAuthenticatedAt)
+	if errors.Is(err, sql.ErrNoRows) {
+		return r.FederatedManagedUser(ctx, organizationID, provider, subject)
+	}
 	return link, err
 }
 

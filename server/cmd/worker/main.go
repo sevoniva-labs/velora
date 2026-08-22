@@ -15,6 +15,7 @@ import (
 	"github.com/sevoniva-labs/velora/server/internal/platform/idempotency"
 	"github.com/sevoniva-labs/velora/server/internal/platform/logx"
 	"github.com/sevoniva-labs/velora/server/internal/platform/messaging"
+	"github.com/sevoniva-labs/velora/server/internal/platform/provisioninghttp"
 	"github.com/sevoniva-labs/velora/server/internal/platform/reliablemsg"
 )
 
@@ -45,8 +46,12 @@ func run(ctx context.Context) error {
 		return err
 	}
 	defer bus.Close()
-	if bus.Provider() == "disabled" {
-		log.Info("reliable-message worker disabled because messaging provider is disabled")
+	provisioning, err := provisioninghttp.New(provisioninghttp.Config{Enabled: cfg.Provisioning.SpectraEnabled, URL: cfg.Provisioning.SpectraURL, Secret: cfg.Provisioning.SpectraSecret})
+	if err != nil {
+		return err
+	}
+	if bus.Provider() == "disabled" && !provisioning.Enabled() {
+		log.Info("reliable-message worker has no enabled provider")
 		<-ctx.Done()
 		return nil
 	}
@@ -84,11 +89,21 @@ func run(ctx context.Context) error {
 		case <-auditGC.C:
 			runAuditRetention()
 		case <-poll.C:
-			n, err := messages.PublishBatch(ctx, bus, 100)
-			if err != nil && !errors.Is(err, context.Canceled) {
-				log.Error("reliable message publish", "err", err)
-			} else if n > 0 {
-				log.Info("reliable message published", "count", n)
+			if provisioning.Enabled() {
+				n, err := messages.PublishTopicBatch(ctx, "velora.provisioning.spectra", 50, provisioning.Publish)
+				if err != nil && !errors.Is(err, context.Canceled) {
+					log.Error("Spectra provisioning publish", "err", err)
+				} else if n > 0 {
+					log.Info("Spectra provisioning published", "count", n)
+				}
+			}
+			if bus.Provider() != "disabled" {
+				n, err := messages.PublishBatch(ctx, bus, 100)
+				if err != nil && !errors.Is(err, context.Canceled) {
+					log.Error("reliable message publish", "err", err)
+				} else if n > 0 {
+					log.Info("reliable message published", "count", n)
+				}
 			}
 		}
 	}

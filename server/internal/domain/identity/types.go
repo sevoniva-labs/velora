@@ -190,19 +190,32 @@ type Session struct {
 }
 
 type User struct {
-	ID                 string     `json:"id"`
-	OrganizationID     string     `json:"organization_id"`
-	LoginName          string     `json:"login_name"`
-	DisplayName        string     `json:"display_name"`
-	Status             string     `json:"status"`
-	MustChangePassword bool       `json:"must_change_password"`
-	FailedLoginCount   int        `json:"-"`
-	LockedUntil        *time.Time `json:"locked_until,omitempty"`
-	PasswordChangedAt  time.Time  `json:"-"`
-	CreatedAt          time.Time  `json:"created_at"`
-	UpdatedAt          time.Time  `json:"updated_at"`
-	Roles              []string   `json:"roles"`
-	Permissions        []string   `json:"permissions,omitempty"`
+	ID                  string                   `json:"id"`
+	OrganizationID      string                   `json:"organization_id"`
+	LoginName           string                   `json:"login_name"`
+	DisplayName         string                   `json:"display_name"`
+	Email               string                   `json:"email"`
+	IdentitySource      string                   `json:"identity_source"`
+	ExternalSubject     string                   `json:"-"`
+	ProvisioningVersion int64                    `json:"-"`
+	Status              string                   `json:"status"`
+	MustChangePassword  bool                     `json:"must_change_password"`
+	FailedLoginCount    int                      `json:"-"`
+	LockedUntil         *time.Time               `json:"locked_until,omitempty"`
+	PasswordChangedAt   time.Time                `json:"-"`
+	CreatedAt           time.Time                `json:"created_at"`
+	UpdatedAt           time.Time                `json:"updated_at"`
+	Roles               []string                 `json:"roles"`
+	Permissions         []string                 `json:"permissions,omitempty"`
+	Entitlements        []ApplicationEntitlement `json:"entitlements,omitempty"`
+}
+
+type ApplicationEntitlement struct {
+	ApplicationCode string   `json:"application_code"`
+	ApplicationName string   `json:"application_name"`
+	Status          string   `json:"status"`
+	Roles           []string `json:"roles"`
+	Version         int64    `json:"version"`
 }
 
 func (u User) HasRole(keys ...string) bool {

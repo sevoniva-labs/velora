@@ -29,6 +29,7 @@ import (
 	"github.com/sevoniva-labs/velora/server/internal/platform/authz"
 	"github.com/sevoniva-labs/velora/server/internal/platform/cache"
 	"github.com/sevoniva-labs/velora/server/internal/platform/casdooradmin"
+	"github.com/sevoniva-labs/velora/server/internal/platform/casdooridentity"
 	"github.com/sevoniva-labs/velora/server/internal/platform/config"
 	"github.com/sevoniva-labs/velora/server/internal/platform/csrf"
 	"github.com/sevoniva-labs/velora/server/internal/platform/database"
@@ -258,6 +259,15 @@ func New(ctx context.Context, opts Options) (*App, error) {
 		return nil, fmt.Errorf("Casdoor application automation: %w", err)
 	}
 	portalService.ConfigureCasdoorAutomation(casdoorAutomation)
+	casdoorIdentity, err := casdooridentity.New(casdooridentity.Config{
+		BaseURL: cfg.Security.OIDCInternalURL, ClientID: cfg.Security.CasdoorIdentityClientID,
+		ClientSecret: cfg.Security.CasdoorIdentityClientSecret, Organization: cfg.Security.CasdoorOrganization,
+		Application: cfg.Security.CasdoorApplication, Enabled: cfg.Security.CasdoorIdentityManagementEnabled,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("Casdoor identity management: %w", err)
+	}
+	identitySvc.ConfigureManagedIdentityProvider(casdoorIdentity, cfg.Security.OIDCIssuer)
 	identityService := kratosapi.NewIdentityService(identitySvc, auditWriter, db, ratelimit.New(c), cfg.Security.SecureCookies, cfg.Security.SameSite)
 	identityService.ConfigureAuthMode(cfg.Security.AuthMode)
 	if cfg.Security.TurnstileConfigured() {

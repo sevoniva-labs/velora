@@ -1577,6 +1577,39 @@ paths:
                 - SessionCookie: []
                   CsrfToken: []
                 - BearerAuth: []
+    /api/v1/admin/users/{userId}/entitlements/{applicationCode}:
+        put:
+            tags:
+                - PlatformService
+            operationId: PlatformService_UpdateUserEntitlement
+            parameters:
+                - name: userId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+                - name: applicationCode
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/forge.v1.UpdateUserEntitlementRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/forge.v1.UpdateUserEntitlementResponse'
+            security:
+                - SessionCookie: []
+                  CsrfToken: []
+                - BearerAuth: []
     /api/v1/admin/users/{userId}/reset-password:
         post:
             tags:
@@ -2522,6 +2555,21 @@ components:
                     format: date-time
                 prefix:
                     type: string
+        forge.v1.ApplicationEntitlement:
+            type: object
+            properties:
+                applicationCode:
+                    type: string
+                applicationName:
+                    type: string
+                status:
+                    type: string
+                roles:
+                    type: array
+                    items:
+                        type: string
+                version:
+                    type: string
         forge.v1.ApprovalRequest:
             type: object
             properties:
@@ -2995,6 +3043,12 @@ components:
                     type: array
                     items:
                         type: string
+                email:
+                    type: string
+                entitlements:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/forge.v1.ApplicationEntitlement'
         forge.v1.CreateUserResponse:
             type: object
             properties:
@@ -4364,6 +4418,24 @@ components:
             properties:
                 policy:
                     $ref: '#/components/schemas/forge.v1.SecurityPolicy'
+        forge.v1.UpdateUserEntitlementRequest:
+            type: object
+            properties:
+                userId:
+                    type: string
+                applicationCode:
+                    type: string
+                status:
+                    type: string
+                roles:
+                    type: array
+                    items:
+                        type: string
+        forge.v1.UpdateUserEntitlementResponse:
+            type: object
+            properties:
+                user:
+                    $ref: '#/components/schemas/forge.v1.User'
         forge.v1.UpdateUserGroupMembersRequest:
             type: object
             properties:
@@ -4519,6 +4591,14 @@ components:
                 mfaVerifiedAt:
                     type: string
                     format: date-time
+                email:
+                    type: string
+                identitySource:
+                    type: string
+                entitlements:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/forge.v1.ApplicationEntitlement'
         forge.v1.UserAssignment:
             type: object
             properties:

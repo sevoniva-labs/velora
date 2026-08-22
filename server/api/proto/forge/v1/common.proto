@@ -21,6 +21,17 @@ message User {
   EffectiveDataScope data_scope = 12;
   string authentication_level = 13;
   google.protobuf.Timestamp mfa_verified_at = 14;
+  string email = 15;
+  string identity_source = 16;
+  repeated ApplicationEntitlement entitlements = 17;
+}
+
+message ApplicationEntitlement {
+  string application_code = 1;
+  string application_name = 2;
+  string status = 3;
+  repeated string roles = 4;
+  int64 version = 5;
 }
 
 message EffectiveDataScope {

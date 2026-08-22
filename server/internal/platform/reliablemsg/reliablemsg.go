@@ -96,11 +96,19 @@ type pending struct {
 	Attempts                                                 int
 }
 
-func (s *Store) pending(ctx context.Context, limit int) ([]pending, error) {
+func (s *Store) pending(ctx context.Context, limit int, topic string) ([]pending, error) {
 	if limit <= 0 || limit > 500 {
 		limit = 100
 	}
-	rows, err := s.db.QueryContext(ctx, s.db.Rebind(`SELECT id,organization_id,topic,event_key,event_type,ordering_key,tag,deliver_at,payload_json,headers_json,attempts FROM reliable_messages WHERE status='PENDING' AND next_attempt_at<=? ORDER BY created_at LIMIT ?`), time.Now().UTC(), limit)
+	query := `SELECT id,organization_id,topic,event_key,event_type,ordering_key,tag,deliver_at,payload_json,headers_json,attempts FROM reliable_messages WHERE status='PENDING' AND next_attempt_at<=?`
+	args := []any{time.Now().UTC()}
+	if topic != "" {
+		query += ` AND topic=?`
+		args = append(args, topic)
+	}
+	query += ` ORDER BY created_at LIMIT ?`
+	args = append(args, limit)
+	rows, err := s.db.QueryContext(ctx, s.db.Rebind(query), args...)
 	if err != nil {
 		return nil, err
 	}
@@ -152,10 +160,27 @@ func (s *Store) retry(ctx context.Context, p pending, publishErr error) error {
 	return err
 }
 func (s *Store) PublishBatch(ctx context.Context, bus messaging.Bus, limit int) (int, error) {
+	return s.publishBatch(ctx, "", limit, func(ctx context.Context, message messaging.Message) error {
+		_, err := bus.Publish(ctx, message)
+		return err
+	})
+}
+
+func (s *Store) PublishTopicBatch(ctx context.Context, topic string, limit int, publish func(context.Context, messaging.Message) (string, error)) (int, error) {
+	if strings.TrimSpace(topic) == "" || publish == nil {
+		return 0, errors.New("topic and publisher are required")
+	}
+	return s.publishBatch(ctx, strings.TrimSpace(topic), limit, func(ctx context.Context, message messaging.Message) error {
+		_, err := publish(ctx, message)
+		return err
+	})
+}
+
+func (s *Store) publishBatch(ctx context.Context, topic string, limit int, publish func(context.Context, messaging.Message) error) (int, error) {
 	if err := s.recoverExpiredClaims(ctx); err != nil {
 		return 0, fmt.Errorf("recover expired reliable message claims: %w", err)
 	}
-	items, err := s.pending(ctx, limit)
+	items, err := s.pending(ctx, limit, topic)
 	if err != nil {
 		return 0, fmt.Errorf("query pending reliable messages: %w", err)
 	}
@@ -182,7 +207,7 @@ func (s *Store) PublishBatch(ctx context.Context, bus messaging.Bus, limit int) 
 			}
 			continue
 		}
-		if _, err := bus.Publish(ctx, message); err != nil {
+		if err := publish(ctx, message); err != nil {
 			failed++
 			failures = appendBatchFailure(failures, fmt.Errorf("publish reliable message %s: %w", e.ID, err))
 			if stateErr := s.retry(ctx, e, err); stateErr != nil {

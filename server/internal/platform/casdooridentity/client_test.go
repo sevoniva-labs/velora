@@ -1,0 +1,65 @@
+package casdooridentity
+
+import (
+	"context"
+	"encoding/json"
+	"net/http"
+	"net/http/httptest"
+	"strings"
+	"testing"
+
+	appidentity "github.com/sevoniva-labs/velora/server/internal/app/identity"
+)
+
+func TestCreateUserUsesBasicAuthAndReturnsStableSubject(t *testing.T) {
+	created := false
+	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		user, pass, ok := r.BasicAuth()
+		if !ok || user != "client" || pass != "secret" {
+			t.Fatal("missing client authentication")
+		}
+		w.Header().Set("Content-Type", "application/json")
+		switch r.URL.Path {
+		case "/api/get-user":
+			if !created {
+				_, _ = w.Write([]byte(`{"status":"error","msg":"The user does not exist"}`))
+				return
+			}
+			_, _ = w.Write([]byte(`{"status":"ok","data":{"owner":"built-in","name":"carson","id":"subject-1"}}`))
+		case "/api/add-user":
+			var body map[string]any
+			if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+				t.Fatal(err)
+			}
+			if body["password"] != "Strong#Password123" || body["name"] != "carson" {
+				t.Fatalf("unexpected body: %#v", body)
+			}
+			created = true
+			_, _ = w.Write([]byte(`{"status":"ok","data":"Affected"}`))
+		default:
+			t.Fatalf("unexpected path %s", r.URL.Path)
+		}
+	}))
+	defer server.Close()
+	client, err := New(Config{BaseURL: server.URL, ClientID: "client", ClientSecret: "secret", Organization: "built-in", Application: "app-velora", Enabled: true, HTTPClient: server.Client()})
+	if err != nil {
+		t.Fatal(err)
+	}
+	subject, err := client.CreateUser(context.Background(), appidentity.ManagedUserInput{LoginName: "carson", DisplayName: "Carson", Email: "carson@example.com", Password: "Strong#Password123"})
+	if err != nil || subject != "subject-1" {
+		t.Fatalf("CreateUser() = %q, %v", subject, err)
+	}
+}
+
+func TestErrorDoesNotLeakCredentials(t *testing.T) {
+	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { http.Error(w, "secret response", http.StatusBadGateway) }))
+	defer server.Close()
+	client, err := New(Config{BaseURL: server.URL, ClientID: "client", ClientSecret: "top-secret", Organization: "built-in", Enabled: true, HTTPClient: server.Client()})
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = client.CreateUser(context.Background(), appidentity.ManagedUserInput{LoginName: "carson", Password: "User#Secret123"})
+	if err == nil || strings.Contains(err.Error(), "top-secret") || strings.Contains(err.Error(), "User#Secret123") {
+		t.Fatalf("unsafe error: %v", err)
+	}
+}

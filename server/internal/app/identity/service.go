@@ -8,6 +8,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"net/mail"
 	"strconv"
 	"strings"
 	"time"
@@ -81,16 +82,18 @@ type Options struct {
 }
 
 type Service struct {
-	repo         *repository.IdentityRepo
-	hasher       password.Hasher
-	policy       password.Policy
-	sessionTTL   time.Duration
-	maxFailures  int
-	lockDuration time.Duration
-	history      int
-	maxAge       time.Duration
-	crypt        appcrypto.Provider
-	totp         mfa.TOTP
+	repo            *repository.IdentityRepo
+	hasher          password.Hasher
+	policy          password.Policy
+	sessionTTL      time.Duration
+	maxFailures     int
+	lockDuration    time.Duration
+	history         int
+	maxAge          time.Duration
+	crypt           appcrypto.Provider
+	totp            mfa.TOTP
+	managedIdentity ManagedIdentityProvider
+	identityIssuer  string
 }
 
 func NewService(repo *repository.IdentityRepo, opt Options) *Service {
@@ -908,6 +911,148 @@ func (s *Service) CreateUser(ctx context.Context, actor domain.Principal, orgID,
 		return domain.User{}, err
 	}
 	return s.repo.CreateUserWithRoles(ctx, orgID, login, display, h, true, roles)
+}
+
+func (s *Service) CreateManagedUser(ctx context.Context, actor domain.Principal, orgID, login, display, email, raw string, roles []string) (domain.User, error) {
+	if s.managedIdentity == nil || !s.managedIdentity.Enabled() {
+		return domain.User{}, errors.New("managed identity provider is unavailable")
+	}
+	if err := authorizeGrantActor(actor, orgID); err != nil {
+		return domain.User{}, err
+	}
+	if err := s.enforceOrganizationActive(ctx, orgID); err != nil {
+		return domain.User{}, err
+	}
+	login, display, email = strings.TrimSpace(login), strings.TrimSpace(display), strings.ToLower(strings.TrimSpace(email))
+	if login == "" || len(login) > 120 {
+		return domain.User{}, ErrInvalidLoginName
+	}
+	if email != "" {
+		if parsed, err := mail.ParseAddress(email); err != nil || parsed.Address != email {
+			return domain.User{}, ErrInvalidLoginName
+		}
+	}
+	if len(roles) == 0 {
+		roles = []string{"user"}
+	}
+	allowed := map[string]struct{}{"system_admin": {}, "security_admin": {}, "auditor": {}, "application_admin": {}, "iam_admin": {}, "user": {}}
+	for _, role := range roles {
+		if _, ok := allowed[role]; !ok {
+			return domain.User{}, ErrInvalidRole
+		}
+	}
+	if err := enforceRoleMutation(actor, nil, roles); err != nil {
+		return domain.User{}, err
+	}
+	if err := s.validateRoleCombination(ctx, orgID, roles); err != nil {
+		return domain.User{}, err
+	}
+	policy, err := s.resolveSecurityPolicy(ctx, orgID)
+	if err != nil {
+		return domain.User{}, err
+	}
+	if err := policy.passwordPolicy.Validate(raw); err != nil {
+		return domain.User{}, fmt.Errorf("%w: %v", ErrPasswordPolicy, err)
+	}
+	subject, err := s.managedIdentity.CreateUser(ctx, ManagedUserInput{LoginName: login, DisplayName: display, Email: email, Password: raw})
+	if err != nil {
+		return domain.User{}, err
+	}
+	randomPassword := make([]byte, 32)
+	if _, err := rand.Read(randomPassword); err != nil {
+		_ = s.managedIdentity.SetUserStatus(ctx, login, false)
+		return domain.User{}, err
+	}
+	hash, err := s.hasher.Hash(hex.EncodeToString(randomPassword))
+	if err != nil {
+		_ = s.managedIdentity.SetUserStatus(ctx, login, false)
+		return domain.User{}, err
+	}
+	u, err := s.repo.CreateManagedUser(ctx, repository.ManagedUserCreate{OrganizationID: orgID, LoginName: login, DisplayName: display, Email: email, PasswordHash: hash, ExternalSubject: subject, Roles: roles})
+	if err != nil {
+		_ = s.managedIdentity.SetUserStatus(ctx, login, false)
+		return domain.User{}, err
+	}
+	return u, nil
+}
+
+func (s *Service) CompensateManagedUser(ctx context.Context, login string) {
+	if s.managedIdentity != nil && s.managedIdentity.Enabled() {
+		_ = s.managedIdentity.SetUserStatus(ctx, login, false)
+	}
+}
+
+func (s *Service) UpdateUserEntitlement(ctx context.Context, actor domain.Principal, userID, applicationCode, status string, roles []string) (domain.User, error) {
+	if !actor.HasPermission("system.user.role.manage") && !actor.HasRole("system_admin") {
+		return domain.User{}, ErrGrantCeiling
+	}
+	status, applicationCode = strings.ToUpper(strings.TrimSpace(status)), strings.ToLower(strings.TrimSpace(applicationCode))
+	if status != "ACTIVE" && status != "DISABLED" {
+		return domain.User{}, errors.New("invalid entitlement status")
+	}
+	allowed := map[string]map[string]struct{}{"spectra": {"system_admin": {}, "security_admin": {}, "project_admin": {}, "developer": {}, "auditor": {}, "ci_service": {}}}
+	roleSet, ok := allowed[applicationCode]
+	if !ok {
+		return domain.User{}, errors.New("application has no certified provisioning role catalog")
+	}
+	clean, seen := make([]string, 0, len(roles)), map[string]struct{}{}
+	if status == "DISABLED" {
+		roles = nil
+	}
+	for _, role := range roles {
+		role = strings.TrimSpace(role)
+		if _, ok := roleSet[role]; !ok {
+			return domain.User{}, ErrInvalidRole
+		}
+		if _, ok := seen[role]; !ok {
+			seen[role] = struct{}{}
+			clean = append(clean, role)
+		}
+	}
+	if err := s.repo.UpsertUserEntitlement(ctx, actor.UserID, userID, applicationCode, status, clean, s.identityIssuer); err != nil {
+		return domain.User{}, err
+	}
+	return s.repo.UserByID(ctx, userID)
+}
+
+func (s *Service) SetManagedUserStatus(ctx context.Context, actor domain.Principal, userID, status string) error {
+	status = strings.ToUpper(strings.TrimSpace(status))
+	if status != "ACTIVE" && status != "DISABLED" {
+		return errors.New("invalid user status")
+	}
+	u, err := s.repo.UserByID(ctx, userID)
+	if err != nil {
+		return err
+	}
+	if u.OrganizationID != actor.OrganizationID {
+		return ErrGrantCeiling
+	}
+	if u.IdentitySource != "CASDOOR" {
+		return s.repo.SetUserStatus(ctx, actor.OrganizationID, userID, status)
+	}
+	if s.managedIdentity == nil || !s.managedIdentity.Enabled() {
+		return errors.New("managed identity provider is unavailable")
+	}
+	active := status == "ACTIVE"
+	if err := s.managedIdentity.SetUserStatus(ctx, u.LoginName, active); err != nil {
+		return err
+	}
+	if err := s.repo.SetUserStatus(ctx, actor.OrganizationID, userID, status); err != nil {
+		_ = s.managedIdentity.SetUserStatus(ctx, u.LoginName, !active)
+		return err
+	}
+	for _, entitlement := range u.Entitlements {
+		roles := entitlement.Roles
+		entitlementStatus := entitlement.Status
+		if !active {
+			roles = nil
+			entitlementStatus = "DISABLED"
+		}
+		if err := s.repo.UpsertUserEntitlement(ctx, actor.UserID, userID, entitlement.ApplicationCode, entitlementStatus, roles, s.identityIssuer); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 func (s *Service) ChangePassword(ctx context.Context, actor domain.Principal, current, next string) error {
 	if err := requireInteractivePrincipal(actor); err != nil {
@@ -1988,6 +2133,12 @@ func (s *Service) AdminResetPassword(ctx context.Context, orgID, userID, next st
 	}
 	if user.OrganizationID != orgID {
 		return sql.ErrNoRows
+	}
+	if user.IdentitySource == "CASDOOR" {
+		if s.managedIdentity == nil || !s.managedIdentity.Enabled() {
+			return errors.New("managed identity provider is unavailable")
+		}
+		return s.managedIdentity.SetUserPassword(ctx, user.LoginName, next)
 	}
 	currentHash, err := s.repo.PasswordHashByID(ctx, userID)
 	if err != nil {

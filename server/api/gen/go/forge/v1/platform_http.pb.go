@@ -67,6 +67,7 @@ const OperationPlatformServiceUpdatePosition = "/forge.v1.PlatformService/Update
 const OperationPlatformServiceUpdateRoleDataScope = "/forge.v1.PlatformService/UpdateRoleDataScope"
 const OperationPlatformServiceUpdateRolePermissions = "/forge.v1.PlatformService/UpdateRolePermissions"
 const OperationPlatformServiceUpdateSecurityPolicy = "/forge.v1.PlatformService/UpdateSecurityPolicy"
+const OperationPlatformServiceUpdateUserEntitlement = "/forge.v1.PlatformService/UpdateUserEntitlement"
 const OperationPlatformServiceUpdateUserGroup = "/forge.v1.PlatformService/UpdateUserGroup"
 const OperationPlatformServiceUpdateUserGroupMembers = "/forge.v1.PlatformService/UpdateUserGroupMembers"
 const OperationPlatformServiceUpdateUserGroupRoles = "/forge.v1.PlatformService/UpdateUserGroupRoles"
@@ -124,6 +125,7 @@ type PlatformServiceHTTPServer interface {
 	UpdateRoleDataScope(context.Context, *UpdateRoleDataScopeRequest) (*UpdateRoleDataScopeResponse, error)
 	UpdateRolePermissions(context.Context, *UpdateRolePermissionsRequest) (*UpdateRolePermissionsResponse, error)
 	UpdateSecurityPolicy(context.Context, *UpdateSecurityPolicyRequest) (*UpdateSecurityPolicyResponse, error)
+	UpdateUserEntitlement(context.Context, *UpdateUserEntitlementRequest) (*UpdateUserEntitlementResponse, error)
 	UpdateUserGroup(context.Context, *UpdateUserGroupRequest) (*UpdateUserGroupResponse, error)
 	UpdateUserGroupMembers(context.Context, *UpdateUserGroupMembersRequest) (*UpdateUserGroupMembersResponse, error)
 	UpdateUserGroupRoles(context.Context, *UpdateUserGroupRolesRequest) (*UpdateUserGroupRolesResponse, error)
@@ -167,6 +169,7 @@ func RegisterPlatformServiceHTTPServer(s *http.Server, srv PlatformServiceHTTPSe
 	r.PUT("/api/v1/admin/roles/{role_key}/permissions", _PlatformService_UpdateRolePermissions0_HTTP_Handler(srv))
 	r.PATCH("/api/v1/admin/users/{user_id}/roles", _PlatformService_UpdateUserRoles0_HTTP_Handler(srv))
 	r.PATCH("/api/v1/admin/users/{user_id}/status", _PlatformService_UpdateUserStatus0_HTTP_Handler(srv))
+	r.PUT("/api/v1/admin/users/{user_id}/entitlements/{application_code}", _PlatformService_UpdateUserEntitlement0_HTTP_Handler(srv))
 	r.POST("/api/v1/admin/users/{user_id}/unlock", _PlatformService_UnlockUser0_HTTP_Handler(srv))
 	r.POST("/api/v1/admin/users/{user_id}/reset-password", _PlatformService_ResetUserPassword0_HTTP_Handler(srv))
 	r.GET("/api/v1/admin/sessions", _PlatformService_ListSessions0_HTTP_Handler(srv))
@@ -899,6 +902,31 @@ func _PlatformService_UpdateUserStatus0_HTTP_Handler(srv PlatformServiceHTTPServ
 	}
 }
 
+func _PlatformService_UpdateUserEntitlement0_HTTP_Handler(srv PlatformServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in UpdateUserEntitlementRequest
+		if err := ctx.Bind(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindVars(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationPlatformServiceUpdateUserEntitlement)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.UpdateUserEntitlement(ctx, req.(*UpdateUserEntitlementRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*UpdateUserEntitlementResponse)
+		return ctx.Result(200, reply)
+	}
+}
+
 func _PlatformService_UnlockUser0_HTTP_Handler(srv PlatformServiceHTTPServer) func(ctx http.Context) error {
 	return func(ctx http.Context) error {
 		var in UnlockUserRequest
@@ -1457,6 +1485,7 @@ type PlatformServiceHTTPClient interface {
 	UpdateRoleDataScope(ctx context.Context, req *UpdateRoleDataScopeRequest, opts ...http.CallOption) (rsp *UpdateRoleDataScopeResponse, err error)
 	UpdateRolePermissions(ctx context.Context, req *UpdateRolePermissionsRequest, opts ...http.CallOption) (rsp *UpdateRolePermissionsResponse, err error)
 	UpdateSecurityPolicy(ctx context.Context, req *UpdateSecurityPolicyRequest, opts ...http.CallOption) (rsp *UpdateSecurityPolicyResponse, err error)
+	UpdateUserEntitlement(ctx context.Context, req *UpdateUserEntitlementRequest, opts ...http.CallOption) (rsp *UpdateUserEntitlementResponse, err error)
 	UpdateUserGroup(ctx context.Context, req *UpdateUserGroupRequest, opts ...http.CallOption) (rsp *UpdateUserGroupResponse, err error)
 	UpdateUserGroupMembers(ctx context.Context, req *UpdateUserGroupMembersRequest, opts ...http.CallOption) (rsp *UpdateUserGroupMembersResponse, err error)
 	UpdateUserGroupRoles(ctx context.Context, req *UpdateUserGroupRolesRequest, opts ...http.CallOption) (rsp *UpdateUserGroupRolesResponse, err error)
@@ -2092,6 +2121,19 @@ func (c *PlatformServiceHTTPClientImpl) UpdateSecurityPolicy(ctx context.Context
 	opts = append(opts, http.Operation(OperationPlatformServiceUpdateSecurityPolicy))
 	opts = append(opts, http.PathTemplate(pattern))
 	err := c.cc.Invoke(ctx, "PUT", path, in.Policy, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+func (c *PlatformServiceHTTPClientImpl) UpdateUserEntitlement(ctx context.Context, in *UpdateUserEntitlementRequest, opts ...http.CallOption) (*UpdateUserEntitlementResponse, error) {
+	var out UpdateUserEntitlementResponse
+	pattern := "/api/v1/admin/users/{user_id}/entitlements/{application_code}"
+	path := binding.EncodeURL(pattern, in, false)
+	opts = append(opts, http.Operation(OperationPlatformServiceUpdateUserEntitlement))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "PUT", path, in, &out, opts...)
 	if err != nil {
 		return nil, err
 	}

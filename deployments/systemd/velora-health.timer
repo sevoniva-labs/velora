@@ -1,0 +1,12 @@
+[Unit]
+Description=Run Velora production health checks every two minutes
+
+[Timer]
+OnBootSec=2m
+OnUnitActiveSec=2m
+RandomizedDelaySec=15s
+Persistent=true
+Unit=velora-health.service
+
+[Install]
+WantedBy=timers.target

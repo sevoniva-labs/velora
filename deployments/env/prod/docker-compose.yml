@@ -56,6 +56,12 @@ x-app-env: &app-env
   VELORA_CASDOOR_PASSWORD_LOGIN_ENABLED: "${VELORA_CASDOOR_PASSWORD_LOGIN_ENABLED:-true}"
   VELORA_CASDOOR_APPLICATION: "${VELORA_CASDOOR_APPLICATION:?VELORA_CASDOOR_APPLICATION is required}"
   VELORA_CASDOOR_ORGANIZATION: "${VELORA_CASDOOR_ORGANIZATION:?VELORA_CASDOOR_ORGANIZATION is required}"
+  VELORA_CASDOOR_IDENTITY_MANAGEMENT_ENABLED: "${VELORA_CASDOOR_IDENTITY_MANAGEMENT_ENABLED:-true}"
+  VELORA_CASDOOR_IDENTITY_CLIENT_ID: "${VELORA_CASDOOR_IDENTITY_CLIENT_ID:?VELORA_CASDOOR_IDENTITY_CLIENT_ID is required}"
+  VELORA_CASDOOR_IDENTITY_CLIENT_SECRET_FILE: /run/secrets/casdoor_oidc_client_secret
+  VELORA_PROVISIONING_SPECTRA_ENABLED: "${VELORA_PROVISIONING_SPECTRA_ENABLED:-true}"
+  VELORA_PROVISIONING_SPECTRA_URL: "${VELORA_PROVISIONING_SPECTRA_URL:?VELORA_PROVISIONING_SPECTRA_URL is required}"
+  VELORA_PROVISIONING_SPECTRA_SECRET_FILE: /run/secrets/spectra_provisioning_secret
   VELORA_TURNSTILE_SITE_KEY: "${VELORA_TURNSTILE_SITE_KEY:?VELORA_TURNSTILE_SITE_KEY is required}"
   VELORA_TURNSTILE_SECRET_FILE: /run/secrets/turnstile_secret
   VELORA_TURNSTILE_HOSTNAMES: "${VELORA_TURNSTILE_HOSTNAMES:?VELORA_TURNSTILE_HOSTNAMES is required}"
@@ -193,6 +199,7 @@ services:
       - velora_bootstrap_password
       - casdoor_oidc_client_secret
       - turnstile_secret
+      - spectra_provisioning_secret
     expose:
       - "8080"
     networks:
@@ -203,6 +210,41 @@ services:
       interval: 10s
       timeout: 5s
       retries: 12
+
+  worker:
+    container_name: velora-prod-worker
+    build:
+      context: ../../..
+      dockerfile: deployments/docker/Dockerfile.server
+      args:
+        DOCKER_REGISTRY: "${DOCKER_REGISTRY:-docker.m.daocloud.io}"
+        GOPROXY: "${GOPROXY:-https://goproxy.cn}"
+    restart: unless-stopped
+    logging: *default-logging
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    entrypoint: ["/usr/local/bin/velora-worker"]
+    environment: *app-env
+    secrets:
+      - velora_database_dsn
+      - postgres_tls_ca
+      - storage_access_key
+      - storage_secret_key
+      - redis_password
+      - redis_tls_ca
+      - redis_tls_cert
+      - redis_tls_key
+      - velora_crypto_key
+      - velora_bootstrap_password
+      - casdoor_oidc_client_secret
+      - turnstile_secret
+      - spectra_provisioning_secret
+    networks:
+      - app
+      - egress
 
   migrate:
     container_name: velora-prod-migrate
@@ -360,6 +402,8 @@ secrets:
     file: "${VELORA_TURNSTILE_SECRET_FILE:?VELORA_TURNSTILE_SECRET_FILE is required}"
   demo_oidc_client_secret:
     file: "${DEMO_OIDC_CLIENT_SECRET_FILE:?DEMO_OIDC_CLIENT_SECRET_FILE is required}"
+  spectra_provisioning_secret:
+    file: "${VELORA_PROVISIONING_SPECTRA_SECRET_FILE:?VELORA_PROVISIONING_SPECTRA_SECRET_FILE is required}"
 
 networks:
   edge:

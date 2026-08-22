@@ -29,7 +29,7 @@ func newFederatedIdentityProviders(ctx context.Context, cfg config.Config) (map[
 		provider, err := identitysource.NewOIDCProvider(ctx, http.DefaultClient, identitysource.OIDCConfig{
 			Name: name, Issuer: issuer, ClientID: strings.TrimSpace(cfg.Security.OIDCClientID), ClientSecret: cfg.Security.OIDCClientSecret,
 			InternalURL: strings.TrimSpace(cfg.Security.OIDCInternalURL),
-			RedirectURL: strings.TrimSpace(cfg.Security.OIDCRedirectURL), PostLogoutRedirectURL: strings.TrimSpace(cfg.Security.OIDCPostLogoutRedirectURL), AllowHTTP: allowHTTP,
+			RedirectURL: strings.TrimSpace(cfg.Security.OIDCRedirectURL), PostLogoutRedirectURL: strings.TrimSpace(cfg.Security.OIDCPostLogoutRedirectURL), LogoutURL: strings.TrimSpace(cfg.Security.OIDCLogoutURL), AllowHTTP: allowHTTP,
 			PasswordLoginEnabled: cfg.Security.CasdoorPasswordLoginEnabled,
 			Application:          strings.TrimSpace(cfg.Security.CasdoorApplication), Organization: strings.TrimSpace(cfg.Security.CasdoorOrganization),
 		})

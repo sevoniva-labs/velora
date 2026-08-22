@@ -225,6 +225,7 @@ type Security struct {
 	OIDCClientSecret                    string        `yaml:"-"`
 	OIDCRedirectURL                     string        `yaml:"oidc_redirect_url"`
 	OIDCPostLogoutRedirectURL           string        `yaml:"oidc_post_logout_redirect_url"`
+	OIDCLogoutURL                       string        `yaml:"oidc_logout_url"`
 	CasdoorAccountURL                   string        `yaml:"casdoor_account_url"`
 	CasdoorAdminURL                     string        `yaml:"casdoor_admin_url"`
 	CasdoorAllowedHosts                 []string      `yaml:"casdoor_allowed_hosts"`
@@ -595,6 +596,7 @@ func ApplyEnvironment(cfg *Config) {
 	overrideString(&cfg.Security.OIDCClientID, "VELORA_OIDC_CLIENT_ID")
 	overrideString(&cfg.Security.OIDCRedirectURL, "VELORA_OIDC_REDIRECT_URL")
 	overrideString(&cfg.Security.OIDCPostLogoutRedirectURL, "VELORA_OIDC_POST_LOGOUT_REDIRECT_URL")
+	overrideString(&cfg.Security.OIDCLogoutURL, "VELORA_OIDC_LOGOUT_URL")
 	overrideString(&cfg.Security.CasdoorAccountURL, "VELORA_CASDOOR_ACCOUNT_URL")
 	overrideString(&cfg.Security.CasdoorAdminURL, "VELORA_CASDOOR_ADMIN_URL")
 	overrideCSV(&cfg.Security.CasdoorAllowedHosts, "VELORA_CASDOOR_ALLOWED_HOSTS")
@@ -1014,6 +1016,9 @@ func (c Config) ValidateProductionAuth() error {
 	}
 	if c.Security.OIDCPostLogoutRedirectURL != "" && !isHTTPSURL(c.Security.OIDCPostLogoutRedirectURL) {
 		errs = append(errs, "security.oidc_post_logout_redirect_url must be an https URL in production")
+	}
+	if c.Security.OIDCLogoutURL != "" && !isHTTPSURL(c.Security.OIDCLogoutURL) {
+		errs = append(errs, "security.oidc_logout_url must be an https URL in production")
 	}
 	if c.Security.SessionTTL <= 0 || c.Security.SessionTTL > time.Hour {
 		errs = append(errs, "security.session_ttl must be between 1 second and 1 hour for production OIDC")

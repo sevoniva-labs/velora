@@ -50,6 +50,7 @@ type OIDCConfig struct {
 	ClientSecret          string
 	RedirectURL           string
 	PostLogoutRedirectURL string
+	LogoutURL             string
 	Scopes                []string
 	AllowHTTP             bool
 	PasswordLoginEnabled  bool
@@ -64,6 +65,7 @@ type OIDCProvider struct {
 	verifier              *oidc.IDTokenVerifier
 	endSessionEndpoint    string
 	postLogoutRedirectURL string
+	logoutURL             string
 	httpClient            *http.Client
 	tokenURL              string
 	issuer                string
@@ -85,6 +87,11 @@ func NewOIDCProvider(ctx context.Context, client *http.Client, cfg OIDCConfig) (
 	}
 	if strings.TrimSpace(cfg.PostLogoutRedirectURL) != "" {
 		if err := validateEndpoint(cfg.PostLogoutRedirectURL, cfg.AllowHTTP); err != nil {
+			return nil, err
+		}
+	}
+	if strings.TrimSpace(cfg.LogoutURL) != "" {
+		if err := validateEndpoint(cfg.LogoutURL, cfg.AllowHTTP); err != nil {
 			return nil, err
 		}
 	}
@@ -129,6 +136,7 @@ func NewOIDCProvider(ctx context.Context, client *http.Client, cfg OIDCConfig) (
 		verifier:              provider.Verifier(&oidc.Config{ClientID: cfg.ClientID}),
 		endSessionEndpoint:    strings.TrimSpace(metadata.EndSessionEndpoint),
 		postLogoutRedirectURL: strings.TrimSpace(cfg.PostLogoutRedirectURL),
+		logoutURL:             strings.TrimSpace(cfg.LogoutURL),
 		httpClient:            client,
 		tokenURL:              provider.Endpoint().TokenURL,
 		issuer:                issuer,
@@ -140,24 +148,18 @@ func NewOIDCProvider(ctx context.Context, client *http.Client, cfg OIDCConfig) (
 
 func (p *OIDCProvider) Name() string { return p.name }
 
-// EndSessionURL returns the provider's standard RP-initiated logout URL. An
-// empty result means the discovery document does not advertise end_session.
-// Local Velora session revocation must happen independently of this optional
-// browser redirect.
+// EndSessionURL returns the explicitly configured browser logout bridge.
+// Velora deliberately does not persist OIDC tokens, so it cannot safely call
+// providers that require id_token_hint. Falling back to their discovery URL
+// would expose a raw JSON response or an error page to the user.
 func (p *OIDCProvider) EndSessionURL() (string, error) {
-	if strings.TrimSpace(p.endSessionEndpoint) == "" {
+	if strings.TrimSpace(p.logoutURL) == "" {
 		return "", nil
 	}
-	u, err := url.Parse(p.endSessionEndpoint)
+	u, err := url.Parse(p.logoutURL)
 	if err != nil || u.Host == "" {
 		return "", ErrInvalidConfiguration
 	}
-	query := u.Query()
-	query.Set("client_id", p.config.ClientID)
-	if p.postLogoutRedirectURL != "" {
-		query.Set("post_logout_redirect_uri", p.postLogoutRedirectURL)
-	}
-	u.RawQuery = query.Encode()
 	return u.String(), nil
 }
 

@@ -71,11 +71,10 @@ func TestNewOIDCProviderRequiresConfidentialClientConfiguration(t *testing.T) {
 	}
 }
 
-func TestEndSessionURLBuildsSafeRPInitiatedLogoutRequest(t *testing.T) {
+func TestEndSessionURLUsesExplicitBrowserBridge(t *testing.T) {
 	provider := &OIDCProvider{
-		config:                oauth2.Config{ClientID: "velora"},
-		endSessionEndpoint:    "https://casdoor.example.com/api/logout",
-		postLogoutRedirectURL: "https://velora.example.com/login",
+		config:    oauth2.Config{ClientID: "velora"},
+		logoutURL: "https://casdoor.example.com/_velora/logout",
 	}
 	got, err := provider.EndSessionURL()
 	if err != nil {
@@ -85,13 +84,13 @@ func TestEndSessionURLBuildsSafeRPInitiatedLogoutRequest(t *testing.T) {
 	if err != nil || parsed.Scheme != "https" || parsed.Host != "casdoor.example.com" {
 		t.Fatalf("unexpected logout URL %q", got)
 	}
-	if parsed.Query().Get("client_id") != "velora" || parsed.Query().Get("post_logout_redirect_uri") != "https://velora.example.com/login" {
-		t.Fatalf("logout query = %v", parsed.Query())
+	if parsed.Path != "/_velora/logout" || parsed.RawQuery != "" {
+		t.Fatalf("logout URL = %v", parsed)
 	}
 }
 
-func TestEndSessionURLIsOptionalWhenProviderDoesNotAdvertiseIt(t *testing.T) {
-	provider := &OIDCProvider{config: oauth2.Config{ClientID: "velora"}}
+func TestEndSessionURLIsOptionalWhenBridgeIsNotConfigured(t *testing.T) {
+	provider := &OIDCProvider{config: oauth2.Config{ClientID: "velora"}, endSessionEndpoint: "https://casdoor.example.com/api/logout"}
 	got, err := provider.EndSessionURL()
 	if err != nil || got != "" {
 		t.Fatalf("EndSessionURL() = %q, %v; want empty optional URL", got, err)

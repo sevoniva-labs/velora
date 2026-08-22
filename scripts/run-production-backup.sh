@@ -37,6 +37,15 @@ export AWS_SECRET_ACCESS_KEY="$(<"$VELORA_STORAGE_SECRET_KEY_FILE")"
 export AWS_DEFAULT_REGION="$VELORA_STORAGE_REGION"
 export AWS_ENDPOINT_URL="$VELORA_STORAGE_ENDPOINT"
 export AWS_EC2_METADATA_DISABLED=true
+aws_config="$(mktemp)"
+trap 'rm -f "$aws_config"' EXIT
+cat >"$aws_config" <<EOF
+[default]
+region = $VELORA_STORAGE_REGION
+s3 =
+    addressing_style = virtual
+EOF
+export AWS_CONFIG_FILE="$aws_config"
 
 stamp="$(date -u +%Y%m%d_%H%M%S)"
 backup_dir="$RUNTIME_DIR/backups"
@@ -57,7 +66,7 @@ BACKUP_SIGNING_KEY_FILE="$RUNTIME_DIR/secrets/backup-signing.key" \
 BACKUP_S3="s3://${VELORA_STORAGE_BUCKET}/${VELORA_STORAGE_PREFIX%/}/backups" \
   "$(dirname "$0")/backup-all-databases.sh"
 
-unset AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY velora_database_url casdoor_database_url
+unset AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_CONFIG_FILE velora_database_url casdoor_database_url
 tmp_status="${STATUS_FILE}.tmp"
 jq -n --arg completed_at "$(date -u +%Y-%m-%dT%H:%M:%SZ)" --arg stamp "$stamp" \
   '{schema:"velora.backup.status.v1",status:"passed",completed_at:$completed_at,backup_stamp:$stamp,databases:["velora","casdoor"],encrypted:true,signed:true,remote_copy:true}' \

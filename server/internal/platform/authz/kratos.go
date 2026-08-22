@@ -91,6 +91,7 @@ func PlatformRules() map[string][]string {
 		forgev1.OperationPlatformServiceUpdateRoleDataScope:        {"system.role.manage"},
 		forgev1.OperationPlatformServiceUpdateUserRoles:            {"system.user.role.manage"},
 		forgev1.OperationPlatformServiceUpdateUserStatus:           {"system.user.update"},
+		forgev1.OperationPlatformServiceUpdateUserEntitlement:      {"system.user.update"},
 		forgev1.OperationPlatformServiceUnlockUser:                 {"system.user.update"},
 		forgev1.OperationPlatformServiceResetUserPassword:          {"system.user.update"},
 		forgev1.OperationPlatformServiceListSessions:               {"system.session.read"},

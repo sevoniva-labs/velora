@@ -124,3 +124,13 @@ func TestAuditReadCompatibilityPermission(t *testing.T) {
 		t.Fatalf("audit.read compatibility permission rejected: %v", err)
 	}
 }
+
+func TestPlatformRulesRegisterUserEntitlementMutation(t *testing.T) {
+	permissions, ok := PlatformRules()[forgev1.OperationPlatformServiceUpdateUserEntitlement]
+	if !ok {
+		t.Fatal("user entitlement mutation must have an authorization policy")
+	}
+	if len(permissions) != 1 || permissions[0] != "system.user.update" {
+		t.Fatalf("unexpected permissions: %v", permissions)
+	}
+}

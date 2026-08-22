@@ -21,6 +21,13 @@ printf 'dummy-storage-secret\n' >"$tmp_dir/storage.secret"
 printf 'dummy-postgres-superuser\n' >"$tmp_dir/postgres.superuser"
 printf 'dummy-postgres-app\n' >"$tmp_dir/postgres.app"
 printf 'dummy-postgres-idp\n' >"$tmp_dir/postgres.idp"
+printf 'dummy-turnstile\n' >"$tmp_dir/turnstile.secret"
+printf 'dummy-provisioning\n' >"$tmp_dir/provisioning.secret"
+printf 'dummy-demo-client\n' >"$tmp_dir/demo-client.secret"
+printf 'dummy-postgres-cert\n' >"$tmp_dir/postgres-cert.pem"
+printf 'dummy-postgres-key\n' >"$tmp_dir/postgres-key.pem"
+printf 'dummy-postgres-ca\n' >"$tmp_dir/postgres-ca.pem"
+mkdir -p "$tmp_dir/certs"
 
 config_json="$tmp_dir/config.json"
 env \
@@ -28,9 +35,9 @@ env \
   POSTGRES_IMAGE=harbor.internal.example/approved/postgres@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa \
   REDIS_IMAGE=harbor.internal.example/approved/redis@sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb \
   CASDOOR_IMAGE=harbor.internal.example/approved/casdoor@sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc \
-  PROMETHEUS_IMAGE=harbor.internal.example/approved/prometheus@sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd \
-  GRAFANA_IMAGE=harbor.internal.example/approved/grafana@sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee \
   VELORA_EXTERNAL_URL=velora.example.com \
+  VELORA_AUTH_HOST=casdoor.example.com \
+  VELORA_CERTS_DIR="$tmp_dir/certs" \
   VELORA_DATABASE_DSN_FILE="$tmp_dir/database.dsn" \
   VELORA_STORAGE_PROVIDER=s3-compatible \
   VELORA_STORAGE_ENDPOINT=https://objects.example.internal \
@@ -48,9 +55,11 @@ env \
   VELORA_CRYPTO_KEY_FILE="$tmp_dir/crypto.key" \
   VELORA_AUTH_MODE=oidc \
   VELORA_OIDC_ISSUER=https://casdoor.example.com \
+  VELORA_OIDC_INTERNAL_URL=http://casdoor:8000 \
   VELORA_OIDC_CLIENT_ID=velora \
   VELORA_OIDC_REDIRECT_URL=https://velora.example.com/auth/callback \
   VELORA_OIDC_POST_LOGOUT_REDIRECT_URL=https://velora.example.com/login \
+  VELORA_OIDC_LOGOUT_URL=https://casdoor.example.com/_velora/logout \
   VELORA_SESSION_TTL=1h \
   VELORA_CASDOOR_ACCOUNT_URL=https://casdoor.example.com/account \
   VELORA_CASDOOR_ADMIN_URL=https://casdoor.example.com \
@@ -58,6 +67,15 @@ env \
   VELORA_APPLICATION_ONBOARDING_V2=true \
   VELORA_CASDOOR_ADMIN_ENTRY_ENABLED=true \
   VELORA_CASDOOR_APPLICATION_AUTOMATION_ENABLED=false \
+  VELORA_CASDOOR_PASSWORD_LOGIN_ENABLED=true \
+  VELORA_CASDOOR_APPLICATION=velora \
+  VELORA_CASDOOR_ORGANIZATION=built-in \
+  VELORA_CASDOOR_IDENTITY_MANAGEMENT_ENABLED=true \
+  VELORA_CASDOOR_IDENTITY_CLIENT_ID=velora \
+  VELORA_PROVISIONING_SPECTRA_ENABLED=true \
+  VELORA_PROVISIONING_SPECTRA_URL=https://spectra.example.com/api/v1/provisioning/events \
+  VELORA_TURNSTILE_SITE_KEY=dummy-site-key \
+  VELORA_TURNSTILE_HOSTNAMES=velora.example.com \
   VELORA_OIDC_PROVIDER_ENABLED=false \
   VELORA_BOOTSTRAP_ADMIN=break-glass \
   VELORA_BOOTSTRAP_PASSWORD_FILE="$tmp_dir/bootstrap.password" \
@@ -73,23 +91,32 @@ env \
   REDIS_TLS_KEY_FILE="$tmp_dir/redis-key.pem" \
   CASDOOR_OIDC_CLIENT_SECRET_FILE="$tmp_dir/oidc-client.secret" \
   CASDOOR_AUTOMATION_TOKEN_FILE="$tmp_dir/casdoor-automation.token" \
+  VELORA_TURNSTILE_SECRET_FILE="$tmp_dir/turnstile.secret" \
+  VELORA_PROVISIONING_SPECTRA_SECRET_FILE="$tmp_dir/provisioning.secret" \
+  DEMO_OIDC_CLIENT_SECRET_FILE="$tmp_dir/demo-client.secret" \
+  DEMO_OIDC_ISSUER=https://casdoor.example.com \
+  DEMO_OIDC_CLIENT_ID=demo \
+  DEMO_OIDC_REDIRECT_URL=https://demo.example.com/oauth/callback \
+  DEMO_PUBLIC_URL=https://demo.example.com \
+  DEMO_POST_LOGOUT_REDIRECT_URL=https://velora.example.com/login \
   TRUSTED_PROXIES=10.0.0.0/8 \
   POSTGRES_SUPERUSER=postgres_bootstrap \
   POSTGRES_SUPERUSER_PASSWORD_FILE="$tmp_dir/postgres.superuser" \
+  POSTGRES_TLS_CERT_FILE="$tmp_dir/postgres-cert.pem" \
+  POSTGRES_TLS_KEY_FILE="$tmp_dir/postgres-key.pem" \
+  POSTGRES_TLS_CA_FILE="$tmp_dir/postgres-ca.pem" \
   POSTGRES_APP_USER=velora_app \
   POSTGRES_APP_PASSWORD_FILE="$tmp_dir/postgres.app" \
   POSTGRES_IDP_USER=casdoor_app \
   POSTGRES_IDP_PASSWORD_FILE="$tmp_dir/postgres.idp" \
-  GRAFANA_ADMIN_USER=grafana_admin \
-  GRAFANA_ADMIN_PASSWORD=dummy-grafana-password \
-  docker compose --env-file "$tmp_dir/empty.env" --profile monitoring -f "$COMPOSE_FILE" config --format json >"$config_json"
+  docker compose --env-file "$tmp_dir/empty.env" -f "$COMPOSE_FILE" config --format json >"$config_json"
 
-if ! jq -e '.services.postgres.ports == null and .services.redis.ports == null and .services.casdoor.ports == null and .services.server.ports == null and .services.prometheus.ports == null and .services.grafana.ports == null' "$config_json" >/dev/null; then
-  echo "错误：生产 Compose 中非 Web 服务存在 published ports" >&2
+if ! jq -e '.services.postgres.ports == null and .services.redis.ports == null and .services.casdoor.ports == null and .services.server.ports == null and .services.worker.ports == null and .services.web.ports == null and .services["oidc-demo"].ports == null' "$config_json" >/dev/null; then
+  echo "错误：生产 Compose 中非 Edge 服务存在 published ports" >&2
   exit 1
 fi
 
-if ! jq -e '[.services.postgres.image, .services.redis.image, .services.casdoor.image, .services.prometheus.image, .services.grafana.image] | length == 5 and all(.[]; type == "string" and test("@sha256:[0-9a-f]{64}$"))' "$config_json" >/dev/null; then
+if ! jq -e '[.services.postgres.image, .services.redis.image, .services.casdoor.image] | length == 3 and all(.[]; type == "string" and test("@sha256:[0-9a-f]{64}$"))' "$config_json" >/dev/null; then
   echo "错误：生产基础设施镜像必须全部固定为内部 digest" >&2
   exit 1
 fi
@@ -99,13 +126,13 @@ if ! jq -e '.services.server.build.context | endswith("/velora")' "$config_json"
   exit 1
 fi
 
-if ! jq -e '(.services.web.ports | map(.published | tonumber) | sort) == [80, 443]' "$config_json" >/dev/null; then
-  echo "错误：生产 Web 只允许发布 80/443" >&2
+if ! jq -e '(.services.edge.ports | map(.published | tonumber) | sort) == [80, 443]' "$config_json" >/dev/null; then
+  echo "错误：生产 Edge 只允许发布 80/443" >&2
   exit 1
 fi
 
-if ! jq -e '.services.web.environment.VELORA_TLS_ENABLED == "true" and (.services.web.volumes | any(.type == "bind" and .target == "/etc/nginx/certs" and .read_only == true))' "$config_json" >/dev/null; then
-  echo "错误：生产 Web 必须启用 TLS 并以只读方式挂载证书目录" >&2
+if ! jq -e '(.services.edge.volumes | any(.type == "bind" and .target == "/etc/nginx/certs" and .read_only == true))' "$config_json" >/dev/null; then
+  echo "错误：生产 Edge 必须以只读方式挂载证书目录" >&2
   exit 1
 fi
 
@@ -169,4 +196,15 @@ if ! rg -Fq 'Strict-Transport-Security' deployments/docker/velora-https.conf.tem
   exit 1
 fi
 
-echo "生产 Compose 静态检查通过：仅 Web 发布 80/443，非 Web 服务无 host port，Casdoor initData=false，无默认凭据。"
+for endpoint in '/.well-known/openid-configuration' '/.well-known/jwks' '/api/login/oauth/access_token' '/api/userinfo' '/api/logout'; do
+  rg -Fq "location = $endpoint" deployments/docker/edge.conf || {
+    echo "错误：公网身份域缺少协议端点白名单：$endpoint" >&2
+    exit 1
+  }
+done
+if ! rg -Uq 'server_name auth\.sevoniva\.com;(?s:.*?)location / \{[[:space:]]*return 404;' deployments/docker/edge.conf; then
+  echo "错误：公网身份域必须默认拒绝 Casdoor UI 与管理 API" >&2
+  exit 1
+fi
+
+echo "生产 Compose 静态检查通过：仅 Edge 发布 80/443，身份域默认拒绝，Casdoor initData=false，无默认凭据。"

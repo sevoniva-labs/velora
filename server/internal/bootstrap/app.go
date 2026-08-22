@@ -162,6 +162,7 @@ func New(ctx context.Context, opts Options) (*App, error) {
 	configChangeSvc := appconfigchange.NewService(repository.NewConfigChangeRepo(db))
 	dataPolicySvc := appdatapolicy.NewService(repository.NewDataPolicyRepo(db))
 	portalSvc := appportal.NewService(repository.NewPortalRepo(db))
+	portalSvc.ConfigureOIDCIssuer(cfg.Security.OIDCIssuer)
 	identitySvc := appidentity.NewService(repo, appidentity.Options{
 		MinLength:     cfg.Security.PasswordMinLength,
 		RequireUpper:  cfg.Security.PasswordUpper,

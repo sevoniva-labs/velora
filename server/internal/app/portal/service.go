@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 	"strings"
@@ -23,9 +24,19 @@ var (
 	ErrInvalid      = errors.New("invalid portal request")
 )
 
-type Service struct{ repo *repository.PortalRepo }
+type Service struct {
+	repo              *repository.PortalRepo
+	allowedOIDCIssuer string
+}
 
 func NewService(repo *repository.PortalRepo) *Service { return &Service{repo: repo} }
+
+// ConfigureOIDCIssuer fixes application onboarding to the platform's trusted
+// Casdoor issuer. Supporting arbitrary federation issuers requires a separate
+// allowlist and hardened egress design and is intentionally not implicit.
+func (s *Service) ConfigureOIDCIssuer(issuer string) {
+	s.allowedOIDCIssuer = strings.TrimRight(strings.TrimSpace(issuer), "/")
+}
 
 func (s *Service) ListApplications(ctx context.Context, principal domain.Principal, filter repository.ApplicationFilter) ([]portaldomain.Application, error) {
 	items, err := s.repo.ListApplications(ctx, principal.OrganizationID, principal.UserID, filter, false)
@@ -172,6 +183,10 @@ func (s *Service) UpsertApplicationIdentityBinding(ctx context.Context, principa
 	if err := input.Validate(); err != nil {
 		return portaldomain.IdentityBinding{}, portaldomain.Application{}, err
 	}
+	if strings.EqualFold(strings.TrimSpace(input.Protocol), portaldomain.ProtocolOIDC) &&
+		(s.allowedOIDCIssuer == "" || strings.TrimRight(strings.TrimSpace(input.Issuer), "/") != s.allowedOIDCIssuer) {
+		return portaldomain.IdentityBinding{}, portaldomain.Application{}, portaldomain.ErrInvalidIdentityBinding
+	}
 	app, err := s.repo.GetApplication(ctx, principal.OrganizationID, principal.UserID, strings.TrimSpace(id), true)
 	if errors.Is(err, sql.ErrNoRows) {
 		return portaldomain.IdentityBinding{}, portaldomain.Application{}, ErrNotFound
@@ -195,7 +210,7 @@ func (s *Service) VerifyApplicationIdentity(ctx context.Context, principal domai
 	if binding.ID == "" {
 		return portaldomain.IdentityBinding{}, app, nil, false, portaldomain.ErrIdentityBindingRequired
 	}
-	passed, checkType, errorCode, evidence := verifyBinding(ctx, binding)
+	passed, checkType, errorCode, evidence := verifyBinding(ctx, binding, s.allowedOIDCIssuer)
 	binding, _, err = s.repo.RecordIdentityVerification(ctx, principal.OrganizationID, principal.UserID, app.ID, passed, checkType, errorCode, evidence, requestID(ctx), expectedVersion)
 	if err != nil {
 		return portaldomain.IdentityBinding{}, portaldomain.Application{}, nil, false, err
@@ -236,11 +251,15 @@ func (s *Service) DisableApplication(ctx context.Context, principal domain.Princ
 	return s.repo.SetApplicationLifecycle(ctx, principal.OrganizationID, principal.UserID, strings.TrimSpace(id), portaldomain.LifecycleDisabled, portaldomain.StatusDisabled, expectedVersion, false)
 }
 
-func verifyBinding(ctx context.Context, binding portaldomain.IdentityBinding) (bool, string, string, string) {
+func verifyBinding(ctx context.Context, binding portaldomain.IdentityBinding, allowedIssuer string) (bool, string, string, string) {
 	if strings.EqualFold(binding.Protocol, portaldomain.ProtocolOIDC) {
 		issuer := strings.TrimRight(strings.TrimSpace(binding.Issuer), "/")
-		if issuer == "" {
+		allowedIssuer = strings.TrimRight(strings.TrimSpace(allowedIssuer), "/")
+		if issuer == "" || allowedIssuer == "" {
 			return false, "oidc_discovery", "ISSUER_REQUIRED", `{"reason":"issuer is required"}`
+		}
+		if issuer != allowedIssuer {
+			return false, "oidc_discovery", "ISSUER_NOT_ALLOWED", `{"reason":"issuer is not allowed"}`
 		}
 		u, err := url.Parse(issuer + "/.well-known/openid-configuration")
 		if err != nil {
@@ -250,7 +269,7 @@ func verifyBinding(ctx context.Context, binding portaldomain.IdentityBinding) (b
 		if err != nil {
 			return false, "oidc_discovery", "DISCOVERY_REQUEST_INVALID", `{"reason":"discovery request invalid"}`
 		}
-		client := &http.Client{Timeout: 5 * time.Second}
+		client := &http.Client{Timeout: 5 * time.Second, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}
 		resp, err := client.Do(req)
 		if err != nil {
 			return false, "oidc_discovery", "DISCOVERY_UNREACHABLE", `{"reason":"discovery endpoint unavailable"}`
@@ -262,7 +281,7 @@ func verifyBinding(ctx context.Context, binding portaldomain.IdentityBinding) (b
 		var payload struct {
 			Issuer string `json:"issuer"`
 		}
-		if err := json.NewDecoder(resp.Body).Decode(&payload); err != nil || strings.TrimRight(payload.Issuer, "/") != issuer {
+		if err := json.NewDecoder(io.LimitReader(resp.Body, 1<<20)).Decode(&payload); err != nil || strings.TrimRight(payload.Issuer, "/") != issuer {
 			return false, "oidc_discovery", "ISSUER_MISMATCH", `{"reason":"discovery issuer mismatch"}`
 		}
 		return true, "oidc_discovery", "", `{"issuer_verified":true}`

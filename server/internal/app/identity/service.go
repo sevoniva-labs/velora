@@ -625,13 +625,7 @@ func (s *Service) LoginFederated(ctx context.Context, orgID, provider, subject, 
 		return domain.Principal{}, "", "", time.Time{}, err
 	}
 	expires := time.Now().UTC().Add(policy.sessionTTL)
-	authenticationLevel := "FEDERATED"
-	var mfaVerifiedAt *time.Time
-	if mfaVerified {
-		authenticationLevel = "MFA"
-		verifiedAt := time.Now().UTC()
-		mfaVerifiedAt = &verifiedAt
-	}
+	authenticationLevel, mfaVerifiedAt := federatedSessionAttributes(mfaVerified, time.Now().UTC())
 	sessionID, err := s.repo.CreateSession(ctx, user.ID, hashToken(token), expires, ip, ua, authenticationLevel, mfaVerifiedAt)
 	if err != nil {
 		return domain.Principal{}, "", "", time.Time{}, err
@@ -654,6 +648,17 @@ func (s *Service) LoginFederated(ctx context.Context, orgID, provider, subject, 
 	mustChange := false
 	p := domain.Principal{Type: "USER", UserID: user.ID, OrganizationID: user.OrganizationID, LoginName: user.LoginName, DisplayName: user.DisplayName, Roles: user.Roles, Permissions: user.Permissions, MustChangePassword: mustChange, SessionID: sessionID, PasswordChangedAt: user.PasswordChangedAt, AuthenticationLevel: authenticationLevel, MFAVerifiedAt: mfaVerifiedAt}
 	return p, token, csrf, expires, nil
+}
+
+func federatedSessionAttributes(mfaVerified bool, now time.Time) (string, *time.Time) {
+	if !mfaVerified {
+		return "FEDERATED", nil
+	}
+	verifiedAt := now.UTC()
+	// AuthenticationLevel keeps the upstream source so logout and external
+	// password lifecycle rules remain correct. MFAVerifiedAt independently
+	// carries the assurance level used by recent-MFA authorization gates.
+	return "FEDERATED", &verifiedAt
 }
 
 func (s *Service) verifyLoginMFA(ctx context.Context, userID, code, recoveryCode string) (bool, error) {

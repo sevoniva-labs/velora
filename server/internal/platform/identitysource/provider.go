@@ -327,7 +327,9 @@ func (p *OIDCProvider) AuthenticatePassword(ctx context.Context, loginName, pass
 			break
 		}
 	}
-	identity.MFAVerified = strings.TrimSpace(mfaCode) != "" || strings.TrimSpace(recoveryCode) != ""
+	// MFA assurance is determined exclusively by the verified ID token's
+	// AMR/ACR claims in AuthenticateCode. Request-field presence is not proof
+	// that the upstream provider actually verified a second factor.
 	return identity, nil
 }
 

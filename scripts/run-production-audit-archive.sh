@@ -69,7 +69,7 @@ tar -C "$work_dir" -cf "$raw" "$(basename "$csv")" "$(basename "$csv").sha256" "
 age -R "$RUNTIME_DIR/secrets/backup-age-recipient" -o "$encrypted" "$raw"
 manifest="${encrypted}.sha256"
 signature="${encrypted}.sig"
-sha256sum "$encrypted" >"$manifest"
+(cd "$(dirname "$encrypted")" && sha256sum "$(basename "$encrypted")") >"$manifest"
 openssl dgst -sha256 -sign "$RUNTIME_DIR/secrets/backup-signing.key" -out "$signature" "$encrypted"
 
 prefix="${VELORA_STORAGE_PREFIX%/}/audit-standard"

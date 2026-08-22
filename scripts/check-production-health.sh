@@ -23,8 +23,11 @@ check_url() {
 }
 
 check_url "portal readiness" "https://home.sevoniva.com/healthz"
-check_url "OIDC discovery" "https://auth.sevoniva.com/.well-known/openid-configuration" '"issuer":"https://auth.sevoniva.com"'
 check_url "Spectra readiness" "https://spectra.sevoniva.com/api/v1/system/health"
+oidc_metadata="$(curl --fail --silent --show-error --max-time 10 --connect-timeout 3 https://auth.sevoniva.com/.well-known/openid-configuration || true)"
+if ! jq -e '.issuer == "https://auth.sevoniva.com" and (.authorization_endpoint | startswith("https://auth.sevoniva.com/")) and (.token_endpoint | startswith("https://auth.sevoniva.com/")) and (.jwks_uri | startswith("https://auth.sevoniva.com/"))' <<<"$oidc_metadata" >/dev/null 2>&1; then
+  failures+=("OIDC discovery unavailable or inconsistent")
+fi
 
 for container in velora-prod-postgres velora-prod-redis velora-prod-casdoor velora-prod-server velora-prod-worker velora-prod-web velora-prod-edge; do
   state="$(docker inspect --format '{{.State.Status}}' "$container" 2>/dev/null || true)"

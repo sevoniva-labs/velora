@@ -62,8 +62,8 @@ docker cp "$tmp_dir/casdoor.dump" "$POSTGRES_CONTAINER:/tmp/${casdoor_restore}.d
 docker exec "$POSTGRES_CONTAINER" sh -ec 'pg_restore -U "$POSTGRES_USER" -d "$1" --no-owner --no-acl "$2"' sh "$velora_restore" "/tmp/${velora_restore}.dump" >/dev/null
 docker exec "$POSTGRES_CONTAINER" sh -ec 'pg_restore -U "$POSTGRES_USER" -d "$1" --no-owner --no-acl "$2"' sh "$casdoor_restore" "/tmp/${casdoor_restore}.dump" >/dev/null
 
-velora_source="$(db_exec velora "SELECT (SELECT count(*) FROM portal_users),(SELECT count(*) FROM portal_applications),(SELECT count(*) FROM audit_logs);")"
-velora_restored="$(db_exec "$velora_restore" "SELECT (SELECT count(*) FROM portal_users),(SELECT count(*) FROM portal_applications),(SELECT count(*) FROM audit_logs);")"
+velora_source="$(db_exec velora "SELECT (SELECT count(*) FROM users),(SELECT count(*) FROM portal_applications),(SELECT count(*) FROM audit_logs);")"
+velora_restored="$(db_exec "$velora_restore" "SELECT (SELECT count(*) FROM users),(SELECT count(*) FROM portal_applications),(SELECT count(*) FROM audit_logs);")"
 casdoor_source="$(db_exec casdoor 'SELECT (SELECT count(*) FROM "user"),(SELECT count(*) FROM application),(SELECT count(*) FROM token);')"
 casdoor_restored="$(db_exec "$casdoor_restore" 'SELECT (SELECT count(*) FROM "user"),(SELECT count(*) FROM application),(SELECT count(*) FROM token);')"
 [[ "$velora_source" == "$velora_restored" && "$casdoor_source" == "$casdoor_restored" ]] || { echo "error: restored key row counts do not match source" >&2; exit 1; }

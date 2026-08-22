@@ -3,6 +3,7 @@ package kratosapi
 import (
 	"context"
 	"crypto/sha256"
+	"crypto/subtle"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -23,7 +24,10 @@ const (
 	gatewaySessionKeyPrefix = "auth:gateway-session:"
 	casdoorSessionCookie    = "casdoor_session_id"
 	gatewaySessionCookie    = "velora_auth_session"
+	bridgeNonceCookie       = "velora_bridge_nonce"
+	bridgeNonceParam        = "_velora_bridge_nonce"
 	gatewaySessionTTL       = 4 * time.Hour
+	bridgeNonceTTL          = 5 * time.Minute
 	maxBridgeTicket         = 128
 	maxBridgeCookie         = 4096
 	maxBridgeReturnPath     = 2048
@@ -50,6 +54,7 @@ type bridgePayload struct {
 	UserID         string `json:"user_id"`
 	OrganizationID string `json:"organization_id"`
 	SessionID      string `json:"session_id"`
+	NonceDigest    string `json:"nonce_digest,omitempty"`
 }
 
 type gatewaySession struct {
@@ -101,7 +106,8 @@ func (b *SessionBridge) Create(ctx context.Context, cookieValue, returnPath stri
 	if err != nil {
 		return "", err
 	}
-	payload, err := json.Marshal(bridgePayload{Cookie: cookieValue, ReturnPath: safeBridgeReturnPath(returnPath), UserID: principal.UserID, OrganizationID: principal.OrganizationID, SessionID: principal.SessionID})
+	cleanReturnPath, nonceDigest := bridgeBinding(returnPath)
+	payload, err := json.Marshal(bridgePayload{Cookie: cookieValue, ReturnPath: cleanReturnPath, UserID: principal.UserID, OrganizationID: principal.OrganizationID, SessionID: principal.SessionID, NonceDigest: nonceDigest})
 	if err != nil {
 		return "", err
 	}
@@ -147,15 +153,19 @@ func (b *SessionBridge) Handler() http.Handler {
 			http.Error(w, "ticket expired", http.StatusGone)
 			return
 		}
-		consumed, err := b.cache.CompareAndDelete(r.Context(), key, payload)
-		if err != nil || !consumed {
-			http.Error(w, "ticket expired", http.StatusGone)
-			return
-		}
 		var handoff bridgePayload
 		if json.Unmarshal([]byte(payload), &handoff) != nil || strings.TrimSpace(handoff.Cookie) == "" || len(handoff.Cookie) > maxBridgeCookie ||
 			strings.TrimSpace(handoff.UserID) == "" || strings.TrimSpace(handoff.OrganizationID) == "" || strings.TrimSpace(handoff.SessionID) == "" {
 			http.Error(w, "invalid ticket", http.StatusGone)
+			return
+		}
+		if handoff.NonceDigest != "" && !validBridgeNonce(r, handoff.NonceDigest) {
+			http.Error(w, "browser binding failed", http.StatusForbidden)
+			return
+		}
+		consumed, err := b.cache.CompareAndDelete(r.Context(), key, payload)
+		if err != nil || !consumed {
+			http.Error(w, "ticket expired", http.StatusGone)
 			return
 		}
 		gatewayToken, err := cache.RandomToken(32)
@@ -169,6 +179,9 @@ func (b *SessionBridge) Handler() http.Handler {
 		http.SetCookie(w, &http.Cookie{Name: casdoorSessionCookie, Value: handoff.Cookie, Path: "/", HttpOnly: true, Secure: b.secure, SameSite: b.sameSite})
 		// #nosec G124 -- production configuration rejects insecure cookies; local HTTP is an explicit development-only mode.
 		http.SetCookie(w, &http.Cookie{Name: gatewaySessionCookie, Value: gatewayToken, Path: "/", HttpOnly: true, Secure: b.secure, SameSite: b.sameSite, MaxAge: int(gatewaySessionTTL.Seconds())})
+		if handoff.NonceDigest != "" {
+			b.clearBridgeNonceCookie(w)
+		}
 		http.Redirect(w, r, b.returnURL(handoff.ReturnPath), http.StatusSeeOther)
 	})
 }
@@ -223,4 +236,41 @@ func safeBridgeReturnPath(value string) string {
 		return "/"
 	}
 	return value
+}
+
+func bridgeBinding(returnPath string) (string, string) {
+	clean := safeBridgeReturnPath(returnPath)
+	u, err := url.Parse(clean)
+	if err != nil {
+		return "/", ""
+	}
+	query := u.Query()
+	nonce := strings.TrimSpace(query.Get(bridgeNonceParam))
+	query.Del(bridgeNonceParam)
+	u.RawQuery = query.Encode()
+	if nonce == "" || len(nonce) > maxBridgeTicket {
+		return u.String(), ""
+	}
+	digest := sha256.Sum256([]byte(nonce))
+	return u.String(), hex.EncodeToString(digest[:])
+}
+
+func validBridgeNonce(r *http.Request, want string) bool {
+	cookie, err := r.Cookie(bridgeNonceCookie)
+	if err != nil || strings.TrimSpace(cookie.Value) == "" || len(cookie.Value) > maxBridgeTicket {
+		return false
+	}
+	digest := sha256.Sum256([]byte(cookie.Value))
+	got := hex.EncodeToString(digest[:])
+	return subtle.ConstantTimeCompare([]byte(got), []byte(want)) == 1
+}
+
+func (b *SessionBridge) setBridgeNonceCookie(w http.ResponseWriter, nonce string) {
+	// #nosec G124 -- production configuration requires Secure; local HTTP remains an explicit development-only mode.
+	http.SetCookie(w, &http.Cookie{Name: bridgeNonceCookie, Value: nonce, Path: "/", HttpOnly: true, Secure: b.secure, SameSite: b.sameSite, MaxAge: int(bridgeNonceTTL.Seconds())})
+}
+
+func (b *SessionBridge) clearBridgeNonceCookie(w http.ResponseWriter) {
+	// #nosec G124 -- deletion mirrors the dynamically secured browser-binding cookie.
+	http.SetCookie(w, &http.Cookie{Name: bridgeNonceCookie, Value: "", Path: "/", HttpOnly: true, Secure: b.secure, SameSite: b.sameSite, MaxAge: -1})
 }

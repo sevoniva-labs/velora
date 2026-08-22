@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	domain "github.com/sevoniva-labs/velora/server/internal/domain/identity"
+	"github.com/sevoniva-labs/velora/server/internal/platform/cache"
 	"github.com/sevoniva-labs/velora/server/internal/platform/database"
 )
 
@@ -46,7 +47,13 @@ func (b *SessionBridge) AuthorizationHandler() http.Handler {
 		}
 		if !authenticated {
 			b.clearGatewayCookie(w)
-			http.Redirect(w, r, b.portalLoginURL(app, r.URL.RawQuery), http.StatusFound)
+			nonce, err := cache.RandomToken(32)
+			if err != nil {
+				http.Error(w, "authorization temporarily unavailable", http.StatusServiceUnavailable)
+				return
+			}
+			b.setBridgeNonceCookie(w, nonce)
+			http.Redirect(w, r, b.portalLoginURL(app, r.URL.RawQuery, nonce), http.StatusFound)
 			return
 		}
 		if b.authorizeApp == nil || b.authorizeApp(r.Context(), principal, app.ID) != nil {
@@ -154,17 +161,18 @@ func (b *SessionBridge) gatewayPrincipal(r *http.Request) (domain.Principal, boo
 	return principal, true
 }
 
-func (b *SessionBridge) portalLoginURL(app authorizationApplication, rawQuery string) string {
+func (b *SessionBridge) portalLoginURL(app authorizationApplication, rawQuery, nonce string) string {
 	target := *b.portalURL
 	target.Path = "/login"
 	target.RawPath = ""
 	query := url.Values{}
 	query.Set("app", app.Code)
 	query.Set("app_name", app.Name)
-	continuation := "/login/oauth/authorize"
-	if rawQuery != "" {
-		continuation += "?" + rawQuery
-	}
+	continuationURL := &url.URL{Path: "/login/oauth/authorize"}
+	continuationQuery, _ := url.ParseQuery(rawQuery)
+	continuationQuery.Set(bridgeNonceParam, nonce)
+	continuationURL.RawQuery = continuationQuery.Encode()
+	continuation := continuationURL.String()
 	query.Set("redirect", continuation)
 	target.RawQuery = query.Encode()
 	target.Fragment = ""

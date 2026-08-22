@@ -96,6 +96,46 @@ func TestSessionBridgeRejectsCrossSiteTicketConsumption(t *testing.T) {
 	}
 }
 
+func TestSessionBridgeBindsAuthorizationTicketToInitiatingBrowser(t *testing.T) {
+	bridge, c := newTestBridge(t)
+	defer func() { _ = c.Close() }()
+	returnPath := "/login/oauth/authorize?client_id=spectra&state=opaque&" + bridgeNonceParam + "=browser-a"
+	ticket, err := bridge.Create(context.Background(), "casdoor-cookie", returnPath, testGatewayPrincipal)
+	if err != nil {
+		t.Fatal(err)
+	}
+	form := url.Values{"ticket": {ticket}}
+	request := func(nonce string) *http.Request {
+		req := httptest.NewRequest(http.MethodPost, "https://auth.example.test/_velora/session/bridge", strings.NewReader(form.Encode()))
+		req.Host = "auth.example.test"
+		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		req.Header.Set("Origin", "https://home.example.test")
+		if nonce != "" {
+			req.AddCookie(&http.Cookie{Name: bridgeNonceCookie, Value: nonce})
+		}
+		return req
+	}
+
+	wrongBrowser := httptest.NewRecorder()
+	bridge.Handler().ServeHTTP(wrongBrowser, request("browser-b"))
+	if wrongBrowser.Code != http.StatusForbidden {
+		t.Fatalf("wrong browser status=%d", wrongBrowser.Code)
+	}
+
+	initiatingBrowser := httptest.NewRecorder()
+	bridge.Handler().ServeHTTP(initiatingBrowser, request("browser-a"))
+	if initiatingBrowser.Code != http.StatusSeeOther {
+		t.Fatalf("initiating browser status=%d", initiatingBrowser.Code)
+	}
+	location, err := url.Parse(initiatingBrowser.Header().Get("Location"))
+	if err != nil || location.Query().Has(bridgeNonceParam) {
+		t.Fatalf("bridge nonce leaked to provider: location=%q err=%v", location, err)
+	}
+	if cookies := initiatingBrowser.Result().Cookies(); len(cookies) != 3 || cookies[2].Name != bridgeNonceCookie || cookies[2].MaxAge != -1 {
+		t.Fatalf("browser nonce was not cleared: %#v", cookies)
+	}
+}
+
 func TestSessionBridgeRejectsInvalidPortalURL(t *testing.T) {
 	c, err := cache.New(config.Cache{Provider: "memory", Prefix: "test:"})
 	if err != nil {
@@ -145,8 +185,12 @@ func TestAuthorizationGatewayKeepsCasdoorBehindPortalLogin(t *testing.T) {
 		t.Fatalf("unauthenticated status=%d", unauthenticatedResult.Code)
 	}
 	location, err := url.Parse(unauthenticatedResult.Header().Get("Location"))
-	if err != nil || location.Host != "home.example.test" || location.Path != "/login" || location.Query().Get("app") != "spectra" || location.Query().Get("redirect") != "/login/oauth/authorize?"+rawQuery {
+	continuation, continuationErr := url.Parse(location.Query().Get("redirect"))
+	if err != nil || continuationErr != nil || location.Host != "home.example.test" || location.Path != "/login" || location.Query().Get("app") != "spectra" || continuation.Path != "/login/oauth/authorize" || continuation.Query().Get(bridgeNonceParam) == "" || continuation.Query().Get("state") != "opaque" {
 		t.Fatalf("portal redirect=%q err=%v", location, err)
+	}
+	if cookies := unauthenticatedResult.Result().Cookies(); len(cookies) != 2 || cookies[1].Name != bridgeNonceCookie || cookies[1].Value == "" || !cookies[1].HttpOnly || !cookies[1].Secure {
+		t.Fatalf("authorization browser nonce cookie=%#v", cookies)
 	}
 
 	token, err := cache.RandomToken(32)

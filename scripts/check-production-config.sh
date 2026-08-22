@@ -109,7 +109,7 @@ env \
   POSTGRES_APP_PASSWORD_FILE="$tmp_dir/postgres.app" \
   POSTGRES_IDP_USER=casdoor_app \
   POSTGRES_IDP_PASSWORD_FILE="$tmp_dir/postgres.idp" \
-  docker compose --env-file "$tmp_dir/empty.env" -f "$COMPOSE_FILE" config --format json >"$config_json"
+  docker compose --env-file "$tmp_dir/empty.env" --profile release -f "$COMPOSE_FILE" config --format json >"$config_json"
 
 if ! jq -e '.services.postgres.ports == null and .services.redis.ports == null and .services.casdoor.ports == null and .services.server.ports == null and .services.worker.ports == null and .services.web.ports == null and .services["oidc-demo"].ports == null' "$config_json" >/dev/null; then
   echo "错误：生产 Compose 中非 Edge 服务存在 published ports" >&2
@@ -133,6 +133,19 @@ fi
 
 if ! jq -e '(.services.edge.volumes | any(.type == "bind" and .target == "/etc/nginx/certs" and .read_only == true))' "$config_json" >/dev/null; then
   echo "错误：生产 Edge 必须以只读方式挂载证书目录" >&2
+  exit 1
+fi
+
+if ! jq -e '[.services[]] | all(.[]; (.mem_limit > 0) and (.cpus > 0) and (.pids_limit > 0) and (.security_opt | index("no-new-privileges:true") != null))' "$config_json" >/dev/null; then
+  echo "错误：所有生产服务必须配置内存、CPU、PID 和 no-new-privileges 限制" >&2
+  exit 1
+fi
+if ! jq -e '[.services.server, .services.worker, .services.migrate, .services["oidc-demo"]] | all(.[]; .read_only == true and (.cap_drop | index("ALL") != null))' "$config_json" >/dev/null; then
+  echo "错误：自研生产容器必须使用只读根文件系统并删除全部 Linux capabilities" >&2
+  exit 1
+fi
+if ! jq -e '.services.worker.healthcheck.test != null' "$config_json" >/dev/null; then
+  echo "错误：生产 worker 必须定义健康检查" >&2
   exit 1
 fi
 

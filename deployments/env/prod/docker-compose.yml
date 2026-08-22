@@ -84,6 +84,10 @@ services:
     image: "${POSTGRES_IMAGE:?POSTGRES_IMAGE must be an approved internal image digest}"
     container_name: velora-prod-postgres
     restart: unless-stopped
+    mem_limit: 1536m
+    cpus: 1.5
+    pids_limit: 256
+    security_opt: ["no-new-privileges:true"]
     logging: *default-logging
     environment:
       POSTGRES_USER: "${POSTGRES_SUPERUSER:?POSTGRES_SUPERUSER is required}"
@@ -120,6 +124,10 @@ services:
     image: "${REDIS_IMAGE:?REDIS_IMAGE must be an approved internal image digest}"
     container_name: velora-prod-redis
     restart: unless-stopped
+    mem_limit: 512m
+    cpus: 0.5
+    pids_limit: 128
+    security_opt: ["no-new-privileges:true"]
     logging: *default-logging
     command: ["sh", "-ec", "umask 077; { printf '%s\\n' 'port 0' 'tls-port 6379' 'tls-cert-file /run/secrets/redis_tls_cert' 'tls-key-file /run/secrets/redis_tls_key' 'tls-ca-cert-file /run/secrets/redis_tls_ca' 'tls-auth-clients no' 'appendonly yes'; printf 'requirepass %s\\n' \"$$(cat /run/secrets/redis_password)\"; } > /tmp/velora-redis.conf; exec redis-server /tmp/velora-redis.conf"]
     volumes:
@@ -143,6 +151,10 @@ services:
     image: "${CASDOOR_IMAGE:?CASDOOR_IMAGE must be an approved internal image digest}"
     container_name: velora-prod-casdoor
     restart: unless-stopped
+    mem_limit: 768m
+    cpus: 0.75
+    pids_limit: 256
+    security_opt: ["no-new-privileges:true"]
     logging: *default-logging
     depends_on:
       postgres:
@@ -179,6 +191,14 @@ services:
         DOCKER_REGISTRY: "${DOCKER_REGISTRY:-docker.m.daocloud.io}"
         GOPROXY: "${GOPROXY:-https://goproxy.cn}"
     restart: unless-stopped
+    mem_limit: 768m
+    cpus: 1.0
+    pids_limit: 256
+    read_only: true
+    cap_drop: ["ALL"]
+    security_opt: ["no-new-privileges:true"]
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=128m
     logging: *default-logging
     depends_on:
       postgres:
@@ -222,6 +242,14 @@ services:
         DOCKER_REGISTRY: "${DOCKER_REGISTRY:-docker.m.daocloud.io}"
         GOPROXY: "${GOPROXY:-https://goproxy.cn}"
     restart: unless-stopped
+    mem_limit: 768m
+    cpus: 1.0
+    pids_limit: 256
+    read_only: true
+    cap_drop: ["ALL"]
+    security_opt: ["no-new-privileges:true"]
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=256m
     logging: *default-logging
     depends_on:
       postgres:
@@ -247,6 +275,11 @@ services:
     networks:
       - app
       - egress
+    healthcheck:
+      test: ["CMD-SHELL", "kill -0 1"]
+      interval: 15s
+      timeout: 3s
+      retries: 3
 
   migrate:
     container_name: velora-prod-migrate
@@ -257,6 +290,14 @@ services:
         DOCKER_REGISTRY: "${DOCKER_REGISTRY:-docker.m.daocloud.io}"
         GOPROXY: "${GOPROXY:-https://goproxy.cn}"
     profiles: [release]
+    mem_limit: 512m
+    cpus: 0.5
+    pids_limit: 128
+    read_only: true
+    cap_drop: ["ALL"]
+    security_opt: ["no-new-privileges:true"]
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=64m
     depends_on:
       postgres:
         condition: service_healthy
@@ -280,6 +321,10 @@ services:
         DOCKER_REGISTRY: "${DOCKER_REGISTRY:-docker.m.daocloud.io}"
         NPM_CONFIG_REGISTRY: "${NPM_CONFIG_REGISTRY:-https://registry.npmmirror.com}"
     restart: unless-stopped
+    mem_limit: 192m
+    cpus: 0.25
+    pids_limit: 128
+    security_opt: ["no-new-privileges:true"]
     logging: *default-logging
     depends_on:
       server:
@@ -308,6 +353,14 @@ services:
         DOCKER_REGISTRY: "${DOCKER_REGISTRY:-docker.m.daocloud.io}"
         GOPROXY: "${GOPROXY:-https://goproxy.cn}"
     restart: unless-stopped
+    mem_limit: 128m
+    cpus: 0.25
+    pids_limit: 64
+    read_only: true
+    cap_drop: ["ALL"]
+    security_opt: ["no-new-privileges:true"]
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=32m
     logging: *default-logging
     depends_on:
       casdoor:
@@ -339,6 +392,10 @@ services:
       args:
         DOCKER_REGISTRY: "${DOCKER_REGISTRY:-docker.m.daocloud.io}"
     restart: unless-stopped
+    mem_limit: 192m
+    cpus: 0.5
+    pids_limit: 128
+    security_opt: ["no-new-privileges:true"]
     logging: *default-logging
     depends_on:
       web:

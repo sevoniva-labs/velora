@@ -25,6 +25,7 @@ import (
 	appdatapolicy "github.com/sevoniva-labs/velora/server/internal/app/datapolicy"
 	appidentity "github.com/sevoniva-labs/velora/server/internal/app/identity"
 	appportal "github.com/sevoniva-labs/velora/server/internal/app/portal"
+	domain "github.com/sevoniva-labs/velora/server/internal/domain/identity"
 	"github.com/sevoniva-labs/velora/server/internal/platform/authn"
 	"github.com/sevoniva-labs/velora/server/internal/platform/authz"
 	"github.com/sevoniva-labs/velora/server/internal/platform/cache"
@@ -289,6 +290,10 @@ func New(ctx context.Context, opts Options) (*App, error) {
 		if bridgeErr != nil {
 			return nil, fmt.Errorf("Casdoor session bridge: %w", bridgeErr)
 		}
+		bridge.ConfigureAccessControl(identitySvc.AuthenticateSessionID, func(ctx context.Context, principal domain.Principal, applicationID string) error {
+			_, err := portalSvc.GetApplication(ctx, principal, applicationID)
+			return err
+		})
 		identityService.ConfigureSessionBridge(bridge)
 		httpServer.Handle("/_velora/session/bridge", bridge.Handler())
 		httpServer.Handle("/_velora/authorize", bridge.AuthorizationHandler())

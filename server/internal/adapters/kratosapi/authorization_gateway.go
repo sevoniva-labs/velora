@@ -8,15 +8,18 @@ import (
 	"net/url"
 	"strings"
 
+	domain "github.com/sevoniva-labs/velora/server/internal/domain/identity"
 	"github.com/sevoniva-labs/velora/server/internal/platform/database"
 )
 
 const casdoorAuthorizeInternalPath = "/_velora/casdoor-authorize"
 
 type authorizationApplication struct {
-	Code         string
-	Name         string
-	RedirectURIs []string
+	ID             string
+	OrganizationID string
+	Code           string
+	Name           string
+	RedirectURIs   []string
 }
 
 // AuthorizationHandler is the public OIDC authorization gate. It keeps the
@@ -31,14 +34,23 @@ func (b *SessionBridge) AuthorizationHandler() http.Handler {
 			return
 		}
 
-		app, ok := b.authorizedApplication(r)
+		principal, authenticated := b.gatewayPrincipal(r)
+		organizationID := ""
+		if authenticated {
+			organizationID = principal.OrganizationID
+		}
+		app, ok := b.authorizedApplication(r, organizationID)
 		if !ok {
 			http.Error(w, "invalid authorization request", http.StatusBadRequest)
 			return
 		}
-		if !b.hasGatewaySession(r) {
+		if !authenticated {
 			b.clearGatewayCookie(w)
 			http.Redirect(w, r, b.portalLoginURL(app, r.URL.RawQuery), http.StatusFound)
+			return
+		}
+		if b.authorizeApp == nil || b.authorizeApp(r.Context(), principal, app.ID) != nil {
+			http.Error(w, "application access denied", http.StatusForbidden)
 			return
 		}
 
@@ -69,7 +81,7 @@ func (b *SessionBridge) GatewayLogoutHandler() http.Handler {
 	})
 }
 
-func (b *SessionBridge) authorizedApplication(r *http.Request) (authorizationApplication, bool) {
+func (b *SessionBridge) authorizedApplication(r *http.Request, organizationID string) (authorizationApplication, bool) {
 	query := r.URL.Query()
 	clientID := strings.TrimSpace(query.Get("client_id"))
 	redirectURI := strings.TrimSpace(query.Get("redirect_uri"))
@@ -84,7 +96,7 @@ func (b *SessionBridge) authorizedApplication(r *http.Request) (authorizationApp
 		return authorizationApplication{}, false
 	}
 
-	app, err := b.resolveApplication(r.Context(), clientID)
+	app, err := b.resolveApplication(r.Context(), clientID, organizationID)
 	if err != nil {
 		return authorizationApplication{}, false
 	}
@@ -96,20 +108,21 @@ func (b *SessionBridge) authorizedApplication(r *http.Request) (authorizationApp
 	return authorizationApplication{}, false
 }
 
-func resolveAuthorizationApplication(db *database.DB) func(context.Context, string) (authorizationApplication, error) {
-	return func(ctx context.Context, clientID string) (authorizationApplication, error) {
+func resolveAuthorizationApplication(db *database.DB) func(context.Context, string, string) (authorizationApplication, error) {
+	return func(ctx context.Context, clientID, organizationID string) (authorizationApplication, error) {
 		if db == nil {
 			return authorizationApplication{}, errors.New("authorization application database is unavailable")
 		}
 		var app authorizationApplication
 		var redirectJSON string
-		err := db.QueryRowContext(ctx, db.Rebind(`SELECT a.code,a.name,b.redirect_uris_json
+		err := db.QueryRowContext(ctx, db.Rebind(`SELECT a.id,a.organization_id,a.code,a.name,b.redirect_uris_json
 		FROM portal_applications a
 		JOIN portal_application_identity_bindings b ON b.application_id=a.id AND b.organization_id=a.organization_id
 		WHERE b.public_client_id=? AND b.provider_key='casdoor' AND b.protocol='OIDC'
 		  AND b.configuration_status='CONFIGURED' AND b.verification_status='PASSED'
 		  AND a.status='ENABLED' AND a.lifecycle_status='PUBLISHED'
-		LIMIT 1`), clientID).Scan(&app.Code, &app.Name, &redirectJSON)
+		  AND (?='' OR a.organization_id=?)
+		LIMIT 1`), clientID, strings.TrimSpace(organizationID), strings.TrimSpace(organizationID)).Scan(&app.ID, &app.OrganizationID, &app.Code, &app.Name, &redirectJSON)
 		if err != nil {
 			return authorizationApplication{}, err
 		}
@@ -120,13 +133,25 @@ func resolveAuthorizationApplication(db *database.DB) func(context.Context, stri
 	}
 }
 
-func (b *SessionBridge) hasGatewaySession(r *http.Request) bool {
+func (b *SessionBridge) gatewayPrincipal(r *http.Request) (domain.Principal, bool) {
 	cookie, err := r.Cookie(gatewaySessionCookie)
 	if err != nil || strings.TrimSpace(cookie.Value) == "" || len(cookie.Value) > maxBridgeTicket {
-		return false
+		return domain.Principal{}, false
 	}
 	value, err := b.cache.Get(r.Context(), gatewaySessionKey(cookie.Value))
-	return err == nil && value == "active"
+	if err != nil || b.validateSession == nil {
+		return domain.Principal{}, false
+	}
+	var linked gatewaySession
+	if json.Unmarshal([]byte(value), &linked) != nil || linked.UserID == "" || linked.OrganizationID == "" || linked.SessionID == "" {
+		return domain.Principal{}, false
+	}
+	principal, err := b.validateSession(r.Context(), linked.SessionID)
+	if err != nil || principal.UserID != linked.UserID || principal.OrganizationID != linked.OrganizationID || principal.SessionID != linked.SessionID {
+		_ = b.cache.Delete(r.Context(), gatewaySessionKey(cookie.Value))
+		return domain.Principal{}, false
+	}
+	return principal, true
 }
 
 func (b *SessionBridge) portalLoginURL(app authorizationApplication, rawQuery string) string {

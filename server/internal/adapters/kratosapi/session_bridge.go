@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/go-kratos/kratos/v2/transport"
+	domain "github.com/sevoniva-labs/velora/server/internal/domain/identity"
 	"github.com/sevoniva-labs/velora/server/internal/platform/cache"
 	"github.com/sevoniva-labs/velora/server/internal/platform/database"
 )
@@ -33,17 +34,29 @@ const (
 // the Casdoor host. The ticket contains no credentials and expires quickly.
 type SessionBridge struct {
 	cache              cache.Cache
-	resolveApplication func(context.Context, string) (authorizationApplication, error)
+	resolveApplication func(context.Context, string, string) (authorizationApplication, error)
 	authHost           string
 	actionURL          string
 	portalURL          *url.URL
+	portalOrigin       string
 	secure             bool
 	sameSite           http.SameSite
+	validateSession    func(context.Context, string) (domain.Principal, error)
+	authorizeApp       func(context.Context, domain.Principal, string) error
 }
 
 type bridgePayload struct {
-	Cookie     string `json:"cookie"`
-	ReturnPath string `json:"return_path"`
+	Cookie         string `json:"cookie"`
+	ReturnPath     string `json:"return_path"`
+	UserID         string `json:"user_id"`
+	OrganizationID string `json:"organization_id"`
+	SessionID      string `json:"session_id"`
+}
+
+type gatewaySession struct {
+	UserID         string `json:"user_id"`
+	OrganizationID string `json:"organization_id"`
+	SessionID      string `json:"session_id"`
 }
 
 func NewSessionBridge(c cache.Cache, db *database.DB, accountURL, portalURL string, secure bool, sameSite http.SameSite) (*SessionBridge, error) {
@@ -64,7 +77,13 @@ func NewSessionBridge(c cache.Cache, db *database.DB, accountURL, portalURL stri
 	if err != nil || portal.Hostname() == "" || (portal.Scheme != "https" && secure) || portal.User != nil || portal.RawQuery != "" || portal.Fragment != "" {
 		return nil, errors.New("session bridge portal URL must have a valid host")
 	}
-	return &SessionBridge{cache: c, resolveApplication: resolveAuthorizationApplication(db), authHost: strings.ToLower(u.Hostname()), actionURL: action, portalURL: portal, secure: secure, sameSite: sameSite}, nil
+	portalOrigin := strings.ToLower(portal.Scheme + "://" + portal.Host)
+	return &SessionBridge{cache: c, resolveApplication: resolveAuthorizationApplication(db), authHost: strings.ToLower(u.Hostname()), actionURL: action, portalURL: portal, portalOrigin: portalOrigin, secure: secure, sameSite: sameSite}, nil
+}
+
+func (b *SessionBridge) ConfigureAccessControl(validateSession func(context.Context, string) (domain.Principal, error), authorizeApp func(context.Context, domain.Principal, string) error) {
+	b.validateSession = validateSession
+	b.authorizeApp = authorizeApp
 }
 
 func (b *SessionBridge) ActionURL() string {
@@ -74,15 +93,16 @@ func (b *SessionBridge) ActionURL() string {
 	return b.actionURL
 }
 
-func (b *SessionBridge) Create(ctx context.Context, cookieValue, returnPath string) (string, error) {
-	if b == nil || b.cache == nil || strings.TrimSpace(cookieValue) == "" || len(cookieValue) > maxBridgeCookie {
+func (b *SessionBridge) Create(ctx context.Context, cookieValue, returnPath string, principal domain.Principal) (string, error) {
+	if b == nil || b.cache == nil || strings.TrimSpace(cookieValue) == "" || len(cookieValue) > maxBridgeCookie ||
+		strings.TrimSpace(principal.UserID) == "" || strings.TrimSpace(principal.OrganizationID) == "" || strings.TrimSpace(principal.SessionID) == "" {
 		return "", errors.New("session bridge payload is invalid")
 	}
 	ticket, err := cache.RandomToken(32)
 	if err != nil {
 		return "", err
 	}
-	payload, err := json.Marshal(bridgePayload{Cookie: cookieValue, ReturnPath: safeBridgeReturnPath(returnPath)})
+	payload, err := json.Marshal(bridgePayload{Cookie: cookieValue, ReturnPath: safeBridgeReturnPath(returnPath), UserID: principal.UserID, OrganizationID: principal.OrganizationID, SessionID: principal.SessionID})
 	if err != nil {
 		return "", err
 	}
@@ -102,6 +122,10 @@ func (b *SessionBridge) Handler() http.Handler {
 		w.Header().Set("Referrer-Policy", "no-referrer")
 		if r.Method != http.MethodPost || r.URL.RawQuery != "" || !b.allowedHost(r.Host) {
 			http.Error(w, "not found", http.StatusNotFound)
+			return
+		}
+		if !b.allowedBridgeOrigin(r) {
+			http.Error(w, "forbidden", http.StatusForbidden)
 			return
 		}
 		if r.ContentLength > 8192 {
@@ -130,12 +154,14 @@ func (b *SessionBridge) Handler() http.Handler {
 			return
 		}
 		var handoff bridgePayload
-		if json.Unmarshal([]byte(payload), &handoff) != nil || strings.TrimSpace(handoff.Cookie) == "" || len(handoff.Cookie) > maxBridgeCookie {
+		if json.Unmarshal([]byte(payload), &handoff) != nil || strings.TrimSpace(handoff.Cookie) == "" || len(handoff.Cookie) > maxBridgeCookie ||
+			strings.TrimSpace(handoff.UserID) == "" || strings.TrimSpace(handoff.OrganizationID) == "" || strings.TrimSpace(handoff.SessionID) == "" {
 			http.Error(w, "invalid ticket", http.StatusGone)
 			return
 		}
 		gatewayToken, err := cache.RandomToken(32)
-		if err != nil || b.cache.Set(r.Context(), gatewaySessionKey(gatewayToken), "active", gatewaySessionTTL) != nil {
+		gatewayValue, marshalErr := json.Marshal(gatewaySession{UserID: handoff.UserID, OrganizationID: handoff.OrganizationID, SessionID: handoff.SessionID})
+		if err != nil || marshalErr != nil || b.cache.Set(r.Context(), gatewaySessionKey(gatewayToken), string(gatewayValue), gatewaySessionTTL) != nil {
 			http.Error(w, "session unavailable", http.StatusServiceUnavailable)
 			return
 		}
@@ -144,6 +170,14 @@ func (b *SessionBridge) Handler() http.Handler {
 		http.SetCookie(w, &http.Cookie{Name: gatewaySessionCookie, Value: gatewayToken, Path: "/", HttpOnly: true, Secure: b.secure, SameSite: b.sameSite, MaxAge: int(gatewaySessionTTL.Seconds())})
 		http.Redirect(w, r, b.returnURL(handoff.ReturnPath), http.StatusSeeOther)
 	})
+}
+
+func (b *SessionBridge) allowedBridgeOrigin(r *http.Request) bool {
+	origin := strings.ToLower(strings.TrimSpace(r.Header.Get("Origin")))
+	if origin == "" || origin != b.portalOrigin {
+		return false
+	}
+	return !strings.EqualFold(strings.TrimSpace(r.Header.Get("Sec-Fetch-Site")), "cross-site")
 }
 
 func (b *SessionBridge) returnURL(returnPath string) string {

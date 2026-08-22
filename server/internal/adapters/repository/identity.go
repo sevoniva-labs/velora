@@ -290,9 +290,23 @@ func (r *IdentityRepo) CreateSession(ctx context.Context, userID, tokenHash stri
 	return id, err
 }
 func (r *IdentityRepo) PrincipalBySessionHash(ctx context.Context, hash string) (identity.Principal, error) {
+	return r.principalBySession(ctx, `s.token_hash=?`, hash)
+}
+
+// PrincipalBySessionID revalidates a server-side session reference without
+// requiring the raw bearer token. It is used by companion authentication
+// sessions that must remain linked to the originating Velora session.
+func (r *IdentityRepo) PrincipalBySessionID(ctx context.Context, sessionID string) (identity.Principal, error) {
+	return r.principalBySession(ctx, `s.id=?`, strings.TrimSpace(sessionID))
+}
+
+func (r *IdentityRepo) principalBySession(ctx context.Context, predicate, value string) (identity.Principal, error) {
 	var p identity.Principal
+	if strings.TrimSpace(value) == "" {
+		return p, sql.ErrNoRows
+	}
 	var exp time.Time
-	err := r.db.QueryRowContext(ctx, r.db.Rebind(`SELECT s.id,u.id,u.organization_id,u.login_name,u.display_name,u.must_change_password,u.password_changed_at,s.expires_at FROM sessions s JOIN users u ON u.id=s.user_id WHERE s.token_hash=? AND u.status='ACTIVE'`), hash).
+	err := r.db.QueryRowContext(ctx, r.db.Rebind(`SELECT s.id,u.id,u.organization_id,u.login_name,u.display_name,u.must_change_password,u.password_changed_at,s.expires_at FROM sessions s JOIN users u ON u.id=s.user_id WHERE `+predicate+` AND u.status='ACTIVE'`), value).
 		Scan(&p.SessionID, &p.UserID, &p.OrganizationID, &p.LoginName, &p.DisplayName, &p.MustChangePassword, &p.PasswordChangedAt, &exp)
 	if err != nil {
 		return p, err

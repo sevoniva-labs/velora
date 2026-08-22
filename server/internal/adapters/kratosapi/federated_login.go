@@ -58,7 +58,7 @@ func (s *IdentityService) loginCasdoorPassword(ctx context.Context, req *forgev1
 		if strings.TrimSpace(federated.CasdoorSessionCookie) == "" {
 			return nil, federatedUnavailable()
 		}
-		ticket, err := s.sessionBridge.Create(ctx, federated.CasdoorSessionCookie, req.GetReturnPath())
+		ticket, err := s.sessionBridge.Create(ctx, federated.CasdoorSessionCookie, req.GetReturnPath(), principal)
 		if err != nil {
 			return nil, federatedUnavailable()
 		}

@@ -847,6 +847,29 @@ func (s *Service) Authenticate(ctx context.Context, token string) (domain.Princi
 	return p, err
 }
 
+// AuthenticateSessionID validates a linked server-side session. It never
+// accepts a browser-controlled principal and still rechecks the user,
+// organization, expiry, roles, permissions and data scope in the repository.
+func (s *Service) AuthenticateSessionID(ctx context.Context, sessionID string) (domain.Principal, error) {
+	p, err := s.repo.PrincipalBySessionID(ctx, sessionID)
+	if err != nil {
+		return domain.Principal{}, err
+	}
+	org, err := s.repo.OrganizationByID(ctx, p.OrganizationID)
+	if err != nil {
+		return domain.Principal{}, err
+	}
+	if strings.ToUpper(org.Status) != "ACTIVE" {
+		return domain.Principal{}, ErrDisabled
+	}
+	policy, err := s.resolveSecurityPolicy(ctx, p.OrganizationID)
+	if err != nil {
+		return domain.Principal{}, err
+	}
+	s.applyPasswordRequirement(&p, policy.maxAge)
+	return p, nil
+}
+
 // applyPasswordRequirement keeps local password policy out of externally
 // authenticated sessions. Casdoor owns password lifecycle for federated
 // identities, so a stale or bootstrap-only local password must never block an

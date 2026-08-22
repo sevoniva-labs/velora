@@ -2,6 +2,8 @@ package kratosapi
 
 import (
 	"context"
+	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -9,10 +11,13 @@ import (
 	"testing"
 	"time"
 
+	domain "github.com/sevoniva-labs/velora/server/internal/domain/identity"
 	"github.com/sevoniva-labs/velora/server/internal/platform/cache"
 	"github.com/sevoniva-labs/velora/server/internal/platform/config"
 	"github.com/sevoniva-labs/velora/server/internal/platform/database"
 )
+
+var testGatewayPrincipal = domain.Principal{Type: "USER", UserID: "user-1", OrganizationID: "org-1", SessionID: "session-1", Roles: []string{"user"}}
 
 func newTestBridge(t *testing.T) (*SessionBridge, cache.Cache) {
 	t.Helper()
@@ -27,12 +32,18 @@ func newTestBridge(t *testing.T) (*SessionBridge, cache.Cache) {
 	if bridge.ActionURL() != "https://auth.example.test/_velora/session/bridge" {
 		t.Fatalf("bridge action URL=%q", bridge.ActionURL())
 	}
+	bridge.ConfigureAccessControl(func(_ context.Context, sessionID string) (domain.Principal, error) {
+		if sessionID != testGatewayPrincipal.SessionID {
+			return domain.Principal{}, errors.New("session not found")
+		}
+		return testGatewayPrincipal, nil
+	}, func(context.Context, domain.Principal, string) error { return nil })
 	return bridge, c
 }
 
 func TestSessionBridgeConsumesTicketAndSetsHostOnlyCookie(t *testing.T) {
 	bridge, c := newTestBridge(t)
-	ticket, err := bridge.Create(context.Background(), "casdoor-cookie", "/home?from=login")
+	ticket, err := bridge.Create(context.Background(), "casdoor-cookie", "/home?from=login", testGatewayPrincipal)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -40,6 +51,7 @@ func TestSessionBridgeConsumesTicketAndSetsHostOnlyCookie(t *testing.T) {
 	req := httptest.NewRequest(http.MethodPost, "https://auth.example.test/_velora/session/bridge", strings.NewReader(form.Encode()))
 	req.Host = "auth.example.test"
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req.Header.Set("Origin", "https://home.example.test")
 	res := httptest.NewRecorder()
 	bridge.Handler().ServeHTTP(res, req)
 	if res.Code != http.StatusSeeOther || res.Header().Get("Location") != "https://home.example.test/home?from=login" {
@@ -60,6 +72,30 @@ func TestSessionBridgeConsumesTicketAndSetsHostOnlyCookie(t *testing.T) {
 	_ = c.Close()
 }
 
+func TestSessionBridgeRejectsCrossSiteTicketConsumption(t *testing.T) {
+	bridge, c := newTestBridge(t)
+	defer c.Close()
+	ticket, err := bridge.Create(context.Background(), "casdoor-cookie", "/", testGatewayPrincipal)
+	if err != nil {
+		t.Fatal(err)
+	}
+	form := url.Values{"ticket": {ticket}}
+	for _, origin := range []string{"", "https://evil.example.test"} {
+		req := httptest.NewRequest(http.MethodPost, "https://auth.example.test/_velora/session/bridge", strings.NewReader(form.Encode()))
+		req.Host = "auth.example.test"
+		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		if origin != "" {
+			req.Header.Set("Origin", origin)
+			req.Header.Set("Sec-Fetch-Site", "cross-site")
+		}
+		res := httptest.NewRecorder()
+		bridge.Handler().ServeHTTP(res, req)
+		if res.Code != http.StatusForbidden {
+			t.Fatalf("origin %q status=%d", origin, res.Code)
+		}
+	}
+}
+
 func TestSessionBridgeRejectsInvalidPortalURL(t *testing.T) {
 	c, err := cache.New(config.Cache{Provider: "memory", Prefix: "test:"})
 	if err != nil {
@@ -74,7 +110,7 @@ func TestSessionBridgeRejectsInvalidPortalURL(t *testing.T) {
 func TestSessionBridgeReturnsAuthorizationContinuationToAuthHost(t *testing.T) {
 	bridge, c := newTestBridge(t)
 	defer c.Close()
-	ticket, err := bridge.Create(context.Background(), "casdoor-cookie", "/login/oauth/authorize?client_id=spectra&state=opaque")
+	ticket, err := bridge.Create(context.Background(), "casdoor-cookie", "/login/oauth/authorize?client_id=spectra&state=opaque", testGatewayPrincipal)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -82,6 +118,7 @@ func TestSessionBridgeReturnsAuthorizationContinuationToAuthHost(t *testing.T) {
 	req := httptest.NewRequest(http.MethodPost, "https://auth.example.test/_velora/session/bridge", strings.NewReader(form.Encode()))
 	req.Host = "auth.example.test"
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req.Header.Set("Origin", "https://home.example.test")
 	res := httptest.NewRecorder()
 	bridge.Handler().ServeHTTP(res, req)
 	if got := res.Header().Get("Location"); got != "https://auth.example.test/login/oauth/authorize?client_id=spectra&state=opaque" {
@@ -92,8 +129,11 @@ func TestSessionBridgeReturnsAuthorizationContinuationToAuthHost(t *testing.T) {
 func TestAuthorizationGatewayKeepsCasdoorBehindPortalLogin(t *testing.T) {
 	bridge, c := newTestBridge(t)
 	defer c.Close()
-	bridge.resolveApplication = func(context.Context, string) (authorizationApplication, error) {
-		return authorizationApplication{Code: "spectra", Name: "Spectra", RedirectURIs: []string{"https://spectra.example.test/api/v1/auth/oidc/callback"}}, nil
+	bridge.resolveApplication = func(_ context.Context, _ string, organizationID string) (authorizationApplication, error) {
+		if organizationID != "" && organizationID != testGatewayPrincipal.OrganizationID {
+			return authorizationApplication{}, errors.New("organization mismatch")
+		}
+		return authorizationApplication{ID: "app-1", OrganizationID: "org-1", Code: "spectra", Name: "Spectra", RedirectURIs: []string{"https://spectra.example.test/api/v1/auth/oidc/callback"}}, nil
 	}
 	rawQuery := "client_id=spectra-client&code_challenge=challenge&code_challenge_method=S256&redirect_uri=https%3A%2F%2Fspectra.example.test%2Fapi%2Fv1%2Fauth%2Foidc%2Fcallback&response_type=code&scope=openid&state=opaque"
 
@@ -110,7 +150,8 @@ func TestAuthorizationGatewayKeepsCasdoorBehindPortalLogin(t *testing.T) {
 	}
 
 	token, err := cache.RandomToken(32)
-	if err != nil || c.Set(context.Background(), gatewaySessionKey(token), "active", time.Minute) != nil {
+	linked, err := json.Marshal(gatewaySession{UserID: testGatewayPrincipal.UserID, OrganizationID: testGatewayPrincipal.OrganizationID, SessionID: testGatewayPrincipal.SessionID})
+	if err != nil || c.Set(context.Background(), gatewaySessionKey(token), string(linked), time.Minute) != nil {
 		t.Fatal("failed to seed gateway session")
 	}
 	authenticated := httptest.NewRequest(http.MethodGet, "https://auth.example.test/_velora/authorize?"+rawQuery, nil)
@@ -123,9 +164,35 @@ func TestAuthorizationGatewayKeepsCasdoorBehindPortalLogin(t *testing.T) {
 	}
 }
 
+func TestAuthorizationGatewayRevalidatesApplicationAccess(t *testing.T) {
+	bridge, c := newTestBridge(t)
+	defer c.Close()
+	bridge.resolveApplication = func(context.Context, string, string) (authorizationApplication, error) {
+		return authorizationApplication{ID: "app-1", OrganizationID: "org-1", Code: "spectra", Name: "Spectra", RedirectURIs: []string{"https://spectra.example.test/callback"}}, nil
+	}
+	bridge.authorizeApp = func(context.Context, domain.Principal, string) error { return errors.New("access denied") }
+	token, err := cache.RandomToken(32)
+	if err != nil {
+		t.Fatal(err)
+	}
+	linked, err := json.Marshal(gatewaySession{UserID: testGatewayPrincipal.UserID, OrganizationID: testGatewayPrincipal.OrganizationID, SessionID: testGatewayPrincipal.SessionID})
+	if err != nil || c.Set(context.Background(), gatewaySessionKey(token), string(linked), time.Minute) != nil {
+		t.Fatal("failed to seed gateway session")
+	}
+	rawQuery := "client_id=spectra-client&code_challenge=challenge&code_challenge_method=S256&redirect_uri=https%3A%2F%2Fspectra.example.test%2Fcallback&response_type=code&scope=openid&state=opaque"
+	req := httptest.NewRequest(http.MethodGet, "https://auth.example.test/_velora/authorize?"+rawQuery, nil)
+	req.Host = "auth.example.test"
+	req.AddCookie(&http.Cookie{Name: gatewaySessionCookie, Value: token})
+	res := httptest.NewRecorder()
+	bridge.AuthorizationHandler().ServeHTTP(res, req)
+	if res.Code != http.StatusForbidden || res.Header().Get("X-Accel-Redirect") != "" {
+		t.Fatalf("status=%d internal_redirect=%q", res.Code, res.Header().Get("X-Accel-Redirect"))
+	}
+}
+
 func TestSessionBridgeRejectsQueryTicketsAndUntrustedHost(t *testing.T) {
 	bridge, c := newTestBridge(t)
-	ticket, err := bridge.Create(context.Background(), "casdoor-cookie", "/")
+	ticket, err := bridge.Create(context.Background(), "casdoor-cookie", "/", testGatewayPrincipal)
 	if err != nil {
 		t.Fatal(err)
 	}

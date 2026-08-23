@@ -3,6 +3,7 @@ package casdooradmin
 import (
 	"context"
 	"encoding/json"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -24,6 +25,26 @@ func TestAutomationRequiresApprovalAndNeverSerializesSecret(t *testing.T) {
 	}
 	if _, _, err := client.UpsertApplication(context.Background(), UpsertInput{Name: "demo", Organization: "built-in"}); err != ErrApprovalRequired {
 		t.Fatalf("expected approval error, got %v", err)
+	}
+}
+
+func TestGetApplicationTreatsSuccessfulNullResponseAsMissing(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/api/get-application" {
+			t.Fatalf("unexpected path %s", r.URL.Path)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = io.WriteString(w, `{"status":"ok","data":null}`)
+	}))
+	defer server.Close()
+
+	client, err := New(Config{BaseURL: server.URL, Token: "token", Owner: "admin", Organization: "built-in", Enabled: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	application, found, err := client.GetApplication(context.Background(), "missing")
+	if err != nil || found || application.Name != "" {
+		t.Fatalf("GetApplication() = %#v, %v, %v; want missing", application, found, err)
 	}
 }
 

@@ -149,6 +149,12 @@ func (c *Client) GetApplication(ctx context.Context, ref string) (Application, b
 	if err != nil {
 		return Application{}, false, err
 	}
+	// Casdoor v1.762 returns HTTP 200 with data:null for a missing application.
+	// Decoding null leaves an empty wire value, which must not be mistaken for
+	// an existing client or the following update becomes a silent no-op.
+	if strings.TrimSpace(wire.Name) == "" {
+		return Application{}, false, nil
+	}
 	return wire.application(false), true, nil
 }
 

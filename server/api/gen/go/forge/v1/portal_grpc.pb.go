@@ -48,6 +48,7 @@ const (
 	PortalService_ReplacePortalApplicationRoles_FullMethodName             = "/forge.v1.PortalService/ReplacePortalApplicationRoles"
 	PortalService_GetPortalApplicationProvisioningTarget_FullMethodName    = "/forge.v1.PortalService/GetPortalApplicationProvisioningTarget"
 	PortalService_UpsertPortalApplicationProvisioningTarget_FullMethodName = "/forge.v1.PortalService/UpsertPortalApplicationProvisioningTarget"
+	PortalService_RetryPortalApplicationProvisioning_FullMethodName        = "/forge.v1.PortalService/RetryPortalApplicationProvisioning"
 	PortalService_GetIdentityOverview_FullMethodName                       = "/forge.v1.PortalService/GetIdentityOverview"
 	PortalService_GetIdentityConsoleLink_FullMethodName                    = "/forge.v1.PortalService/GetIdentityConsoleLink"
 	PortalService_GetApplicationOnboarding_FullMethodName                  = "/forge.v1.PortalService/GetApplicationOnboarding"
@@ -94,6 +95,7 @@ type PortalServiceClient interface {
 	ReplacePortalApplicationRoles(ctx context.Context, in *ReplacePortalApplicationRolesRequest, opts ...grpc.CallOption) (*ReplacePortalApplicationRolesResponse, error)
 	GetPortalApplicationProvisioningTarget(ctx context.Context, in *GetPortalApplicationProvisioningTargetRequest, opts ...grpc.CallOption) (*GetPortalApplicationProvisioningTargetResponse, error)
 	UpsertPortalApplicationProvisioningTarget(ctx context.Context, in *UpsertPortalApplicationProvisioningTargetRequest, opts ...grpc.CallOption) (*UpsertPortalApplicationProvisioningTargetResponse, error)
+	RetryPortalApplicationProvisioning(ctx context.Context, in *RetryPortalApplicationProvisioningRequest, opts ...grpc.CallOption) (*RetryPortalApplicationProvisioningResponse, error)
 	GetIdentityOverview(ctx context.Context, in *GetIdentityOverviewRequest, opts ...grpc.CallOption) (*GetIdentityOverviewResponse, error)
 	GetIdentityConsoleLink(ctx context.Context, in *GetIdentityConsoleLinkRequest, opts ...grpc.CallOption) (*GetIdentityConsoleLinkResponse, error)
 	GetApplicationOnboarding(ctx context.Context, in *GetApplicationOnboardingRequest, opts ...grpc.CallOption) (*GetApplicationOnboardingResponse, error)
@@ -405,6 +407,16 @@ func (c *portalServiceClient) UpsertPortalApplicationProvisioningTarget(ctx cont
 	return out, nil
 }
 
+func (c *portalServiceClient) RetryPortalApplicationProvisioning(ctx context.Context, in *RetryPortalApplicationProvisioningRequest, opts ...grpc.CallOption) (*RetryPortalApplicationProvisioningResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(RetryPortalApplicationProvisioningResponse)
+	err := c.cc.Invoke(ctx, PortalService_RetryPortalApplicationProvisioning_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *portalServiceClient) GetIdentityOverview(ctx context.Context, in *GetIdentityOverviewRequest, opts ...grpc.CallOption) (*GetIdentityOverviewResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(GetIdentityOverviewResponse)
@@ -548,6 +560,7 @@ type PortalServiceServer interface {
 	ReplacePortalApplicationRoles(context.Context, *ReplacePortalApplicationRolesRequest) (*ReplacePortalApplicationRolesResponse, error)
 	GetPortalApplicationProvisioningTarget(context.Context, *GetPortalApplicationProvisioningTargetRequest) (*GetPortalApplicationProvisioningTargetResponse, error)
 	UpsertPortalApplicationProvisioningTarget(context.Context, *UpsertPortalApplicationProvisioningTargetRequest) (*UpsertPortalApplicationProvisioningTargetResponse, error)
+	RetryPortalApplicationProvisioning(context.Context, *RetryPortalApplicationProvisioningRequest) (*RetryPortalApplicationProvisioningResponse, error)
 	GetIdentityOverview(context.Context, *GetIdentityOverviewRequest) (*GetIdentityOverviewResponse, error)
 	GetIdentityConsoleLink(context.Context, *GetIdentityConsoleLinkRequest) (*GetIdentityConsoleLinkResponse, error)
 	GetApplicationOnboarding(context.Context, *GetApplicationOnboardingRequest) (*GetApplicationOnboardingResponse, error)
@@ -655,6 +668,9 @@ func (UnimplementedPortalServiceServer) GetPortalApplicationProvisioningTarget(c
 }
 func (UnimplementedPortalServiceServer) UpsertPortalApplicationProvisioningTarget(context.Context, *UpsertPortalApplicationProvisioningTargetRequest) (*UpsertPortalApplicationProvisioningTargetResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method UpsertPortalApplicationProvisioningTarget not implemented")
+}
+func (UnimplementedPortalServiceServer) RetryPortalApplicationProvisioning(context.Context, *RetryPortalApplicationProvisioningRequest) (*RetryPortalApplicationProvisioningResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method RetryPortalApplicationProvisioning not implemented")
 }
 func (UnimplementedPortalServiceServer) GetIdentityOverview(context.Context, *GetIdentityOverviewRequest) (*GetIdentityOverviewResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetIdentityOverview not implemented")
@@ -1232,6 +1248,24 @@ func _PortalService_UpsertPortalApplicationProvisioningTarget_Handler(srv interf
 	return interceptor(ctx, in, info, handler)
 }
 
+func _PortalService_RetryPortalApplicationProvisioning_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RetryPortalApplicationProvisioningRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PortalServiceServer).RetryPortalApplicationProvisioning(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: PortalService_RetryPortalApplicationProvisioning_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PortalServiceServer).RetryPortalApplicationProvisioning(ctx, req.(*RetryPortalApplicationProvisioningRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _PortalService_GetIdentityOverview_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(GetIdentityOverviewRequest)
 	if err := dec(in); err != nil {
@@ -1552,6 +1586,10 @@ var PortalService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "UpsertPortalApplicationProvisioningTarget",
 			Handler:    _PortalService_UpsertPortalApplicationProvisioningTarget_Handler,
+		},
+		{
+			MethodName: "RetryPortalApplicationProvisioning",
+			Handler:    _PortalService_RetryPortalApplicationProvisioning_Handler,
 		},
 		{
 			MethodName: "GetIdentityOverview",

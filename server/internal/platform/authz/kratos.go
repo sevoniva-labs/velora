@@ -166,6 +166,7 @@ func PortalRules() map[string][]string {
 		forgev1.OperationPortalServiceReplacePortalApplicationRoles:             {"portal.application.manage"},
 		forgev1.OperationPortalServiceGetPortalApplicationProvisioningTarget:    {"portal.application.manage", "iam.integration.read"},
 		forgev1.OperationPortalServiceUpsertPortalApplicationProvisioningTarget: {"portal.application.manage", "iam.integration.manage"},
+		forgev1.OperationPortalServiceRetryPortalApplicationProvisioning:        {"portal.application.manage", "iam.integration.manage"},
 		forgev1.OperationPortalServiceGetIdentityOverview:                       {"iam.integration.read"},
 		forgev1.OperationPortalServiceGetIdentityConsoleLink:                    {"iam.console.open"},
 		forgev1.OperationPortalServiceGetApplicationOnboarding:                  {"iam.integration.read"},

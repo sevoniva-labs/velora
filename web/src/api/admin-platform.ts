@@ -1,5 +1,5 @@
 import { apiFetch } from './client'
-import type { AccessReview, AccessReviewItem, AdminSession, AdminUser, ApplicationAccessGrant, ApplicationAccessImpact, ApplicationEffectiveAccess, ApprovalRequest, ConfigChange, Department, PlatformPermission, PlatformRole, Position, TemporaryRoleGrant, UserAssignment, UserEffectiveApplicationAccess, UserGroup } from '../types'
+import type { AccessReview, AccessReviewItem, AdminSession, AdminUser, ApplicationAccessGrant, ApplicationAccessImpact, ApplicationEffectiveAccess, ApprovalRequest, ConfigChange, Department, PlatformPermission, PlatformRole, Position, SecurityPolicy, TemporaryRoleGrant, UserAssignment, UserEffectiveApplicationAccess, UserGroup } from '../types'
 
 export type DepartmentInput = Pick<Department, 'name' | 'parentId' | 'status' | 'sortOrder'> & { departmentKey?: string }
 export type PositionInput = Pick<Position, 'name' | 'description' | 'departmentId' | 'status' | 'sortOrder'> & { positionKey?: string }
@@ -73,6 +73,14 @@ export async function copyPlatformRole(sourceRoleKey: string, input: { roleKey: 
 
 export async function listPlatformPermissions(): Promise<PlatformPermission[]> {
   return (await apiFetch<{ permissions?: PlatformPermission[] }>('/admin/permissions')).permissions ?? []
+}
+
+export async function getSecurityPolicy(): Promise<SecurityPolicy> {
+  return (await apiFetch<{ policy: SecurityPolicy }>('/admin/security-config')).policy
+}
+
+export async function updateSecurityPolicy(policy: SecurityPolicy, approvalId: string): Promise<SecurityPolicy> {
+  return (await apiFetch<{ policy: SecurityPolicy }>('/admin/security-config', { method: 'PUT', body: { policy, approvalId } })).policy
 }
 
 export async function updateRolePermissions(roleKey: string, permissions: string[], approvalId?: string): Promise<PlatformRole> {

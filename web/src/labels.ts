@@ -124,6 +124,7 @@ export const AUDIT_ACTION_LABEL: Record<string, string> = {
   'portal.application.roles.replace': '更新应用角色',
   'portal.application.access_grants.replace': '更新应用访问范围',
   'portal.application.provisioning.upsert': '更新账号同步配置',
+  'portal.application.provisioning.retry': '重新同步应用账号',
   'portal.application.credential_approval.create': '申请接入凭据',
   'portal.policy.replace': '更新应用访问范围',
   'iam.integration.update': '更新统一登录配置',

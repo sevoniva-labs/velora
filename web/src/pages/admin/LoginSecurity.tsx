@@ -1,0 +1,61 @@
+import { useState } from 'react'
+import { App, Button } from 'antd'
+import { ModalForm, PageContainer, ProDescriptions, ProForm, ProFormDigit, ProFormSelect, ProFormSwitch } from '@ant-design/pro-components'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { adminListUsers } from '../../api/api'
+import { createApproval, getSecurityPolicy, listApprovals, updateSecurityPolicy } from '../../api/admin-platform'
+import type { ApprovalRequest, SecurityPolicy } from '../../types'
+import { useMe } from '../../auth/useMe'
+import { usePageTitle } from '../../hooks/usePageTitle'
+
+type PolicyForm = SecurityPolicy & { approverId: string }
+
+export default function LoginSecurity() {
+  usePageTitle('登录安全')
+  const { message } = App.useApp()
+  const queryClient = useQueryClient()
+  const me = useMe()
+  const [open, setOpen] = useState(false)
+  const policy = useQuery({ queryKey: ['admin', 'security-policy'], queryFn: getSecurityPolicy })
+  const users = useQuery({ queryKey: ['admin', 'users'], queryFn: adminListUsers })
+  const approvals = useQuery({ queryKey: ['admin', 'approvals'], queryFn: listApprovals })
+  const refresh = async () => Promise.all([queryClient.invalidateQueries({ queryKey: ['admin', 'security-policy'] }), queryClient.invalidateQueries({ queryKey: ['admin', 'approvals'] })])
+  const request = useMutation({ mutationFn: (values: PolicyForm) => { const { approverId, ...next } = values; return createApproval({ requestType: 'SECURITY_POLICY_CHANGE', action: 'security.config.update', resource: 'security', resourceId: 'policy', summary: '更新登录安全策略', payloadJson: JSON.stringify(policyPayload(next)), approverIds: [approverId] }) }, onSuccess: async () => { message.success('安全策略变更已提交审批'); setOpen(false); await refresh() }, onError: (error) => message.error(error instanceof Error ? error.message : '审批提交失败') })
+  const approved = (approvals.data ?? []).find((item) => item.action === 'security.config.update' && item.resourceId === 'policy' && item.status === 'APPROVED')
+  const execute = useMutation({ mutationFn: (approval: ApprovalRequest) => updateSecurityPolicy(policyFromPayload(JSON.parse(approval.payloadJson) as Record<string, unknown>), approval.id), onSuccess: async () => { message.success('登录安全策略已生效'); await refresh() }, onError: (error) => message.error(error instanceof Error ? error.message : '策略执行失败') })
+  const approvers = (users.data ?? []).filter((item) => item.status === 'ACTIVE' && item.id !== me.data?.id).map((item) => ({ label: item.displayName || item.loginName, value: item.id }))
+  const value = policy.data
+
+  return <PageContainer title="登录安全" extra={approved ? [<Button key="execute" type="primary" loading={execute.isPending} onClick={() => execute.mutate(approved)}>执行已批准变更</Button>] : [<Button key="edit" type="primary" onClick={() => setOpen(true)}>修改策略</Button>]}>
+    <ProDescriptions column={2} loading={policy.isLoading} dataSource={value ?? {}} columns={[
+      { title: '密码最小长度', render: () => value ? `${value.passwordMinLength} 位` : '—' },
+      { title: '密码复杂度', render: () => value ? complexity(value) : '—' },
+      { title: '密码历史', render: () => value ? `禁止重复最近 ${value.passwordHistory} 个密码` : '—' },
+      { title: '密码有效期', render: () => value ? `${value.passwordMaxAgeDays} 天` : '—' },
+      { title: '登录失败锁定', render: () => value ? `${value.loginMaxFailures} 次后锁定 ${Math.round(value.loginLockDurationSeconds / 60)} 分钟` : '—' },
+      { title: '会话有效期', render: () => value ? `${Math.round(value.sessionTtlSeconds / 3600)} 小时` : '—' },
+      { title: '并发会话上限', render: () => value ? `${value.maxActiveSessions} 个` : '—' },
+      { title: '多因素认证', render: () => '用户可在个人中心启用' },
+    ]} />
+    <ModalForm<PolicyForm> key={JSON.stringify(value)} title="修改登录安全策略" open={open} onOpenChange={setOpen} initialValues={value} width={680} grid submitter={{ searchConfig: { submitText: '提交审批', resetText: '取消' } }} onFinish={async (values) => { await request.mutateAsync(values); return true }}>
+      <ProFormDigit name="passwordMinLength" label="密码最小长度" min={12} max={128} colProps={{ span: 12 }} rules={[{ required: true }]} />
+      <ProFormDigit name="passwordHistory" label="密码历史数量" min={5} max={50} colProps={{ span: 12 }} rules={[{ required: true }]} />
+      <ProFormDigit name="passwordMaxAgeDays" label="密码有效期（天）" min={1} max={90} colProps={{ span: 12 }} rules={[{ required: true }]} />
+      <ProFormDigit name="loginMaxFailures" label="失败锁定阈值" min={1} max={5} colProps={{ span: 12 }} rules={[{ required: true }]} />
+      <ProFormDigit name="loginLockDurationSeconds" label="锁定时长（秒）" min={900} max={86400} colProps={{ span: 12 }} rules={[{ required: true }]} />
+      <ProFormDigit name="sessionTtlSeconds" label="会话时长（秒）" min={900} max={43200} colProps={{ span: 12 }} rules={[{ required: true }]} />
+      <ProFormDigit name="maxActiveSessions" label="并发会话上限" min={1} max={20} colProps={{ span: 12 }} rules={[{ required: true }]} />
+      <ProFormSelect name="approverId" label="审批人" options={approvers} showSearch fieldProps={{ optionFilterProp: 'label' }} colProps={{ span: 12 }} rules={[{ required: true, message: '请选择审批人' }]} />
+      <ProForm.Group title="密码必须包含">
+        <ProFormSwitch name="passwordRequireUpper" label="大写字母" />
+        <ProFormSwitch name="passwordRequireLower" label="小写字母" />
+        <ProFormSwitch name="passwordRequireDigit" label="数字" />
+        <ProFormSwitch name="passwordRequireSymbol" label="特殊字符" />
+      </ProForm.Group>
+    </ModalForm>
+  </PageContainer>
+}
+
+function complexity(value: SecurityPolicy): string { return [value.passwordRequireUpper && '大写字母', value.passwordRequireLower && '小写字母', value.passwordRequireDigit && '数字', value.passwordRequireSymbol && '特殊字符'].filter(Boolean).join('、') || '不限制' }
+function policyPayload(value: SecurityPolicy): Record<string, unknown> { return { password_min_length: value.passwordMinLength, password_require_upper: value.passwordRequireUpper, password_require_lower: value.passwordRequireLower, password_require_digit: value.passwordRequireDigit, password_require_symbol: value.passwordRequireSymbol, password_history: value.passwordHistory, password_max_age_days: value.passwordMaxAgeDays, login_max_failures: value.loginMaxFailures, login_lock_duration_seconds: value.loginLockDurationSeconds, session_ttl_seconds: value.sessionTtlSeconds, max_active_sessions: value.maxActiveSessions } }
+function policyFromPayload(value: Record<string, unknown>): SecurityPolicy { return { passwordMinLength: Number(value.password_min_length), passwordRequireUpper: Boolean(value.password_require_upper), passwordRequireLower: Boolean(value.password_require_lower), passwordRequireDigit: Boolean(value.password_require_digit), passwordRequireSymbol: Boolean(value.password_require_symbol), passwordHistory: Number(value.password_history), passwordMaxAgeDays: Number(value.password_max_age_days), loginMaxFailures: Number(value.login_max_failures), loginLockDurationSeconds: Number(value.login_lock_duration_seconds), sessionTtlSeconds: Number(value.session_ttl_seconds), maxActiveSessions: Number(value.max_active_sessions) } }

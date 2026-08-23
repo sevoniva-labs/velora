@@ -544,6 +544,28 @@ func (r *PortalRepo) GetProvisioningTarget(ctx context.Context, orgID, applicati
 	return item, err
 }
 
+func (r *PortalRepo) RetryProvisioning(ctx context.Context, orgID, applicationID string) (int, portaldomain.ProvisioningTarget, error) {
+	var retried int64
+	err := r.db.WithTx(ctx, func(tx *sql.Tx) error {
+		var code string
+		if err := tx.QueryRowContext(ctx, r.db.Rebind(`SELECT code FROM portal_applications WHERE organization_id=? AND id=?`), orgID, applicationID).Scan(&code); err != nil {
+			return err
+		}
+		result, err := tx.ExecContext(ctx, r.db.Rebind(`UPDATE reliable_messages SET status='PENDING',attempts=0,next_attempt_at=?,last_error='' WHERE organization_id=? AND topic=? AND status IN ('PENDING','DEAD')`), time.Now().UTC(), orgID, "velora.provisioning."+code)
+		if err != nil {
+			return err
+		}
+		retried, _ = result.RowsAffected()
+		_, err = tx.ExecContext(ctx, r.db.Rebind(`UPDATE portal_application_provisioning_targets SET delivery_status='PENDING',updated_at=? WHERE organization_id=? AND application_id=?`), time.Now().UTC(), orgID, applicationID)
+		return err
+	})
+	if err != nil {
+		return 0, portaldomain.ProvisioningTarget{}, err
+	}
+	target, err := r.GetProvisioningTarget(ctx, orgID, applicationID)
+	return int(retried), target, err
+}
+
 func (r *PortalRepo) UpsertProvisioningTarget(ctx context.Context, target portaldomain.ProvisioningTarget, expectedVersion int64) (portaldomain.ProvisioningTarget, error) {
 	now := time.Now().UTC()
 	existing, err := r.GetProvisioningTarget(ctx, target.OrganizationID, target.ApplicationID)

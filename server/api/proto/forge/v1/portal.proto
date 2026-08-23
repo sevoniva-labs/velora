@@ -125,6 +125,10 @@ service PortalService {
     option (google.api.http) = {put: "/api/v1/admin/portal/applications/{application_id}/provisioning-target" body: "*"};
     option (openapi.v3.operation) = {security: [{additional_properties: [{name: "SessionCookie" value: {value: []}}, {name: "CsrfToken" value: {value: []}}]}, {additional_properties: [{name: "BearerAuth" value: {value: []}}]}]};
   }
+  rpc RetryPortalApplicationProvisioning(RetryPortalApplicationProvisioningRequest) returns (RetryPortalApplicationProvisioningResponse) {
+    option (google.api.http) = {post: "/api/v1/admin/portal/applications/{application_id}/provisioning-target:retry" body: "*"};
+    option (openapi.v3.operation) = {security: [{additional_properties: [{name: "SessionCookie" value: {value: []}}, {name: "CsrfToken" value: {value: []}}]}, {additional_properties: [{name: "BearerAuth" value: {value: []}}]}]};
+  }
   rpc GetIdentityOverview(GetIdentityOverviewRequest) returns (GetIdentityOverviewResponse) {
     option (google.api.http) = {get: "/api/v1/admin/identity/overview"};
     option (openapi.v3.operation) = {security: [{additional_properties: [{name: "SessionCookie" value: {value: []}}]}, {additional_properties: [{name: "BearerAuth" value: {value: []}}]}]};
@@ -292,6 +296,8 @@ message PortalApplicationProvisioningTarget {
   google.protobuf.Timestamp created_at = 14;
   google.protobuf.Timestamp updated_at = 15;
 }
+message RetryPortalApplicationProvisioningRequest { string application_id = 1; }
+message RetryPortalApplicationProvisioningResponse { int32 retried_messages = 1; PortalApplicationProvisioningTarget target = 2; }
 message PortalApplicationOnboardingCheck { string id = 1; string application_id = 2; int64 config_version = 3; string check_type = 4; string result = 5; string error_code = 6; string evidence_json = 7; string request_id = 8; string verified_by = 9; google.protobuf.Timestamp occurred_at = 10; }
 
 message ListPortalApplicationsRequest {

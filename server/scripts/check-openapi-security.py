@@ -80,6 +80,7 @@ CSRF_REQUIRED = {
     ("put", "/api/v1/admin/portal/applications/{application_id}/access-grants"),
     ("put", "/api/v1/admin/portal/applications/{application_id}/roles"),
     ("put", "/api/v1/admin/portal/applications/{application_id}/provisioning-target"),
+    ("post", "/api/v1/admin/portal/applications/{application_id}/provisioning-target:retry"),
     ("post", "/api/v1/admin/portal/applications/{application_id}/credential-approval"),
     ("put", "/api/v1/admin/portal/applications/{application_id}/identity-binding"),
     ("post", "/api/v1/admin/portal/applications/{application_id}/verify"),

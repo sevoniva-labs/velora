@@ -51,6 +51,7 @@ const OperationPortalServiceRemovePortalFavorite = "/forge.v1.PortalService/Remo
 const OperationPortalServiceReplacePortalApplicationAccessGrants = "/forge.v1.PortalService/ReplacePortalApplicationAccessGrants"
 const OperationPortalServiceReplacePortalApplicationPolicies = "/forge.v1.PortalService/ReplacePortalApplicationPolicies"
 const OperationPortalServiceReplacePortalApplicationRoles = "/forge.v1.PortalService/ReplacePortalApplicationRoles"
+const OperationPortalServiceRetryPortalApplicationProvisioning = "/forge.v1.PortalService/RetryPortalApplicationProvisioning"
 const OperationPortalServiceRunApplicationOnboardingChecks = "/forge.v1.PortalService/RunApplicationOnboardingChecks"
 const OperationPortalServiceSubmitApplicationPublish = "/forge.v1.PortalService/SubmitApplicationPublish"
 const OperationPortalServiceUpdatePortalApplication = "/forge.v1.PortalService/UpdatePortalApplication"
@@ -93,6 +94,7 @@ type PortalServiceHTTPServer interface {
 	ReplacePortalApplicationAccessGrants(context.Context, *ReplacePortalApplicationAccessGrantsRequest) (*ReplacePortalApplicationAccessGrantsResponse, error)
 	ReplacePortalApplicationPolicies(context.Context, *ReplacePortalApplicationPoliciesRequest) (*ReplacePortalApplicationPoliciesResponse, error)
 	ReplacePortalApplicationRoles(context.Context, *ReplacePortalApplicationRolesRequest) (*ReplacePortalApplicationRolesResponse, error)
+	RetryPortalApplicationProvisioning(context.Context, *RetryPortalApplicationProvisioningRequest) (*RetryPortalApplicationProvisioningResponse, error)
 	RunApplicationOnboardingChecks(context.Context, *RunApplicationOnboardingChecksRequest) (*RunApplicationOnboardingChecksResponse, error)
 	SubmitApplicationPublish(context.Context, *SubmitApplicationPublishRequest) (*SubmitApplicationPublishResponse, error)
 	UpdatePortalApplication(context.Context, *UpdatePortalApplicationRequest) (*UpdatePortalApplicationResponse, error)
@@ -134,6 +136,7 @@ func RegisterPortalServiceHTTPServer(s *http.Server, srv PortalServiceHTTPServer
 	r.PUT("/api/v1/admin/portal/applications/{application_id}/roles", _PortalService_ReplacePortalApplicationRoles0_HTTP_Handler(srv))
 	r.GET("/api/v1/admin/portal/applications/{application_id}/provisioning-target", _PortalService_GetPortalApplicationProvisioningTarget0_HTTP_Handler(srv))
 	r.PUT("/api/v1/admin/portal/applications/{application_id}/provisioning-target", _PortalService_UpsertPortalApplicationProvisioningTarget0_HTTP_Handler(srv))
+	r.POST("/api/v1/admin/portal/applications/{application_id}/provisioning-target:retry", _PortalService_RetryPortalApplicationProvisioning0_HTTP_Handler(srv))
 	r.GET("/api/v1/admin/identity/overview", _PortalService_GetIdentityOverview0_HTTP_Handler(srv))
 	r.GET("/api/v1/admin/identity/console-link", _PortalService_GetIdentityConsoleLink0_HTTP_Handler(srv))
 	r.GET("/api/v1/admin/portal/applications/{application_id}/onboarding", _PortalService_GetApplicationOnboarding0_HTTP_Handler(srv))
@@ -794,6 +797,31 @@ func _PortalService_UpsertPortalApplicationProvisioningTarget0_HTTP_Handler(srv 
 	}
 }
 
+func _PortalService_RetryPortalApplicationProvisioning0_HTTP_Handler(srv PortalServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in RetryPortalApplicationProvisioningRequest
+		if err := ctx.Bind(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindVars(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationPortalServiceRetryPortalApplicationProvisioning)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.RetryPortalApplicationProvisioning(ctx, req.(*RetryPortalApplicationProvisioningRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*RetryPortalApplicationProvisioningResponse)
+		return ctx.Result(200, reply)
+	}
+}
+
 func _PortalService_GetIdentityOverview0_HTTP_Handler(srv PortalServiceHTTPServer) func(ctx http.Context) error {
 	return func(ctx http.Context) error {
 		var in GetIdentityOverviewRequest
@@ -1084,6 +1112,7 @@ type PortalServiceHTTPClient interface {
 	ReplacePortalApplicationAccessGrants(ctx context.Context, req *ReplacePortalApplicationAccessGrantsRequest, opts ...http.CallOption) (rsp *ReplacePortalApplicationAccessGrantsResponse, err error)
 	ReplacePortalApplicationPolicies(ctx context.Context, req *ReplacePortalApplicationPoliciesRequest, opts ...http.CallOption) (rsp *ReplacePortalApplicationPoliciesResponse, err error)
 	ReplacePortalApplicationRoles(ctx context.Context, req *ReplacePortalApplicationRolesRequest, opts ...http.CallOption) (rsp *ReplacePortalApplicationRolesResponse, err error)
+	RetryPortalApplicationProvisioning(ctx context.Context, req *RetryPortalApplicationProvisioningRequest, opts ...http.CallOption) (rsp *RetryPortalApplicationProvisioningResponse, err error)
 	RunApplicationOnboardingChecks(ctx context.Context, req *RunApplicationOnboardingChecksRequest, opts ...http.CallOption) (rsp *RunApplicationOnboardingChecksResponse, err error)
 	SubmitApplicationPublish(ctx context.Context, req *SubmitApplicationPublishRequest, opts ...http.CallOption) (rsp *SubmitApplicationPublishResponse, err error)
 	UpdatePortalApplication(ctx context.Context, req *UpdatePortalApplicationRequest, opts ...http.CallOption) (rsp *UpdatePortalApplicationResponse, err error)
@@ -1512,6 +1541,19 @@ func (c *PortalServiceHTTPClientImpl) ReplacePortalApplicationRoles(ctx context.
 	opts = append(opts, http.Operation(OperationPortalServiceReplacePortalApplicationRoles))
 	opts = append(opts, http.PathTemplate(pattern))
 	err := c.cc.Invoke(ctx, "PUT", path, in, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+func (c *PortalServiceHTTPClientImpl) RetryPortalApplicationProvisioning(ctx context.Context, in *RetryPortalApplicationProvisioningRequest, opts ...http.CallOption) (*RetryPortalApplicationProvisioningResponse, error) {
+	var out RetryPortalApplicationProvisioningResponse
+	pattern := "/api/v1/admin/portal/applications/{application_id}/provisioning-target:retry"
+	path := binding.EncodeURL(pattern, in, false)
+	opts = append(opts, http.Operation(OperationPortalServiceRetryPortalApplicationProvisioning))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "POST", path, in, &out, opts...)
 	if err != nil {
 		return nil, err
 	}

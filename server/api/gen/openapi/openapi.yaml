@@ -1059,6 +1059,34 @@ paths:
                 - SessionCookie: []
                   CsrfToken: []
                 - BearerAuth: []
+    /api/v1/admin/portal/applications/{applicationId}/provisioning-target:retry:
+        post:
+            tags:
+                - PortalService
+            operationId: PortalService_RetryPortalApplicationProvisioning
+            parameters:
+                - name: applicationId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/forge.v1.RetryPortalApplicationProvisioningRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/forge.v1.RetryPortalApplicationProvisioningResponse'
+            security:
+                - SessionCookie: []
+                  CsrfToken: []
+                - BearerAuth: []
     /api/v1/admin/portal/applications/{applicationId}/publish:
         post:
             tags:
@@ -4789,6 +4817,19 @@ components:
         forge.v1.ResetUserPasswordResponse:
             type: object
             properties: {}
+        forge.v1.RetryPortalApplicationProvisioningRequest:
+            type: object
+            properties:
+                applicationId:
+                    type: string
+        forge.v1.RetryPortalApplicationProvisioningResponse:
+            type: object
+            properties:
+                retriedMessages:
+                    type: integer
+                    format: int32
+                target:
+                    $ref: '#/components/schemas/forge.v1.PortalApplicationProvisioningTarget'
         forge.v1.RevokeApiTokenResponse:
             type: object
             properties: {}

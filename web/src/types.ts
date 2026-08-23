@@ -95,6 +95,20 @@ export interface PlatformPermission {
   action: string
 }
 
+export interface SecurityPolicy {
+  passwordMinLength: number
+  passwordRequireUpper: boolean
+  passwordRequireLower: boolean
+  passwordRequireDigit: boolean
+  passwordRequireSymbol: boolean
+  passwordHistory: number
+  passwordMaxAgeDays: number
+  loginMaxFailures: number
+  loginLockDurationSeconds: number
+  sessionTtlSeconds: number
+  maxActiveSessions: number
+}
+
 export interface AdminSession {
   id: string
   userId: string

@@ -720,6 +720,26 @@ func (s *PortalService) UpsertPortalApplicationProvisioningTarget(ctx context.Co
 	return reply, nil
 }
 
+func (s *PortalService) RetryPortalApplicationProvisioning(ctx context.Context, req *forgev1.RetryPortalApplicationProvisioningRequest) (*forgev1.RetryPortalApplicationProvisioningResponse, error) {
+	principal, err := requiredPrincipal(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var retried int
+	var target portaldomain.ProvisioningTarget
+	event := newAuditEvent(ctx, principal, "portal.application.provisioning.retry", "portal_application", req.GetApplicationId(), nil)
+	err = s.audited(ctx, event, func(txCtx context.Context) error {
+		var retryErr error
+		retried, target, retryErr = s.portal.RetryProvisioning(txCtx, principal, req.GetApplicationId())
+		event.Details = map[string]any{"retried_messages": retried}
+		return retryErr
+	})
+	if err != nil {
+		return nil, serviceError(err)
+	}
+	return &forgev1.RetryPortalApplicationProvisioningResponse{RetriedMessages: int32(retried), Target: provisioningTargetProto(target)}, nil // #nosec G115 -- retry count is bounded by application outbox volume.
+}
+
 func (s *PortalService) GetIdentityOverview(ctx context.Context, _ *forgev1.GetIdentityOverviewRequest) (*forgev1.GetIdentityOverviewResponse, error) {
 	principal, err := requiredPrincipal(ctx)
 	if err != nil {

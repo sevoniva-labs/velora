@@ -47,6 +47,13 @@ func (s *Service) ConfigureProvisioningCipher(cipher *appcrypto.EnvelopeCipher) 
 	s.provisioningCipher = cipher
 }
 
+func (s *Service) RetryProvisioning(ctx context.Context, principal domain.Principal, applicationID string) (int, portaldomain.ProvisioningTarget, error) {
+	if strings.TrimSpace(applicationID) == "" {
+		return 0, portaldomain.ProvisioningTarget{}, ErrInvalid
+	}
+	return s.repo.RetryProvisioning(ctx, principal.OrganizationID, applicationID)
+}
+
 func (s *Service) RecomputeOrganizationAccess(ctx context.Context, principal domain.Principal) error {
 	if strings.TrimSpace(principal.OrganizationID) == "" || strings.TrimSpace(principal.UserID) == "" {
 		return ErrAccessDenied

@@ -400,6 +400,10 @@ export async function adminUpsertApplicationProvisioningTarget(id: string | numb
   const data = record(await apiFetch<unknown>(`/admin/portal/applications/${encodeURIComponent(String(id))}/provisioning-target`, { method: 'PUT', body: input }))
   return { target: mapApplicationProvisioningTarget(data.target), oneTimeProvisioningSecret: data.oneTimeProvisioningSecret ? String(data.oneTimeProvisioningSecret) : undefined }
 }
+export async function adminRetryApplicationProvisioning(id: string | number): Promise<{ target: ApplicationProvisioningTarget; retriedMessages: number }> {
+  const data = record(await apiFetch<unknown>(`/admin/portal/applications/${encodeURIComponent(String(id))}/provisioning-target:retry`, { method: 'POST', body: {} }))
+  return { target: mapApplicationProvisioningTarget(data.target), retriedMessages: Number(data.retriedMessages ?? 0) }
+}
 
 export interface IdentityOverview { onboardingEnabled: boolean; adminEntryEnabled: boolean; providerKey: string; adminUrlHost: string; issuer: string; connectionStatus: string; pendingApplicationCount: number; automationEnabled: boolean }
 export interface OnboardingCheck { id: string; applicationId: string; configVersion: number; checkType: string; result: string; errorCode: string; evidenceJson: string; requestId: string; verifiedBy: string; occurredAt: string }

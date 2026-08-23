@@ -49,8 +49,9 @@ export const adminNavItems: AdminNavItem[] = [
     ],
   },
   {
-    key: 'admin-security', label: '安全与审计', icon: <SafetyCertificateOutlined />, permissions: [AUDIT_READ, API_TOKEN_MANAGE, SYSTEM_SESSION_READ],
+    key: 'admin-security', label: '安全与审计', icon: <SafetyCertificateOutlined />, permissions: [AUDIT_READ, API_TOKEN_MANAGE, SYSTEM_SESSION_READ, SYSTEM_CONFIG_READ],
     children: [
+      { key: 'admin-login-security', path: '/admin/login-security', label: '登录安全', permissions: [SYSTEM_CONFIG_READ], icon: <SafetyCertificateOutlined /> },
       { key: 'admin-integration-tokens', path: '/admin/integration-tokens', label: '服务账号', permissions: [API_TOKEN_MANAGE], icon: <ApiOutlined /> },
       { key: 'admin-sessions', path: '/admin/sessions', label: '在线会话', permissions: [SYSTEM_SESSION_READ], icon: <LockOutlined /> },
       { key: 'admin-audit', path: '/admin/audit', label: '操作审计', permissions: [AUDIT_READ], icon: <AuditOutlined /> },
@@ -70,6 +71,7 @@ export function adminActiveKey(pathname: string): string {
   if (pathname.startsWith('/admin/approvals')) return 'admin-approvals'
   if (pathname.startsWith('/admin/temporary-grants')) return 'admin-temporary-grants'
   if (pathname.startsWith('/admin/access-reviews')) return 'admin-access-reviews'
+  if (pathname.startsWith('/admin/login-security')) return 'admin-login-security'
   if (pathname.startsWith('/admin/sessions')) return 'admin-sessions'
   if (pathname.startsWith('/admin/applications')) return 'admin-apps'
   if (pathname.startsWith('/admin/audit')) return 'admin-audit'

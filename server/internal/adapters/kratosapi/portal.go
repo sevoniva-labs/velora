@@ -505,32 +505,10 @@ func (s *PortalService) DeletePortalTag(ctx context.Context, req *forgev1.Delete
 }
 
 func (s *PortalService) ReplacePortalApplicationPolicies(ctx context.Context, req *forgev1.ReplacePortalApplicationPoliciesRequest) (*forgev1.ReplacePortalApplicationPoliciesResponse, error) {
-	principal, err := requiredPrincipal(ctx)
-	if err != nil {
+	if _, err := requiredPrincipal(ctx); err != nil {
 		return nil, err
 	}
-	response, err := s.idempotent(ctx, principal, "portal.policy.replace", req, func() proto.Message { return &forgev1.ReplacePortalApplicationPoliciesResponse{} }, func() (proto.Message, error) {
-		policies := make([]portaldomain.AccessPolicy, 0, len(req.GetPolicies()))
-		for _, item := range req.GetPolicies() {
-			if item != nil {
-				policies = append(policies, portaldomain.AccessPolicy{Type: item.GetPolicyType(), Value: item.GetValue()})
-			}
-		}
-		var out []portaldomain.AccessPolicy
-		event := newAuditEvent(ctx, principal, "portal.policy.replace", "portal_application", req.GetApplicationId(), map[string]any{"policy_count": len(policies)})
-		if err := s.audited(ctx, event, func(txCtx context.Context) error {
-			var replaceErr error
-			out, replaceErr = s.portal.ReplacePolicies(txCtx, principal, req.GetApplicationId(), policies)
-			return replaceErr
-		}); err != nil {
-			return nil, serviceError(err)
-		}
-		return &forgev1.ReplacePortalApplicationPoliciesResponse{Policies: portalPoliciesProto(out)}, nil
-	})
-	if err != nil {
-		return nil, err
-	}
-	return response.(*forgev1.ReplacePortalApplicationPoliciesResponse), nil
+	return nil, kratoserrors.BadRequest("LEGACY_POLICY_MUTATION_DISABLED", "portal policies are read-only; manage application access grants instead")
 }
 
 func (s *PortalService) ListPortalApplicationAccessGrants(ctx context.Context, req *forgev1.ListPortalApplicationAccessGrantsRequest) (*forgev1.ListPortalApplicationAccessGrantsResponse, error) {

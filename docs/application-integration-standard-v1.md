@@ -1,6 +1,6 @@
 # Velora 应用接入规范 V1
 
-状态：唯一权威规范（2026-08-23）
+状态：唯一权威规范（2026-08-24，Spectra 与 Reference App 生产验证通过）
 排障：[application-integration-troubleshooting.md](./application-integration-troubleshooting.md)
 
 ## 1. 产品边界
@@ -21,6 +21,8 @@ Velora 不自建 OIDC Provider，不修改 Casdoor，不向下游发送密码、
 6. 在应用服务器用 `velora-connect` 领取并部署，运行全部自动检查后试运行、发布。
 
 状态以服务端 `status / next_action / blockers` 为准：`DRAFT → APPROVAL_PENDING → CREDENTIALS_ISSUED → WAITING_FOR_DEPLOYMENT → VERIFIED → PILOT → PUBLISHED`；异常为 `ACTION_REQUIRED / DEGRADED / SUSPENDED`。
+
+凭据申请、审批和执行属于高风险操作，必须使用交互式会话和近期 MFA；API Token 不能代替人员审批。执行中断或 Token 过期时重新签发会轮换 Client Secret，旧值立即退出使用。提交发布对已处于 `READY` 的同版本配置幂等，不会使刚通过的版本化检查失效。
 
 ## 3. 安全领取
 
@@ -51,6 +53,8 @@ identity, err := client.Exchange(ctx, code, authorization.Nonce, authorization.P
 
 SDK 校验 Discovery/JWKS、Issuer、Audience、Expiry、Nonce 和 PKCE；应用负责将 State 绑定浏览器会话、恒定时间比较并单次删除。默认登录跳 Velora；`/normal-login` 仅作受控 break-glass。
 
+浏览器可能先请求公网身份域名的标准授权端点，但未建立企业会话时，身份网关必须立即 302 到 `https://home.sevoniva.com/login?app=<code>...`；页面、文案和普通导航不得出现 Casdoor。目标应用不得把 Casdoor 管理地址或内部容器地址返回浏览器。
+
 ## 5. 账号同步契约
 
 ```text
@@ -80,6 +84,8 @@ mux.Handle("/api/v1/integrations/velora/provisioning", handler)
 发布顺序：备份与配置摘要 → additive migration → Server/Web/Worker → 目标应用 → 自动检查 → 试运行 → 人工登录/退出 → 发布。监控 Reliable Message 积压/失败、Target `DEGRADED`、签名/时钟、OIDC、审批和 Enrollment；日志不得含 Secret/Token/Cookie/授权码。
 
 回滚先暂停入口和新下发，再恢复上一镜像；事故窗口不删除 additive 表列。已签发 Secret 不随镜像回滚，必须轮换；Casdoor 自动化失败时保留既有 Client。
+
+当前生产证据见 [application-onboarding-production-evidence-2026-08-24.md](./application-onboarding-production-evidence-2026-08-24.md)。
 
 ## 8. 验收记录
 

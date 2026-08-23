@@ -6,8 +6,9 @@ import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useState, type KeyboardEvent } from 'react'
 import { useMe } from '../auth/useMe'
 import { canAccessAdmin } from '../auth/permissions'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { logout, getPortalSettings, queryKeys } from '../api/api'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { logout } from '../api/api'
+import { portalConfig } from '../config/portal'
 
 export interface PortalLayoutProps {
   children: ReactNode
@@ -26,11 +27,7 @@ export function PortalLayout({ children }: PortalLayoutProps) {
   const { message } = AntdApp.useApp()
   const me = useMe()
 
-  // 门户展示配置：名称 / 欢迎语（未配置时用默认值）。
-  const { data: settings } = useQuery({ queryKey: queryKeys.portalSettings, queryFn: getPortalSettings })
-  const valueOf = (key: string) => settings?.find((s) => s.key === key)?.value ?? ''
-  const portalName = valueOf('portal_name') || 'Velora'
-  const portalWelcome = valueOf('portal_welcome') || '企业应用门户'
+  const { name: portalName, welcome: portalWelcome } = portalConfig
 
   const isAdmin = canAccessAdmin(me.data?.permissions, me.data?.roles)
   const displayName = me.data?.displayName || me.data?.username || '用户'

@@ -3,11 +3,12 @@ import { ProLayout, type MenuDataItem } from '@ant-design/pro-components'
 import { Avatar, Button, Dropdown } from 'antd'
 import { HomeOutlined, LogoutOutlined, UserOutlined } from '@ant-design/icons'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { getPortalSettings, logout, queryKeys } from '../api/api'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { logout } from '../api/api'
 import { useMe } from '../auth/useMe'
 import { adminNavItems, type AdminNavItem } from './menu'
 import { hasAnyPermission } from '../auth/permissions'
+import { portalConfig } from '../config/portal'
 
 export interface AdminLayoutProps { children: ReactNode }
 
@@ -34,8 +35,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
   const navigate = useNavigate()
   const me = useMe()
   const queryClient = useQueryClient()
-  const { data: settings } = useQuery({ queryKey: queryKeys.portalSettings, queryFn: getPortalSettings })
-  const portalName = settings?.find((item) => item.key === 'portal_name')?.value || 'Velora'
+  const portalName = portalConfig.name
   const displayName = me.data?.displayName || me.data?.username || '用户'
   const roleLabel = me.data?.roles.map((role) => ROLE_LABELS[role]).find(Boolean) || '管理成员'
   const menuData = useMemo(() => toMenuData(visibleNavigation(adminNavItems, me.data?.permissions ?? [], me.data?.roles ?? [])), [me.data?.permissions, me.data?.roles])

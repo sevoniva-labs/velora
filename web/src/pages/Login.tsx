@@ -13,15 +13,14 @@ import { useQuery } from '@tanstack/react-query'
 import { useMe } from '../auth/useMe'
 import TurnstileWidget from '../components/TurnstileWidget'
 import {
-  getPortalSettings,
   getAuthCapabilities,
   getTurnstileConfig,
   beginOIDCLogin,
   loginWithPassword,
   submitSessionBridge,
-  queryKeys,
 } from '../api/api'
 import type { AuthCapabilities } from '../api/api'
+import { portalConfig } from '../config/portal'
 
 /** 品牌区能力说明：只描述用户能实际使用的功能，不使用宣传式表述。 */
 const FEATURES = [
@@ -65,12 +64,7 @@ export default function Login() {
   })
   const turnstileEnabled = turnstile?.enabled && !!turnstile.siteKey
 
-  // 门户展示配置：名称 / 欢迎语 / 页脚（未登录也可读，后端为公开只读接口）。
-  const { data: settings } = useQuery({ queryKey: queryKeys.portalSettings, queryFn: getPortalSettings, retry: false })
-  const valueOf = (key: string) => settings?.find((s) => s.key === key)?.value ?? ''
-  const portalName = valueOf('portal_name') || 'Velora'
-  const portalWelcome = valueOf('portal_welcome') || '企业应用门户'
-  const portalFooter = valueOf('portal_footer') || ''
+  const { name: portalName, welcome: portalWelcome, footer: portalFooter } = portalConfig
 
   // 未登录访问受保护页面时，携带 redirect 以便登录后跳回。
   const redirect = searchParams.get('redirect')

@@ -16,7 +16,8 @@ import {
 } from '@ant-design/icons'
 import { useNavigate } from 'react-router-dom'
 import { ProCard } from '@ant-design/pro-components'
-import { launchApplication, listApplications, listCategories, listRecent, getPortalSettings, queryKeys } from '../api/api'
+import { launchApplication, listApplications, listCategories, listRecent, queryKeys } from '../api/api'
+import { portalConfig } from '../config/portal'
 import { AppIcon } from '../components/AppCard'
 import TodoCenter from '../components/TodoCenter'
 import QueryErrorState from '../components/QueryErrorState'
@@ -142,9 +143,7 @@ export default function Home() {
     )
   }
 
-  // 公告：取门户设置中的 announcement（多条以 | 分隔），未配置则不展示公告条。
-  const { data: settings } = useQuery({ queryKey: queryKeys.portalSettings, queryFn: getPortalSettings })
-  const noticeText = settings?.find((s) => s.key === 'announcement')?.value
+  const noticeText = portalConfig.announcement
   const notices = noticeText ? noticeText.split('|').map((s) => s.trim()).filter(Boolean) : []
   // 全部公告弹窗
   const [noticeOpen, setNoticeOpen] = useState(false)

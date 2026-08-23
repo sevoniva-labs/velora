@@ -41,6 +41,20 @@ server: make contract
 5. 依次替换 Server、Worker、Web，等待健康检查通过。
 6. 运行公网健康、登录和管理 API 验收，确认后解除写入冻结。
 
+## 门户展示配置
+
+门户名称、欢迎语、页脚、公告和界面缩放属于 Web 发布配置，不伪装成运行时管理 API，也不保存在浏览器本地存储。构建 Web 制品前可设置：
+
+```text
+VITE_PORTAL_NAME
+VITE_PORTAL_WELCOME
+VITE_PORTAL_FOOTER
+VITE_PORTAL_ANNOUNCEMENT
+VITE_UI_SCALE
+```
+
+未设置时使用产品默认值。任何变更都必须生成新的 Web 制品、记录校验值并按正常发布/回滚流程上线。
+
 ## 回滚
 
 1. 停止新的应用授权、账号下发和配置发布。

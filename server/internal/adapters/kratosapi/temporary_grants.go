@@ -43,6 +43,7 @@ func (s *PlatformService) CreateTemporaryRoleGrant(ctx context.Context, req *for
 		grant, createErr = s.identity.CreateTemporaryRoleGrant(txCtx, principal, req.GetUserId(), req.GetRoleKey(), req.GetReason(), req.GetApprovalId(), validFrom, validUntil)
 		if createErr == nil {
 			event.ResourceID = grant.ID
+			createErr = s.recomputeApplicationAccess(txCtx, principal)
 		}
 		return createErr
 	})
@@ -75,7 +76,10 @@ func (s *PlatformService) RevokeTemporaryRoleGrant(ctx context.Context, req *for
 	}
 	event := newAuditEvent(ctx, principal, "temporary_role_grant.revoke", "temporary_role_grant", req.GetGrantId(), map[string]any{"reason": req.GetReason()})
 	err = s.audited(ctx, event, func(txCtx context.Context) error {
-		return s.identity.RevokeTemporaryRoleGrant(txCtx, principal, req.GetGrantId(), req.GetReason())
+		if err := s.identity.RevokeTemporaryRoleGrant(txCtx, principal, req.GetGrantId(), req.GetReason()); err != nil {
+			return err
+		}
+		return s.recomputeApplicationAccess(txCtx, principal)
 	})
 	if err != nil {
 		return nil, serviceError(err)

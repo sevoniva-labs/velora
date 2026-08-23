@@ -313,7 +313,10 @@ func (s *PlatformService) UpdateUserGroupRoles(ctx context.Context, req *forgev1
 	}
 	event := newAuditEvent(ctx, principal, "user_group.roles.update", "user_group", req.GetGroupId(), map[string]any{"roles": req.GetRoles()})
 	err = s.audited(ctx, event, func(txCtx context.Context) error {
-		return s.identity.UpdateUserGroupRoles(txCtx, principal, principal.OrganizationID, req.GetGroupId(), req.GetRoles())
+		if err := s.identity.UpdateUserGroupRoles(txCtx, principal, principal.OrganizationID, req.GetGroupId(), req.GetRoles()); err != nil {
+			return err
+		}
+		return s.recomputeApplicationAccess(txCtx, principal)
 	})
 	if err != nil {
 		return nil, serviceError(err)

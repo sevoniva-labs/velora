@@ -343,7 +343,14 @@ func (r *PortalRepo) accessProfiles(ctx context.Context, orgID string) ([]access
 		return nil, nil, err
 	}
 	for i := range profiles {
-		profiles[i].Roles, err = r.stringColumn(ctx, `SELECT r.role_key FROM roles r JOIN user_roles ur ON ur.role_id=r.id WHERE r.organization_id=? AND ur.user_id=? ORDER BY r.role_key`, orgID, profiles[i].UserID)
+		now := time.Now().UTC()
+		profiles[i].Roles, err = r.stringColumn(ctx, `SELECT role_key FROM (
+			SELECT r.role_key FROM roles r JOIN user_roles ur ON ur.role_id=r.id WHERE r.organization_id=? AND ur.user_id=?
+			UNION
+			SELECT r.role_key FROM roles r JOIN user_group_roles ugr ON ugr.role_id=r.id JOIN user_groups ug ON ug.id=ugr.group_id AND ug.organization_id=r.organization_id AND ug.status='ACTIVE' JOIN user_group_members ugm ON ugm.group_id=ug.id WHERE r.organization_id=? AND ugm.user_id=?
+			UNION
+			SELECT r.role_key FROM roles r JOIN temporary_role_grants trg ON trg.role_id=r.id WHERE trg.organization_id=? AND trg.user_id=? AND trg.revoked_at IS NULL AND trg.valid_from<=? AND trg.valid_until>?
+		) effective_roles ORDER BY role_key`, orgID, profiles[i].UserID, orgID, profiles[i].UserID, orgID, profiles[i].UserID, now, now)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -357,6 +364,36 @@ func (r *PortalRepo) accessProfiles(ctx context.Context, orgID string) ([]access
 		}
 	}
 	return profiles, parents, nil
+}
+
+// RecomputeTimeBoundAccess refreshes organizations whose effective access can
+// change solely because a scheduled grant, temporary role, or assignment has
+// crossed a time boundary. The actor is taken from an existing access rule so
+// entitlement audit foreign keys remain valid.
+func (r *PortalRepo) RecomputeTimeBoundAccess(ctx context.Context, issuer string) (int, error) {
+	rows, err := r.db.QueryContext(ctx, `SELECT organization_id,MIN(created_by) FROM application_access_grants WHERE valid_from IS NOT NULL OR valid_until IS NOT NULL OR organization_id IN (SELECT organization_id FROM temporary_role_grants WHERE revoked_at IS NULL) OR organization_id IN (SELECT organization_id FROM user_assignments WHERE valid_until IS NOT NULL OR valid_from>CURRENT_TIMESTAMP) GROUP BY organization_id ORDER BY organization_id`)
+	if err != nil {
+		return 0, err
+	}
+	type target struct{ organizationID, actorID string }
+	targets := make([]target, 0)
+	for rows.Next() {
+		var item target
+		if err := rows.Scan(&item.organizationID, &item.actorID); err != nil {
+			_ = rows.Close()
+			return 0, err
+		}
+		targets = append(targets, item)
+	}
+	if err := rows.Close(); err != nil {
+		return 0, err
+	}
+	for _, item := range targets {
+		if err := r.RecomputeOrganizationAccess(ctx, item.organizationID, item.actorID, issuer); err != nil {
+			return 0, err
+		}
+	}
+	return len(targets), nil
 }
 
 func (r *PortalRepo) stringColumn(ctx context.Context, query string, args ...any) ([]string, error) {

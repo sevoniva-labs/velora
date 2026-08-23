@@ -9,6 +9,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/sevoniva-labs/velora/server/internal/adapters/repository"
 	"github.com/sevoniva-labs/velora/server/internal/app/audit"
 	"github.com/sevoniva-labs/velora/server/internal/platform/config"
 	"github.com/sevoniva-labs/velora/server/internal/platform/database"
@@ -68,6 +69,9 @@ func run(ctx context.Context) error {
 	defer gc.Stop()
 	auditGC := time.NewTicker(24 * time.Hour)
 	defer auditGC.Stop()
+	accessReconcile := time.NewTicker(time.Minute)
+	defer accessReconcile.Stop()
+	portalRepo := repository.NewPortalRepo(db)
 	runAuditRetention := func() {
 		if cfg.Compliance.AuditRetentionDays <= 0 {
 			return
@@ -92,6 +96,12 @@ func run(ctx context.Context) error {
 			}
 		case <-auditGC.C:
 			runAuditRetention()
+		case <-accessReconcile.C:
+			if n, err := portalRepo.RecomputeTimeBoundAccess(ctx, cfg.Security.OIDCIssuer); err != nil && !errors.Is(err, context.Canceled) {
+				log.Error("time-bound application access reconciliation", "err", err)
+			} else if n > 0 {
+				log.Info("time-bound application access reconciled", "organizations", n)
+			}
 		case <-poll.C:
 			n, err := messages.PublishTopicPrefixBatch(ctx, provisioninghttp.ProvisioningTopicPrefix, 50, provisioning.Publish)
 			if err != nil && !errors.Is(err, context.Canceled) {

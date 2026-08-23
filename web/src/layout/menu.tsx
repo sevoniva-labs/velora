@@ -10,10 +10,11 @@ import {
   LockOutlined,
   SafetyOutlined,
   SafetyCertificateOutlined,
+  SettingOutlined,
   TeamOutlined,
   UsergroupAddOutlined,
 } from '@ant-design/icons'
-import { API_TOKEN_MANAGE, APPROVAL_REQUEST_READ, APPROVAL_TASK_DECIDE, AUDIT_READ, PORTAL_MANAGE, SYSTEM_ACCESS_REVIEW_READ, SYSTEM_DEPARTMENT_READ, SYSTEM_POSITION_READ, SYSTEM_ROLE_READ, SYSTEM_SESSION_READ, SYSTEM_TEMPORARY_GRANT_READ, SYSTEM_USER_GROUP_READ, SYSTEM_USER_READ } from '../auth/permissions'
+import { API_TOKEN_MANAGE, APPROVAL_REQUEST_READ, APPROVAL_TASK_DECIDE, AUDIT_READ, PORTAL_MANAGE, SYSTEM_ACCESS_REVIEW_READ, SYSTEM_CONFIG_READ, SYSTEM_DEPARTMENT_READ, SYSTEM_POSITION_READ, SYSTEM_ROLE_READ, SYSTEM_SESSION_READ, SYSTEM_TEMPORARY_GRANT_READ, SYSTEM_USER_GROUP_READ, SYSTEM_USER_READ } from '../auth/permissions'
 
 export interface AdminNavItem {
   key: string
@@ -55,6 +56,10 @@ export const adminNavItems: AdminNavItem[] = [
       { key: 'admin-audit', path: '/admin/audit', label: '操作审计', permissions: [AUDIT_READ], icon: <AuditOutlined /> },
     ],
   },
+  {
+    key: 'admin-settings', label: '平台设置', icon: <SettingOutlined />, permissions: [SYSTEM_CONFIG_READ],
+    children: [{ key: 'admin-config-changes', path: '/admin/config-changes', label: '配置发布', permissions: [SYSTEM_CONFIG_READ] }],
+  },
 ]
 
 export function adminActiveKey(pathname: string): string {
@@ -69,5 +74,6 @@ export function adminActiveKey(pathname: string): string {
   if (pathname.startsWith('/admin/applications')) return 'admin-apps'
   if (pathname.startsWith('/admin/audit')) return 'admin-audit'
   if (pathname.startsWith('/admin/integration-tokens')) return 'admin-integration-tokens'
+  if (pathname.startsWith('/admin/config-changes')) return 'admin-config-changes'
   return 'admin-overview'
 }

@@ -1,5 +1,5 @@
 import { apiFetch } from './client'
-import type { AccessReview, AccessReviewItem, AdminSession, AdminUser, ApplicationAccessGrant, ApplicationAccessImpact, ApplicationEffectiveAccess, ApprovalRequest, Department, PlatformPermission, PlatformRole, Position, TemporaryRoleGrant, UserAssignment, UserGroup } from '../types'
+import type { AccessReview, AccessReviewItem, AdminSession, AdminUser, ApplicationAccessGrant, ApplicationAccessImpact, ApplicationEffectiveAccess, ApprovalRequest, ConfigChange, Department, PlatformPermission, PlatformRole, Position, TemporaryRoleGrant, UserAssignment, UserGroup } from '../types'
 
 export type DepartmentInput = Pick<Department, 'name' | 'parentId' | 'status' | 'sortOrder'> & { departmentKey?: string }
 export type PositionInput = Pick<Position, 'name' | 'description' | 'departmentId' | 'status' | 'sortOrder'> & { positionKey?: string }
@@ -148,4 +148,17 @@ export async function listAccessReviewItems(reviewId: string): Promise<AccessRev
 
 export function decideAccessReviewItem(reviewId: string, itemId: string, decision: 'APPROVE' | 'REVOKE', reason: string): Promise<unknown> {
   return apiFetch(`/admin/access-reviews/${encodeURIComponent(reviewId)}/items/${encodeURIComponent(itemId)}/decisions`, { method: 'POST', body: { decision, reason } })
+}
+
+export async function listConfigChanges(): Promise<ConfigChange[]> {
+  return (await apiFetch<{ changes?: ConfigChange[] }>('/admin/config-changes')).changes ?? []
+}
+
+export async function createConfigChange(input: Omit<ConfigChange, 'id' | 'createdBy' | 'approvedBy' | 'approvalId' | 'state' | 'updatedAt'>): Promise<ConfigChange> {
+  return (await apiFetch<{ change: ConfigChange }>('/admin/config-changes', { method: 'POST', body: input })).change
+}
+
+export async function transitionConfigChange(id: string, action: 'APPROVE' | 'PUBLISH' | 'REQUEST_ROLLBACK' | 'ROLLBACK', approvalId: string): Promise<ConfigChange> {
+  const path = action === 'APPROVE' ? 'approve' : action === 'PUBLISH' ? 'publish' : action === 'REQUEST_ROLLBACK' ? 'rollback-request' : 'rollback'
+  return (await apiFetch<{ change: ConfigChange }>(`/admin/config-changes/${encodeURIComponent(id)}/${path}`, { method: 'POST', body: { approvalId } })).change
 }

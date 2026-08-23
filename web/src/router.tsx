@@ -56,6 +56,7 @@ const AdminSessions = lazyWithReload(() => import('./pages/admin/Sessions'))
 const AdminApprovals = lazyWithReload(() => import('./pages/admin/Approvals'))
 const AdminTemporaryGrants = lazyWithReload(() => import('./pages/admin/TemporaryGrants'))
 const AdminAccessReviews = lazyWithReload(() => import('./pages/admin/AccessReviews'))
+const AdminConfigChanges = lazyWithReload(() => import('./pages/admin/ConfigChanges'))
 
 export const router = createBrowserRouter([
   {
@@ -113,6 +114,7 @@ export const router = createBrowserRouter([
       { path: 'approvals', element: <AdminApprovals /> },
       { path: 'temporary-grants', element: <AdminTemporaryGrants /> },
       { path: 'access-reviews', element: <AdminAccessReviews /> },
+      { path: 'config-changes', element: <AdminConfigChanges /> },
       { path: '*', element: <NotFound /> },
     ],
   },

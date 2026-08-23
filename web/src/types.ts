@@ -211,6 +211,23 @@ export interface AccessReviewItem {
   decidedAt?: string
 }
 
+export interface ConfigChange {
+  id: string
+  namespace: string
+  group: string
+  dataId: string
+  version: number
+  expectedPreviousVersion: number
+  valueDigest: string
+  valueRef: string
+  sensitive: boolean
+  createdBy: string
+  approvedBy: string
+  approvalId: string
+  state: string
+  updatedAt: string
+}
+
 export interface Category {
   id: string | number
   code: string

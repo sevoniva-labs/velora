@@ -34,6 +34,8 @@ export const SYSTEM_ACCESS_REVIEW_MANAGE = 'system.access_review.manage'
 export const APPROVAL_REQUEST_READ = 'approval.request.read'
 export const APPROVAL_REQUEST_CREATE = 'approval.request.create'
 export const APPROVAL_TASK_DECIDE = 'approval.task.decide'
+export const SYSTEM_CONFIG_READ = 'system.config.read'
+export const SYSTEM_CONFIG_MANAGE = 'system.config.manage'
 
 /** Built-in system_admin has an explicit backend superuser boundary. */
 export function hasPermission(permissions: string[] | undefined, required: string, roles: string[] = []): boolean {
@@ -69,6 +71,7 @@ export const ADMIN_ENTRY_PERMISSIONS = [
   SYSTEM_ACCESS_REVIEW_READ,
   APPROVAL_REQUEST_READ,
   APPROVAL_TASK_DECIDE,
+  SYSTEM_CONFIG_READ,
 ]
 
 export function canAccessAdmin(permissions: string[] | undefined, roles: string[] = []): boolean {

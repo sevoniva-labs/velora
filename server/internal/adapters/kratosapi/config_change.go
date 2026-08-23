@@ -103,7 +103,7 @@ func (s *PlatformService) transitionConfigChange(ctx context.Context, id, approv
 	if id == "" || approvalID == "" {
 		return platformconfig.Change{}, kratoserrors.BadRequest("CONFIG_CHANGE_APPROVAL_REQUIRED", "change_id and approval_id are required")
 	}
-	payload, err := json.Marshal(map[string]string{"change_id": id, "approval_id": approvalID, "action": string(action)})
+	payload, err := json.Marshal(map[string]string{"change_id": id, "action": string(action)})
 	if err != nil {
 		return platformconfig.Change{}, internalError(err)
 	}

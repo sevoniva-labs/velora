@@ -73,6 +73,30 @@ func (r *IdentityRepo) ListUserEntitlements(ctx context.Context, userID string) 
 	return out, rows.Err()
 }
 
+// ApplicationRoleCatalog returns the active, certified role keys for one
+// application. The catalog is data-driven so adding an application never
+// requires another identity-service deployment.
+func (r *IdentityRepo) ApplicationRoleCatalog(ctx context.Context, organizationID, applicationCode string) ([]string, error) {
+	rows, err := r.db.QueryContext(ctx, r.db.Rebind(`SELECT ar.role_key
+		FROM portal_application_roles ar
+		JOIN portal_applications a ON a.id=ar.application_id AND a.organization_id=ar.organization_id
+		WHERE ar.organization_id=? AND a.code=? AND ar.status='ACTIVE'
+		ORDER BY ar.role_key`), organizationID, strings.ToLower(strings.TrimSpace(applicationCode)))
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = rows.Close() }()
+	roles := make([]string, 0)
+	for rows.Next() {
+		var role string
+		if err := rows.Scan(&role); err != nil {
+			return nil, err
+		}
+		roles = append(roles, role)
+	}
+	return roles, rows.Err()
+}
+
 type EntitlementEvent struct {
 	SchemaVersion    string    `json:"schema_version"`
 	EventID          string    `json:"event_id"`

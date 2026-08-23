@@ -1018,10 +1018,16 @@ func (s *Service) UpdateUserEntitlement(ctx context.Context, actor domain.Princi
 	if status != "ACTIVE" && status != "DISABLED" {
 		return domain.User{}, errors.New("invalid entitlement status")
 	}
-	allowed := map[string]map[string]struct{}{"spectra": {"system_admin": {}, "security_admin": {}, "project_admin": {}, "developer": {}, "auditor": {}, "ci_service": {}}}
-	roleSet, ok := allowed[applicationCode]
-	if !ok {
+	roleKeys, err := s.repo.ApplicationRoleCatalog(ctx, actor.OrganizationID, applicationCode)
+	if err != nil {
+		return domain.User{}, err
+	}
+	if len(roleKeys) == 0 {
 		return domain.User{}, errors.New("application has no certified provisioning role catalog")
+	}
+	roleSet := make(map[string]struct{}, len(roleKeys))
+	for _, role := range roleKeys {
+		roleSet[role] = struct{}{}
 	}
 	clean, seen := make([]string, 0, len(roles)), map[string]struct{}{}
 	if status == "DISABLED" {

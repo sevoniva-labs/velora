@@ -37,6 +37,7 @@ import (
 type PlatformService struct {
 	forgev1.UnimplementedPlatformServiceServer
 	identity     *appidentity.Service
+	portal       *appportal.Service
 	approval     *appapproval.Service
 	configChange *appconfigchange.Service
 	dataPolicy   *appdatapolicy.Service
@@ -44,8 +45,15 @@ type PlatformService struct {
 	db           *database.DB
 }
 
-func NewPlatformService(identity *appidentity.Service, approval *appapproval.Service, configChange *appconfigchange.Service, dataPolicy *appdatapolicy.Service, auditWriter *audit.Writer, db *database.DB) *PlatformService {
-	return &PlatformService{identity: identity, approval: approval, configChange: configChange, dataPolicy: dataPolicy, audit: auditWriter, db: db}
+func NewPlatformService(identity *appidentity.Service, portal *appportal.Service, approval *appapproval.Service, configChange *appconfigchange.Service, dataPolicy *appdatapolicy.Service, auditWriter *audit.Writer, db *database.DB) *PlatformService {
+	return &PlatformService{identity: identity, portal: portal, approval: approval, configChange: configChange, dataPolicy: dataPolicy, audit: auditWriter, db: db}
+}
+
+func (s *PlatformService) recomputeApplicationAccess(ctx context.Context, principal domain.Principal) error {
+	if s.portal == nil {
+		return errors.New("application access projection is unavailable")
+	}
+	return s.portal.RecomputeOrganizationAccess(ctx, principal)
 }
 
 func (s *PlatformService) CreateUser(ctx context.Context, req *forgev1.CreateUserRequest) (*forgev1.CreateUserResponse, error) {
@@ -72,6 +80,7 @@ func (s *PlatformService) CreateUser(ctx context.Context, req *forgev1.CreateUse
 		}
 		if createErr == nil {
 			event.ResourceID = created.ID
+			createErr = s.recomputeApplicationAccess(txCtx, principal)
 		}
 		return createErr
 	})
@@ -143,6 +152,9 @@ func (s *PlatformService) UpdateDepartment(ctx context.Context, req *forgev1.Upd
 		updated, updateErr = s.identity.UpdateDepartment(txCtx, principal, principal.OrganizationID, req.GetDepartmentId(), domain.Department{
 			ParentID: req.GetParentId(), Name: req.GetName(), Status: req.GetStatus(), SortOrder: sortOrder,
 		})
+		if updateErr == nil {
+			updateErr = s.recomputeApplicationAccess(txCtx, principal)
+		}
 		return updateErr
 	})
 	if err != nil {
@@ -265,6 +277,9 @@ func (s *PlatformService) UpdateUserGroup(ctx context.Context, req *forgev1.Upda
 	err = s.audited(ctx, event, func(txCtx context.Context) error {
 		var updateErr error
 		updated, updateErr = s.identity.UpdateUserGroup(txCtx, principal, principal.OrganizationID, req.GetGroupId(), domain.UserGroup{Name: req.GetName(), Description: req.GetDescription(), Status: req.GetStatus()})
+		if updateErr == nil {
+			updateErr = s.recomputeApplicationAccess(txCtx, principal)
+		}
 		return updateErr
 	})
 	if err != nil {
@@ -280,7 +295,10 @@ func (s *PlatformService) UpdateUserGroupMembers(ctx context.Context, req *forge
 	}
 	event := newAuditEvent(ctx, principal, "user_group.members.update", "user_group", req.GetGroupId(), map[string]any{"member_count": len(req.GetUserIds())})
 	err = s.audited(ctx, event, func(txCtx context.Context) error {
-		return s.identity.UpdateUserGroupMembers(txCtx, principal, principal.OrganizationID, req.GetGroupId(), req.GetUserIds())
+		if err := s.identity.UpdateUserGroupMembers(txCtx, principal, principal.OrganizationID, req.GetGroupId(), req.GetUserIds()); err != nil {
+			return err
+		}
+		return s.recomputeApplicationAccess(txCtx, principal)
 	})
 	if err != nil {
 		return nil, serviceError(err)
@@ -338,7 +356,10 @@ func (s *PlatformService) ReplaceUserAssignments(ctx context.Context, req *forge
 	}
 	event := newAuditEvent(ctx, principal, "user.assignments.replace", "user", req.GetUserId(), map[string]any{"assignment_count": len(assignments)})
 	err = s.audited(ctx, event, func(txCtx context.Context) error {
-		return s.identity.ReplaceUserAssignments(txCtx, principal, principal.OrganizationID, req.GetUserId(), assignments)
+		if err := s.identity.ReplaceUserAssignments(txCtx, principal, principal.OrganizationID, req.GetUserId(), assignments); err != nil {
+			return err
+		}
+		return s.recomputeApplicationAccess(txCtx, principal)
 	})
 	if err != nil {
 		return nil, serviceError(err)
@@ -497,7 +518,10 @@ func (s *PlatformService) UpdateUserRoles(ctx context.Context, req *forgev1.Upda
 		}); executionErr != nil {
 			return executionErr
 		}
-		return s.identity.UpdateUserRoles(txCtx, principal, principal.OrganizationID, req.GetUserId(), roles)
+		if err := s.identity.UpdateUserRoles(txCtx, principal, principal.OrganizationID, req.GetUserId(), roles); err != nil {
+			return err
+		}
+		return s.recomputeApplicationAccess(txCtx, principal)
 	})
 	if err != nil {
 		return nil, serviceError(err)
@@ -512,7 +536,10 @@ func (s *PlatformService) UpdateUserStatus(ctx context.Context, req *forgev1.Upd
 	}
 	event := newAuditEvent(ctx, principal, "user.status.update", "user", req.GetUserId(), map[string]any{"status": req.GetStatus()})
 	err = s.audited(ctx, event, func(txCtx context.Context) error {
-		return s.identity.SetManagedUserStatus(txCtx, principal, req.GetUserId(), req.GetStatus())
+		if err := s.identity.SetManagedUserStatus(txCtx, principal, req.GetUserId(), req.GetStatus()); err != nil {
+			return err
+		}
+		return s.recomputeApplicationAccess(txCtx, principal)
 	})
 	if err != nil {
 		return nil, serviceError(err)

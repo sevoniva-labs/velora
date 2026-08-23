@@ -47,6 +47,13 @@ func (s *Service) ConfigureProvisioningCipher(cipher *appcrypto.EnvelopeCipher) 
 	s.provisioningCipher = cipher
 }
 
+func (s *Service) RecomputeOrganizationAccess(ctx context.Context, principal domain.Principal) error {
+	if strings.TrimSpace(principal.OrganizationID) == "" || strings.TrimSpace(principal.UserID) == "" {
+		return ErrAccessDenied
+	}
+	return s.repo.RecomputeOrganizationAccess(ctx, principal.OrganizationID, principal.UserID, s.allowedOIDCIssuer)
+}
+
 func (s *Service) BeginOnboardingOperation(ctx context.Context, principal domain.Principal, applicationID, operationType string, desiredVersion int64, idempotencyKey string) (portaldomain.OnboardingOperation, error) {
 	return s.repo.BeginOnboardingOperation(ctx, principal.OrganizationID, applicationID, operationType, desiredVersion, idempotencyKey)
 }

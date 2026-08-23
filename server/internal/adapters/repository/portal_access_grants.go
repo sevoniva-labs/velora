@@ -91,7 +91,7 @@ func (r *PortalRepo) PreviewAccessGrants(ctx context.Context, orgID, application
 	preview := AccessImpactPreview{}
 	effective := make([]portaldomain.EffectiveAccess, 0)
 	for _, profile := range profiles {
-		resolved := portaldomain.ResolveAccessGrants(grants, profile.AccessSubjectProfile, parents, now)
+		resolved := resolveProfileAccess(grants, profile, parents, now)
 		before, existed := current[profile.UserID]
 		if resolved.Allowed {
 			preview.EffectiveUsers++
@@ -162,7 +162,7 @@ func (r *PortalRepo) ResolveApplicationAccess(ctx context.Context, orgID, applic
 	}
 	for _, profile := range profiles {
 		if profile.UserID == userID {
-			return portaldomain.ResolveAccessGrants(grants, profile.AccessSubjectProfile, parents, time.Now().UTC()), true, nil
+			return resolveProfileAccess(grants, profile, parents, time.Now().UTC()), true, nil
 		}
 	}
 	return portaldomain.EffectiveAccess{UserID: userID}, true, nil
@@ -278,7 +278,7 @@ func (r *PortalRepo) accessProfiles(ctx context.Context, orgID string) ([]access
 		parents[id] = parent
 	}
 	_ = departmentRows.Close()
-	rows, err := r.db.QueryContext(ctx, r.db.Rebind(`SELECT id,login_name,display_name,email,external_subject,status,provisioning_version FROM users WHERE organization_id=? AND status='ACTIVE' ORDER BY id`), orgID)
+	rows, err := r.db.QueryContext(ctx, r.db.Rebind(`SELECT id,login_name,display_name,email,external_subject,status,provisioning_version FROM users WHERE organization_id=? ORDER BY id`), orgID)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -382,7 +382,7 @@ func (r *PortalRepo) recomputeAccessProjection(ctx context.Context, tx *sql.Tx, 
 	}
 	now := time.Now().UTC()
 	for _, profile := range profiles {
-		resolved := portaldomain.ResolveAccessGrants(grants, profile.AccessSubjectProfile, parents, now)
+		resolved := resolveProfileAccess(grants, profile, parents, now)
 		before, existed := current[profile.UserID]
 		if !resolved.Allowed && !existed {
 			continue
@@ -428,6 +428,48 @@ func (r *PortalRepo) recomputeAccessProjection(ctx context.Context, tx *sql.Tx, 
 		}
 	}
 	return nil
+}
+
+func resolveProfileAccess(grants []portaldomain.AccessGrant, profile accessProfile, parents map[string]string, now time.Time) portaldomain.EffectiveAccess {
+	if profile.Status != portaldomain.StatusActive {
+		return portaldomain.EffectiveAccess{UserID: profile.UserID, LoginName: profile.LoginName, DisplayName: profile.DisplayName}
+	}
+	return portaldomain.ResolveAccessGrants(grants, profile.AccessSubjectProfile, parents, now)
+}
+
+// RecomputeOrganizationAccess refreshes every v2 application projection in one
+// transaction after organization, group, role, assignment, or user-state
+// changes. Entitlement updates and reliable provisioning messages therefore
+// commit atomically with the identity change that caused them.
+func (r *PortalRepo) RecomputeOrganizationAccess(ctx context.Context, orgID, actorID, issuer string) error {
+	return r.db.WithTx(ctx, func(tx *sql.Tx) error {
+		rows, err := tx.QueryContext(ctx, r.db.Rebind(`SELECT DISTINCT application_id FROM application_access_grants WHERE organization_id=? ORDER BY application_id`), orgID)
+		if err != nil {
+			return err
+		}
+		var applicationIDs []string
+		for rows.Next() {
+			var applicationID string
+			if err := rows.Scan(&applicationID); err != nil {
+				_ = rows.Close()
+				return err
+			}
+			applicationIDs = append(applicationIDs, applicationID)
+		}
+		if err := rows.Close(); err != nil {
+			return err
+		}
+		for _, applicationID := range applicationIDs {
+			grants, err := r.ListAccessGrants(ctx, orgID, applicationID)
+			if err != nil {
+				return err
+			}
+			if err := r.recomputeAccessProjection(ctx, tx, orgID, actorID, applicationID, issuer, grants); err != nil {
+				return err
+			}
+		}
+		return nil
+	})
 }
 
 func (r *PortalRepo) accessSubjectName(ctx context.Context, orgID string, grant portaldomain.AccessGrant) string {

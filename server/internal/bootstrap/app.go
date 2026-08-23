@@ -260,7 +260,7 @@ func New(ctx context.Context, opts Options) (*App, error) {
 		"discovery": reg.Provider(), "remote_config": cfg.RemoteConfig.Provider,
 	}
 	systemService := kratosapi.NewSystemService(cfg, opts.Version, checks, providers)
-	platformService := kratosapi.NewPlatformService(identitySvc, approvalSvc, configChangeSvc, dataPolicySvc, auditWriter, db)
+	platformService := kratosapi.NewPlatformService(identitySvc, portalSvc, approvalSvc, configChangeSvc, dataPolicySvc, auditWriter, db)
 	portalService := kratosapi.NewPortalService(portalSvc, auditWriter, db)
 	portalService.ConfigureIdempotency(idempotency.New(db))
 	if c.Provider() != "disabled" {

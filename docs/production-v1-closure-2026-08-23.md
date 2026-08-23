@@ -2,7 +2,7 @@
 
 状态：生产已部署，真实凭据浏览器验收待操作确认  
 记录时间：2026-08-23（Asia/Shanghai）  
-Velora：`05f12164f`（`main`）  
+Velora：`69f2ff51a`（`main`）
 Spectra：`c5e3c40`（`main`）
 
 ## 1. 产品边界
@@ -42,15 +42,17 @@ Spectra 已部署 `c5e3c40`，实现默认 SSO、`/normal-login`、安全站内�
 |---|---|
 | Velora `make verify` | PASS：test、race、vet、前端测试/lint/build、SAST/SCA、secret scan、供应链证据 |
 | 生产 Compose 静态检查 | PASS：只发布 Edge 80/443，无默认凭据，身份域默认拒绝 |
-| 线上 commit | Velora `05f12164f`；Spectra `c5e3c40` |
+| 线上 commit | Velora `69f2ff51a`；Spectra `0d44986`（后两者相对运行制品仅含文档/运维脚本） |
 | 线上健康 | Velora 8 个容器 running/healthy；健康证据 `status=passed`；Spectra API/worker running，公网 health 通过 |
 | OIDC 入口 | PASS：Spectra `/login` → Velora，携带应用上下文、state、nonce、PKCE S256 和浏览器绑定 nonce |
 | 证书续期 | PASS：三域正式签发、Nginx 校验/热加载、三域 staging renewal 成功 |
+| 标准审计归档 | PASS：50 条审计事件已加密、签名并上传 COS；包清单、CSV 清单、签名和解密恢复抽检全部通过；证据 `audit-archive-restore-20260822T235819Z.json` |
 | 真实账号浏览器登录/退出 | PENDING：等待获准输入生产凭据并完成 Turnstile 后补录结果 |
 
 ## 5. 回滚点
 
 - Velora 发布前回滚：`/opt/velora/prod/releases/20260822T231154Z-before-960982d`；nonce 增量回滚：`/opt/velora/prod/releases/20260822T232933Z-before-05f1216`。
+- 审计归档增量回滚：`/opt/velora/prod/releases/20260822T235919Z-before-69f2ff5`；停用 `velora-audit-archive.timer` 并恢复该点源码即可，归档对象与在线审计数据均不删除。
 - Spectra SSO 回滚：`/home/ubuntu/spectra-deploy/backup-20260823T0655Z-sso`；SecretStore 增量回滚：`/home/ubuntu/spectra-deploy/backup-20260822T232706Z-master-key`。
 - 回滚优先恢复上一制品、Compose 和环境文件并按服务重建；保留 additive migration、账号、事件和审计数据。仅在数据损坏时按恢复手册使用加密备份，禁止普通回滚覆盖生产数据库。
 

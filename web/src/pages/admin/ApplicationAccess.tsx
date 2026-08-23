@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
 import { App, Button, Modal, Popconfirm, Select, Space, Statistic, Tag, Typography } from 'antd'
 import { DeleteOutlined, EditOutlined, PlusOutlined } from '@ant-design/icons'
-import { EditableProTable, ModalForm, ProCard, ProFormCheckbox, ProFormSelect, ProFormText, ProTable, type ProColumns } from '@ant-design/pro-components'
+import { EditableProTable, ModalForm, ProCard, ProFormCheckbox, ProFormDateTimePicker, ProFormSelect, ProFormText, ProTable, type ProColumns } from '@ant-design/pro-components'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import dayjs from 'dayjs'
 import { adminListApplicationRoles, adminListUsers, adminReplaceApplicationRoles, type ApplicationRole } from '../../api/api'
 import { createApproval, listApprovals, listApplicationAccessGrants, listApplicationEffectiveAccess, listDepartments, listPlatformRoles, listUserGroups, previewApplicationAccessGrants, replaceApplicationAccessGrants } from '../../api/admin-platform'
 import type { ApplicationAccessGrant, ApplicationAccessImpact, ApplicationEffectiveAccess, ApprovalRequest } from '../../types'
@@ -58,7 +59,7 @@ export default function ApplicationAccess({ applicationId }: Props) {
 
   const saveGrant = (values: ApplicationAccessGrant) => {
     const name = values.subjectType === 'EVERYONE' ? '全体成员' : subjectOptions.find((item) => item.value === values.subjectId)?.label ?? editing?.subjectName ?? ''
-    const item = { ...values, id: editing?.id || crypto.randomUUID(), applicationId, subjectId: values.subjectType === 'EVERYONE' ? '' : values.subjectId, subjectName: name, includeDescendants: values.subjectType === 'DEPARTMENT' && Boolean(values.includeDescendants), roles: values.effect === 'EXCLUDE' ? [] : values.roles ?? [], status: values.status || 'ACTIVE', reason: values.reason || '', version: editing?.version ?? 0 }
+    const item = { ...values, id: editing?.id || crypto.randomUUID(), applicationId, subjectId: values.subjectType === 'EVERYONE' ? '' : values.subjectId, subjectName: name, includeDescendants: values.subjectType === 'DEPARTMENT' && Boolean(values.includeDescendants), roles: values.effect === 'EXCLUDE' ? [] : values.roles ?? [], validFrom: normalizeTimestamp(values.validFrom), validUntil: normalizeTimestamp(values.validUntil), status: values.status || 'ACTIVE', reason: values.reason || '', version: editing?.version ?? 0 }
     setDrafts((current) => editing ? current.map((row) => row.id === editing.id ? item : row) : [...current, item])
     setDirty(true)
     setGrantOpen(false)
@@ -92,12 +93,14 @@ export default function ApplicationAccess({ applicationId }: Props) {
     {approvedChanges.length > 0 && <ProTable<ApprovalRequest> headerTitle="待执行变更" rowKey="id" dataSource={approvedChanges} search={false} pagination={false} options={false} columns={[{ title: '事项', dataIndex: 'summary' }, { title: '操作', valueType: 'option', width: 110, render: (_, row) => <Button type="link" loading={saveMutation.isPending} onClick={() => executeApproved(row)}>执行变更</Button> }]} />}
     <ProTable<ApplicationEffectiveAccess> headerTitle="有效权限" rowKey="userId" columns={effectiveColumns} dataSource={effective.data ?? []} loading={effective.isLoading} search={{ labelWidth: 'auto' }} pagination={{ pageSize: 20 }} />
 
-    <ModalForm<ApplicationAccessGrant> key={editing?.id ?? 'new'} title={editing ? '编辑访问规则' : '添加访问规则'} open={grantOpen} onOpenChange={setGrantOpen} width={560} initialValues={editing ?? { subjectType: 'DEPARTMENT', effect: 'ALLOW', roles: [], status: 'ACTIVE', includeDescendants: true }} submitter={{ searchConfig: { submitText: '确定', resetText: '取消' } }} onFinish={async (values) => saveGrant(values)}>
+    <ModalForm<ApplicationAccessGrant> key={editing?.id ?? 'new'} title={editing ? '编辑访问规则' : '添加访问规则'} open={grantOpen} onOpenChange={setGrantOpen} width={560} initialValues={editing ? { ...editing, validFrom: editing.validFrom ? dayjs(editing.validFrom) : undefined, validUntil: editing.validUntil ? dayjs(editing.validUntil) : undefined } : { subjectType: 'DEPARTMENT', effect: 'ALLOW', roles: [], status: 'ACTIVE', includeDescendants: true }} submitter={{ searchConfig: { submitText: '确定', resetText: '取消' } }} onFinish={async (values) => saveGrant(values)}>
       <ProFormSelect name="subjectType" label="访问对象类型" options={Object.entries(SUBJECT_LABELS).map(([value, label]) => ({ value, label }))} fieldProps={{ onChange: (value) => setSubjectType(value as ApplicationAccessGrant['subjectType']) }} rules={[{ required: true }]} />
       {subjectType !== 'EVERYONE' && <ProFormSelect name="subjectId" label="访问对象" showSearch fieldProps={{ optionFilterProp: 'label' }} options={subjectOptions} rules={[{ required: true, message: '请选择访问对象' }]} />}
       {subjectType === 'DEPARTMENT' && <ProFormCheckbox name="includeDescendants">包含下级部门</ProFormCheckbox>}
       <ProFormSelect name="effect" label="授权方式" options={[{ label: '允许访问', value: 'ALLOW' }, { label: '排除人员', value: 'EXCLUDE' }]} fieldProps={{ onChange: (value) => setEffect(value as ApplicationAccessGrant['effect']) }} rules={[{ required: true }]} />
       {effect === 'ALLOW' && <ProFormSelect name="roles" label="应用角色" mode="multiple" options={activeRoles.map((role) => ({ label: role.name, value: role.roleKey }))} />}
+      <ProFormDateTimePicker name="validFrom" label="生效时间" />
+      <ProFormDateTimePicker name="validUntil" label="失效时间" fieldProps={{ disabledDate: (date) => date.isBefore(dayjs(), 'day') }} />
       <ProFormSelect name="status" label="状态" options={[{ label: '启用', value: 'ACTIVE' }, { label: '停用', value: 'DISABLED' }]} rules={[{ required: true }]} />
       <ProFormText name="reason" label="变更原因" fieldProps={{ maxLength: 200 }} />
     </ModalForm>
@@ -111,10 +114,17 @@ export default function ApplicationAccess({ applicationId }: Props) {
 function requiresApproval(impact: ApplicationAccessImpact): boolean { return impact.privilegedUsers > 0 || impact.provisioningTasks >= 50 }
 
 function accessApprovalPayload(applicationId: string, grants: ApplicationAccessGrant[]) {
-  return { application_id: applicationId, grants: grants.map((item) => ({ id: item.id, application_id: applicationId, subject_type: item.subjectType, subject_id: item.subjectId, include_descendants: item.includeDescendants, effect: item.effect, roles: item.roles, ...(item.validFrom ? { valid_from: item.validFrom } : {}), ...(item.validUntil ? { valid_until: item.validUntil } : {}), status: item.status, reason: item.reason, version: item.version })) }
+  return { application_id: applicationId, grants: grants.map((item) => ({ id: item.id, application_id: applicationId, subject_type: item.subjectType, subject_id: item.subjectId, include_descendants: item.includeDescendants, effect: item.effect, roles: item.roles, ...(normalizeTimestamp(item.validFrom) ? { valid_from: normalizeTimestamp(item.validFrom) } : {}), ...(normalizeTimestamp(item.validUntil) ? { valid_until: normalizeTimestamp(item.validUntil) } : {}), status: item.status, reason: item.reason, version: item.version })) }
 }
 
 function accessGrantsFromApproval(payloadJson: string): ApplicationAccessGrant[] {
   const payload = JSON.parse(payloadJson) as { grants: Array<Record<string, unknown>> }
   return payload.grants.map((item) => ({ id: String(item.id ?? ''), applicationId: String(item.application_id ?? ''), subjectType: String(item.subject_type) as ApplicationAccessGrant['subjectType'], subjectId: String(item.subject_id ?? ''), subjectName: '', includeDescendants: Boolean(item.include_descendants), effect: String(item.effect) as ApplicationAccessGrant['effect'], roles: Array.isArray(item.roles) ? item.roles.map(String) : [], validFrom: item.valid_from ? String(item.valid_from) : undefined, validUntil: item.valid_until ? String(item.valid_until) : undefined, status: String(item.status || 'ACTIVE') as ApplicationAccessGrant['status'], reason: String(item.reason ?? ''), version: Number(item.version ?? 0) }))
+}
+
+function normalizeTimestamp(value: unknown): string | undefined {
+  if (!value) return undefined
+  const date = dayjs.isDayjs(value) ? value.toDate() : new Date(String(value))
+  if (Number.isNaN(date.getTime())) return undefined
+  return date.toISOString().replace(/\.000Z$/, 'Z').replace(/(\.\d*?[1-9])0+Z$/, '$1Z')
 }

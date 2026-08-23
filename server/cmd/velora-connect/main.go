@@ -15,21 +15,36 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 )
 
 type enrollment struct {
-	ApplicationCode         string   `json:"application_code"`
-	Issuer                  string   `json:"issuer"`
-	ClientID                string   `json:"client_id"`
-	ClientSecret            string   `json:"client_secret"`
-	RedirectURIs            []string `json:"redirect_uris"`
-	Scopes                  []string `json:"scopes"`
-	ProvisioningEndpoint    string   `json:"provisioning_endpoint"`
-	ProvisioningSecret      string   `json:"provisioning_secret"`
-	ProvisioningKeyVersion  int64    `json:"provisioning_key_version"`
-	ProvisioningFingerprint string   `json:"provisioning_fingerprint"`
+	ApplicationCode         string        `json:"application_code"`
+	Issuer                  string        `json:"issuer"`
+	ClientID                string        `json:"client_id"`
+	ClientSecret            string        `json:"client_secret"`
+	RedirectURIs            []string      `json:"redirect_uris"`
+	Scopes                  []string      `json:"scopes"`
+	ProvisioningEndpoint    string        `json:"provisioning_endpoint"`
+	ProvisioningSecret      string        `json:"provisioning_secret"`
+	ProvisioningKeyVersion  flexibleInt64 `json:"provisioning_key_version"`
+	ProvisioningFingerprint string        `json:"provisioning_fingerprint"`
+}
+
+// flexibleInt64 accepts both protobuf JSON's quoted int64 representation and
+// ordinary JSON numbers so the CLI remains compatible with both gateways.
+type flexibleInt64 int64
+
+func (v *flexibleInt64) UnmarshalJSON(raw []byte) error {
+	value := strings.Trim(strings.TrimSpace(string(raw)), `"`)
+	parsed, err := strconv.ParseInt(value, 10, 64)
+	if err != nil {
+		return err
+	}
+	*v = flexibleInt64(parsed)
+	return nil
 }
 
 type envelope struct {

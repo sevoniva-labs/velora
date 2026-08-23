@@ -1784,6 +1784,51 @@ func (s *Service) ListRoles(ctx context.Context, orgID string) ([]domain.Role, e
 	return s.repo.ListRoles(ctx, orgID)
 }
 
+func (s *Service) CreateRole(ctx context.Context, actor domain.Principal, orgID, key, name, description string) (domain.Role, error) {
+	if err := authorizeGrantActor(actor, orgID); err != nil || !actor.HasRole("system_admin") {
+		return domain.Role{}, ErrGrantCeiling
+	}
+	key, name, description = strings.TrimSpace(key), strings.TrimSpace(name), strings.TrimSpace(description)
+	if !validRoleKey(key) || name == "" || len(name) > 200 || len(description) > 500 {
+		return domain.Role{}, ErrInvalidRole
+	}
+	return s.repo.CreateRole(ctx, orgID, key, name, description)
+}
+
+func (s *Service) UpdateRole(ctx context.Context, actor domain.Principal, orgID, key, name, description, status string) (domain.Role, error) {
+	if err := authorizeGrantActor(actor, orgID); err != nil || !actor.HasRole("system_admin") {
+		return domain.Role{}, ErrGrantCeiling
+	}
+	key, name, description, status = strings.TrimSpace(key), strings.TrimSpace(name), strings.TrimSpace(description), strings.ToUpper(strings.TrimSpace(status))
+	if !validRoleKey(key) || name == "" || len(name) > 200 || len(description) > 500 || (status != "ACTIVE" && status != "DISABLED") || (key == "system_admin" && status != "ACTIVE") {
+		return domain.Role{}, ErrInvalidRole
+	}
+	return s.repo.UpdateRole(ctx, orgID, key, name, description, status)
+}
+
+func (s *Service) CopyRole(ctx context.Context, actor domain.Principal, orgID, sourceKey, key, name, description string) (domain.Role, error) {
+	if err := authorizeGrantActor(actor, orgID); err != nil || !actor.HasRole("system_admin") {
+		return domain.Role{}, ErrGrantCeiling
+	}
+	sourceKey, key, name, description = strings.TrimSpace(sourceKey), strings.TrimSpace(key), strings.TrimSpace(name), strings.TrimSpace(description)
+	if !validRoleKey(sourceKey) || !validRoleKey(key) || sourceKey == key || name == "" || len(name) > 200 || len(description) > 500 {
+		return domain.Role{}, ErrInvalidRole
+	}
+	return s.repo.CopyRole(ctx, orgID, sourceKey, key, name, description)
+}
+
+func validRoleKey(value string) bool {
+	if value == "" || len(value) > 100 {
+		return false
+	}
+	for _, char := range value {
+		if (char < 'a' || char > 'z') && (char < '0' || char > '9') && char != '_' && char != '-' {
+			return false
+		}
+	}
+	return true
+}
+
 func (s *Service) UpdateRoleDataScope(ctx context.Context, actor domain.Principal, orgID, roleKey, scopeType string, departmentIDs []string) error {
 	if err := authorizeGrantActor(actor, orgID); err != nil {
 		return err

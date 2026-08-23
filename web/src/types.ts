@@ -84,6 +84,7 @@ export interface PlatformRole {
   dataScope: string
   permissions: string[]
   dataScopeDepartmentIds: string[]
+  status: 'ACTIVE' | 'DISABLED'
 }
 
 export interface PlatformPermission {

@@ -59,6 +59,18 @@ export async function listPlatformRoles(): Promise<PlatformRole[]> {
   return (await apiFetch<{ roles?: PlatformRole[] }>('/admin/roles')).roles ?? []
 }
 
+export async function createPlatformRole(input: { roleKey: string; name: string; description?: string }): Promise<PlatformRole> {
+  return (await apiFetch<{ role: PlatformRole }>('/admin/roles', { method: 'POST', body: input })).role
+}
+
+export async function updatePlatformRole(roleKey: string, input: { name: string; description?: string; status: 'ACTIVE' | 'DISABLED' }): Promise<PlatformRole> {
+  return (await apiFetch<{ role: PlatformRole }>(`/admin/roles/${encodeURIComponent(roleKey)}`, { method: 'PATCH', body: input })).role
+}
+
+export async function copyPlatformRole(sourceRoleKey: string, input: { roleKey: string; name: string; description?: string }): Promise<PlatformRole> {
+  return (await apiFetch<{ role: PlatformRole }>(`/admin/roles/${encodeURIComponent(sourceRoleKey)}:copy`, { method: 'POST', body: input })).role
+}
+
 export async function listPlatformPermissions(): Promise<PlatformPermission[]> {
   return (await apiFetch<{ permissions?: PlatformPermission[] }>('/admin/permissions')).permissions ?? []
 }

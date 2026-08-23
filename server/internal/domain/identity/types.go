@@ -162,6 +162,8 @@ type Role struct {
 	ID          string       `json:"id"`
 	Key         string       `json:"role_key"`
 	Name        string       `json:"name"`
+	Description string       `json:"description"`
+	Status      string       `json:"status"`
 	DataScope   string       `json:"data_scope"`
 	Departments []string     `json:"data_scope_departments"`
 	Permissions []Permission `json:"permissions"`

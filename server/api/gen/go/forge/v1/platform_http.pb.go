@@ -21,10 +21,12 @@ const _ = http.SupportPackageIsVersion1
 
 const OperationPlatformServiceApproveConfigChange = "/forge.v1.PlatformService/ApproveConfigChange"
 const OperationPlatformServiceAuthorizeDataExport = "/forge.v1.PlatformService/AuthorizeDataExport"
+const OperationPlatformServiceCopyRole = "/forge.v1.PlatformService/CopyRole"
 const OperationPlatformServiceCreateAccessReview = "/forge.v1.PlatformService/CreateAccessReview"
 const OperationPlatformServiceCreateConfigChange = "/forge.v1.PlatformService/CreateConfigChange"
 const OperationPlatformServiceCreateDepartment = "/forge.v1.PlatformService/CreateDepartment"
 const OperationPlatformServiceCreatePosition = "/forge.v1.PlatformService/CreatePosition"
+const OperationPlatformServiceCreateRole = "/forge.v1.PlatformService/CreateRole"
 const OperationPlatformServiceCreateTemporaryRoleGrant = "/forge.v1.PlatformService/CreateTemporaryRoleGrant"
 const OperationPlatformServiceCreateUser = "/forge.v1.PlatformService/CreateUser"
 const OperationPlatformServiceCreateUserGroup = "/forge.v1.PlatformService/CreateUserGroup"
@@ -65,6 +67,7 @@ const OperationPlatformServiceUpdateDepartment = "/forge.v1.PlatformService/Upda
 const OperationPlatformServiceUpdateMenu = "/forge.v1.PlatformService/UpdateMenu"
 const OperationPlatformServiceUpdateOrganization = "/forge.v1.PlatformService/UpdateOrganization"
 const OperationPlatformServiceUpdatePosition = "/forge.v1.PlatformService/UpdatePosition"
+const OperationPlatformServiceUpdateRole = "/forge.v1.PlatformService/UpdateRole"
 const OperationPlatformServiceUpdateRoleDataScope = "/forge.v1.PlatformService/UpdateRoleDataScope"
 const OperationPlatformServiceUpdateRolePermissions = "/forge.v1.PlatformService/UpdateRolePermissions"
 const OperationPlatformServiceUpdateSecurityPolicy = "/forge.v1.PlatformService/UpdateSecurityPolicy"
@@ -80,10 +83,12 @@ const OperationPlatformServiceVerifyAuditIntegrity = "/forge.v1.PlatformService/
 type PlatformServiceHTTPServer interface {
 	ApproveConfigChange(context.Context, *ApproveConfigChangeRequest) (*ApproveConfigChangeResponse, error)
 	AuthorizeDataExport(context.Context, *AuthorizeDataExportRequest) (*AuthorizeDataExportResponse, error)
+	CopyRole(context.Context, *CopyRoleRequest) (*CopyRoleResponse, error)
 	CreateAccessReview(context.Context, *CreateAccessReviewRequest) (*CreateAccessReviewResponse, error)
 	CreateConfigChange(context.Context, *CreateConfigChangeRequest) (*CreateConfigChangeResponse, error)
 	CreateDepartment(context.Context, *CreateDepartmentRequest) (*CreateDepartmentResponse, error)
 	CreatePosition(context.Context, *CreatePositionRequest) (*CreatePositionResponse, error)
+	CreateRole(context.Context, *CreateRoleRequest) (*CreateRoleResponse, error)
 	CreateTemporaryRoleGrant(context.Context, *CreateTemporaryRoleGrantRequest) (*CreateTemporaryRoleGrantResponse, error)
 	CreateUser(context.Context, *CreateUserRequest) (*CreateUserResponse, error)
 	CreateUserGroup(context.Context, *CreateUserGroupRequest) (*CreateUserGroupResponse, error)
@@ -124,6 +129,7 @@ type PlatformServiceHTTPServer interface {
 	UpdateMenu(context.Context, *UpdateMenuRequest) (*UpdateMenuResponse, error)
 	UpdateOrganization(context.Context, *UpdateOrganizationRequest) (*UpdateOrganizationResponse, error)
 	UpdatePosition(context.Context, *UpdatePositionRequest) (*UpdatePositionResponse, error)
+	UpdateRole(context.Context, *UpdateRoleRequest) (*UpdateRoleResponse, error)
 	UpdateRoleDataScope(context.Context, *UpdateRoleDataScopeRequest) (*UpdateRoleDataScopeResponse, error)
 	UpdateRolePermissions(context.Context, *UpdateRolePermissionsRequest) (*UpdateRolePermissionsResponse, error)
 	UpdateSecurityPolicy(context.Context, *UpdateSecurityPolicyRequest) (*UpdateSecurityPolicyResponse, error)
@@ -160,6 +166,9 @@ func RegisterPlatformServiceHTTPServer(s *http.Server, srv PlatformServiceHTTPSe
 	r.GET("/api/v1/admin/security-config", _PlatformService_GetSecurityPolicy0_HTTP_Handler(srv))
 	r.PUT("/api/v1/admin/security-config", _PlatformService_UpdateSecurityPolicy0_HTTP_Handler(srv))
 	r.GET("/api/v1/admin/roles", _PlatformService_ListRoles0_HTTP_Handler(srv))
+	r.POST("/api/v1/admin/roles", _PlatformService_CreateRole0_HTTP_Handler(srv))
+	r.PATCH("/api/v1/admin/roles/{role_key}", _PlatformService_UpdateRole0_HTTP_Handler(srv))
+	r.POST("/api/v1/admin/roles/{source_role_key}:copy", _PlatformService_CopyRole0_HTTP_Handler(srv))
 	r.GET("/api/v1/admin/permissions", _PlatformService_ListPermissions0_HTTP_Handler(srv))
 	r.GET("/api/v1/admin/menus", _PlatformService_ListMenus0_HTTP_Handler(srv))
 	r.PATCH("/api/v1/admin/menus/{menu_key}", _PlatformService_UpdateMenu0_HTTP_Handler(srv))
@@ -653,6 +662,78 @@ func _PlatformService_ListRoles0_HTTP_Handler(srv PlatformServiceHTTPServer) fun
 			return err
 		}
 		reply := out.(*ListRolesResponse)
+		return ctx.Result(200, reply)
+	}
+}
+
+func _PlatformService_CreateRole0_HTTP_Handler(srv PlatformServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in CreateRoleRequest
+		if err := ctx.Bind(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationPlatformServiceCreateRole)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.CreateRole(ctx, req.(*CreateRoleRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*CreateRoleResponse)
+		return ctx.Result(200, reply)
+	}
+}
+
+func _PlatformService_UpdateRole0_HTTP_Handler(srv PlatformServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in UpdateRoleRequest
+		if err := ctx.Bind(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindVars(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationPlatformServiceUpdateRole)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.UpdateRole(ctx, req.(*UpdateRoleRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*UpdateRoleResponse)
+		return ctx.Result(200, reply)
+	}
+}
+
+func _PlatformService_CopyRole0_HTTP_Handler(srv PlatformServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in CopyRoleRequest
+		if err := ctx.Bind(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindVars(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationPlatformServiceCopyRole)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.CopyRole(ctx, req.(*CopyRoleRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*CopyRoleResponse)
 		return ctx.Result(200, reply)
 	}
 }
@@ -1464,10 +1545,12 @@ func _PlatformService_RollbackConfigChange0_HTTP_Handler(srv PlatformServiceHTTP
 type PlatformServiceHTTPClient interface {
 	ApproveConfigChange(ctx context.Context, req *ApproveConfigChangeRequest, opts ...http.CallOption) (rsp *ApproveConfigChangeResponse, err error)
 	AuthorizeDataExport(ctx context.Context, req *AuthorizeDataExportRequest, opts ...http.CallOption) (rsp *AuthorizeDataExportResponse, err error)
+	CopyRole(ctx context.Context, req *CopyRoleRequest, opts ...http.CallOption) (rsp *CopyRoleResponse, err error)
 	CreateAccessReview(ctx context.Context, req *CreateAccessReviewRequest, opts ...http.CallOption) (rsp *CreateAccessReviewResponse, err error)
 	CreateConfigChange(ctx context.Context, req *CreateConfigChangeRequest, opts ...http.CallOption) (rsp *CreateConfigChangeResponse, err error)
 	CreateDepartment(ctx context.Context, req *CreateDepartmentRequest, opts ...http.CallOption) (rsp *CreateDepartmentResponse, err error)
 	CreatePosition(ctx context.Context, req *CreatePositionRequest, opts ...http.CallOption) (rsp *CreatePositionResponse, err error)
+	CreateRole(ctx context.Context, req *CreateRoleRequest, opts ...http.CallOption) (rsp *CreateRoleResponse, err error)
 	CreateTemporaryRoleGrant(ctx context.Context, req *CreateTemporaryRoleGrantRequest, opts ...http.CallOption) (rsp *CreateTemporaryRoleGrantResponse, err error)
 	CreateUser(ctx context.Context, req *CreateUserRequest, opts ...http.CallOption) (rsp *CreateUserResponse, err error)
 	CreateUserGroup(ctx context.Context, req *CreateUserGroupRequest, opts ...http.CallOption) (rsp *CreateUserGroupResponse, err error)
@@ -1508,6 +1591,7 @@ type PlatformServiceHTTPClient interface {
 	UpdateMenu(ctx context.Context, req *UpdateMenuRequest, opts ...http.CallOption) (rsp *UpdateMenuResponse, err error)
 	UpdateOrganization(ctx context.Context, req *UpdateOrganizationRequest, opts ...http.CallOption) (rsp *UpdateOrganizationResponse, err error)
 	UpdatePosition(ctx context.Context, req *UpdatePositionRequest, opts ...http.CallOption) (rsp *UpdatePositionResponse, err error)
+	UpdateRole(ctx context.Context, req *UpdateRoleRequest, opts ...http.CallOption) (rsp *UpdateRoleResponse, err error)
 	UpdateRoleDataScope(ctx context.Context, req *UpdateRoleDataScopeRequest, opts ...http.CallOption) (rsp *UpdateRoleDataScopeResponse, err error)
 	UpdateRolePermissions(ctx context.Context, req *UpdateRolePermissionsRequest, opts ...http.CallOption) (rsp *UpdateRolePermissionsResponse, err error)
 	UpdateSecurityPolicy(ctx context.Context, req *UpdateSecurityPolicyRequest, opts ...http.CallOption) (rsp *UpdateSecurityPolicyResponse, err error)
@@ -1547,6 +1631,19 @@ func (c *PlatformServiceHTTPClientImpl) AuthorizeDataExport(ctx context.Context,
 	pattern := "/api/v1/admin/data-exports/authorize"
 	path := binding.EncodeURL(pattern, in, false)
 	opts = append(opts, http.Operation(OperationPlatformServiceAuthorizeDataExport))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "POST", path, in, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+func (c *PlatformServiceHTTPClientImpl) CopyRole(ctx context.Context, in *CopyRoleRequest, opts ...http.CallOption) (*CopyRoleResponse, error) {
+	var out CopyRoleResponse
+	pattern := "/api/v1/admin/roles/{source_role_key}:copy"
+	path := binding.EncodeURL(pattern, in, false)
+	opts = append(opts, http.Operation(OperationPlatformServiceCopyRole))
 	opts = append(opts, http.PathTemplate(pattern))
 	err := c.cc.Invoke(ctx, "POST", path, in, &out, opts...)
 	if err != nil {
@@ -1599,6 +1696,19 @@ func (c *PlatformServiceHTTPClientImpl) CreatePosition(ctx context.Context, in *
 	pattern := "/api/v1/admin/positions"
 	path := binding.EncodeURL(pattern, in, false)
 	opts = append(opts, http.Operation(OperationPlatformServiceCreatePosition))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "POST", path, in, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+func (c *PlatformServiceHTTPClientImpl) CreateRole(ctx context.Context, in *CreateRoleRequest, opts ...http.CallOption) (*CreateRoleResponse, error) {
+	var out CreateRoleResponse
+	pattern := "/api/v1/admin/roles"
+	path := binding.EncodeURL(pattern, in, false)
+	opts = append(opts, http.Operation(OperationPlatformServiceCreateRole))
 	opts = append(opts, http.PathTemplate(pattern))
 	err := c.cc.Invoke(ctx, "POST", path, in, &out, opts...)
 	if err != nil {
@@ -2119,6 +2229,19 @@ func (c *PlatformServiceHTTPClientImpl) UpdatePosition(ctx context.Context, in *
 	pattern := "/api/v1/admin/positions/{position_id}"
 	path := binding.EncodeURL(pattern, in, false)
 	opts = append(opts, http.Operation(OperationPlatformServiceUpdatePosition))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "PATCH", path, in, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+func (c *PlatformServiceHTTPClientImpl) UpdateRole(ctx context.Context, in *UpdateRoleRequest, opts ...http.CallOption) (*UpdateRoleResponse, error) {
+	var out UpdateRoleResponse
+	pattern := "/api/v1/admin/roles/{role_key}"
+	path := binding.EncodeURL(pattern, in, false)
+	opts = append(opts, http.Operation(OperationPlatformServiceUpdateRole))
 	opts = append(opts, http.PathTemplate(pattern))
 	err := c.cc.Invoke(ctx, "PATCH", path, in, &out, opts...)
 	if err != nil {

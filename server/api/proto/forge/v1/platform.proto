@@ -368,6 +368,18 @@ service PlatformService {
       ]
     };
   }
+  rpc CreateRole(CreateRoleRequest) returns (CreateRoleResponse) {
+    option (google.api.http) = {post: "/api/v1/admin/roles" body: "*"};
+    option (openapi.v3.operation) = {security: [{additional_properties: [{name: "SessionCookie" value: {value: []}}, {name: "CsrfToken" value: {value: []}}]}, {additional_properties: [{name: "BearerAuth" value: {value: []}}]}]};
+  }
+  rpc UpdateRole(UpdateRoleRequest) returns (UpdateRoleResponse) {
+    option (google.api.http) = {patch: "/api/v1/admin/roles/{role_key}" body: "*"};
+    option (openapi.v3.operation) = {security: [{additional_properties: [{name: "SessionCookie" value: {value: []}}, {name: "CsrfToken" value: {value: []}}]}, {additional_properties: [{name: "BearerAuth" value: {value: []}}]}]};
+  }
+  rpc CopyRole(CopyRoleRequest) returns (CopyRoleResponse) {
+    option (google.api.http) = {post: "/api/v1/admin/roles/{source_role_key}:copy" body: "*"};
+    option (openapi.v3.operation) = {security: [{additional_properties: [{name: "SessionCookie" value: {value: []}}, {name: "CsrfToken" value: {value: []}}]}, {additional_properties: [{name: "BearerAuth" value: {value: []}}]}]};
+  }
   rpc ListPermissions(ListPermissionsRequest) returns (ListPermissionsResponse) {
     option (google.api.http) = {get: "/api/v1/admin/permissions"};
     option (openapi.v3.operation) = {
@@ -1085,6 +1097,12 @@ message ListRolesRequest {}
 message ListRolesResponse {
   repeated Role roles = 1;
 }
+message CreateRoleRequest { string role_key = 1; string name = 2; string description = 3; }
+message CreateRoleResponse { Role role = 1; }
+message UpdateRoleRequest { string role_key = 1; string name = 2; string description = 3; string status = 4; }
+message UpdateRoleResponse { Role role = 1; }
+message CopyRoleRequest { string source_role_key = 1; string role_key = 2; string name = 3; string description = 4; }
+message CopyRoleResponse { Role role = 1; }
 message ListPermissionsRequest {}
 message ListPermissionsResponse {
   repeated Permission permissions = 1;

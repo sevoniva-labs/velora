@@ -701,6 +701,63 @@ func (s *PlatformService) ListRoles(ctx context.Context, _ *forgev1.ListRolesReq
 	return reply, nil
 }
 
+func (s *PlatformService) CreateRole(ctx context.Context, req *forgev1.CreateRoleRequest) (*forgev1.CreateRoleResponse, error) {
+	principal, err := requiredPrincipal(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var role domain.Role
+	event := newAuditEvent(ctx, principal, "role.create", "role", req.GetRoleKey(), map[string]any{"name": req.GetName()})
+	err = s.audited(ctx, event, func(txCtx context.Context) error {
+		var createErr error
+		role, createErr = s.identity.CreateRole(txCtx, principal, principal.OrganizationID, req.GetRoleKey(), req.GetName(), req.GetDescription())
+		return createErr
+	})
+	if err != nil {
+		return nil, serviceError(err)
+	}
+	return &forgev1.CreateRoleResponse{Role: roleProto(role)}, nil
+}
+
+func (s *PlatformService) UpdateRole(ctx context.Context, req *forgev1.UpdateRoleRequest) (*forgev1.UpdateRoleResponse, error) {
+	principal, err := requiredPrincipal(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var role domain.Role
+	event := newAuditEvent(ctx, principal, "role.update", "role", req.GetRoleKey(), map[string]any{"name": req.GetName(), "status": req.GetStatus()})
+	err = s.audited(ctx, event, func(txCtx context.Context) error {
+		var updateErr error
+		role, updateErr = s.identity.UpdateRole(txCtx, principal, principal.OrganizationID, req.GetRoleKey(), req.GetName(), req.GetDescription(), req.GetStatus())
+		if updateErr == nil {
+			updateErr = s.recomputeApplicationAccess(txCtx, principal)
+		}
+		return updateErr
+	})
+	if err != nil {
+		return nil, serviceError(err)
+	}
+	return &forgev1.UpdateRoleResponse{Role: roleProto(role)}, nil
+}
+
+func (s *PlatformService) CopyRole(ctx context.Context, req *forgev1.CopyRoleRequest) (*forgev1.CopyRoleResponse, error) {
+	principal, err := requiredPrincipal(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var role domain.Role
+	event := newAuditEvent(ctx, principal, "role.copy", "role", req.GetRoleKey(), map[string]any{"source_role_key": req.GetSourceRoleKey(), "name": req.GetName()})
+	err = s.audited(ctx, event, func(txCtx context.Context) error {
+		var copyErr error
+		role, copyErr = s.identity.CopyRole(txCtx, principal, principal.OrganizationID, req.GetSourceRoleKey(), req.GetRoleKey(), req.GetName(), req.GetDescription())
+		return copyErr
+	})
+	if err != nil {
+		return nil, serviceError(err)
+	}
+	return &forgev1.CopyRoleResponse{Role: roleProto(role)}, nil
+}
+
 func (s *PlatformService) ListPermissions(ctx context.Context, _ *forgev1.ListPermissionsRequest) (*forgev1.ListPermissionsResponse, error) {
 	permissions, err := s.identity.ListPermissions(ctx)
 	if err != nil {
@@ -1075,7 +1132,7 @@ func roleProto(role domain.Role) *forgev1.Role {
 	for _, permission := range role.Permissions {
 		permissions = append(permissions, permission.Key)
 	}
-	return &forgev1.Role{Key: role.Key, Name: role.Name, DataScope: role.DataScope, DataScopeDepartmentIds: role.Departments, Permissions: permissions}
+	return &forgev1.Role{Key: role.Key, Name: role.Name, Description: role.Description, Status: role.Status, DataScope: role.DataScope, DataScopeDepartmentIds: role.Departments, Permissions: permissions}
 }
 
 func sessionProto(session domain.Session) *forgev1.Session {

@@ -203,16 +203,16 @@ func (r *IdentityRepo) GrantRole(ctx context.Context, userID, roleKey string) er
 }
 func (r *IdentityRepo) RolesForUser(ctx context.Context, userID string) ([]string, error) {
 	rows, err := r.db.QueryContext(ctx, r.db.Rebind(`SELECT role_key FROM (
-		SELECT r.role_key AS role_key FROM roles r JOIN user_roles ur ON ur.role_id=r.id WHERE ur.user_id=?
+		SELECT r.role_key AS role_key FROM roles r JOIN user_roles ur ON ur.role_id=r.id WHERE ur.user_id=? AND r.status='ACTIVE'
 		UNION
 		SELECT r.role_key AS role_key FROM roles r
 		JOIN user_group_roles ugr ON ugr.role_id=r.id
 		JOIN user_groups ug ON ug.id=ugr.group_id AND ug.status='ACTIVE'
 		JOIN user_group_members ugm ON ugm.group_id=ug.id
-		WHERE ugm.user_id=?
+		WHERE ugm.user_id=? AND r.status='ACTIVE'
 		UNION
 		SELECT r.role_key AS role_key FROM roles r JOIN temporary_role_grants trg ON trg.role_id=r.id
-		WHERE trg.user_id=? AND trg.revoked_at IS NULL AND trg.valid_from<=? AND trg.valid_until>?
+		WHERE trg.user_id=? AND trg.revoked_at IS NULL AND trg.valid_from<=? AND trg.valid_until>? AND r.status='ACTIVE'
 	) effective_roles ORDER BY role_key`), userID, userID, userID, time.Now().UTC(), time.Now().UTC())
 	if err != nil {
 		return nil, err
@@ -231,6 +231,7 @@ func (r *IdentityRepo) RolesForUser(ctx context.Context, userID string) ([]strin
 func (r *IdentityRepo) PermissionsForUser(ctx context.Context, userID string) ([]string, error) {
 	rows, err := r.db.QueryContext(ctx, r.db.Rebind(`SELECT DISTINCT p.permission_key FROM permissions p
 		JOIN role_permissions rp ON rp.permission_id=p.id
+		JOIN roles active_role ON active_role.id=rp.role_id AND active_role.status='ACTIVE'
 		JOIN (
 			SELECT role_id FROM user_roles WHERE user_id=?
 			UNION
@@ -921,7 +922,7 @@ func (r *IdentityRepo) DataScopeForUser(ctx context.Context, orgID, userID strin
 			UNION
 			SELECT role_id FROM temporary_role_grants WHERE user_id=? AND revoked_at IS NULL AND valid_from<=? AND valid_until>?
 		) effective_roles ON effective_roles.role_id=r.id
-		WHERE r.organization_id=?`), userID, userID, userID, time.Now().UTC(), time.Now().UTC(), orgID)
+		WHERE r.organization_id=? AND r.status='ACTIVE'`), userID, userID, userID, time.Now().UTC(), time.Now().UTC(), orgID)
 	if err != nil {
 		return identity.EffectiveDataScope{}, err
 	}
@@ -1185,7 +1186,7 @@ func (r *IdentityRepo) PermissionsForRole(ctx context.Context, roleID string) ([
 }
 
 func (r *IdentityRepo) ListRoles(ctx context.Context, orgID string) ([]identity.Role, error) {
-	rows, err := r.db.QueryContext(ctx, r.db.Rebind(`SELECT id,role_key,name,data_scope_type,created_at FROM roles WHERE organization_id=? ORDER BY role_key`), orgID)
+	rows, err := r.db.QueryContext(ctx, r.db.Rebind(`SELECT id,role_key,name,description,status,data_scope_type,created_at FROM roles WHERE organization_id=? ORDER BY role_key`), orgID)
 	if err != nil {
 		return nil, err
 	}
@@ -1193,7 +1194,7 @@ func (r *IdentityRepo) ListRoles(ctx context.Context, orgID string) ([]identity.
 	var out []identity.Role
 	for rows.Next() {
 		var item identity.Role
-		if err := rows.Scan(&item.ID, &item.Key, &item.Name, &item.DataScope, &item.CreatedAt); err != nil {
+		if err := rows.Scan(&item.ID, &item.Key, &item.Name, &item.Description, &item.Status, &item.DataScope, &item.CreatedAt); err != nil {
 			return nil, err
 		}
 		out = append(out, item)
@@ -1215,6 +1216,70 @@ func (r *IdentityRepo) ListRoles(ctx context.Context, orgID string) ([]identity.
 		}
 	}
 	return out, nil
+}
+
+func (r *IdentityRepo) CreateRole(ctx context.Context, orgID, key, name, description string) (identity.Role, error) {
+	id := uuid.NewString()
+	now := time.Now().UTC()
+	_, err := r.db.ExecContext(ctx, r.db.Rebind(`INSERT INTO roles(id,organization_id,role_key,name,description,status,data_scope_type,created_at) VALUES(?,?,?,?,?,'ACTIVE','SELF',?)`), id, orgID, key, name, description, now)
+	if err != nil {
+		return identity.Role{}, err
+	}
+	return identity.Role{ID: id, Key: key, Name: name, Description: description, Status: "ACTIVE", DataScope: identity.DataScopeSelf, CreatedAt: now}, nil
+}
+
+func (r *IdentityRepo) UpdateRole(ctx context.Context, orgID, key, name, description, status string) (identity.Role, error) {
+	result, err := r.db.ExecContext(ctx, r.db.Rebind(`UPDATE roles SET name=?,description=?,status=? WHERE organization_id=? AND role_key=?`), name, description, status, orgID, key)
+	if err != nil {
+		return identity.Role{}, err
+	}
+	if affected, _ := result.RowsAffected(); affected != 1 {
+		return identity.Role{}, sql.ErrNoRows
+	}
+	roles, err := r.ListRoles(ctx, orgID)
+	if err != nil {
+		return identity.Role{}, err
+	}
+	for _, role := range roles {
+		if role.Key == key {
+			return role, nil
+		}
+	}
+	return identity.Role{}, sql.ErrNoRows
+}
+
+func (r *IdentityRepo) CopyRole(ctx context.Context, orgID, sourceKey, key, name, description string) (identity.Role, error) {
+	created := identity.Role{}
+	err := r.db.WithTx(ctx, func(tx *sql.Tx) error {
+		var sourceID, dataScope string
+		if err := tx.QueryRowContext(ctx, r.db.Rebind(`SELECT id,data_scope_type FROM roles WHERE organization_id=? AND role_key=? AND status='ACTIVE'`), orgID, sourceKey).Scan(&sourceID, &dataScope); err != nil {
+			return err
+		}
+		created = identity.Role{ID: uuid.NewString(), Key: key, Name: name, Description: description, Status: "ACTIVE", DataScope: dataScope, CreatedAt: time.Now().UTC()}
+		if _, err := tx.ExecContext(ctx, r.db.Rebind(`INSERT INTO roles(id,organization_id,role_key,name,description,status,data_scope_type,created_at) VALUES(?,?,?,?,?,'ACTIVE',?,?)`), created.ID, orgID, key, name, description, dataScope, created.CreatedAt); err != nil {
+			return err
+		}
+		if _, err := tx.ExecContext(ctx, r.db.Rebind(`INSERT INTO role_permissions(role_id,permission_id) SELECT ?,permission_id FROM role_permissions WHERE role_id=?`), created.ID, sourceID); err != nil {
+			return err
+		}
+		if _, err := tx.ExecContext(ctx, r.db.Rebind(`INSERT INTO role_data_scope_departments(role_id,department_id) SELECT ?,department_id FROM role_data_scope_departments WHERE role_id=?`), created.ID, sourceID); err != nil {
+			return err
+		}
+		return nil
+	})
+	if err != nil {
+		return identity.Role{}, err
+	}
+	roles, err := r.ListRoles(ctx, orgID)
+	if err != nil {
+		return identity.Role{}, err
+	}
+	for _, role := range roles {
+		if role.Key == key {
+			return role, nil
+		}
+	}
+	return identity.Role{}, sql.ErrNoRows
 }
 
 func (r *IdentityRepo) RoleDataScopeDepartments(ctx context.Context, orgID, roleID string) ([]string, error) {
@@ -1258,7 +1323,7 @@ func (r *IdentityRepo) ReplaceRoleDataScope(ctx context.Context, orgID, roleKey,
 func (r *IdentityRepo) ReplaceRolePermissions(ctx context.Context, orgID, roleKey string, permissionKeys []string) error {
 	return r.db.WithTx(ctx, func(tx *sql.Tx) error {
 		var roleID string
-		if err := tx.QueryRowContext(ctx, r.db.Rebind(`SELECT id FROM roles WHERE organization_id=? AND role_key=?`), orgID, roleKey).Scan(&roleID); err != nil {
+		if err := tx.QueryRowContext(ctx, r.db.Rebind(`SELECT id FROM roles WHERE organization_id=? AND role_key=? AND status='ACTIVE'`), orgID, roleKey).Scan(&roleID); err != nil {
 			return err
 		}
 		if _, err := tx.ExecContext(ctx, r.db.Rebind(`DELETE FROM role_permissions WHERE role_id=?`), roleID); err != nil {
@@ -1313,7 +1378,7 @@ func (r *IdentityRepo) ReplaceUserRoles(ctx context.Context, orgID, userID strin
 		}
 		for _, key := range roleKeys {
 			var roleID string
-			if err := tx.QueryRowContext(ctx, r.db.Rebind(`SELECT id FROM roles WHERE organization_id=? AND role_key=?`), orgID, key).Scan(&roleID); err != nil {
+			if err := tx.QueryRowContext(ctx, r.db.Rebind(`SELECT id FROM roles WHERE organization_id=? AND role_key=? AND status='ACTIVE'`), orgID, key).Scan(&roleID); err != nil {
 				return err
 			}
 			if _, err := tx.ExecContext(ctx, r.db.Rebind(`INSERT INTO user_roles(user_id,role_id) VALUES(?,?)`), userID, roleID); err != nil {
@@ -1603,7 +1668,7 @@ func (r *IdentityRepo) RoleConflictRules(ctx context.Context, orgID string) ([]i
 }
 
 func (r *IdentityRepo) GroupRolesForUser(ctx context.Context, userID string) ([]string, error) {
-	rows, err := r.db.QueryContext(ctx, r.db.Rebind(`SELECT DISTINCT r.role_key FROM roles r JOIN user_group_roles ugr ON ugr.role_id=r.id JOIN user_groups ug ON ug.id=ugr.group_id AND ug.status='ACTIVE' JOIN user_group_members ugm ON ugm.group_id=ug.id WHERE ugm.user_id=? ORDER BY r.role_key`), userID)
+	rows, err := r.db.QueryContext(ctx, r.db.Rebind(`SELECT DISTINCT r.role_key FROM roles r JOIN user_group_roles ugr ON ugr.role_id=r.id JOIN user_groups ug ON ug.id=ugr.group_id AND ug.status='ACTIVE' JOIN user_group_members ugm ON ugm.group_id=ug.id WHERE ugm.user_id=? AND r.status='ACTIVE' ORDER BY r.role_key`), userID)
 	if err != nil {
 		return nil, err
 	}
@@ -1621,11 +1686,11 @@ func (r *IdentityRepo) GroupRolesForUser(ctx context.Context, userID string) ([]
 
 func (r *IdentityRepo) RolesForUserExcludingGroup(ctx context.Context, userID, excludedGroupID string) ([]string, error) {
 	rows, err := r.db.QueryContext(ctx, r.db.Rebind(`SELECT role_key FROM (
-		SELECT r.role_key AS role_key FROM roles r JOIN user_roles ur ON ur.role_id=r.id WHERE ur.user_id=?
+		SELECT r.role_key AS role_key FROM roles r JOIN user_roles ur ON ur.role_id=r.id WHERE ur.user_id=? AND r.status='ACTIVE'
 		UNION
-		SELECT r.role_key AS role_key FROM roles r JOIN user_group_roles ugr ON ugr.role_id=r.id JOIN user_groups ug ON ug.id=ugr.group_id AND ug.status='ACTIVE' JOIN user_group_members ugm ON ugm.group_id=ug.id WHERE ugm.user_id=? AND ug.id<>?
+		SELECT r.role_key AS role_key FROM roles r JOIN user_group_roles ugr ON ugr.role_id=r.id JOIN user_groups ug ON ug.id=ugr.group_id AND ug.status='ACTIVE' JOIN user_group_members ugm ON ugm.group_id=ug.id WHERE ugm.user_id=? AND ug.id<>? AND r.status='ACTIVE'
 		UNION
-		SELECT r.role_key AS role_key FROM roles r JOIN temporary_role_grants trg ON trg.role_id=r.id WHERE trg.user_id=? AND trg.revoked_at IS NULL AND trg.valid_from<=? AND trg.valid_until>?
+		SELECT r.role_key AS role_key FROM roles r JOIN temporary_role_grants trg ON trg.role_id=r.id WHERE trg.user_id=? AND trg.revoked_at IS NULL AND trg.valid_from<=? AND trg.valid_until>? AND r.status='ACTIVE'
 	) effective_roles ORDER BY role_key`), userID, userID, excludedGroupID, userID, time.Now().UTC(), time.Now().UTC())
 	if err != nil {
 		return nil, err

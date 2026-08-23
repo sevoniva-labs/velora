@@ -1026,6 +1026,7 @@ type Role struct {
 	DataScope              string                 `protobuf:"bytes,4,opt,name=data_scope,json=dataScope,proto3" json:"data_scope,omitempty"`
 	Permissions            []string               `protobuf:"bytes,5,rep,name=permissions,proto3" json:"permissions,omitempty"`
 	DataScopeDepartmentIds []string               `protobuf:"bytes,6,rep,name=data_scope_department_ids,json=dataScopeDepartmentIds,proto3" json:"data_scope_department_ids,omitempty"`
+	Status                 string                 `protobuf:"bytes,7,opt,name=status,proto3" json:"status,omitempty"`
 	unknownFields          protoimpl.UnknownFields
 	sizeCache              protoimpl.SizeCache
 }
@@ -1100,6 +1101,13 @@ func (x *Role) GetDataScopeDepartmentIds() []string {
 		return x.DataScopeDepartmentIds
 	}
 	return nil
+}
+
+func (x *Role) GetStatus() string {
+	if x != nil {
+		return x.Status
+	}
+	return ""
 }
 
 type Permission struct {
@@ -1654,7 +1662,7 @@ const file_forge_v1_common_proto_rawDesc = "" +
 	"\x1blogin_lock_duration_seconds\x18\t \x01(\x03R\x18loginLockDurationSeconds\x12.\n" +
 	"\x13session_ttl_seconds\x18\n" +
 	" \x01(\x03R\x11sessionTtlSeconds\x12.\n" +
-	"\x13max_active_sessions\x18\v \x01(\x03R\x11maxActiveSessions\"\xca\x01\n" +
+	"\x13max_active_sessions\x18\v \x01(\x03R\x11maxActiveSessions\"\xe2\x01\n" +
 	"\x04Role\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12 \n" +
@@ -1662,7 +1670,8 @@ const file_forge_v1_common_proto_rawDesc = "" +
 	"\n" +
 	"data_scope\x18\x04 \x01(\tR\tdataScope\x12 \n" +
 	"\vpermissions\x18\x05 \x03(\tR\vpermissions\x129\n" +
-	"\x19data_scope_department_ids\x18\x06 \x03(\tR\x16dataScopeDepartmentIds\"\x88\x01\n" +
+	"\x19data_scope_department_ids\x18\x06 \x03(\tR\x16dataScopeDepartmentIds\x12\x16\n" +
+	"\x06status\x18\a \x01(\tR\x06status\"\x88\x01\n" +
 	"\n" +
 	"Permission\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x12\n" +

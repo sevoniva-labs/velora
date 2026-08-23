@@ -40,6 +40,9 @@ const (
 	PlatformService_GetSecurityPolicy_FullMethodName                  = "/forge.v1.PlatformService/GetSecurityPolicy"
 	PlatformService_UpdateSecurityPolicy_FullMethodName               = "/forge.v1.PlatformService/UpdateSecurityPolicy"
 	PlatformService_ListRoles_FullMethodName                          = "/forge.v1.PlatformService/ListRoles"
+	PlatformService_CreateRole_FullMethodName                         = "/forge.v1.PlatformService/CreateRole"
+	PlatformService_UpdateRole_FullMethodName                         = "/forge.v1.PlatformService/UpdateRole"
+	PlatformService_CopyRole_FullMethodName                           = "/forge.v1.PlatformService/CopyRole"
 	PlatformService_ListPermissions_FullMethodName                    = "/forge.v1.PlatformService/ListPermissions"
 	PlatformService_ListMenus_FullMethodName                          = "/forge.v1.PlatformService/ListMenus"
 	PlatformService_UpdateMenu_FullMethodName                         = "/forge.v1.PlatformService/UpdateMenu"
@@ -103,6 +106,9 @@ type PlatformServiceClient interface {
 	GetSecurityPolicy(ctx context.Context, in *GetSecurityPolicyRequest, opts ...grpc.CallOption) (*GetSecurityPolicyResponse, error)
 	UpdateSecurityPolicy(ctx context.Context, in *UpdateSecurityPolicyRequest, opts ...grpc.CallOption) (*UpdateSecurityPolicyResponse, error)
 	ListRoles(ctx context.Context, in *ListRolesRequest, opts ...grpc.CallOption) (*ListRolesResponse, error)
+	CreateRole(ctx context.Context, in *CreateRoleRequest, opts ...grpc.CallOption) (*CreateRoleResponse, error)
+	UpdateRole(ctx context.Context, in *UpdateRoleRequest, opts ...grpc.CallOption) (*UpdateRoleResponse, error)
+	CopyRole(ctx context.Context, in *CopyRoleRequest, opts ...grpc.CallOption) (*CopyRoleResponse, error)
 	ListPermissions(ctx context.Context, in *ListPermissionsRequest, opts ...grpc.CallOption) (*ListPermissionsResponse, error)
 	ListMenus(ctx context.Context, in *ListMenusRequest, opts ...grpc.CallOption) (*ListMenusResponse, error)
 	UpdateMenu(ctx context.Context, in *UpdateMenuRequest, opts ...grpc.CallOption) (*UpdateMenuResponse, error)
@@ -353,6 +359,36 @@ func (c *platformServiceClient) ListRoles(ctx context.Context, in *ListRolesRequ
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(ListRolesResponse)
 	err := c.cc.Invoke(ctx, PlatformService_ListRoles_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *platformServiceClient) CreateRole(ctx context.Context, in *CreateRoleRequest, opts ...grpc.CallOption) (*CreateRoleResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CreateRoleResponse)
+	err := c.cc.Invoke(ctx, PlatformService_CreateRole_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *platformServiceClient) UpdateRole(ctx context.Context, in *UpdateRoleRequest, opts ...grpc.CallOption) (*UpdateRoleResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(UpdateRoleResponse)
+	err := c.cc.Invoke(ctx, PlatformService_UpdateRole_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *platformServiceClient) CopyRole(ctx context.Context, in *CopyRoleRequest, opts ...grpc.CallOption) (*CopyRoleResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CopyRoleResponse)
+	err := c.cc.Invoke(ctx, PlatformService_CopyRole_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -744,6 +780,9 @@ type PlatformServiceServer interface {
 	GetSecurityPolicy(context.Context, *GetSecurityPolicyRequest) (*GetSecurityPolicyResponse, error)
 	UpdateSecurityPolicy(context.Context, *UpdateSecurityPolicyRequest) (*UpdateSecurityPolicyResponse, error)
 	ListRoles(context.Context, *ListRolesRequest) (*ListRolesResponse, error)
+	CreateRole(context.Context, *CreateRoleRequest) (*CreateRoleResponse, error)
+	UpdateRole(context.Context, *UpdateRoleRequest) (*UpdateRoleResponse, error)
+	CopyRole(context.Context, *CopyRoleRequest) (*CopyRoleResponse, error)
 	ListPermissions(context.Context, *ListPermissionsRequest) (*ListPermissionsResponse, error)
 	ListMenus(context.Context, *ListMenusRequest) (*ListMenusResponse, error)
 	UpdateMenu(context.Context, *UpdateMenuRequest) (*UpdateMenuResponse, error)
@@ -852,6 +891,15 @@ func (UnimplementedPlatformServiceServer) UpdateSecurityPolicy(context.Context, 
 }
 func (UnimplementedPlatformServiceServer) ListRoles(context.Context, *ListRolesRequest) (*ListRolesResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ListRoles not implemented")
+}
+func (UnimplementedPlatformServiceServer) CreateRole(context.Context, *CreateRoleRequest) (*CreateRoleResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method CreateRole not implemented")
+}
+func (UnimplementedPlatformServiceServer) UpdateRole(context.Context, *UpdateRoleRequest) (*UpdateRoleResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method UpdateRole not implemented")
+}
+func (UnimplementedPlatformServiceServer) CopyRole(context.Context, *CopyRoleRequest) (*CopyRoleResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method CopyRole not implemented")
 }
 func (UnimplementedPlatformServiceServer) ListPermissions(context.Context, *ListPermissionsRequest) (*ListPermissionsResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ListPermissions not implemented")
@@ -1356,6 +1404,60 @@ func _PlatformService_ListRoles_Handler(srv interface{}, ctx context.Context, de
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(PlatformServiceServer).ListRoles(ctx, req.(*ListRolesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _PlatformService_CreateRole_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CreateRoleRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PlatformServiceServer).CreateRole(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: PlatformService_CreateRole_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PlatformServiceServer).CreateRole(ctx, req.(*CreateRoleRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _PlatformService_UpdateRole_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdateRoleRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PlatformServiceServer).UpdateRole(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: PlatformService_UpdateRole_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PlatformServiceServer).UpdateRole(ctx, req.(*UpdateRoleRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _PlatformService_CopyRole_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CopyRoleRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PlatformServiceServer).CopyRole(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: PlatformService_CopyRole_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PlatformServiceServer).CopyRole(ctx, req.(*CopyRoleRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -2098,6 +2200,18 @@ var PlatformService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ListRoles",
 			Handler:    _PlatformService_ListRoles_Handler,
+		},
+		{
+			MethodName: "CreateRole",
+			Handler:    _PlatformService_CreateRole_Handler,
+		},
+		{
+			MethodName: "UpdateRole",
+			Handler:    _PlatformService_UpdateRole_Handler,
+		},
+		{
+			MethodName: "CopyRole",
+			Handler:    _PlatformService_CopyRole_Handler,
 		},
 		{
 			MethodName: "ListPermissions",

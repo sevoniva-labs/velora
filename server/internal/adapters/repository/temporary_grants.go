@@ -11,7 +11,7 @@ import (
 
 func (r *IdentityRepo) CreateTemporaryRoleGrant(ctx context.Context, grant identity.TemporaryRoleGrant) (identity.TemporaryRoleGrant, error) {
 	var roleID string
-	err := r.db.QueryRowContext(ctx, r.db.Rebind(`SELECT r.id FROM roles r JOIN users u ON u.organization_id=r.organization_id WHERE u.id=? AND u.organization_id=? AND r.role_key=?`), grant.UserID, grant.OrganizationID, grant.RoleKey).Scan(&roleID)
+	err := r.db.QueryRowContext(ctx, r.db.Rebind(`SELECT r.id FROM roles r JOIN users u ON u.organization_id=r.organization_id WHERE u.id=? AND u.organization_id=? AND r.role_key=? AND r.status='ACTIVE'`), grant.UserID, grant.OrganizationID, grant.RoleKey).Scan(&roleID)
 	if err != nil {
 		return identity.TemporaryRoleGrant{}, err
 	}

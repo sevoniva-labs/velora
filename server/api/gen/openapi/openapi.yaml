@@ -1412,6 +1412,55 @@ paths:
             security:
                 - SessionCookie: []
                 - BearerAuth: []
+        post:
+            tags:
+                - PlatformService
+            operationId: PlatformService_CreateRole
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/forge.v1.CreateRoleRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/forge.v1.CreateRoleResponse'
+            security:
+                - SessionCookie: []
+                  CsrfToken: []
+                - BearerAuth: []
+    /api/v1/admin/roles/{roleKey}:
+        patch:
+            tags:
+                - PlatformService
+            operationId: PlatformService_UpdateRole
+            parameters:
+                - name: roleKey
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/forge.v1.UpdateRoleRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/forge.v1.UpdateRoleResponse'
+            security:
+                - SessionCookie: []
+                  CsrfToken: []
+                - BearerAuth: []
     /api/v1/admin/roles/{roleKey}/data-scope:
         put:
             tags:
@@ -1464,6 +1513,34 @@ paths:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/forge.v1.UpdateRolePermissionsResponse'
+            security:
+                - SessionCookie: []
+                  CsrfToken: []
+                - BearerAuth: []
+    /api/v1/admin/roles/{sourceRoleKey}:copy:
+        post:
+            tags:
+                - PlatformService
+            operationId: PlatformService_CopyRole
+            parameters:
+                - name: sourceRoleKey
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/forge.v1.CopyRoleRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/forge.v1.CopyRoleResponse'
             security:
                 - SessionCookie: []
                   CsrfToken: []
@@ -3119,6 +3196,22 @@ components:
                     type: string
                 provisioningFingerprint:
                     type: string
+        forge.v1.CopyRoleRequest:
+            type: object
+            properties:
+                sourceRoleKey:
+                    type: string
+                roleKey:
+                    type: string
+                name:
+                    type: string
+                description:
+                    type: string
+        forge.v1.CopyRoleResponse:
+            type: object
+            properties:
+                role:
+                    $ref: '#/components/schemas/forge.v1.Role'
         forge.v1.CreateAccessReviewRequest:
             type: object
             properties:
@@ -3314,6 +3407,20 @@ components:
             properties:
                 position:
                     $ref: '#/components/schemas/forge.v1.Position'
+        forge.v1.CreateRoleRequest:
+            type: object
+            properties:
+                roleKey:
+                    type: string
+                name:
+                    type: string
+                description:
+                    type: string
+        forge.v1.CreateRoleResponse:
+            type: object
+            properties:
+                role:
+                    $ref: '#/components/schemas/forge.v1.Role'
         forge.v1.CreateTemporaryRoleGrantRequest:
             type: object
             properties:
@@ -4717,6 +4824,8 @@ components:
                     type: array
                     items:
                         type: string
+                status:
+                    type: string
         forge.v1.RollbackConfigChangeRequest:
             type: object
             properties:
@@ -5090,6 +5199,22 @@ components:
                 approvalId:
                     type: string
         forge.v1.UpdateRolePermissionsResponse:
+            type: object
+            properties:
+                role:
+                    $ref: '#/components/schemas/forge.v1.Role'
+        forge.v1.UpdateRoleRequest:
+            type: object
+            properties:
+                roleKey:
+                    type: string
+                name:
+                    type: string
+                description:
+                    type: string
+                status:
+                    type: string
+        forge.v1.UpdateRoleResponse:
             type: object
             properties:
                 role:

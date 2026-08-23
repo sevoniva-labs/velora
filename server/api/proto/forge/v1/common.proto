@@ -124,6 +124,7 @@ message Role {
   string data_scope = 4;
   repeated string permissions = 5;
   repeated string data_scope_department_ids = 6;
+  string status = 7;
 }
 
 message Permission {

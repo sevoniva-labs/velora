@@ -2,6 +2,7 @@ package portal
 
 import (
 	"net/url"
+	"sort"
 	"strings"
 	"time"
 
@@ -50,6 +51,129 @@ type AccessPolicy struct {
 	Value         string
 	CreatedAt     time.Time
 	UpdatedAt     time.Time
+}
+
+const (
+	AccessSubjectEveryone     = "EVERYONE"
+	AccessSubjectDepartment   = "DEPARTMENT"
+	AccessSubjectUserGroup    = "USER_GROUP"
+	AccessSubjectPlatformRole = "PLATFORM_ROLE"
+	AccessSubjectUser         = "USER"
+	AccessEffectAllow         = "ALLOW"
+	AccessEffectExclude       = "EXCLUDE"
+)
+
+type AccessGrant struct {
+	ID, OrganizationID, ApplicationID string
+	SubjectType, SubjectID            string
+	SubjectName                       string
+	IncludeDescendants                bool
+	Effect, Status, Reason            string
+	Roles                             []string
+	ValidFrom, ValidUntil             *time.Time
+	Version                           int64
+	CreatedBy, UpdatedBy              string
+	CreatedAt, UpdatedAt              time.Time
+}
+
+type AccessSubjectProfile struct {
+	UserID, LoginName, DisplayName string
+	Roles, GroupIDs, DepartmentIDs []string
+}
+
+type EffectiveAccess struct {
+	UserID, LoginName, DisplayName string
+	Allowed                        bool
+	Roles, SourceGrantIDs          []string
+}
+
+func ResolveAccessGrants(grants []AccessGrant, profile AccessSubjectProfile, departmentParents map[string]string, now time.Time) EffectiveAccess {
+	result := EffectiveAccess{UserID: profile.UserID, LoginName: profile.LoginName, DisplayName: profile.DisplayName}
+	roleSet := make(map[string]struct{})
+	sourceSet := make(map[string]struct{})
+	excluded := false
+	for _, grant := range grants {
+		if !grantActive(grant, now) || !grantMatches(grant, profile, departmentParents) {
+			continue
+		}
+		if grant.Effect == AccessEffectExclude {
+			excluded = true
+			continue
+		}
+		result.Allowed = true
+		sourceSet[grant.ID] = struct{}{}
+		for _, role := range grant.Roles {
+			if role = strings.TrimSpace(role); role != "" {
+				roleSet[role] = struct{}{}
+			}
+		}
+	}
+	if excluded {
+		result.Allowed = false
+		return result
+	}
+	for role := range roleSet {
+		result.Roles = append(result.Roles, role)
+	}
+	for source := range sourceSet {
+		result.SourceGrantIDs = append(result.SourceGrantIDs, source)
+	}
+	sort.Strings(result.Roles)
+	sort.Strings(result.SourceGrantIDs)
+	return result
+}
+
+func grantActive(grant AccessGrant, now time.Time) bool {
+	if grant.Status != StatusActive {
+		return false
+	}
+	if grant.ValidFrom != nil && now.Before(*grant.ValidFrom) {
+		return false
+	}
+	return grant.ValidUntil == nil || now.Before(*grant.ValidUntil)
+}
+
+func grantMatches(grant AccessGrant, profile AccessSubjectProfile, departmentParents map[string]string) bool {
+	switch grant.SubjectType {
+	case AccessSubjectEveryone:
+		return true
+	case AccessSubjectUser:
+		return grant.SubjectID == profile.UserID
+	case AccessSubjectUserGroup:
+		return contains(profile.GroupIDs, grant.SubjectID)
+	case AccessSubjectPlatformRole:
+		return contains(profile.Roles, grant.SubjectID)
+	case AccessSubjectDepartment:
+		for _, departmentID := range profile.DepartmentIDs {
+			if departmentID == grant.SubjectID || grant.IncludeDescendants && departmentDescendsFrom(departmentID, grant.SubjectID, departmentParents) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func departmentDescendsFrom(departmentID, ancestorID string, parents map[string]string) bool {
+	seen := make(map[string]struct{})
+	for current := parents[departmentID]; current != ""; current = parents[current] {
+		if current == ancestorID {
+			return true
+		}
+		if _, exists := seen[current]; exists {
+			return false
+		}
+		seen[current] = struct{}{}
+	}
+	return false
+}
+
+func contains(values []string, expected string) bool {
+	for _, value := range values {
+		if value == expected {
+			return true
+		}
+	}
+	return false
 }
 
 const (

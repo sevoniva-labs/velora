@@ -115,6 +115,41 @@ export interface UserAssignment {
   validUntil?: string
 }
 
+export interface ApplicationAccessGrant {
+  id: string
+  applicationId: string
+  subjectType: 'EVERYONE' | 'DEPARTMENT' | 'USER_GROUP' | 'PLATFORM_ROLE' | 'USER'
+  subjectId: string
+  subjectName: string
+  includeDescendants: boolean
+  effect: 'ALLOW' | 'EXCLUDE'
+  roles: string[]
+  validFrom?: string
+  validUntil?: string
+  status: 'ACTIVE' | 'DISABLED'
+  reason: string
+  version: number
+  createdAt?: string
+  updatedAt?: string
+}
+
+export interface ApplicationAccessImpact {
+  effectiveUsers: number
+  addedUsers: number
+  revokedUsers: number
+  roleChangedUsers: number
+  privilegedUsers: number
+  provisioningTasks: number
+}
+
+export interface ApplicationEffectiveAccess {
+  userId: string
+  loginName: string
+  displayName: string
+  roles: string[]
+  sourceGrantIds: string[]
+}
+
 export interface Category {
   id: string | number
   code: string

@@ -44,6 +44,7 @@ const UserCenter = lazyWithReload(() => import('./pages/UserCenter'))
 
 const AdminDashboard = lazyWithReload(() => import('./pages/admin/Dashboard'))
 const AdminApplications = lazyWithReload(() => import('./pages/admin/Applications'))
+const AdminApplicationManagement = lazyWithReload(() => import('./pages/admin/ApplicationManagement'))
 const AdminCategories = lazyWithReload(() => import('./pages/admin/Categories'))
 const AdminTags = lazyWithReload(() => import('./pages/admin/Tags'))
 const AdminPolicies = lazyWithReload(() => import('./pages/admin/Policies'))
@@ -97,6 +98,7 @@ export const router = createBrowserRouter([
     children: [
       { index: true, element: <AdminDashboard /> },
       { path: 'applications', element: <AdminApplications /> },
+      { path: 'applications/:id', element: <AdminApplicationManagement /> },
       { path: 'categories', element: <AdminCategories /> },
       { path: 'tags', element: <AdminTags /> },
       { path: 'policies', element: <AdminPolicies /> },

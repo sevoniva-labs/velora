@@ -79,7 +79,9 @@ func (s *Service) ListApplications(ctx context.Context, principal domain.Princip
 	access := portaldomain.AccessContext{Principal: principal, Groups: groups}
 	out := make([]portaldomain.Application, 0, len(items))
 	for _, item := range items {
-		if portaldomain.CanAccess(item, access) {
+		if allowed, accessErr := s.canAccess(ctx, item, access); accessErr != nil {
+			return nil, accessErr
+		} else if allowed {
 			out = append(out, item)
 		}
 	}
@@ -98,7 +100,11 @@ func (s *Service) GetApplication(ctx context.Context, principal domain.Principal
 	if err != nil {
 		return portaldomain.Application{}, err
 	}
-	if !portaldomain.CanAccess(item, portaldomain.AccessContext{Principal: principal, Groups: groups}) {
+	allowed, err := s.canAccess(ctx, item, portaldomain.AccessContext{Principal: principal, Groups: groups})
+	if err != nil {
+		return portaldomain.Application{}, err
+	}
+	if !allowed {
 		return portaldomain.Application{}, ErrAccessDenied
 	}
 	return item, nil
@@ -139,7 +145,9 @@ func (s *Service) ListFavorites(ctx context.Context, principal domain.Principal,
 	access := portaldomain.AccessContext{Principal: principal, Groups: groups}
 	out := make([]portaldomain.Application, 0, len(items))
 	for _, item := range items {
-		if portaldomain.CanAccess(item, access) {
+		if allowed, accessErr := s.canAccess(ctx, item, access); accessErr != nil {
+			return nil, accessErr
+		} else if allowed {
 			out = append(out, item)
 		}
 	}
@@ -178,11 +186,27 @@ func (s *Service) ListRecent(ctx context.Context, principal domain.Principal, li
 	access := portaldomain.AccessContext{Principal: principal, Groups: groups}
 	out := make([]portaldomain.Application, 0, len(items))
 	for _, item := range items {
-		if portaldomain.CanAccess(item, access) {
+		if allowed, accessErr := s.canAccess(ctx, item, access); accessErr != nil {
+			return nil, accessErr
+		} else if allowed {
 			out = append(out, item)
 		}
 	}
 	return out, nil
+}
+
+func (s *Service) canAccess(ctx context.Context, app portaldomain.Application, access portaldomain.AccessContext) (bool, error) {
+	if app.OrganizationID == "" || access.Principal.OrganizationID != app.OrganizationID || app.Status != portaldomain.StatusEnabled || app.LifecycleStatus != "" && app.LifecycleStatus != portaldomain.LifecyclePublished {
+		return false, nil
+	}
+	resolved, configured, err := s.repo.ResolveApplicationAccess(ctx, app.OrganizationID, app.ID, access.Principal.UserID)
+	if err != nil {
+		return false, err
+	}
+	if configured {
+		return resolved.Allowed, nil
+	}
+	return portaldomain.CanAccess(app, access), nil
 }
 
 func (s *Service) AdminListApplications(ctx context.Context, principal domain.Principal, limit int) ([]portaldomain.Application, error) {
@@ -517,6 +541,66 @@ func (s *Service) ReplacePolicies(ctx context.Context, principal domain.Principa
 		return nil, ErrNotFound
 	}
 	return items, err
+}
+
+func (s *Service) ListAccessGrants(ctx context.Context, principal domain.Principal, appID string) ([]portaldomain.AccessGrant, error) {
+	if _, err := s.repo.GetApplication(ctx, principal.OrganizationID, principal.UserID, strings.TrimSpace(appID), true); errors.Is(err, sql.ErrNoRows) {
+		return nil, ErrNotFound
+	} else if err != nil {
+		return nil, err
+	}
+	return s.repo.ListAccessGrants(ctx, principal.OrganizationID, strings.TrimSpace(appID))
+}
+
+func (s *Service) PreviewAccessGrants(ctx context.Context, principal domain.Principal, appID string, grants []portaldomain.AccessGrant) (repository.AccessImpactPreview, []portaldomain.EffectiveAccess, error) {
+	if err := normalizeAccessGrants(grants); err != nil {
+		return repository.AccessImpactPreview{}, nil, err
+	}
+	preview, effective, err := s.repo.PreviewAccessGrants(ctx, principal.OrganizationID, strings.TrimSpace(appID), grants)
+	if errors.Is(err, sql.ErrNoRows) {
+		return repository.AccessImpactPreview{}, nil, ErrNotFound
+	}
+	return preview, effective, err
+}
+
+func (s *Service) ReplaceAccessGrants(ctx context.Context, principal domain.Principal, appID string, grants []portaldomain.AccessGrant) ([]portaldomain.AccessGrant, repository.AccessImpactPreview, error) {
+	if err := normalizeAccessGrants(grants); err != nil {
+		return nil, repository.AccessImpactPreview{}, err
+	}
+	items, preview, err := s.repo.ReplaceAccessGrants(ctx, principal.OrganizationID, principal.UserID, strings.TrimSpace(appID), s.allowedOIDCIssuer, grants)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, repository.AccessImpactPreview{}, ErrNotFound
+	}
+	return items, preview, err
+}
+
+func (s *Service) ListEffectiveAccess(ctx context.Context, principal domain.Principal, appID string) ([]portaldomain.EffectiveAccess, error) {
+	grants, err := s.ListAccessGrants(ctx, principal, appID)
+	if err != nil {
+		return nil, err
+	}
+	_, effective, err := s.repo.PreviewAccessGrants(ctx, principal.OrganizationID, strings.TrimSpace(appID), grants)
+	return effective, err
+}
+
+func normalizeAccessGrants(grants []portaldomain.AccessGrant) error {
+	for i := range grants {
+		grants[i].SubjectType = strings.ToUpper(strings.TrimSpace(grants[i].SubjectType))
+		grants[i].SubjectID = strings.TrimSpace(grants[i].SubjectID)
+		grants[i].Effect = strings.ToUpper(strings.TrimSpace(grants[i].Effect))
+		grants[i].Status = strings.ToUpper(strings.TrimSpace(grants[i].Status))
+		grants[i].Reason = strings.TrimSpace(grants[i].Reason)
+		if grants[i].Status == "" {
+			grants[i].Status = portaldomain.StatusActive
+		}
+		if grants[i].Effect == "" {
+			grants[i].Effect = portaldomain.AccessEffectAllow
+		}
+		if len(grants[i].Reason) > 500 {
+			return ErrInvalid
+		}
+	}
+	return nil
 }
 
 func (s *Service) ListApplicationRoles(ctx context.Context, principal domain.Principal, appID string) ([]portaldomain.ApplicationRole, error) {

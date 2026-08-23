@@ -1,5 +1,5 @@
 import { apiFetch } from './client'
-import type { AdminSession, AdminUser, Department, PlatformPermission, PlatformRole, Position, UserAssignment, UserGroup } from '../types'
+import type { AdminSession, AdminUser, ApplicationAccessGrant, ApplicationAccessImpact, ApplicationEffectiveAccess, Department, PlatformPermission, PlatformRole, Position, UserAssignment, UserGroup } from '../types'
 
 export type DepartmentInput = Pick<Department, 'name' | 'parentId' | 'status' | 'sortOrder'> & { departmentKey?: string }
 export type PositionInput = Pick<Position, 'name' | 'description' | 'departmentId' | 'status' | 'sortOrder'> & { positionKey?: string }
@@ -92,4 +92,20 @@ export function replaceUserAssignments(userId: string, assignments: UserAssignme
 export async function updateUserRoles(userId: string, roles: string[]): Promise<AdminUser> {
   const data = await apiFetch<{ user: AdminUser }>(`/admin/users/${encodeURIComponent(userId)}/roles`, { method: 'PATCH', body: { roles } })
   return data.user
+}
+
+export async function listApplicationAccessGrants(applicationId: string): Promise<ApplicationAccessGrant[]> {
+  return (await apiFetch<{ grants?: ApplicationAccessGrant[] }>(`/admin/portal/applications/${encodeURIComponent(applicationId)}/access-grants`)).grants ?? []
+}
+
+export async function previewApplicationAccessGrants(applicationId: string, grants: ApplicationAccessGrant[]): Promise<{ impact: ApplicationAccessImpact; effectiveAccess: ApplicationEffectiveAccess[] }> {
+  return apiFetch(`/admin/portal/applications/${encodeURIComponent(applicationId)}/access-grants:preview`, { method: 'POST', body: { grants } })
+}
+
+export async function replaceApplicationAccessGrants(applicationId: string, grants: ApplicationAccessGrant[], approvalId?: string): Promise<{ grants: ApplicationAccessGrant[]; impact: ApplicationAccessImpact }> {
+  return apiFetch(`/admin/portal/applications/${encodeURIComponent(applicationId)}/access-grants`, { method: 'PUT', body: { grants, approvalId: approvalId ?? '' } })
+}
+
+export async function listApplicationEffectiveAccess(applicationId: string): Promise<ApplicationEffectiveAccess[]> {
+  return (await apiFetch<{ effectiveAccess?: ApplicationEffectiveAccess[] }>(`/admin/portal/applications/${encodeURIComponent(applicationId)}/effective-access`)).effectiveAccess ?? []
 }

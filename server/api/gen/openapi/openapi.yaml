@@ -755,6 +755,82 @@ paths:
                 - SessionCookie: []
                   CsrfToken: []
                 - BearerAuth: []
+    /api/v1/admin/portal/applications/{applicationId}/access-grants:
+        get:
+            tags:
+                - PortalService
+            operationId: PortalService_ListPortalApplicationAccessGrants
+            parameters:
+                - name: applicationId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/forge.v1.ListPortalApplicationAccessGrantsResponse'
+            security:
+                - SessionCookie: []
+                - BearerAuth: []
+        put:
+            tags:
+                - PortalService
+            operationId: PortalService_ReplacePortalApplicationAccessGrants
+            parameters:
+                - name: applicationId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/forge.v1.ReplacePortalApplicationAccessGrantsRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/forge.v1.ReplacePortalApplicationAccessGrantsResponse'
+            security:
+                - SessionCookie: []
+                  CsrfToken: []
+                - BearerAuth: []
+    /api/v1/admin/portal/applications/{applicationId}/access-grants:preview:
+        post:
+            tags:
+                - PortalService
+            operationId: PortalService_PreviewPortalApplicationAccessGrants
+            parameters:
+                - name: applicationId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/forge.v1.PreviewPortalApplicationAccessGrantsRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/forge.v1.PreviewPortalApplicationAccessGrantsResponse'
+            security:
+                - SessionCookie: []
+                  CsrfToken: []
+                - BearerAuth: []
     /api/v1/admin/portal/applications/{applicationId}/credential-approval:
         post:
             tags:
@@ -809,6 +885,27 @@ paths:
             security:
                 - SessionCookie: []
                   CsrfToken: []
+                - BearerAuth: []
+    /api/v1/admin/portal/applications/{applicationId}/effective-access:
+        get:
+            tags:
+                - PortalService
+            operationId: PortalService_ListPortalApplicationEffectiveAccess
+            parameters:
+                - name: applicationId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/forge.v1.ListPortalApplicationEffectiveAccessResponse'
+            security:
+                - SessionCookie: []
                 - BearerAuth: []
     /api/v1/admin/portal/applications/{applicationId}/identity-binding:
         put:
@@ -3715,6 +3812,20 @@ components:
                     type: array
                     items:
                         $ref: '#/components/schemas/forge.v1.Permission'
+        forge.v1.ListPortalApplicationAccessGrantsResponse:
+            type: object
+            properties:
+                grants:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/forge.v1.PortalApplicationAccessGrant'
+        forge.v1.ListPortalApplicationEffectiveAccessResponse:
+            type: object
+            properties:
+                effectiveAccess:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/forge.v1.PortalApplicationEffectiveAccess'
         forge.v1.ListPortalApplicationRolesResponse:
             type: object
             properties:
@@ -4003,6 +4114,77 @@ components:
                     format: date-time
                 publishedBy:
                     type: string
+        forge.v1.PortalApplicationAccessGrant:
+            type: object
+            properties:
+                id:
+                    type: string
+                applicationId:
+                    type: string
+                subjectType:
+                    type: string
+                subjectId:
+                    type: string
+                subjectName:
+                    type: string
+                includeDescendants:
+                    type: boolean
+                effect:
+                    type: string
+                roles:
+                    type: array
+                    items:
+                        type: string
+                validFrom:
+                    type: string
+                    format: date-time
+                validUntil:
+                    type: string
+                    format: date-time
+                status:
+                    type: string
+                reason:
+                    type: string
+                version:
+                    type: string
+                createdAt:
+                    type: string
+                    format: date-time
+                updatedAt:
+                    type: string
+                    format: date-time
+        forge.v1.PortalApplicationAccessImpact:
+            type: object
+            properties:
+                effectiveUsers:
+                    type: string
+                addedUsers:
+                    type: string
+                revokedUsers:
+                    type: string
+                roleChangedUsers:
+                    type: string
+                privilegedUsers:
+                    type: string
+                provisioningTasks:
+                    type: string
+        forge.v1.PortalApplicationEffectiveAccess:
+            type: object
+            properties:
+                userId:
+                    type: string
+                loginName:
+                    type: string
+                displayName:
+                    type: string
+                roles:
+                    type: array
+                    items:
+                        type: string
+                sourceGrantIds:
+                    type: array
+                    items:
+                        type: string
         forge.v1.PortalApplicationOnboardingCheck:
             type: object
             properties:
@@ -4280,6 +4462,24 @@ components:
                     type: array
                     items:
                         type: string
+        forge.v1.PreviewPortalApplicationAccessGrantsRequest:
+            type: object
+            properties:
+                applicationId:
+                    type: string
+                grants:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/forge.v1.PortalApplicationAccessGrant'
+        forge.v1.PreviewPortalApplicationAccessGrantsResponse:
+            type: object
+            properties:
+                impact:
+                    $ref: '#/components/schemas/forge.v1.PortalApplicationAccessImpact'
+                effectiveAccess:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/forge.v1.PortalApplicationEffectiveAccess'
         forge.v1.PublishApplicationRequest:
             type: object
             properties:
@@ -4341,6 +4541,26 @@ components:
         forge.v1.RemovePortalFavoriteResponse:
             type: object
             properties: {}
+        forge.v1.ReplacePortalApplicationAccessGrantsRequest:
+            type: object
+            properties:
+                applicationId:
+                    type: string
+                grants:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/forge.v1.PortalApplicationAccessGrant'
+                approvalId:
+                    type: string
+        forge.v1.ReplacePortalApplicationAccessGrantsResponse:
+            type: object
+            properties:
+                grants:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/forge.v1.PortalApplicationAccessGrant'
+                impact:
+                    $ref: '#/components/schemas/forge.v1.PortalApplicationAccessImpact'
         forge.v1.ReplacePortalApplicationPoliciesRequest:
             type: object
             properties:

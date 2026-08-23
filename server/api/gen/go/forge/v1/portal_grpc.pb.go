@@ -40,6 +40,10 @@ const (
 	PortalService_UpdatePortalTag_FullMethodName                           = "/forge.v1.PortalService/UpdatePortalTag"
 	PortalService_DeletePortalTag_FullMethodName                           = "/forge.v1.PortalService/DeletePortalTag"
 	PortalService_ReplacePortalApplicationPolicies_FullMethodName          = "/forge.v1.PortalService/ReplacePortalApplicationPolicies"
+	PortalService_ListPortalApplicationAccessGrants_FullMethodName         = "/forge.v1.PortalService/ListPortalApplicationAccessGrants"
+	PortalService_PreviewPortalApplicationAccessGrants_FullMethodName      = "/forge.v1.PortalService/PreviewPortalApplicationAccessGrants"
+	PortalService_ReplacePortalApplicationAccessGrants_FullMethodName      = "/forge.v1.PortalService/ReplacePortalApplicationAccessGrants"
+	PortalService_ListPortalApplicationEffectiveAccess_FullMethodName      = "/forge.v1.PortalService/ListPortalApplicationEffectiveAccess"
 	PortalService_ListPortalApplicationRoles_FullMethodName                = "/forge.v1.PortalService/ListPortalApplicationRoles"
 	PortalService_ReplacePortalApplicationRoles_FullMethodName             = "/forge.v1.PortalService/ReplacePortalApplicationRoles"
 	PortalService_GetPortalApplicationProvisioningTarget_FullMethodName    = "/forge.v1.PortalService/GetPortalApplicationProvisioningTarget"
@@ -82,6 +86,10 @@ type PortalServiceClient interface {
 	UpdatePortalTag(ctx context.Context, in *UpdatePortalTagRequest, opts ...grpc.CallOption) (*UpdatePortalTagResponse, error)
 	DeletePortalTag(ctx context.Context, in *DeletePortalTagRequest, opts ...grpc.CallOption) (*DeletePortalTagResponse, error)
 	ReplacePortalApplicationPolicies(ctx context.Context, in *ReplacePortalApplicationPoliciesRequest, opts ...grpc.CallOption) (*ReplacePortalApplicationPoliciesResponse, error)
+	ListPortalApplicationAccessGrants(ctx context.Context, in *ListPortalApplicationAccessGrantsRequest, opts ...grpc.CallOption) (*ListPortalApplicationAccessGrantsResponse, error)
+	PreviewPortalApplicationAccessGrants(ctx context.Context, in *PreviewPortalApplicationAccessGrantsRequest, opts ...grpc.CallOption) (*PreviewPortalApplicationAccessGrantsResponse, error)
+	ReplacePortalApplicationAccessGrants(ctx context.Context, in *ReplacePortalApplicationAccessGrantsRequest, opts ...grpc.CallOption) (*ReplacePortalApplicationAccessGrantsResponse, error)
+	ListPortalApplicationEffectiveAccess(ctx context.Context, in *ListPortalApplicationEffectiveAccessRequest, opts ...grpc.CallOption) (*ListPortalApplicationEffectiveAccessResponse, error)
 	ListPortalApplicationRoles(ctx context.Context, in *ListPortalApplicationRolesRequest, opts ...grpc.CallOption) (*ListPortalApplicationRolesResponse, error)
 	ReplacePortalApplicationRoles(ctx context.Context, in *ReplacePortalApplicationRolesRequest, opts ...grpc.CallOption) (*ReplacePortalApplicationRolesResponse, error)
 	GetPortalApplicationProvisioningTarget(ctx context.Context, in *GetPortalApplicationProvisioningTargetRequest, opts ...grpc.CallOption) (*GetPortalApplicationProvisioningTargetResponse, error)
@@ -317,6 +325,46 @@ func (c *portalServiceClient) ReplacePortalApplicationPolicies(ctx context.Conte
 	return out, nil
 }
 
+func (c *portalServiceClient) ListPortalApplicationAccessGrants(ctx context.Context, in *ListPortalApplicationAccessGrantsRequest, opts ...grpc.CallOption) (*ListPortalApplicationAccessGrantsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListPortalApplicationAccessGrantsResponse)
+	err := c.cc.Invoke(ctx, PortalService_ListPortalApplicationAccessGrants_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *portalServiceClient) PreviewPortalApplicationAccessGrants(ctx context.Context, in *PreviewPortalApplicationAccessGrantsRequest, opts ...grpc.CallOption) (*PreviewPortalApplicationAccessGrantsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(PreviewPortalApplicationAccessGrantsResponse)
+	err := c.cc.Invoke(ctx, PortalService_PreviewPortalApplicationAccessGrants_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *portalServiceClient) ReplacePortalApplicationAccessGrants(ctx context.Context, in *ReplacePortalApplicationAccessGrantsRequest, opts ...grpc.CallOption) (*ReplacePortalApplicationAccessGrantsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ReplacePortalApplicationAccessGrantsResponse)
+	err := c.cc.Invoke(ctx, PortalService_ReplacePortalApplicationAccessGrants_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *portalServiceClient) ListPortalApplicationEffectiveAccess(ctx context.Context, in *ListPortalApplicationEffectiveAccessRequest, opts ...grpc.CallOption) (*ListPortalApplicationEffectiveAccessResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListPortalApplicationEffectiveAccessResponse)
+	err := c.cc.Invoke(ctx, PortalService_ListPortalApplicationEffectiveAccess_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *portalServiceClient) ListPortalApplicationRoles(ctx context.Context, in *ListPortalApplicationRolesRequest, opts ...grpc.CallOption) (*ListPortalApplicationRolesResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(ListPortalApplicationRolesResponse)
@@ -492,6 +540,10 @@ type PortalServiceServer interface {
 	UpdatePortalTag(context.Context, *UpdatePortalTagRequest) (*UpdatePortalTagResponse, error)
 	DeletePortalTag(context.Context, *DeletePortalTagRequest) (*DeletePortalTagResponse, error)
 	ReplacePortalApplicationPolicies(context.Context, *ReplacePortalApplicationPoliciesRequest) (*ReplacePortalApplicationPoliciesResponse, error)
+	ListPortalApplicationAccessGrants(context.Context, *ListPortalApplicationAccessGrantsRequest) (*ListPortalApplicationAccessGrantsResponse, error)
+	PreviewPortalApplicationAccessGrants(context.Context, *PreviewPortalApplicationAccessGrantsRequest) (*PreviewPortalApplicationAccessGrantsResponse, error)
+	ReplacePortalApplicationAccessGrants(context.Context, *ReplacePortalApplicationAccessGrantsRequest) (*ReplacePortalApplicationAccessGrantsResponse, error)
+	ListPortalApplicationEffectiveAccess(context.Context, *ListPortalApplicationEffectiveAccessRequest) (*ListPortalApplicationEffectiveAccessResponse, error)
 	ListPortalApplicationRoles(context.Context, *ListPortalApplicationRolesRequest) (*ListPortalApplicationRolesResponse, error)
 	ReplacePortalApplicationRoles(context.Context, *ReplacePortalApplicationRolesRequest) (*ReplacePortalApplicationRolesResponse, error)
 	GetPortalApplicationProvisioningTarget(context.Context, *GetPortalApplicationProvisioningTargetRequest) (*GetPortalApplicationProvisioningTargetResponse, error)
@@ -579,6 +631,18 @@ func (UnimplementedPortalServiceServer) DeletePortalTag(context.Context, *Delete
 }
 func (UnimplementedPortalServiceServer) ReplacePortalApplicationPolicies(context.Context, *ReplacePortalApplicationPoliciesRequest) (*ReplacePortalApplicationPoliciesResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ReplacePortalApplicationPolicies not implemented")
+}
+func (UnimplementedPortalServiceServer) ListPortalApplicationAccessGrants(context.Context, *ListPortalApplicationAccessGrantsRequest) (*ListPortalApplicationAccessGrantsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListPortalApplicationAccessGrants not implemented")
+}
+func (UnimplementedPortalServiceServer) PreviewPortalApplicationAccessGrants(context.Context, *PreviewPortalApplicationAccessGrantsRequest) (*PreviewPortalApplicationAccessGrantsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method PreviewPortalApplicationAccessGrants not implemented")
+}
+func (UnimplementedPortalServiceServer) ReplacePortalApplicationAccessGrants(context.Context, *ReplacePortalApplicationAccessGrantsRequest) (*ReplacePortalApplicationAccessGrantsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ReplacePortalApplicationAccessGrants not implemented")
+}
+func (UnimplementedPortalServiceServer) ListPortalApplicationEffectiveAccess(context.Context, *ListPortalApplicationEffectiveAccessRequest) (*ListPortalApplicationEffectiveAccessResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListPortalApplicationEffectiveAccess not implemented")
 }
 func (UnimplementedPortalServiceServer) ListPortalApplicationRoles(context.Context, *ListPortalApplicationRolesRequest) (*ListPortalApplicationRolesResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ListPortalApplicationRoles not implemented")
@@ -1024,6 +1088,78 @@ func _PortalService_ReplacePortalApplicationPolicies_Handler(srv interface{}, ct
 	return interceptor(ctx, in, info, handler)
 }
 
+func _PortalService_ListPortalApplicationAccessGrants_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListPortalApplicationAccessGrantsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PortalServiceServer).ListPortalApplicationAccessGrants(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: PortalService_ListPortalApplicationAccessGrants_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PortalServiceServer).ListPortalApplicationAccessGrants(ctx, req.(*ListPortalApplicationAccessGrantsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _PortalService_PreviewPortalApplicationAccessGrants_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(PreviewPortalApplicationAccessGrantsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PortalServiceServer).PreviewPortalApplicationAccessGrants(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: PortalService_PreviewPortalApplicationAccessGrants_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PortalServiceServer).PreviewPortalApplicationAccessGrants(ctx, req.(*PreviewPortalApplicationAccessGrantsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _PortalService_ReplacePortalApplicationAccessGrants_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ReplacePortalApplicationAccessGrantsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PortalServiceServer).ReplacePortalApplicationAccessGrants(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: PortalService_ReplacePortalApplicationAccessGrants_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PortalServiceServer).ReplacePortalApplicationAccessGrants(ctx, req.(*ReplacePortalApplicationAccessGrantsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _PortalService_ListPortalApplicationEffectiveAccess_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListPortalApplicationEffectiveAccessRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PortalServiceServer).ListPortalApplicationEffectiveAccess(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: PortalService_ListPortalApplicationEffectiveAccess_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PortalServiceServer).ListPortalApplicationEffectiveAccess(ctx, req.(*ListPortalApplicationEffectiveAccessRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _PortalService_ListPortalApplicationRoles_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(ListPortalApplicationRolesRequest)
 	if err := dec(in); err != nil {
@@ -1384,6 +1520,22 @@ var PortalService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ReplacePortalApplicationPolicies",
 			Handler:    _PortalService_ReplacePortalApplicationPolicies_Handler,
+		},
+		{
+			MethodName: "ListPortalApplicationAccessGrants",
+			Handler:    _PortalService_ListPortalApplicationAccessGrants_Handler,
+		},
+		{
+			MethodName: "PreviewPortalApplicationAccessGrants",
+			Handler:    _PortalService_PreviewPortalApplicationAccessGrants_Handler,
+		},
+		{
+			MethodName: "ReplacePortalApplicationAccessGrants",
+			Handler:    _PortalService_ReplacePortalApplicationAccessGrants_Handler,
+		},
+		{
+			MethodName: "ListPortalApplicationEffectiveAccess",
+			Handler:    _PortalService_ListPortalApplicationEffectiveAccess_Handler,
 		},
 		{
 			MethodName: "ListPortalApplicationRoles",

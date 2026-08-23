@@ -533,6 +533,83 @@ func (s *PortalService) ReplacePortalApplicationPolicies(ctx context.Context, re
 	return response.(*forgev1.ReplacePortalApplicationPoliciesResponse), nil
 }
 
+func (s *PortalService) ListPortalApplicationAccessGrants(ctx context.Context, req *forgev1.ListPortalApplicationAccessGrantsRequest) (*forgev1.ListPortalApplicationAccessGrantsResponse, error) {
+	principal, err := requiredPrincipal(ctx)
+	if err != nil {
+		return nil, err
+	}
+	items, err := s.portal.ListAccessGrants(ctx, principal, req.GetApplicationId())
+	if err != nil {
+		return nil, serviceError(err)
+	}
+	return &forgev1.ListPortalApplicationAccessGrantsResponse{Grants: accessGrantsProto(items)}, nil
+}
+
+func (s *PortalService) PreviewPortalApplicationAccessGrants(ctx context.Context, req *forgev1.PreviewPortalApplicationAccessGrantsRequest) (*forgev1.PreviewPortalApplicationAccessGrantsResponse, error) {
+	principal, err := requiredPrincipal(ctx)
+	if err != nil {
+		return nil, err
+	}
+	impact, effective, err := s.portal.PreviewAccessGrants(ctx, principal, req.GetApplicationId(), accessGrantsDomain(req.GetGrants()))
+	if err != nil {
+		return nil, serviceError(err)
+	}
+	return &forgev1.PreviewPortalApplicationAccessGrantsResponse{Impact: accessImpactProto(impact), EffectiveAccess: effectiveAccessProto(effective)}, nil
+}
+
+func (s *PortalService) ReplacePortalApplicationAccessGrants(ctx context.Context, req *forgev1.ReplacePortalApplicationAccessGrantsRequest) (*forgev1.ReplacePortalApplicationAccessGrantsResponse, error) {
+	principal, err := requiredPrincipal(ctx)
+	if err != nil {
+		return nil, err
+	}
+	grants := accessGrantsDomain(req.GetGrants())
+	impact, _, err := s.portal.PreviewAccessGrants(ctx, principal, req.GetApplicationId(), grants)
+	if err != nil {
+		return nil, serviceError(err)
+	}
+	payload, err := json.Marshal(map[string]any{"application_id": req.GetApplicationId(), "grants": grants})
+	if err != nil {
+		return nil, internalError(err)
+	}
+	response, err := s.idempotent(ctx, principal, "portal.application.access_grants.replace", req, func() proto.Message { return &forgev1.ReplacePortalApplicationAccessGrantsResponse{} }, func() (proto.Message, error) {
+		var out []portaldomain.AccessGrant
+		var applied repository.AccessImpactPreview
+		event := newAuditEvent(ctx, principal, "portal.application.access_grants.replace", "portal_application", req.GetApplicationId(), map[string]any{"effective_users": impact.EffectiveUsers, "added_users": impact.AddedUsers, "revoked_users": impact.RevokedUsers, "role_changed_users": impact.RoleChangedUsers, "privileged_users": impact.PrivilegedUsers, "approval_id": req.GetApprovalId()})
+		if err := s.audited(ctx, event, func(txCtx context.Context) error {
+			if impact.PrivilegedUsers > 0 || impact.ProvisioningTasks >= 50 {
+				if s.approval == nil {
+					return approvalapp.ErrApprovalRequired
+				}
+				if approvalErr := s.approval.AuthorizeExecution(txCtx, principal, req.GetApprovalId(), approvalapp.ExecutionInput{RequestType: "APPLICATION_ACCESS_CHANGE", Action: "portal.application.access_grants.replace", Resource: "portal_application", ResourceID: req.GetApplicationId(), PayloadJSON: string(payload)}); approvalErr != nil {
+					return approvalErr
+				}
+			}
+			var replaceErr error
+			out, applied, replaceErr = s.portal.ReplaceAccessGrants(txCtx, principal, req.GetApplicationId(), grants)
+			return replaceErr
+		}); err != nil {
+			return nil, serviceError(err)
+		}
+		return &forgev1.ReplacePortalApplicationAccessGrantsResponse{Grants: accessGrantsProto(out), Impact: accessImpactProto(applied)}, nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return response.(*forgev1.ReplacePortalApplicationAccessGrantsResponse), nil
+}
+
+func (s *PortalService) ListPortalApplicationEffectiveAccess(ctx context.Context, req *forgev1.ListPortalApplicationEffectiveAccessRequest) (*forgev1.ListPortalApplicationEffectiveAccessResponse, error) {
+	principal, err := requiredPrincipal(ctx)
+	if err != nil {
+		return nil, err
+	}
+	items, err := s.portal.ListEffectiveAccess(ctx, principal, req.GetApplicationId())
+	if err != nil {
+		return nil, serviceError(err)
+	}
+	return &forgev1.ListPortalApplicationEffectiveAccessResponse{EffectiveAccess: effectiveAccessProto(items)}, nil
+}
+
 func (s *PortalService) ListPortalApplicationRoles(ctx context.Context, req *forgev1.ListPortalApplicationRolesRequest) (*forgev1.ListPortalApplicationRolesResponse, error) {
 	principal, err := requiredPrincipal(ctx)
 	if err != nil {
@@ -1420,6 +1497,48 @@ func portalPoliciesProto(items []portaldomain.AccessPolicy) []*forgev1.PortalAcc
 		out = append(out, &forgev1.PortalAccessPolicy{Id: item.ID, ApplicationId: item.ApplicationID, PolicyType: item.Type, Value: item.Value, CreatedAt: timestamp(item.CreatedAt), UpdatedAt: timestamp(item.UpdatedAt)})
 	}
 	return out
+}
+
+func accessGrantsDomain(items []*forgev1.PortalApplicationAccessGrant) []portaldomain.AccessGrant {
+	out := make([]portaldomain.AccessGrant, 0, len(items))
+	for _, item := range items {
+		if item == nil {
+			continue
+		}
+		out = append(out, portaldomain.AccessGrant{ID: item.GetId(), ApplicationID: item.GetApplicationId(), SubjectType: item.GetSubjectType(), SubjectID: item.GetSubjectId(), IncludeDescendants: item.GetIncludeDescendants(), Effect: item.GetEffect(), Roles: append([]string(nil), item.GetRoles()...), ValidFrom: protoOptionalTime(item.GetValidFrom()), ValidUntil: protoOptionalTime(item.GetValidUntil()), Status: item.GetStatus(), Reason: item.GetReason(), Version: item.GetVersion()})
+	}
+	return out
+}
+
+func accessGrantsProto(items []portaldomain.AccessGrant) []*forgev1.PortalApplicationAccessGrant {
+	out := make([]*forgev1.PortalApplicationAccessGrant, 0, len(items))
+	for _, item := range items {
+		out = append(out, &forgev1.PortalApplicationAccessGrant{Id: item.ID, ApplicationId: item.ApplicationID, SubjectType: item.SubjectType, SubjectId: item.SubjectID, SubjectName: item.SubjectName, IncludeDescendants: item.IncludeDescendants, Effect: item.Effect, Roles: item.Roles, ValidFrom: optionalTimestamp(item.ValidFrom), ValidUntil: optionalTimestamp(item.ValidUntil), Status: item.Status, Reason: item.Reason, Version: item.Version, CreatedAt: timestamp(item.CreatedAt), UpdatedAt: timestamp(item.UpdatedAt)})
+	}
+	return out
+}
+
+func effectiveAccessProto(items []portaldomain.EffectiveAccess) []*forgev1.PortalApplicationEffectiveAccess {
+	out := make([]*forgev1.PortalApplicationEffectiveAccess, 0, len(items))
+	for _, item := range items {
+		out = append(out, &forgev1.PortalApplicationEffectiveAccess{UserId: item.UserID, LoginName: item.LoginName, DisplayName: item.DisplayName, Roles: item.Roles, SourceGrantIds: item.SourceGrantIDs})
+	}
+	return out
+}
+
+func accessImpactProto(item repository.AccessImpactPreview) *forgev1.PortalApplicationAccessImpact {
+	return &forgev1.PortalApplicationAccessImpact{EffectiveUsers: item.EffectiveUsers, AddedUsers: item.AddedUsers, RevokedUsers: item.RevokedUsers, RoleChangedUsers: item.RoleChangedUsers, PrivilegedUsers: item.PrivilegedUsers, ProvisioningTasks: item.ProvisioningTasks}
+}
+
+func protoOptionalTime(value interface {
+	AsTime() time.Time
+	IsValid() bool
+}) *time.Time {
+	if value == nil || !value.IsValid() {
+		return nil
+	}
+	result := value.AsTime().UTC()
+	return &result
 }
 
 func portalApplicationRolesProto(items []portaldomain.ApplicationRole) []*forgev1.PortalApplicationRole {

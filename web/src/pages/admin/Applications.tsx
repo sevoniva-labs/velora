@@ -248,8 +248,8 @@ export default function AdminApplications() {
             width: 180,
             render: (_, app) => (
               <Space>
-                <Button type="link" size="small" onClick={() => navigate(`/admin/identity?application=${encodeURIComponent(String(app.id))}`)}>
-                  接入配置
+                <Button type="link" size="small" onClick={() => navigate(`/admin/applications/${encodeURIComponent(String(app.id))}`)}>
+                  管理
                 </Button>
                 <Button type="link" size="small" onClick={() => openEdit(app)}>
                   编辑

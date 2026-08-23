@@ -73,6 +73,8 @@ CSRF_REQUIRED = {
     ("patch", "/api/v1/admin/portal/tags/{tag_id}"),
     ("delete", "/api/v1/admin/portal/tags/{tag_id}"),
     ("put", "/api/v1/admin/portal/applications/{application_id}/policies"),
+    ("post", "/api/v1/admin/portal/applications/{application_id}/access-grants:preview"),
+    ("put", "/api/v1/admin/portal/applications/{application_id}/access-grants"),
     ("put", "/api/v1/admin/portal/applications/{application_id}/roles"),
     ("put", "/api/v1/admin/portal/applications/{application_id}/provisioning-target"),
     ("post", "/api/v1/admin/portal/applications/{application_id}/credential-approval"),

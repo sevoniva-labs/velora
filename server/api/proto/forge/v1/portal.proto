@@ -93,6 +93,22 @@ service PortalService {
     option (google.api.http) = {put: "/api/v1/admin/portal/applications/{application_id}/policies" body: "*"};
     option (openapi.v3.operation) = {security: [{additional_properties: [{name: "SessionCookie" value: {value: []}}, {name: "CsrfToken" value: {value: []}}]}, {additional_properties: [{name: "BearerAuth" value: {value: []}}]}]};
   }
+  rpc ListPortalApplicationAccessGrants(ListPortalApplicationAccessGrantsRequest) returns (ListPortalApplicationAccessGrantsResponse) {
+    option (google.api.http) = {get: "/api/v1/admin/portal/applications/{application_id}/access-grants"};
+    option (openapi.v3.operation) = {security: [{additional_properties: [{name: "SessionCookie" value: {value: []}}]}, {additional_properties: [{name: "BearerAuth" value: {value: []}}]}]};
+  }
+  rpc PreviewPortalApplicationAccessGrants(PreviewPortalApplicationAccessGrantsRequest) returns (PreviewPortalApplicationAccessGrantsResponse) {
+    option (google.api.http) = {post: "/api/v1/admin/portal/applications/{application_id}/access-grants:preview" body: "*"};
+    option (openapi.v3.operation) = {security: [{additional_properties: [{name: "SessionCookie" value: {value: []}}, {name: "CsrfToken" value: {value: []}}]}, {additional_properties: [{name: "BearerAuth" value: {value: []}}]}]};
+  }
+  rpc ReplacePortalApplicationAccessGrants(ReplacePortalApplicationAccessGrantsRequest) returns (ReplacePortalApplicationAccessGrantsResponse) {
+    option (google.api.http) = {put: "/api/v1/admin/portal/applications/{application_id}/access-grants" body: "*"};
+    option (openapi.v3.operation) = {security: [{additional_properties: [{name: "SessionCookie" value: {value: []}}, {name: "CsrfToken" value: {value: []}}]}, {additional_properties: [{name: "BearerAuth" value: {value: []}}]}]};
+  }
+  rpc ListPortalApplicationEffectiveAccess(ListPortalApplicationEffectiveAccessRequest) returns (ListPortalApplicationEffectiveAccessResponse) {
+    option (google.api.http) = {get: "/api/v1/admin/portal/applications/{application_id}/effective-access"};
+    option (openapi.v3.operation) = {security: [{additional_properties: [{name: "SessionCookie" value: {value: []}}]}, {additional_properties: [{name: "BearerAuth" value: {value: []}}]}]};
+  }
   rpc ListPortalApplicationRoles(ListPortalApplicationRolesRequest) returns (ListPortalApplicationRolesResponse) {
     option (google.api.http) = {get: "/api/v1/admin/portal/applications/{application_id}/roles"};
     option (openapi.v3.operation) = {security: [{additional_properties: [{name: "SessionCookie" value: {value: []}}]}, {additional_properties: [{name: "BearerAuth" value: {value: []}}]}]};
@@ -211,6 +227,38 @@ message PortalAccessPolicy {
   google.protobuf.Timestamp created_at = 5;
   google.protobuf.Timestamp updated_at = 6;
 }
+message PortalApplicationAccessGrant {
+  string id = 1;
+  string application_id = 2;
+  string subject_type = 3;
+  string subject_id = 4;
+  string subject_name = 5;
+  bool include_descendants = 6;
+  string effect = 7;
+  repeated string roles = 8;
+  google.protobuf.Timestamp valid_from = 9;
+  google.protobuf.Timestamp valid_until = 10;
+  string status = 11;
+  string reason = 12;
+  int64 version = 13;
+  google.protobuf.Timestamp created_at = 14;
+  google.protobuf.Timestamp updated_at = 15;
+}
+message PortalApplicationEffectiveAccess {
+  string user_id = 1;
+  string login_name = 2;
+  string display_name = 3;
+  repeated string roles = 4;
+  repeated string source_grant_ids = 5;
+}
+message PortalApplicationAccessImpact {
+  int64 effective_users = 1;
+  int64 added_users = 2;
+  int64 revoked_users = 3;
+  int64 role_changed_users = 4;
+  int64 privileged_users = 5;
+  int64 provisioning_tasks = 6;
+}
 message PortalApplicationRole {
   string id = 1;
   string application_id = 2;
@@ -323,6 +371,14 @@ message DeletePortalTagRequest { string tag_id = 1; }
 message DeletePortalTagResponse {}
 message ReplacePortalApplicationPoliciesRequest { string application_id = 1; repeated PortalAccessPolicy policies = 2; }
 message ReplacePortalApplicationPoliciesResponse { repeated PortalAccessPolicy policies = 1; }
+message ListPortalApplicationAccessGrantsRequest { string application_id = 1; }
+message ListPortalApplicationAccessGrantsResponse { repeated PortalApplicationAccessGrant grants = 1; }
+message PreviewPortalApplicationAccessGrantsRequest { string application_id = 1; repeated PortalApplicationAccessGrant grants = 2; }
+message PreviewPortalApplicationAccessGrantsResponse { PortalApplicationAccessImpact impact = 1; repeated PortalApplicationEffectiveAccess effective_access = 2; }
+message ReplacePortalApplicationAccessGrantsRequest { string application_id = 1; repeated PortalApplicationAccessGrant grants = 2; string approval_id = 3; }
+message ReplacePortalApplicationAccessGrantsResponse { repeated PortalApplicationAccessGrant grants = 1; PortalApplicationAccessImpact impact = 2; }
+message ListPortalApplicationEffectiveAccessRequest { string application_id = 1; }
+message ListPortalApplicationEffectiveAccessResponse { repeated PortalApplicationEffectiveAccess effective_access = 1; }
 message ListPortalApplicationRolesRequest { string application_id = 1; }
 message ListPortalApplicationRolesResponse { repeated PortalApplicationRole roles = 1; }
 message ReplacePortalApplicationRolesRequest { string application_id = 1; repeated PortalApplicationRole roles = 2; }

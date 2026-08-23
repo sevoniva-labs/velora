@@ -72,6 +72,26 @@ type ApplicationRole struct {
 	UpdatedAt      time.Time
 }
 
+type ProvisioningTarget struct {
+	ID                 string
+	OrganizationID     string
+	ApplicationID      string
+	EndpointURL        string
+	SigningAlgorithm   string
+	SecretRef          string
+	SecretFingerprint  string
+	ActiveKeyVersion   int64
+	PreviousKeyVersion *int64
+	PreviousValidUntil *time.Time
+	DeliveryStatus     string
+	LastSuccessAt      *time.Time
+	LastFailureAt      *time.Time
+	LastErrorCode      string
+	ConfigVersion      int64
+	CreatedAt          time.Time
+	UpdatedAt          time.Time
+}
+
 type Application struct {
 	ID              string
 	OrganizationID  string

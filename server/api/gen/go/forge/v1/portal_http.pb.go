@@ -32,6 +32,7 @@ const OperationPortalServiceGetApplicationOnboarding = "/forge.v1.PortalService/
 const OperationPortalServiceGetIdentityConsoleLink = "/forge.v1.PortalService/GetIdentityConsoleLink"
 const OperationPortalServiceGetIdentityOverview = "/forge.v1.PortalService/GetIdentityOverview"
 const OperationPortalServiceGetPortalApplication = "/forge.v1.PortalService/GetPortalApplication"
+const OperationPortalServiceGetPortalApplicationProvisioningTarget = "/forge.v1.PortalService/GetPortalApplicationProvisioningTarget"
 const OperationPortalServiceLaunchPortalApplication = "/forge.v1.PortalService/LaunchPortalApplication"
 const OperationPortalServiceListAdminPortalApplications = "/forge.v1.PortalService/ListAdminPortalApplications"
 const OperationPortalServiceListPortalApplicationRoles = "/forge.v1.PortalService/ListPortalApplicationRoles"
@@ -49,6 +50,7 @@ const OperationPortalServiceUpdatePortalApplication = "/forge.v1.PortalService/U
 const OperationPortalServiceUpdatePortalCategory = "/forge.v1.PortalService/UpdatePortalCategory"
 const OperationPortalServiceUpdatePortalTag = "/forge.v1.PortalService/UpdatePortalTag"
 const OperationPortalServiceUpsertApplicationIdentityBinding = "/forge.v1.PortalService/UpsertApplicationIdentityBinding"
+const OperationPortalServiceUpsertPortalApplicationProvisioningTarget = "/forge.v1.PortalService/UpsertPortalApplicationProvisioningTarget"
 const OperationPortalServiceVerifyApplicationIdentity = "/forge.v1.PortalService/VerifyApplicationIdentity"
 
 type PortalServiceHTTPServer interface {
@@ -65,6 +67,7 @@ type PortalServiceHTTPServer interface {
 	GetIdentityConsoleLink(context.Context, *GetIdentityConsoleLinkRequest) (*GetIdentityConsoleLinkResponse, error)
 	GetIdentityOverview(context.Context, *GetIdentityOverviewRequest) (*GetIdentityOverviewResponse, error)
 	GetPortalApplication(context.Context, *GetPortalApplicationRequest) (*GetPortalApplicationResponse, error)
+	GetPortalApplicationProvisioningTarget(context.Context, *GetPortalApplicationProvisioningTargetRequest) (*GetPortalApplicationProvisioningTargetResponse, error)
 	LaunchPortalApplication(context.Context, *LaunchPortalApplicationRequest) (*LaunchPortalApplicationResponse, error)
 	ListAdminPortalApplications(context.Context, *ListAdminPortalApplicationsRequest) (*ListAdminPortalApplicationsResponse, error)
 	ListPortalApplicationRoles(context.Context, *ListPortalApplicationRolesRequest) (*ListPortalApplicationRolesResponse, error)
@@ -82,6 +85,7 @@ type PortalServiceHTTPServer interface {
 	UpdatePortalCategory(context.Context, *UpdatePortalCategoryRequest) (*UpdatePortalCategoryResponse, error)
 	UpdatePortalTag(context.Context, *UpdatePortalTagRequest) (*UpdatePortalTagResponse, error)
 	UpsertApplicationIdentityBinding(context.Context, *UpsertApplicationIdentityBindingRequest) (*UpsertApplicationIdentityBindingResponse, error)
+	UpsertPortalApplicationProvisioningTarget(context.Context, *UpsertPortalApplicationProvisioningTargetRequest) (*UpsertPortalApplicationProvisioningTargetResponse, error)
 	VerifyApplicationIdentity(context.Context, *VerifyApplicationIdentityRequest) (*VerifyApplicationIdentityResponse, error)
 }
 
@@ -110,6 +114,8 @@ func RegisterPortalServiceHTTPServer(s *http.Server, srv PortalServiceHTTPServer
 	r.PUT("/api/v1/admin/portal/applications/{application_id}/policies", _PortalService_ReplacePortalApplicationPolicies0_HTTP_Handler(srv))
 	r.GET("/api/v1/admin/portal/applications/{application_id}/roles", _PortalService_ListPortalApplicationRoles0_HTTP_Handler(srv))
 	r.PUT("/api/v1/admin/portal/applications/{application_id}/roles", _PortalService_ReplacePortalApplicationRoles0_HTTP_Handler(srv))
+	r.GET("/api/v1/admin/portal/applications/{application_id}/provisioning-target", _PortalService_GetPortalApplicationProvisioningTarget0_HTTP_Handler(srv))
+	r.PUT("/api/v1/admin/portal/applications/{application_id}/provisioning-target", _PortalService_UpsertPortalApplicationProvisioningTarget0_HTTP_Handler(srv))
 	r.GET("/api/v1/admin/identity/overview", _PortalService_GetIdentityOverview0_HTTP_Handler(srv))
 	r.GET("/api/v1/admin/identity/console-link", _PortalService_GetIdentityConsoleLink0_HTTP_Handler(srv))
 	r.GET("/api/v1/admin/portal/applications/{application_id}/onboarding", _PortalService_GetApplicationOnboarding0_HTTP_Handler(srv))
@@ -626,6 +632,53 @@ func _PortalService_ReplacePortalApplicationRoles0_HTTP_Handler(srv PortalServic
 	}
 }
 
+func _PortalService_GetPortalApplicationProvisioningTarget0_HTTP_Handler(srv PortalServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in GetPortalApplicationProvisioningTargetRequest
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindVars(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationPortalServiceGetPortalApplicationProvisioningTarget)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.GetPortalApplicationProvisioningTarget(ctx, req.(*GetPortalApplicationProvisioningTargetRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*GetPortalApplicationProvisioningTargetResponse)
+		return ctx.Result(200, reply)
+	}
+}
+
+func _PortalService_UpsertPortalApplicationProvisioningTarget0_HTTP_Handler(srv PortalServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in UpsertPortalApplicationProvisioningTargetRequest
+		if err := ctx.Bind(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindVars(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationPortalServiceUpsertPortalApplicationProvisioningTarget)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.UpsertPortalApplicationProvisioningTarget(ctx, req.(*UpsertPortalApplicationProvisioningTargetRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*UpsertPortalApplicationProvisioningTargetResponse)
+		return ctx.Result(200, reply)
+	}
+}
+
 func _PortalService_GetIdentityOverview0_HTTP_Handler(srv PortalServiceHTTPServer) func(ctx http.Context) error {
 	return func(ctx http.Context) error {
 		var in GetIdentityOverviewRequest
@@ -825,6 +878,7 @@ type PortalServiceHTTPClient interface {
 	GetIdentityConsoleLink(ctx context.Context, req *GetIdentityConsoleLinkRequest, opts ...http.CallOption) (rsp *GetIdentityConsoleLinkResponse, err error)
 	GetIdentityOverview(ctx context.Context, req *GetIdentityOverviewRequest, opts ...http.CallOption) (rsp *GetIdentityOverviewResponse, err error)
 	GetPortalApplication(ctx context.Context, req *GetPortalApplicationRequest, opts ...http.CallOption) (rsp *GetPortalApplicationResponse, err error)
+	GetPortalApplicationProvisioningTarget(ctx context.Context, req *GetPortalApplicationProvisioningTargetRequest, opts ...http.CallOption) (rsp *GetPortalApplicationProvisioningTargetResponse, err error)
 	LaunchPortalApplication(ctx context.Context, req *LaunchPortalApplicationRequest, opts ...http.CallOption) (rsp *LaunchPortalApplicationResponse, err error)
 	ListAdminPortalApplications(ctx context.Context, req *ListAdminPortalApplicationsRequest, opts ...http.CallOption) (rsp *ListAdminPortalApplicationsResponse, err error)
 	ListPortalApplicationRoles(ctx context.Context, req *ListPortalApplicationRolesRequest, opts ...http.CallOption) (rsp *ListPortalApplicationRolesResponse, err error)
@@ -842,6 +896,7 @@ type PortalServiceHTTPClient interface {
 	UpdatePortalCategory(ctx context.Context, req *UpdatePortalCategoryRequest, opts ...http.CallOption) (rsp *UpdatePortalCategoryResponse, err error)
 	UpdatePortalTag(ctx context.Context, req *UpdatePortalTagRequest, opts ...http.CallOption) (rsp *UpdatePortalTagResponse, err error)
 	UpsertApplicationIdentityBinding(ctx context.Context, req *UpsertApplicationIdentityBindingRequest, opts ...http.CallOption) (rsp *UpsertApplicationIdentityBindingResponse, err error)
+	UpsertPortalApplicationProvisioningTarget(ctx context.Context, req *UpsertPortalApplicationProvisioningTargetRequest, opts ...http.CallOption) (rsp *UpsertPortalApplicationProvisioningTargetResponse, err error)
 	VerifyApplicationIdentity(ctx context.Context, req *VerifyApplicationIdentityRequest, opts ...http.CallOption) (rsp *VerifyApplicationIdentityResponse, err error)
 }
 
@@ -1014,6 +1069,19 @@ func (c *PortalServiceHTTPClientImpl) GetPortalApplication(ctx context.Context, 
 	pattern := "/api/v1/portal/applications/{application_id}"
 	path := binding.EncodeURL(pattern, in, true)
 	opts = append(opts, http.Operation(OperationPortalServiceGetPortalApplication))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "GET", path, nil, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+func (c *PortalServiceHTTPClientImpl) GetPortalApplicationProvisioningTarget(ctx context.Context, in *GetPortalApplicationProvisioningTargetRequest, opts ...http.CallOption) (*GetPortalApplicationProvisioningTargetResponse, error) {
+	var out GetPortalApplicationProvisioningTargetResponse
+	pattern := "/api/v1/admin/portal/applications/{application_id}/provisioning-target"
+	path := binding.EncodeURL(pattern, in, true)
+	opts = append(opts, http.Operation(OperationPortalServiceGetPortalApplicationProvisioningTarget))
 	opts = append(opts, http.PathTemplate(pattern))
 	err := c.cc.Invoke(ctx, "GET", path, nil, &out, opts...)
 	if err != nil {
@@ -1235,6 +1303,19 @@ func (c *PortalServiceHTTPClientImpl) UpsertApplicationIdentityBinding(ctx conte
 	pattern := "/api/v1/admin/portal/applications/{application_id}/identity-binding"
 	path := binding.EncodeURL(pattern, in, false)
 	opts = append(opts, http.Operation(OperationPortalServiceUpsertApplicationIdentityBinding))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "PUT", path, in, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+func (c *PortalServiceHTTPClientImpl) UpsertPortalApplicationProvisioningTarget(ctx context.Context, in *UpsertPortalApplicationProvisioningTargetRequest, opts ...http.CallOption) (*UpsertPortalApplicationProvisioningTargetResponse, error) {
+	var out UpsertPortalApplicationProvisioningTargetResponse
+	pattern := "/api/v1/admin/portal/applications/{application_id}/provisioning-target"
+	path := binding.EncodeURL(pattern, in, false)
+	opts = append(opts, http.Operation(OperationPortalServiceUpsertPortalApplicationProvisioningTarget))
 	opts = append(opts, http.PathTemplate(pattern))
 	err := c.cc.Invoke(ctx, "PUT", path, in, &out, opts...)
 	if err != nil {

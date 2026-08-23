@@ -19,37 +19,39 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	PortalService_AuthorizePortalApplication_FullMethodName       = "/forge.v1.PortalService/AuthorizePortalApplication"
-	PortalService_ListPortalApplications_FullMethodName           = "/forge.v1.PortalService/ListPortalApplications"
-	PortalService_GetPortalApplication_FullMethodName             = "/forge.v1.PortalService/GetPortalApplication"
-	PortalService_LaunchPortalApplication_FullMethodName          = "/forge.v1.PortalService/LaunchPortalApplication"
-	PortalService_ListPortalFavorites_FullMethodName              = "/forge.v1.PortalService/ListPortalFavorites"
-	PortalService_AddPortalFavorite_FullMethodName                = "/forge.v1.PortalService/AddPortalFavorite"
-	PortalService_RemovePortalFavorite_FullMethodName             = "/forge.v1.PortalService/RemovePortalFavorite"
-	PortalService_ListRecentPortalApplications_FullMethodName     = "/forge.v1.PortalService/ListRecentPortalApplications"
-	PortalService_ListPortalCategories_FullMethodName             = "/forge.v1.PortalService/ListPortalCategories"
-	PortalService_ListPortalTags_FullMethodName                   = "/forge.v1.PortalService/ListPortalTags"
-	PortalService_ListAdminPortalApplications_FullMethodName      = "/forge.v1.PortalService/ListAdminPortalApplications"
-	PortalService_CreatePortalApplication_FullMethodName          = "/forge.v1.PortalService/CreatePortalApplication"
-	PortalService_UpdatePortalApplication_FullMethodName          = "/forge.v1.PortalService/UpdatePortalApplication"
-	PortalService_DeletePortalApplication_FullMethodName          = "/forge.v1.PortalService/DeletePortalApplication"
-	PortalService_CreatePortalCategory_FullMethodName             = "/forge.v1.PortalService/CreatePortalCategory"
-	PortalService_UpdatePortalCategory_FullMethodName             = "/forge.v1.PortalService/UpdatePortalCategory"
-	PortalService_DeletePortalCategory_FullMethodName             = "/forge.v1.PortalService/DeletePortalCategory"
-	PortalService_CreatePortalTag_FullMethodName                  = "/forge.v1.PortalService/CreatePortalTag"
-	PortalService_UpdatePortalTag_FullMethodName                  = "/forge.v1.PortalService/UpdatePortalTag"
-	PortalService_DeletePortalTag_FullMethodName                  = "/forge.v1.PortalService/DeletePortalTag"
-	PortalService_ReplacePortalApplicationPolicies_FullMethodName = "/forge.v1.PortalService/ReplacePortalApplicationPolicies"
-	PortalService_ListPortalApplicationRoles_FullMethodName       = "/forge.v1.PortalService/ListPortalApplicationRoles"
-	PortalService_ReplacePortalApplicationRoles_FullMethodName    = "/forge.v1.PortalService/ReplacePortalApplicationRoles"
-	PortalService_GetIdentityOverview_FullMethodName              = "/forge.v1.PortalService/GetIdentityOverview"
-	PortalService_GetIdentityConsoleLink_FullMethodName           = "/forge.v1.PortalService/GetIdentityConsoleLink"
-	PortalService_GetApplicationOnboarding_FullMethodName         = "/forge.v1.PortalService/GetApplicationOnboarding"
-	PortalService_UpsertApplicationIdentityBinding_FullMethodName = "/forge.v1.PortalService/UpsertApplicationIdentityBinding"
-	PortalService_VerifyApplicationIdentity_FullMethodName        = "/forge.v1.PortalService/VerifyApplicationIdentity"
-	PortalService_SubmitApplicationPublish_FullMethodName         = "/forge.v1.PortalService/SubmitApplicationPublish"
-	PortalService_PublishApplication_FullMethodName               = "/forge.v1.PortalService/PublishApplication"
-	PortalService_DisableApplication_FullMethodName               = "/forge.v1.PortalService/DisableApplication"
+	PortalService_AuthorizePortalApplication_FullMethodName                = "/forge.v1.PortalService/AuthorizePortalApplication"
+	PortalService_ListPortalApplications_FullMethodName                    = "/forge.v1.PortalService/ListPortalApplications"
+	PortalService_GetPortalApplication_FullMethodName                      = "/forge.v1.PortalService/GetPortalApplication"
+	PortalService_LaunchPortalApplication_FullMethodName                   = "/forge.v1.PortalService/LaunchPortalApplication"
+	PortalService_ListPortalFavorites_FullMethodName                       = "/forge.v1.PortalService/ListPortalFavorites"
+	PortalService_AddPortalFavorite_FullMethodName                         = "/forge.v1.PortalService/AddPortalFavorite"
+	PortalService_RemovePortalFavorite_FullMethodName                      = "/forge.v1.PortalService/RemovePortalFavorite"
+	PortalService_ListRecentPortalApplications_FullMethodName              = "/forge.v1.PortalService/ListRecentPortalApplications"
+	PortalService_ListPortalCategories_FullMethodName                      = "/forge.v1.PortalService/ListPortalCategories"
+	PortalService_ListPortalTags_FullMethodName                            = "/forge.v1.PortalService/ListPortalTags"
+	PortalService_ListAdminPortalApplications_FullMethodName               = "/forge.v1.PortalService/ListAdminPortalApplications"
+	PortalService_CreatePortalApplication_FullMethodName                   = "/forge.v1.PortalService/CreatePortalApplication"
+	PortalService_UpdatePortalApplication_FullMethodName                   = "/forge.v1.PortalService/UpdatePortalApplication"
+	PortalService_DeletePortalApplication_FullMethodName                   = "/forge.v1.PortalService/DeletePortalApplication"
+	PortalService_CreatePortalCategory_FullMethodName                      = "/forge.v1.PortalService/CreatePortalCategory"
+	PortalService_UpdatePortalCategory_FullMethodName                      = "/forge.v1.PortalService/UpdatePortalCategory"
+	PortalService_DeletePortalCategory_FullMethodName                      = "/forge.v1.PortalService/DeletePortalCategory"
+	PortalService_CreatePortalTag_FullMethodName                           = "/forge.v1.PortalService/CreatePortalTag"
+	PortalService_UpdatePortalTag_FullMethodName                           = "/forge.v1.PortalService/UpdatePortalTag"
+	PortalService_DeletePortalTag_FullMethodName                           = "/forge.v1.PortalService/DeletePortalTag"
+	PortalService_ReplacePortalApplicationPolicies_FullMethodName          = "/forge.v1.PortalService/ReplacePortalApplicationPolicies"
+	PortalService_ListPortalApplicationRoles_FullMethodName                = "/forge.v1.PortalService/ListPortalApplicationRoles"
+	PortalService_ReplacePortalApplicationRoles_FullMethodName             = "/forge.v1.PortalService/ReplacePortalApplicationRoles"
+	PortalService_GetPortalApplicationProvisioningTarget_FullMethodName    = "/forge.v1.PortalService/GetPortalApplicationProvisioningTarget"
+	PortalService_UpsertPortalApplicationProvisioningTarget_FullMethodName = "/forge.v1.PortalService/UpsertPortalApplicationProvisioningTarget"
+	PortalService_GetIdentityOverview_FullMethodName                       = "/forge.v1.PortalService/GetIdentityOverview"
+	PortalService_GetIdentityConsoleLink_FullMethodName                    = "/forge.v1.PortalService/GetIdentityConsoleLink"
+	PortalService_GetApplicationOnboarding_FullMethodName                  = "/forge.v1.PortalService/GetApplicationOnboarding"
+	PortalService_UpsertApplicationIdentityBinding_FullMethodName          = "/forge.v1.PortalService/UpsertApplicationIdentityBinding"
+	PortalService_VerifyApplicationIdentity_FullMethodName                 = "/forge.v1.PortalService/VerifyApplicationIdentity"
+	PortalService_SubmitApplicationPublish_FullMethodName                  = "/forge.v1.PortalService/SubmitApplicationPublish"
+	PortalService_PublishApplication_FullMethodName                        = "/forge.v1.PortalService/PublishApplication"
+	PortalService_DisableApplication_FullMethodName                        = "/forge.v1.PortalService/DisableApplication"
 )
 
 // PortalServiceClient is the client API for PortalService service.
@@ -79,6 +81,8 @@ type PortalServiceClient interface {
 	ReplacePortalApplicationPolicies(ctx context.Context, in *ReplacePortalApplicationPoliciesRequest, opts ...grpc.CallOption) (*ReplacePortalApplicationPoliciesResponse, error)
 	ListPortalApplicationRoles(ctx context.Context, in *ListPortalApplicationRolesRequest, opts ...grpc.CallOption) (*ListPortalApplicationRolesResponse, error)
 	ReplacePortalApplicationRoles(ctx context.Context, in *ReplacePortalApplicationRolesRequest, opts ...grpc.CallOption) (*ReplacePortalApplicationRolesResponse, error)
+	GetPortalApplicationProvisioningTarget(ctx context.Context, in *GetPortalApplicationProvisioningTargetRequest, opts ...grpc.CallOption) (*GetPortalApplicationProvisioningTargetResponse, error)
+	UpsertPortalApplicationProvisioningTarget(ctx context.Context, in *UpsertPortalApplicationProvisioningTargetRequest, opts ...grpc.CallOption) (*UpsertPortalApplicationProvisioningTargetResponse, error)
 	GetIdentityOverview(ctx context.Context, in *GetIdentityOverviewRequest, opts ...grpc.CallOption) (*GetIdentityOverviewResponse, error)
 	GetIdentityConsoleLink(ctx context.Context, in *GetIdentityConsoleLinkRequest, opts ...grpc.CallOption) (*GetIdentityConsoleLinkResponse, error)
 	GetApplicationOnboarding(ctx context.Context, in *GetApplicationOnboardingRequest, opts ...grpc.CallOption) (*GetApplicationOnboardingResponse, error)
@@ -327,6 +331,26 @@ func (c *portalServiceClient) ReplacePortalApplicationRoles(ctx context.Context,
 	return out, nil
 }
 
+func (c *portalServiceClient) GetPortalApplicationProvisioningTarget(ctx context.Context, in *GetPortalApplicationProvisioningTargetRequest, opts ...grpc.CallOption) (*GetPortalApplicationProvisioningTargetResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetPortalApplicationProvisioningTargetResponse)
+	err := c.cc.Invoke(ctx, PortalService_GetPortalApplicationProvisioningTarget_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *portalServiceClient) UpsertPortalApplicationProvisioningTarget(ctx context.Context, in *UpsertPortalApplicationProvisioningTargetRequest, opts ...grpc.CallOption) (*UpsertPortalApplicationProvisioningTargetResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(UpsertPortalApplicationProvisioningTargetResponse)
+	err := c.cc.Invoke(ctx, PortalService_UpsertPortalApplicationProvisioningTarget_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *portalServiceClient) GetIdentityOverview(ctx context.Context, in *GetIdentityOverviewRequest, opts ...grpc.CallOption) (*GetIdentityOverviewResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(GetIdentityOverviewResponse)
@@ -434,6 +458,8 @@ type PortalServiceServer interface {
 	ReplacePortalApplicationPolicies(context.Context, *ReplacePortalApplicationPoliciesRequest) (*ReplacePortalApplicationPoliciesResponse, error)
 	ListPortalApplicationRoles(context.Context, *ListPortalApplicationRolesRequest) (*ListPortalApplicationRolesResponse, error)
 	ReplacePortalApplicationRoles(context.Context, *ReplacePortalApplicationRolesRequest) (*ReplacePortalApplicationRolesResponse, error)
+	GetPortalApplicationProvisioningTarget(context.Context, *GetPortalApplicationProvisioningTargetRequest) (*GetPortalApplicationProvisioningTargetResponse, error)
+	UpsertPortalApplicationProvisioningTarget(context.Context, *UpsertPortalApplicationProvisioningTargetRequest) (*UpsertPortalApplicationProvisioningTargetResponse, error)
 	GetIdentityOverview(context.Context, *GetIdentityOverviewRequest) (*GetIdentityOverviewResponse, error)
 	GetIdentityConsoleLink(context.Context, *GetIdentityConsoleLinkRequest) (*GetIdentityConsoleLinkResponse, error)
 	GetApplicationOnboarding(context.Context, *GetApplicationOnboardingRequest) (*GetApplicationOnboardingResponse, error)
@@ -520,6 +546,12 @@ func (UnimplementedPortalServiceServer) ListPortalApplicationRoles(context.Conte
 }
 func (UnimplementedPortalServiceServer) ReplacePortalApplicationRoles(context.Context, *ReplacePortalApplicationRolesRequest) (*ReplacePortalApplicationRolesResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ReplacePortalApplicationRoles not implemented")
+}
+func (UnimplementedPortalServiceServer) GetPortalApplicationProvisioningTarget(context.Context, *GetPortalApplicationProvisioningTargetRequest) (*GetPortalApplicationProvisioningTargetResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetPortalApplicationProvisioningTarget not implemented")
+}
+func (UnimplementedPortalServiceServer) UpsertPortalApplicationProvisioningTarget(context.Context, *UpsertPortalApplicationProvisioningTargetRequest) (*UpsertPortalApplicationProvisioningTargetResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method UpsertPortalApplicationProvisioningTarget not implemented")
 }
 func (UnimplementedPortalServiceServer) GetIdentityOverview(context.Context, *GetIdentityOverviewRequest) (*GetIdentityOverviewResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetIdentityOverview not implemented")
@@ -980,6 +1012,42 @@ func _PortalService_ReplacePortalApplicationRoles_Handler(srv interface{}, ctx c
 	return interceptor(ctx, in, info, handler)
 }
 
+func _PortalService_GetPortalApplicationProvisioningTarget_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetPortalApplicationProvisioningTargetRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PortalServiceServer).GetPortalApplicationProvisioningTarget(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: PortalService_GetPortalApplicationProvisioningTarget_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PortalServiceServer).GetPortalApplicationProvisioningTarget(ctx, req.(*GetPortalApplicationProvisioningTargetRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _PortalService_UpsertPortalApplicationProvisioningTarget_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpsertPortalApplicationProvisioningTargetRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PortalServiceServer).UpsertPortalApplicationProvisioningTarget(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: PortalService_UpsertPortalApplicationProvisioningTarget_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PortalServiceServer).UpsertPortalApplicationProvisioningTarget(ctx, req.(*UpsertPortalApplicationProvisioningTargetRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _PortalService_GetIdentityOverview_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(GetIdentityOverviewRequest)
 	if err := dec(in); err != nil {
@@ -1222,6 +1290,14 @@ var PortalService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ReplacePortalApplicationRoles",
 			Handler:    _PortalService_ReplacePortalApplicationRoles_Handler,
+		},
+		{
+			MethodName: "GetPortalApplicationProvisioningTarget",
+			Handler:    _PortalService_GetPortalApplicationProvisioningTarget_Handler,
+		},
+		{
+			MethodName: "UpsertPortalApplicationProvisioningTarget",
+			Handler:    _PortalService_UpsertPortalApplicationProvisioningTarget_Handler,
 		},
 		{
 			MethodName: "GetIdentityOverview",

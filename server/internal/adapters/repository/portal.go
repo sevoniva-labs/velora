@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -489,6 +490,62 @@ func (r *PortalRepo) ReplaceApplicationRoles(ctx context.Context, orgID, applica
 		return nil, err
 	}
 	return r.ListApplicationRoles(ctx, orgID, applicationID)
+}
+
+func (r *PortalRepo) GetProvisioningTarget(ctx context.Context, orgID, applicationID string) (portaldomain.ProvisioningTarget, error) {
+	var item portaldomain.ProvisioningTarget
+	var previousVersion sql.NullInt64
+	var previousUntil, lastSuccess, lastFailure sql.NullTime
+	err := r.db.QueryRowContext(ctx, r.db.Rebind(`SELECT id,organization_id,application_id,endpoint_url,signing_algorithm,secret_ref,secret_fingerprint,active_key_version,previous_key_version,previous_valid_until,delivery_status,last_success_at,last_failure_at,last_error_code,config_version,created_at,updated_at FROM portal_application_provisioning_targets WHERE organization_id=? AND application_id=?`), orgID, applicationID).Scan(&item.ID, &item.OrganizationID, &item.ApplicationID, &item.EndpointURL, &item.SigningAlgorithm, &item.SecretRef, &item.SecretFingerprint, &item.ActiveKeyVersion, &previousVersion, &previousUntil, &item.DeliveryStatus, &lastSuccess, &lastFailure, &item.LastErrorCode, &item.ConfigVersion, &item.CreatedAt, &item.UpdatedAt)
+	if previousVersion.Valid {
+		value := previousVersion.Int64
+		item.PreviousKeyVersion = &value
+	}
+	if previousUntil.Valid {
+		value := previousUntil.Time
+		item.PreviousValidUntil = &value
+	}
+	if lastSuccess.Valid {
+		value := lastSuccess.Time
+		item.LastSuccessAt = &value
+	}
+	if lastFailure.Valid {
+		value := lastFailure.Time
+		item.LastFailureAt = &value
+	}
+	return item, err
+}
+
+func (r *PortalRepo) UpsertProvisioningTarget(ctx context.Context, target portaldomain.ProvisioningTarget, expectedVersion int64) (portaldomain.ProvisioningTarget, error) {
+	now := time.Now().UTC()
+	existing, err := r.GetProvisioningTarget(ctx, target.OrganizationID, target.ApplicationID)
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+		return portaldomain.ProvisioningTarget{}, err
+	}
+	if errors.Is(err, sql.ErrNoRows) {
+		target.ID = uuid.NewString()
+		target.ConfigVersion = 1
+		target.CreatedAt, target.UpdatedAt = now, now
+		_, err = r.db.ExecContext(ctx, r.db.Rebind(`INSERT INTO portal_application_provisioning_targets(id,organization_id,application_id,endpoint_url,signing_algorithm,secret_ref,secret_fingerprint,active_key_version,previous_key_version,previous_valid_until,delivery_status,last_error_code,config_version,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`), target.ID, target.OrganizationID, target.ApplicationID, target.EndpointURL, target.SigningAlgorithm, target.SecretRef, target.SecretFingerprint, target.ActiveKeyVersion, nil, nil, target.DeliveryStatus, target.LastErrorCode, target.ConfigVersion, now, now)
+		if err != nil {
+			return portaldomain.ProvisioningTarget{}, err
+		}
+		return r.GetProvisioningTarget(ctx, target.OrganizationID, target.ApplicationID)
+	}
+	if expectedVersion <= 0 || existing.ConfigVersion != expectedVersion {
+		return portaldomain.ProvisioningTarget{}, portaldomain.ErrOptimisticConflict
+	}
+	res, err := r.db.ExecContext(ctx, r.db.Rebind(`UPDATE portal_application_provisioning_targets SET endpoint_url=?,secret_ref=?,secret_fingerprint=?,active_key_version=?,previous_key_version=?,previous_valid_until=?,delivery_status=?,last_error_code='',config_version=config_version+1,updated_at=? WHERE organization_id=? AND application_id=? AND config_version=?`), target.EndpointURL, target.SecretRef, target.SecretFingerprint, target.ActiveKeyVersion, target.PreviousKeyVersion, target.PreviousValidUntil, target.DeliveryStatus, now, target.OrganizationID, target.ApplicationID, expectedVersion)
+	if err != nil {
+		return portaldomain.ProvisioningTarget{}, err
+	}
+	if affected, err := res.RowsAffected(); err != nil || affected != 1 {
+		if err != nil {
+			return portaldomain.ProvisioningTarget{}, err
+		}
+		return portaldomain.ProvisioningTarget{}, portaldomain.ErrOptimisticConflict
+	}
+	return r.GetProvisioningTarget(ctx, target.OrganizationID, target.ApplicationID)
 }
 
 func (r *PortalRepo) AddFavorite(ctx context.Context, orgID, userID, applicationID string) error {

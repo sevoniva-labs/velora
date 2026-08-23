@@ -163,6 +163,11 @@ func New(ctx context.Context, opts Options) (*App, error) {
 	dataPolicySvc := appdatapolicy.NewService(repository.NewDataPolicyRepo(db))
 	portalSvc := appportal.NewService(repository.NewPortalRepo(db))
 	portalSvc.ConfigureOIDCIssuer(cfg.Security.OIDCIssuer)
+	provisioningCipher, err := appcrypto.NewEnvelopeCipher(crypt)
+	if err != nil {
+		return nil, fmt.Errorf("provisioning crypto: %w", err)
+	}
+	portalSvc.ConfigureProvisioningCipher(provisioningCipher)
 	identitySvc := appidentity.NewService(repo, appidentity.Options{
 		MinLength:     cfg.Security.PasswordMinLength,
 		RequireUpper:  cfg.Security.PasswordUpper,

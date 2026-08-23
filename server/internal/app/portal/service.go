@@ -2,7 +2,10 @@ package portal
 
 import (
 	"context"
+	"crypto/rand"
+	"crypto/sha256"
 	"database/sql"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -15,6 +18,7 @@ import (
 	"github.com/sevoniva-labs/velora/server/internal/adapters/repository"
 	domain "github.com/sevoniva-labs/velora/server/internal/domain/identity"
 	portaldomain "github.com/sevoniva-labs/velora/server/internal/domain/portal"
+	appcrypto "github.com/sevoniva-labs/velora/server/internal/platform/security/crypto"
 )
 
 var (
@@ -25,8 +29,9 @@ var (
 )
 
 type Service struct {
-	repo              *repository.PortalRepo
-	allowedOIDCIssuer string
+	repo               *repository.PortalRepo
+	allowedOIDCIssuer  string
+	provisioningCipher *appcrypto.EnvelopeCipher
 }
 
 func NewService(repo *repository.PortalRepo) *Service { return &Service{repo: repo} }
@@ -36,6 +41,10 @@ func NewService(repo *repository.PortalRepo) *Service { return &Service{repo: re
 // allowlist and hardened egress design and is intentionally not implicit.
 func (s *Service) ConfigureOIDCIssuer(issuer string) {
 	s.allowedOIDCIssuer = strings.TrimRight(strings.TrimSpace(issuer), "/")
+}
+
+func (s *Service) ConfigureProvisioningCipher(cipher *appcrypto.EnvelopeCipher) {
+	s.provisioningCipher = cipher
 }
 
 func (s *Service) ListApplications(ctx context.Context, principal domain.Principal, filter repository.ApplicationFilter) ([]portaldomain.Application, error) {
@@ -516,4 +525,77 @@ func validApplicationRoleKey(value string) bool {
 		}
 	}
 	return true
+}
+
+func (s *Service) GetProvisioningTarget(ctx context.Context, principal domain.Principal, appID string) (portaldomain.ProvisioningTarget, error) {
+	if _, err := s.repo.GetApplication(ctx, principal.OrganizationID, principal.UserID, strings.TrimSpace(appID), true); errors.Is(err, sql.ErrNoRows) {
+		return portaldomain.ProvisioningTarget{}, ErrNotFound
+	} else if err != nil {
+		return portaldomain.ProvisioningTarget{}, err
+	}
+	item, err := s.repo.GetProvisioningTarget(ctx, principal.OrganizationID, strings.TrimSpace(appID))
+	if errors.Is(err, sql.ErrNoRows) {
+		return portaldomain.ProvisioningTarget{}, ErrNotFound
+	}
+	return item, err
+}
+
+func (s *Service) UpsertProvisioningTarget(ctx context.Context, principal domain.Principal, appID, endpoint string, rotate bool, expectedVersion int64) (portaldomain.ProvisioningTarget, string, error) {
+	if s.provisioningCipher == nil {
+		return portaldomain.ProvisioningTarget{}, "", errors.New("provisioning secret encryption is unavailable")
+	}
+	app, err := s.repo.GetApplication(ctx, principal.OrganizationID, principal.UserID, strings.TrimSpace(appID), true)
+	if errors.Is(err, sql.ErrNoRows) {
+		return portaldomain.ProvisioningTarget{}, "", ErrNotFound
+	}
+	if err != nil {
+		return portaldomain.ProvisioningTarget{}, "", err
+	}
+	u, err := url.Parse(strings.TrimSpace(endpoint))
+	if err != nil || u.Scheme != "https" || u.Host == "" || u.User != nil || u.RawQuery != "" || u.Fragment != "" {
+		return portaldomain.ProvisioningTarget{}, "", ErrInvalid
+	}
+	target, targetErr := s.repo.GetProvisioningTarget(ctx, principal.OrganizationID, app.ID)
+	creating := errors.Is(targetErr, sql.ErrNoRows)
+	if targetErr != nil && !creating {
+		return portaldomain.ProvisioningTarget{}, "", targetErr
+	}
+	if !creating && expectedVersion <= 0 {
+		return portaldomain.ProvisioningTarget{}, "", portaldomain.ErrOptimisticConflict
+	}
+	target.OrganizationID = principal.OrganizationID
+	target.ApplicationID = app.ID
+	target.EndpointURL = u.String()
+	target.SigningAlgorithm = "HMAC-SHA256"
+	target.DeliveryStatus = "PENDING"
+	var oneTimeSecret string
+	if creating || rotate {
+		raw := make([]byte, 32)
+		if _, err := rand.Read(raw); err != nil {
+			return portaldomain.ProvisioningTarget{}, "", err
+		}
+		oneTimeSecret = base64.RawURLEncoding.EncodeToString(raw)
+		aad := []byte("velora:provisioning:" + principal.OrganizationID + ":" + app.Code)
+		ciphertext, err := s.provisioningCipher.Encrypt([]byte(oneTimeSecret), aad)
+		if err != nil {
+			return portaldomain.ProvisioningTarget{}, "", err
+		}
+		fingerprint := sha256.Sum256([]byte(oneTimeSecret))
+		target.SecretRef = "enc:" + ciphertext
+		target.SecretFingerprint = base64.RawURLEncoding.EncodeToString(fingerprint[:12])
+		if creating {
+			target.ActiveKeyVersion = 1
+		} else {
+			previous := target.ActiveKeyVersion
+			target.PreviousKeyVersion = &previous
+			expires := time.Now().UTC().Add(15 * time.Minute)
+			target.PreviousValidUntil = &expires
+			target.ActiveKeyVersion++
+		}
+	}
+	updated, err := s.repo.UpsertProvisioningTarget(ctx, target, expectedVersion)
+	if err != nil {
+		return portaldomain.ProvisioningTarget{}, "", err
+	}
+	return updated, oneTimeSecret, nil
 }

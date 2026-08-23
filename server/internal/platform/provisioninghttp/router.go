@@ -14,6 +14,7 @@ import (
 	"github.com/sevoniva-labs/velora/server/internal/platform/database"
 	"github.com/sevoniva-labs/velora/server/internal/platform/messaging"
 	"github.com/sevoniva-labs/velora/server/internal/platform/securefile"
+	appcrypto "github.com/sevoniva-labs/velora/server/internal/platform/security/crypto"
 )
 
 const ProvisioningTopicPrefix = "velora.provisioning."
@@ -23,16 +24,17 @@ var ErrTargetNotConfigured = errors.New("provisioning target is not configured")
 type Router struct {
 	db     *database.DB
 	client *http.Client
+	cipher *appcrypto.EnvelopeCipher
 }
 
-func NewRouter(db *database.DB, client *http.Client) (*Router, error) {
+func NewRouter(db *database.DB, cipher *appcrypto.EnvelopeCipher, client *http.Client) (*Router, error) {
 	if db == nil {
 		return nil, errors.New("provisioning router database is required")
 	}
 	if client == nil {
 		client = &http.Client{Timeout: 8 * time.Second}
 	}
-	return &Router{db: db, client: client}, nil
+	return &Router{db: db, client: client, cipher: cipher}, nil
 }
 
 func (r *Router) Publish(ctx context.Context, message messaging.Message) (string, error) {
@@ -51,7 +53,7 @@ func (r *Router) Publish(ctx context.Context, message messaging.Message) (string
 	if err != nil {
 		return "", err
 	}
-	secret, err := readSecretReference(secretRef)
+	secret, err := readSecretReference(secretRef, r.cipher, []byte("velora:provisioning:"+message.OrganizationID+":"+applicationCode))
 	if err != nil {
 		r.recordFailure(ctx, message.OrganizationID, applicationCode, "SECRET_UNAVAILABLE")
 		return "", fmt.Errorf("load provisioning signing key: %w", err)
@@ -90,8 +92,23 @@ func applicationCodeFromTopic(topic string) (string, error) {
 	return code, nil
 }
 
-func readSecretReference(reference string) (string, error) {
-	u, err := url.Parse(strings.TrimSpace(reference))
+func readSecretReference(reference string, cipher *appcrypto.EnvelopeCipher, aad []byte) (string, error) {
+	reference = strings.TrimSpace(reference)
+	if strings.HasPrefix(reference, "enc:") {
+		if cipher == nil {
+			return "", errors.New("encrypted provisioning secret provider is unavailable")
+		}
+		plain, err := cipher.Decrypt(strings.TrimPrefix(reference, "enc:"), aad)
+		if err != nil {
+			return "", err
+		}
+		secret := strings.TrimSpace(string(plain))
+		if len(secret) < 32 {
+			return "", errors.New("provisioning secret must contain at least 32 bytes")
+		}
+		return secret, nil
+	}
+	u, err := url.Parse(reference)
 	if err != nil || u.Scheme != "file" || u.Host != "" || !filepath.IsAbs(u.Path) || u.RawQuery != "" || u.Fragment != "" {
 		return "", errors.New("only an absolute file secret reference is supported")
 	}

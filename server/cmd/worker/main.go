@@ -17,6 +17,7 @@ import (
 	"github.com/sevoniva-labs/velora/server/internal/platform/messaging"
 	"github.com/sevoniva-labs/velora/server/internal/platform/provisioninghttp"
 	"github.com/sevoniva-labs/velora/server/internal/platform/reliablemsg"
+	appcrypto "github.com/sevoniva-labs/velora/server/internal/platform/security/crypto"
 )
 
 var version = "0.2.0-dev"
@@ -46,7 +47,15 @@ func run(ctx context.Context) error {
 		return err
 	}
 	defer bus.Close()
-	provisioning, err := provisioninghttp.NewRouter(db, nil)
+	cryptoProvider, err := appcrypto.NewWithAdapter(cfg.Security.CryptoProvider, cfg.Security.CryptoAdapter, cfg.Security.CryptoKey, cfg.Security.CryptoKeyVersion)
+	if err != nil {
+		return err
+	}
+	provisioningCipher, err := appcrypto.NewEnvelopeCipher(cryptoProvider)
+	if err != nil {
+		return err
+	}
+	provisioning, err := provisioninghttp.NewRouter(db, provisioningCipher, nil)
 	if err != nil {
 		return err
 	}

@@ -860,6 +860,54 @@ paths:
                 - SessionCookie: []
                   CsrfToken: []
                 - BearerAuth: []
+    /api/v1/admin/portal/applications/{applicationId}/provisioning-target:
+        get:
+            tags:
+                - PortalService
+            operationId: PortalService_GetPortalApplicationProvisioningTarget
+            parameters:
+                - name: applicationId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/forge.v1.GetPortalApplicationProvisioningTargetResponse'
+            security:
+                - SessionCookie: []
+                - BearerAuth: []
+        put:
+            tags:
+                - PortalService
+            operationId: PortalService_UpsertPortalApplicationProvisioningTarget
+            parameters:
+                - name: applicationId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/forge.v1.UpsertPortalApplicationProvisioningTargetRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/forge.v1.UpsertPortalApplicationProvisioningTargetResponse'
+            security:
+                - SessionCookie: []
+                  CsrfToken: []
+                - BearerAuth: []
     /api/v1/admin/portal/applications/{applicationId}/publish:
         post:
             tags:
@@ -3364,6 +3412,11 @@ components:
             properties:
                 organization:
                     $ref: '#/components/schemas/forge.v1.Organization'
+        forge.v1.GetPortalApplicationProvisioningTargetResponse:
+            type: object
+            properties:
+                target:
+                    $ref: '#/components/schemas/forge.v1.PortalApplicationProvisioningTarget'
         forge.v1.GetPortalApplicationResponse:
             type: object
             properties:
@@ -3826,6 +3879,44 @@ components:
                     format: date-time
                 publishedBy:
                     type: string
+        forge.v1.PortalApplicationProvisioningTarget:
+            type: object
+            properties:
+                id:
+                    type: string
+                applicationId:
+                    type: string
+                endpointUrl:
+                    type: string
+                signingAlgorithm:
+                    type: string
+                secretFingerprint:
+                    type: string
+                activeKeyVersion:
+                    type: string
+                previousKeyVersion:
+                    type: string
+                previousValidUntil:
+                    type: string
+                    format: date-time
+                deliveryStatus:
+                    type: string
+                lastSuccessAt:
+                    type: string
+                    format: date-time
+                lastFailureAt:
+                    type: string
+                    format: date-time
+                lastErrorCode:
+                    type: string
+                configVersion:
+                    type: string
+                createdAt:
+                    type: string
+                    format: date-time
+                updatedAt:
+                    type: string
+                    format: date-time
         forge.v1.PortalApplicationRole:
             type: object
             properties:
@@ -4648,6 +4739,24 @@ components:
             properties:
                 policy:
                     $ref: '#/components/schemas/forge.v1.DataFieldPolicy'
+        forge.v1.UpsertPortalApplicationProvisioningTargetRequest:
+            type: object
+            properties:
+                applicationId:
+                    type: string
+                endpointUrl:
+                    type: string
+                rotateSecret:
+                    type: boolean
+                expectedConfigVersion:
+                    type: string
+        forge.v1.UpsertPortalApplicationProvisioningTargetResponse:
+            type: object
+            properties:
+                target:
+                    $ref: '#/components/schemas/forge.v1.PortalApplicationProvisioningTarget'
+                oneTimeProvisioningSecret:
+                    type: string
         forge.v1.User:
             type: object
             properties:

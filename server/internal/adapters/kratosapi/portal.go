@@ -41,6 +41,13 @@ type PortalService struct {
 	idem                      *idempotency.Store
 }
 
+func setNoStore(ctx context.Context) {
+	if tr, ok := transport.FromServerContext(ctx); ok {
+		tr.ReplyHeader().Set("Cache-Control", "no-store")
+		tr.ReplyHeader().Set("Pragma", "no-cache")
+	}
+}
+
 func NewPortalService(portal *appportal.Service, auditWriter *audit.Writer, db *database.DB) *PortalService {
 	return &PortalService{portal: portal, audit: auditWriter, db: db}
 }
@@ -507,6 +514,50 @@ func (s *PortalService) ReplacePortalApplicationRoles(ctx context.Context, req *
 	return response.(*forgev1.ReplacePortalApplicationRolesResponse), nil
 }
 
+func (s *PortalService) GetPortalApplicationProvisioningTarget(ctx context.Context, req *forgev1.GetPortalApplicationProvisioningTargetRequest) (*forgev1.GetPortalApplicationProvisioningTargetResponse, error) {
+	principal, err := requiredPrincipal(ctx)
+	if err != nil {
+		return nil, err
+	}
+	target, err := s.portal.GetProvisioningTarget(ctx, principal, req.GetApplicationId())
+	if err != nil {
+		return nil, serviceError(err)
+	}
+	return &forgev1.GetPortalApplicationProvisioningTargetResponse{Target: provisioningTargetProto(target)}, nil
+}
+
+func (s *PortalService) UpsertPortalApplicationProvisioningTarget(ctx context.Context, req *forgev1.UpsertPortalApplicationProvisioningTargetRequest) (*forgev1.UpsertPortalApplicationProvisioningTargetResponse, error) {
+	principal, err := requiredPrincipal(ctx)
+	if err != nil {
+		return nil, err
+	}
+	response, err := s.idempotentWith(ctx, principal, "portal.application.provisioning.upsert", req, func() proto.Message { return &forgev1.UpsertPortalApplicationProvisioningTargetResponse{} }, func() (proto.Message, error) {
+		var target portaldomain.ProvisioningTarget
+		var oneTimeSecret string
+		event := newAuditEvent(ctx, principal, "portal.application.provisioning.upsert", "portal_application", req.GetApplicationId(), map[string]any{"rotate_secret": req.GetRotateSecret()})
+		if err := s.audited(ctx, event, func(txCtx context.Context) error {
+			var updateErr error
+			target, oneTimeSecret, updateErr = s.portal.UpsertProvisioningTarget(txCtx, principal, req.GetApplicationId(), req.GetEndpointUrl(), req.GetRotateSecret(), req.GetExpectedConfigVersion())
+			return updateErr
+		}); err != nil {
+			return nil, serviceError(err)
+		}
+		return &forgev1.UpsertPortalApplicationProvisioningTargetResponse{Target: provisioningTargetProto(target), OneTimeProvisioningSecret: oneTimeSecret}, nil
+	}, func(message proto.Message) proto.Message {
+		cached := proto.Clone(message).(*forgev1.UpsertPortalApplicationProvisioningTargetResponse)
+		cached.OneTimeProvisioningSecret = ""
+		return cached
+	})
+	if err != nil {
+		return nil, err
+	}
+	reply := response.(*forgev1.UpsertPortalApplicationProvisioningTargetResponse)
+	if reply.GetOneTimeProvisioningSecret() != "" {
+		setNoStore(ctx)
+	}
+	return reply, nil
+}
+
 func (s *PortalService) GetIdentityOverview(ctx context.Context, _ *forgev1.GetIdentityOverviewRequest) (*forgev1.GetIdentityOverviewResponse, error) {
 	principal, err := requiredPrincipal(ctx)
 	if err != nil {
@@ -663,7 +714,11 @@ func (s *PortalService) UpsertApplicationIdentityBinding(ctx context.Context, re
 	if err != nil {
 		return nil, err
 	}
-	return response.(*forgev1.UpsertApplicationIdentityBindingResponse), nil
+	reply := response.(*forgev1.UpsertApplicationIdentityBindingResponse)
+	if reply.GetOneTimeClientSecret() != "" {
+		setNoStore(ctx)
+	}
+	return reply, nil
 }
 
 func (s *PortalService) VerifyApplicationIdentity(ctx context.Context, req *forgev1.VerifyApplicationIdentityRequest) (*forgev1.VerifyApplicationIdentityResponse, error) {
@@ -950,4 +1005,15 @@ func portalApplicationRolesProto(items []portaldomain.ApplicationRole) []*forgev
 		out = append(out, &forgev1.PortalApplicationRole{Id: item.ID, ApplicationId: item.ApplicationID, RoleKey: item.Key, Name: item.Name, Description: item.Description, RiskLevel: item.RiskLevel, Status: item.Status, ConfigVersion: item.ConfigVersion, CreatedAt: timestamp(item.CreatedAt), UpdatedAt: timestamp(item.UpdatedAt)})
 	}
 	return out
+}
+
+func provisioningTargetProto(item portaldomain.ProvisioningTarget) *forgev1.PortalApplicationProvisioningTarget {
+	return &forgev1.PortalApplicationProvisioningTarget{Id: item.ID, ApplicationId: item.ApplicationID, EndpointUrl: item.EndpointURL, SigningAlgorithm: item.SigningAlgorithm, SecretFingerprint: item.SecretFingerprint, ActiveKeyVersion: item.ActiveKeyVersion, PreviousKeyVersion: valueOrZero(item.PreviousKeyVersion), PreviousValidUntil: optionalTimestamp(item.PreviousValidUntil), DeliveryStatus: item.DeliveryStatus, LastSuccessAt: optionalTimestamp(item.LastSuccessAt), LastFailureAt: optionalTimestamp(item.LastFailureAt), LastErrorCode: item.LastErrorCode, ConfigVersion: item.ConfigVersion, CreatedAt: timestamp(item.CreatedAt), UpdatedAt: timestamp(item.UpdatedAt)}
+}
+
+func valueOrZero(value *int64) int64 {
+	if value == nil {
+		return 0
+	}
+	return *value
 }

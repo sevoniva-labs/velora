@@ -271,6 +271,15 @@ func (s *Service) SubmitApplicationPublish(ctx context.Context, principal domain
 	if err := s.requirePublishPrerequisites(ctx, principal, app, binding); err != nil {
 		return portaldomain.Application{}, portaldomain.ErrPublishNotReady
 	}
+	// Verification already moves an OIDC application to READY. Re-submitting
+	// that exact state must be idempotent; incrementing config_version here
+	// would invalidate the version-bound checks that authorize publication.
+	if app.LifecycleStatus == portaldomain.LifecycleReady && app.Status == portaldomain.StatusDisabled {
+		if expectedVersion != app.ConfigVersion {
+			return portaldomain.Application{}, portaldomain.ErrOptimisticConflict
+		}
+		return app, nil
+	}
 	return s.repo.SetApplicationLifecycle(ctx, principal.OrganizationID, principal.UserID, app.ID, portaldomain.LifecycleReady, portaldomain.StatusDisabled, expectedVersion, false)
 }
 

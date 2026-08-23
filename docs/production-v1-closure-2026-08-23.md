@@ -66,3 +66,12 @@ Spectra 已部署 `c5e3c40`，实现默认 SSO、`/normal-login`、安全站内�
 - 监控已能本地判定失败；外部通知 Webhook 尚未提供，未证明五分钟内送达人。
 
 以上未完成项不阻止 standard、单机、内部低风险应用的生产 V1，但必须进入风险台账，不能被页面或文案包装为已完成。
+
+## 7. 应用分类过滤生产修复（2026-08-23）
+
+- 现象：首页“开发安全”显示 1 个应用，进入分类列表却为空。
+- 根因：分类主键为 UUID，列表页把 `categoryId` 强制转换为 `Number`，请求最终携带无效的 `NaN`；首页统计使用原 UUID，因此两处结果不一致。
+- 修复：列表查询保留并校验原始字符串 ID，空白值不下发；新增 UUID 与空值回归测试。
+- 验收：Web 9 个测试文件、48 项测试、lint、生产构建全部通过；线上数据库确认分类 `开发安全`（`DevSecOps`）关联 1 个 `ENABLED` 应用 `Spectra`；线上 `Applications` 资源 SHA-256 与本地验收产物一致，Portal `/healthz` 为 UP。
+- 发布：Velora `main` 提交 `71d587e`，生产 Web OCI revision 为完整提交 `71d587ed8adbe7083d080f4455dd81f57e92fc8a`。
+- 回滚：旧 Web 镜像保留为 `velora-prod-web:rollback-71d587e`；发布前配置和镜像标识保存在 `/opt/velora/prod/runtime/backups/20260823T013726Z-before-71d587e`。回滚只替换 Web 镜像并重建 `web` 服务，不修改数据库。

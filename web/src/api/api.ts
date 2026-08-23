@@ -343,6 +343,23 @@ export async function adminCreateApplication(input: AdminApplicationInput): Prom
 export async function adminUpdateApplication(id: string | number, input: AdminApplicationInput): Promise<Application> { const data = await apiFetch<unknown>(`/admin/portal/applications/${encodeURIComponent(String(id))}`, { method: 'PATCH', body: applicationBody(input, false) }); return mapApplication(record(data).application ?? data) }
 export function adminDeleteApplication(id: string | number): Promise<void> { return apiFetch(`/admin/portal/applications/${encodeURIComponent(String(id))}`, { method: 'DELETE' }).then(() => undefined) }
 
+export interface ApplicationRole {
+  id: string
+  applicationId: string
+  roleKey: string
+  name: string
+  description: string
+  riskLevel: 'NORMAL' | 'PRIVILEGED' | 'CRITICAL'
+  status: 'ACTIVE' | 'DISABLED'
+  configVersion: number
+}
+function mapApplicationRole(value: unknown): ApplicationRole {
+  const item = record(value)
+  return { id: asId(item.id), applicationId: asId(item.applicationId), roleKey: String(item.roleKey ?? ''), name: String(item.name ?? ''), description: String(item.description ?? ''), riskLevel: String(item.riskLevel ?? 'NORMAL').toUpperCase() as ApplicationRole['riskLevel'], status: String(item.status ?? 'ACTIVE').toUpperCase() as ApplicationRole['status'], configVersion: Number(item.configVersion ?? 0) }
+}
+export async function adminListApplicationRoles(id: string | number): Promise<ApplicationRole[]> { const data = await apiFetch<unknown>(`/admin/portal/applications/${encodeURIComponent(String(id))}/roles`); return listFrom(data, 'roles').map(mapApplicationRole) }
+export async function adminReplaceApplicationRoles(id: string | number, roles: Array<Pick<ApplicationRole, 'roleKey' | 'name' | 'description' | 'riskLevel' | 'status'>>): Promise<ApplicationRole[]> { const data = await apiFetch<unknown>(`/admin/portal/applications/${encodeURIComponent(String(id))}/roles`, { method: 'PUT', body: { roles } }); return listFrom(data, 'roles').map(mapApplicationRole) }
+
 export interface IdentityOverview { onboardingEnabled: boolean; adminEntryEnabled: boolean; providerKey: string; adminUrlHost: string; issuer: string; connectionStatus: string; pendingApplicationCount: number; automationEnabled: boolean }
 export interface ApplicationOnboarding { application: Application; binding?: IdentityBinding; verifications: ApplicationVerification[]; canPublish: boolean; oneTimeClientSecret?: string }
 export async function getIdentityOverview(): Promise<IdentityOverview> { const data = record(await apiFetch<unknown>('/admin/identity/overview')); return { onboardingEnabled: Boolean(data.onboardingEnabled), adminEntryEnabled: Boolean(data.adminEntryEnabled), providerKey: String(data.providerKey ?? ''), adminUrlHost: String(data.adminUrlHost ?? ''), issuer: String(data.issuer ?? ''), connectionStatus: String(data.connectionStatus ?? 'UNCONFIGURED'), pendingApplicationCount: Number(data.pendingApplicationCount ?? 0), automationEnabled: Boolean(data.automationEnabled) } }
@@ -408,4 +425,4 @@ export function getPortalSettings(): Promise<{ key: string; value: string }[]> {
 export function updatePortalSetting(_key: string, _value: string): Promise<unknown> { return Promise.reject(unavailable('门户设置服务')) }
 export async function getSystemVersion(): Promise<{ application: string; version?: string }> { const data = record(await apiFetch<unknown>('/system/info')); return { application: String(data.service ?? data.application ?? 'Velora'), version: data.version ? String(data.version) : undefined } }
 
-export const queryKeys = { me: ['me'] as const, applications: (params?: unknown) => ['applications', params] as const, application: (id: string | number) => ['applications', id] as const, recent: ['recent'] as const, popular: ['popular'] as const, categories: ['categories'] as const, tags: ['tags'] as const, favorites: ['favorites'] as const, todos: ['todos'] as const, mailAccounts: ['mail', 'accounts'] as const, mailProviders: ['mail', 'providers'] as const, mailMessages: (params?: unknown) => ['mail', 'messages', params] as const, mailMessage: (id: string | number) => ['mail', 'messages', 'detail', id] as const, adminApplications: (params?: unknown) => ['admin', 'applications', params] as const, adminUsers: ['admin', 'users'] as const, auditLogs: (params?: unknown) => ['admin', 'audit-logs', params] as const, dashboard: ['admin', 'dashboard'] as const, identityOverview: ['admin', 'identity', 'overview'] as const, applicationOnboarding: (id: string | number) => ['admin', 'identity', 'onboarding', id] as const, portalSettings: ['portal', 'settings'] as const }
+export const queryKeys = { me: ['me'] as const, applications: (params?: unknown) => ['applications', params] as const, application: (id: string | number) => ['applications', id] as const, recent: ['recent'] as const, popular: ['popular'] as const, categories: ['categories'] as const, tags: ['tags'] as const, favorites: ['favorites'] as const, todos: ['todos'] as const, mailAccounts: ['mail', 'accounts'] as const, mailProviders: ['mail', 'providers'] as const, mailMessages: (params?: unknown) => ['mail', 'messages', params] as const, mailMessage: (id: string | number) => ['mail', 'messages', 'detail', id] as const, adminApplications: (params?: unknown) => ['admin', 'applications', params] as const, applicationRoles: (id: string | number) => ['admin', 'applications', id, 'roles'] as const, adminUsers: ['admin', 'users'] as const, auditLogs: (params?: unknown) => ['admin', 'audit-logs', params] as const, dashboard: ['admin', 'dashboard'] as const, identityOverview: ['admin', 'identity', 'overview'] as const, applicationOnboarding: (id: string | number) => ['admin', 'identity', 'onboarding', id] as const, portalSettings: ['portal', 'settings'] as const }

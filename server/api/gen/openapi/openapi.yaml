@@ -3366,6 +3366,20 @@ components:
                         $ref: '#/components/schemas/forge.v1.PortalApplicationVerification'
                 canPublish:
                     type: boolean
+                onboardingStatus:
+                    type: string
+                nextAction:
+                    type: string
+                blockers:
+                    type: array
+                    items:
+                        type: string
+                roles:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/forge.v1.PortalApplicationRole'
+                provisioningTarget:
+                    $ref: '#/components/schemas/forge.v1.PortalApplicationProvisioningTarget'
         forge.v1.GetApprovalResponse:
             type: object
             properties:

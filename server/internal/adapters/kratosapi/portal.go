@@ -645,8 +645,55 @@ func (s *PortalService) GetApplicationOnboarding(ctx context.Context, req *forge
 	if err != nil {
 		return nil, serviceError(err)
 	}
-	canPublish := strings.EqualFold(app.LaunchType, "URL") || (binding.ID != "" && binding.VerificationStatus == portaldomain.VerificationPassed && app.LifecycleStatus == portaldomain.LifecycleReady)
-	return &forgev1.GetApplicationOnboardingResponse{Application: portalApplicationProto(app), Binding: identityBindingProto(binding), Verifications: verificationsProto(verifications), CanPublish: canPublish}, nil
+	roles, err := s.portal.ListApplicationRoles(ctx, principal, app.ID)
+	if err != nil {
+		return nil, serviceError(err)
+	}
+	target, targetErr := s.portal.GetProvisioningTarget(ctx, principal, app.ID)
+	if targetErr != nil && !errors.Is(targetErr, appportal.ErrNotFound) {
+		return nil, serviceError(targetErr)
+	}
+	status, nextAction, blockers, canPublish := onboardingState(app, binding, target)
+	response := &forgev1.GetApplicationOnboardingResponse{Application: portalApplicationProto(app), Binding: identityBindingProto(binding), Verifications: verificationsProto(verifications), CanPublish: canPublish, OnboardingStatus: status, NextAction: nextAction, Blockers: blockers, Roles: portalApplicationRolesProto(roles)}
+	if target.ID != "" {
+		response.ProvisioningTarget = provisioningTargetProto(target)
+	}
+	return response, nil
+}
+
+func onboardingState(app portaldomain.Application, binding portaldomain.IdentityBinding, target portaldomain.ProvisioningTarget) (string, string, []string, bool) {
+	if app.LifecycleStatus == portaldomain.LifecyclePublished && app.Status == portaldomain.StatusEnabled {
+		return "PUBLISHED", "应用已发布；持续关注登录和账号同步健康状态。", nil, true
+	}
+	if app.Status == portaldomain.StatusDisabled && app.LifecycleStatus == portaldomain.LifecycleDisabled {
+		return "SUSPENDED", "恢复应用后重新执行受影响的检查。", []string{"应用已停用"}, false
+	}
+	if strings.EqualFold(app.LaunchType, "URL") {
+		if len(app.Policies) == 0 {
+			return "DRAFT", "配置访问范围。", []string{"访问范围未配置（默认拒绝）"}, false
+		}
+		return "VERIFIED", "提交并发布应用。", nil, true
+	}
+	blockers := make([]string, 0, 3)
+	if binding.ID == "" {
+		blockers = append(blockers, "统一登录配置尚未生成")
+	}
+	if target.ID == "" {
+		blockers = append(blockers, "账号同步目标尚未配置")
+	}
+	if len(app.Policies) == 0 {
+		blockers = append(blockers, "访问范围未配置（默认拒绝）")
+	}
+	if len(blockers) > 0 {
+		return "DRAFT", "完成登录、账号同步和访问范围配置。", blockers, false
+	}
+	if binding.VerificationStatus != portaldomain.VerificationPassed {
+		return "WAITING_FOR_DEPLOYMENT", "部署目标应用配置后执行身份验证。", []string{"OIDC 配置尚未验证"}, false
+	}
+	if target.DeliveryStatus != "HEALTHY" {
+		return "ACTION_REQUIRED", "完成账号同步 challenge 或测试投递。", []string{"账号同步链路尚未验证"}, false
+	}
+	return "VERIFIED", "提交并发布应用。", nil, true
 }
 
 func (s *PortalService) UpsertApplicationIdentityBinding(ctx context.Context, req *forgev1.UpsertApplicationIdentityBindingRequest) (*forgev1.UpsertApplicationIdentityBindingResponse, error) {

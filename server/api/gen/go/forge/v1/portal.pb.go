@@ -3917,13 +3917,18 @@ func (x *GetApplicationOnboardingRequest) GetApplicationId() string {
 }
 
 type GetApplicationOnboardingResponse struct {
-	state         protoimpl.MessageState           `protogen:"open.v1"`
-	Application   *PortalApplication               `protobuf:"bytes,1,opt,name=application,proto3" json:"application,omitempty"`
-	Binding       *PortalIdentityBinding           `protobuf:"bytes,2,opt,name=binding,proto3" json:"binding,omitempty"`
-	Verifications []*PortalApplicationVerification `protobuf:"bytes,3,rep,name=verifications,proto3" json:"verifications,omitempty"`
-	CanPublish    bool                             `protobuf:"varint,4,opt,name=can_publish,json=canPublish,proto3" json:"can_publish,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state              protoimpl.MessageState               `protogen:"open.v1"`
+	Application        *PortalApplication                   `protobuf:"bytes,1,opt,name=application,proto3" json:"application,omitempty"`
+	Binding            *PortalIdentityBinding               `protobuf:"bytes,2,opt,name=binding,proto3" json:"binding,omitempty"`
+	Verifications      []*PortalApplicationVerification     `protobuf:"bytes,3,rep,name=verifications,proto3" json:"verifications,omitempty"`
+	CanPublish         bool                                 `protobuf:"varint,4,opt,name=can_publish,json=canPublish,proto3" json:"can_publish,omitempty"`
+	OnboardingStatus   string                               `protobuf:"bytes,5,opt,name=onboarding_status,json=onboardingStatus,proto3" json:"onboarding_status,omitempty"`
+	NextAction         string                               `protobuf:"bytes,6,opt,name=next_action,json=nextAction,proto3" json:"next_action,omitempty"`
+	Blockers           []string                             `protobuf:"bytes,7,rep,name=blockers,proto3" json:"blockers,omitempty"`
+	Roles              []*PortalApplicationRole             `protobuf:"bytes,8,rep,name=roles,proto3" json:"roles,omitempty"`
+	ProvisioningTarget *PortalApplicationProvisioningTarget `protobuf:"bytes,9,opt,name=provisioning_target,json=provisioningTarget,proto3" json:"provisioning_target,omitempty"`
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
 }
 
 func (x *GetApplicationOnboardingResponse) Reset() {
@@ -3982,6 +3987,41 @@ func (x *GetApplicationOnboardingResponse) GetCanPublish() bool {
 		return x.CanPublish
 	}
 	return false
+}
+
+func (x *GetApplicationOnboardingResponse) GetOnboardingStatus() string {
+	if x != nil {
+		return x.OnboardingStatus
+	}
+	return ""
+}
+
+func (x *GetApplicationOnboardingResponse) GetNextAction() string {
+	if x != nil {
+		return x.NextAction
+	}
+	return ""
+}
+
+func (x *GetApplicationOnboardingResponse) GetBlockers() []string {
+	if x != nil {
+		return x.Blockers
+	}
+	return nil
+}
+
+func (x *GetApplicationOnboardingResponse) GetRoles() []*PortalApplicationRole {
+	if x != nil {
+		return x.Roles
+	}
+	return nil
+}
+
+func (x *GetApplicationOnboardingResponse) GetProvisioningTarget() *PortalApplicationProvisioningTarget {
+	if x != nil {
+		return x.ProvisioningTarget
+	}
+	return nil
 }
 
 type UpsertApplicationIdentityBindingRequest struct {
@@ -4903,13 +4943,19 @@ const file_forge_v1_portal_proto_rawDesc = "" +
 	"\x03url\x18\x01 \x01(\tR\x03url\x12!\n" +
 	"\fprovider_key\x18\x02 \x01(\tR\vproviderKey\"H\n" +
 	"\x1fGetApplicationOnboardingRequest\x12%\n" +
-	"\x0eapplication_id\x18\x01 \x01(\tR\rapplicationId\"\x8c\x02\n" +
+	"\x0eapplication_id\x18\x01 \x01(\tR\rapplicationId\"\x8d\x04\n" +
 	" GetApplicationOnboardingResponse\x12=\n" +
 	"\vapplication\x18\x01 \x01(\v2\x1b.forge.v1.PortalApplicationR\vapplication\x129\n" +
 	"\abinding\x18\x02 \x01(\v2\x1f.forge.v1.PortalIdentityBindingR\abinding\x12M\n" +
 	"\rverifications\x18\x03 \x03(\v2'.forge.v1.PortalApplicationVerificationR\rverifications\x12\x1f\n" +
 	"\vcan_publish\x18\x04 \x01(\bR\n" +
-	"canPublish\"\xa1\x03\n" +
+	"canPublish\x12+\n" +
+	"\x11onboarding_status\x18\x05 \x01(\tR\x10onboardingStatus\x12\x1f\n" +
+	"\vnext_action\x18\x06 \x01(\tR\n" +
+	"nextAction\x12\x1a\n" +
+	"\bblockers\x18\a \x03(\tR\bblockers\x125\n" +
+	"\x05roles\x18\b \x03(\v2\x1f.forge.v1.PortalApplicationRoleR\x05roles\x12^\n" +
+	"\x13provisioning_target\x18\t \x01(\v2-.forge.v1.PortalApplicationProvisioningTargetR\x12provisioningTarget\"\xa1\x03\n" +
 	"'UpsertApplicationIdentityBindingRequest\x12%\n" +
 	"\x0eapplication_id\x18\x01 \x01(\tR\rapplicationId\x12!\n" +
 	"\fprovider_key\x18\x02 \x01(\tR\vproviderKey\x12\x1a\n" +
@@ -5330,85 +5376,87 @@ var file_forge_v1_portal_proto_depIdxs = []int32{
 	0,  // 44: forge.v1.GetApplicationOnboardingResponse.application:type_name -> forge.v1.PortalApplication
 	56, // 45: forge.v1.GetApplicationOnboardingResponse.binding:type_name -> forge.v1.PortalIdentityBinding
 	57, // 46: forge.v1.GetApplicationOnboardingResponse.verifications:type_name -> forge.v1.PortalApplicationVerification
-	56, // 47: forge.v1.UpsertApplicationIdentityBindingResponse.binding:type_name -> forge.v1.PortalIdentityBinding
-	0,  // 48: forge.v1.UpsertApplicationIdentityBindingResponse.application:type_name -> forge.v1.PortalApplication
-	56, // 49: forge.v1.VerifyApplicationIdentityResponse.binding:type_name -> forge.v1.PortalIdentityBinding
-	0,  // 50: forge.v1.VerifyApplicationIdentityResponse.application:type_name -> forge.v1.PortalApplication
-	57, // 51: forge.v1.VerifyApplicationIdentityResponse.verifications:type_name -> forge.v1.PortalApplicationVerification
-	0,  // 52: forge.v1.SubmitApplicationPublishResponse.application:type_name -> forge.v1.PortalApplication
-	0,  // 53: forge.v1.PublishApplicationResponse.application:type_name -> forge.v1.PortalApplication
-	0,  // 54: forge.v1.DisableApplicationResponse.application:type_name -> forge.v1.PortalApplication
-	7,  // 55: forge.v1.PortalService.AuthorizePortalApplication:input_type -> forge.v1.AuthorizePortalApplicationRequest
-	6,  // 56: forge.v1.PortalService.ListPortalApplications:input_type -> forge.v1.ListPortalApplicationsRequest
-	10, // 57: forge.v1.PortalService.GetPortalApplication:input_type -> forge.v1.GetPortalApplicationRequest
-	12, // 58: forge.v1.PortalService.LaunchPortalApplication:input_type -> forge.v1.LaunchPortalApplicationRequest
-	14, // 59: forge.v1.PortalService.ListPortalFavorites:input_type -> forge.v1.ListPortalFavoritesRequest
-	16, // 60: forge.v1.PortalService.AddPortalFavorite:input_type -> forge.v1.AddPortalFavoriteRequest
-	18, // 61: forge.v1.PortalService.RemovePortalFavorite:input_type -> forge.v1.RemovePortalFavoriteRequest
-	20, // 62: forge.v1.PortalService.ListRecentPortalApplications:input_type -> forge.v1.ListRecentPortalApplicationsRequest
-	22, // 63: forge.v1.PortalService.ListPortalCategories:input_type -> forge.v1.ListPortalCategoriesRequest
-	24, // 64: forge.v1.PortalService.ListPortalTags:input_type -> forge.v1.ListPortalTagsRequest
-	26, // 65: forge.v1.PortalService.ListAdminPortalApplications:input_type -> forge.v1.ListAdminPortalApplicationsRequest
-	28, // 66: forge.v1.PortalService.CreatePortalApplication:input_type -> forge.v1.CreatePortalApplicationRequest
-	30, // 67: forge.v1.PortalService.UpdatePortalApplication:input_type -> forge.v1.UpdatePortalApplicationRequest
-	32, // 68: forge.v1.PortalService.DeletePortalApplication:input_type -> forge.v1.DeletePortalApplicationRequest
-	34, // 69: forge.v1.PortalService.CreatePortalCategory:input_type -> forge.v1.CreatePortalCategoryRequest
-	36, // 70: forge.v1.PortalService.UpdatePortalCategory:input_type -> forge.v1.UpdatePortalCategoryRequest
-	38, // 71: forge.v1.PortalService.DeletePortalCategory:input_type -> forge.v1.DeletePortalCategoryRequest
-	40, // 72: forge.v1.PortalService.CreatePortalTag:input_type -> forge.v1.CreatePortalTagRequest
-	42, // 73: forge.v1.PortalService.UpdatePortalTag:input_type -> forge.v1.UpdatePortalTagRequest
-	44, // 74: forge.v1.PortalService.DeletePortalTag:input_type -> forge.v1.DeletePortalTagRequest
-	46, // 75: forge.v1.PortalService.ReplacePortalApplicationPolicies:input_type -> forge.v1.ReplacePortalApplicationPoliciesRequest
-	48, // 76: forge.v1.PortalService.ListPortalApplicationRoles:input_type -> forge.v1.ListPortalApplicationRolesRequest
-	50, // 77: forge.v1.PortalService.ReplacePortalApplicationRoles:input_type -> forge.v1.ReplacePortalApplicationRolesRequest
-	52, // 78: forge.v1.PortalService.GetPortalApplicationProvisioningTarget:input_type -> forge.v1.GetPortalApplicationProvisioningTargetRequest
-	54, // 79: forge.v1.PortalService.UpsertPortalApplicationProvisioningTarget:input_type -> forge.v1.UpsertPortalApplicationProvisioningTargetRequest
-	58, // 80: forge.v1.PortalService.GetIdentityOverview:input_type -> forge.v1.GetIdentityOverviewRequest
-	60, // 81: forge.v1.PortalService.GetIdentityConsoleLink:input_type -> forge.v1.GetIdentityConsoleLinkRequest
-	62, // 82: forge.v1.PortalService.GetApplicationOnboarding:input_type -> forge.v1.GetApplicationOnboardingRequest
-	64, // 83: forge.v1.PortalService.UpsertApplicationIdentityBinding:input_type -> forge.v1.UpsertApplicationIdentityBindingRequest
-	66, // 84: forge.v1.PortalService.VerifyApplicationIdentity:input_type -> forge.v1.VerifyApplicationIdentityRequest
-	68, // 85: forge.v1.PortalService.SubmitApplicationPublish:input_type -> forge.v1.SubmitApplicationPublishRequest
-	70, // 86: forge.v1.PortalService.PublishApplication:input_type -> forge.v1.PublishApplicationRequest
-	72, // 87: forge.v1.PortalService.DisableApplication:input_type -> forge.v1.DisableApplicationRequest
-	8,  // 88: forge.v1.PortalService.AuthorizePortalApplication:output_type -> forge.v1.AuthorizePortalApplicationResponse
-	9,  // 89: forge.v1.PortalService.ListPortalApplications:output_type -> forge.v1.ListPortalApplicationsResponse
-	11, // 90: forge.v1.PortalService.GetPortalApplication:output_type -> forge.v1.GetPortalApplicationResponse
-	13, // 91: forge.v1.PortalService.LaunchPortalApplication:output_type -> forge.v1.LaunchPortalApplicationResponse
-	15, // 92: forge.v1.PortalService.ListPortalFavorites:output_type -> forge.v1.ListPortalFavoritesResponse
-	17, // 93: forge.v1.PortalService.AddPortalFavorite:output_type -> forge.v1.AddPortalFavoriteResponse
-	19, // 94: forge.v1.PortalService.RemovePortalFavorite:output_type -> forge.v1.RemovePortalFavoriteResponse
-	21, // 95: forge.v1.PortalService.ListRecentPortalApplications:output_type -> forge.v1.ListRecentPortalApplicationsResponse
-	23, // 96: forge.v1.PortalService.ListPortalCategories:output_type -> forge.v1.ListPortalCategoriesResponse
-	25, // 97: forge.v1.PortalService.ListPortalTags:output_type -> forge.v1.ListPortalTagsResponse
-	27, // 98: forge.v1.PortalService.ListAdminPortalApplications:output_type -> forge.v1.ListAdminPortalApplicationsResponse
-	29, // 99: forge.v1.PortalService.CreatePortalApplication:output_type -> forge.v1.CreatePortalApplicationResponse
-	31, // 100: forge.v1.PortalService.UpdatePortalApplication:output_type -> forge.v1.UpdatePortalApplicationResponse
-	33, // 101: forge.v1.PortalService.DeletePortalApplication:output_type -> forge.v1.DeletePortalApplicationResponse
-	35, // 102: forge.v1.PortalService.CreatePortalCategory:output_type -> forge.v1.CreatePortalCategoryResponse
-	37, // 103: forge.v1.PortalService.UpdatePortalCategory:output_type -> forge.v1.UpdatePortalCategoryResponse
-	39, // 104: forge.v1.PortalService.DeletePortalCategory:output_type -> forge.v1.DeletePortalCategoryResponse
-	41, // 105: forge.v1.PortalService.CreatePortalTag:output_type -> forge.v1.CreatePortalTagResponse
-	43, // 106: forge.v1.PortalService.UpdatePortalTag:output_type -> forge.v1.UpdatePortalTagResponse
-	45, // 107: forge.v1.PortalService.DeletePortalTag:output_type -> forge.v1.DeletePortalTagResponse
-	47, // 108: forge.v1.PortalService.ReplacePortalApplicationPolicies:output_type -> forge.v1.ReplacePortalApplicationPoliciesResponse
-	49, // 109: forge.v1.PortalService.ListPortalApplicationRoles:output_type -> forge.v1.ListPortalApplicationRolesResponse
-	51, // 110: forge.v1.PortalService.ReplacePortalApplicationRoles:output_type -> forge.v1.ReplacePortalApplicationRolesResponse
-	53, // 111: forge.v1.PortalService.GetPortalApplicationProvisioningTarget:output_type -> forge.v1.GetPortalApplicationProvisioningTargetResponse
-	55, // 112: forge.v1.PortalService.UpsertPortalApplicationProvisioningTarget:output_type -> forge.v1.UpsertPortalApplicationProvisioningTargetResponse
-	59, // 113: forge.v1.PortalService.GetIdentityOverview:output_type -> forge.v1.GetIdentityOverviewResponse
-	61, // 114: forge.v1.PortalService.GetIdentityConsoleLink:output_type -> forge.v1.GetIdentityConsoleLinkResponse
-	63, // 115: forge.v1.PortalService.GetApplicationOnboarding:output_type -> forge.v1.GetApplicationOnboardingResponse
-	65, // 116: forge.v1.PortalService.UpsertApplicationIdentityBinding:output_type -> forge.v1.UpsertApplicationIdentityBindingResponse
-	67, // 117: forge.v1.PortalService.VerifyApplicationIdentity:output_type -> forge.v1.VerifyApplicationIdentityResponse
-	69, // 118: forge.v1.PortalService.SubmitApplicationPublish:output_type -> forge.v1.SubmitApplicationPublishResponse
-	71, // 119: forge.v1.PortalService.PublishApplication:output_type -> forge.v1.PublishApplicationResponse
-	73, // 120: forge.v1.PortalService.DisableApplication:output_type -> forge.v1.DisableApplicationResponse
-	88, // [88:121] is the sub-list for method output_type
-	55, // [55:88] is the sub-list for method input_type
-	55, // [55:55] is the sub-list for extension type_name
-	55, // [55:55] is the sub-list for extension extendee
-	0,  // [0:55] is the sub-list for field type_name
+	4,  // 47: forge.v1.GetApplicationOnboardingResponse.roles:type_name -> forge.v1.PortalApplicationRole
+	5,  // 48: forge.v1.GetApplicationOnboardingResponse.provisioning_target:type_name -> forge.v1.PortalApplicationProvisioningTarget
+	56, // 49: forge.v1.UpsertApplicationIdentityBindingResponse.binding:type_name -> forge.v1.PortalIdentityBinding
+	0,  // 50: forge.v1.UpsertApplicationIdentityBindingResponse.application:type_name -> forge.v1.PortalApplication
+	56, // 51: forge.v1.VerifyApplicationIdentityResponse.binding:type_name -> forge.v1.PortalIdentityBinding
+	0,  // 52: forge.v1.VerifyApplicationIdentityResponse.application:type_name -> forge.v1.PortalApplication
+	57, // 53: forge.v1.VerifyApplicationIdentityResponse.verifications:type_name -> forge.v1.PortalApplicationVerification
+	0,  // 54: forge.v1.SubmitApplicationPublishResponse.application:type_name -> forge.v1.PortalApplication
+	0,  // 55: forge.v1.PublishApplicationResponse.application:type_name -> forge.v1.PortalApplication
+	0,  // 56: forge.v1.DisableApplicationResponse.application:type_name -> forge.v1.PortalApplication
+	7,  // 57: forge.v1.PortalService.AuthorizePortalApplication:input_type -> forge.v1.AuthorizePortalApplicationRequest
+	6,  // 58: forge.v1.PortalService.ListPortalApplications:input_type -> forge.v1.ListPortalApplicationsRequest
+	10, // 59: forge.v1.PortalService.GetPortalApplication:input_type -> forge.v1.GetPortalApplicationRequest
+	12, // 60: forge.v1.PortalService.LaunchPortalApplication:input_type -> forge.v1.LaunchPortalApplicationRequest
+	14, // 61: forge.v1.PortalService.ListPortalFavorites:input_type -> forge.v1.ListPortalFavoritesRequest
+	16, // 62: forge.v1.PortalService.AddPortalFavorite:input_type -> forge.v1.AddPortalFavoriteRequest
+	18, // 63: forge.v1.PortalService.RemovePortalFavorite:input_type -> forge.v1.RemovePortalFavoriteRequest
+	20, // 64: forge.v1.PortalService.ListRecentPortalApplications:input_type -> forge.v1.ListRecentPortalApplicationsRequest
+	22, // 65: forge.v1.PortalService.ListPortalCategories:input_type -> forge.v1.ListPortalCategoriesRequest
+	24, // 66: forge.v1.PortalService.ListPortalTags:input_type -> forge.v1.ListPortalTagsRequest
+	26, // 67: forge.v1.PortalService.ListAdminPortalApplications:input_type -> forge.v1.ListAdminPortalApplicationsRequest
+	28, // 68: forge.v1.PortalService.CreatePortalApplication:input_type -> forge.v1.CreatePortalApplicationRequest
+	30, // 69: forge.v1.PortalService.UpdatePortalApplication:input_type -> forge.v1.UpdatePortalApplicationRequest
+	32, // 70: forge.v1.PortalService.DeletePortalApplication:input_type -> forge.v1.DeletePortalApplicationRequest
+	34, // 71: forge.v1.PortalService.CreatePortalCategory:input_type -> forge.v1.CreatePortalCategoryRequest
+	36, // 72: forge.v1.PortalService.UpdatePortalCategory:input_type -> forge.v1.UpdatePortalCategoryRequest
+	38, // 73: forge.v1.PortalService.DeletePortalCategory:input_type -> forge.v1.DeletePortalCategoryRequest
+	40, // 74: forge.v1.PortalService.CreatePortalTag:input_type -> forge.v1.CreatePortalTagRequest
+	42, // 75: forge.v1.PortalService.UpdatePortalTag:input_type -> forge.v1.UpdatePortalTagRequest
+	44, // 76: forge.v1.PortalService.DeletePortalTag:input_type -> forge.v1.DeletePortalTagRequest
+	46, // 77: forge.v1.PortalService.ReplacePortalApplicationPolicies:input_type -> forge.v1.ReplacePortalApplicationPoliciesRequest
+	48, // 78: forge.v1.PortalService.ListPortalApplicationRoles:input_type -> forge.v1.ListPortalApplicationRolesRequest
+	50, // 79: forge.v1.PortalService.ReplacePortalApplicationRoles:input_type -> forge.v1.ReplacePortalApplicationRolesRequest
+	52, // 80: forge.v1.PortalService.GetPortalApplicationProvisioningTarget:input_type -> forge.v1.GetPortalApplicationProvisioningTargetRequest
+	54, // 81: forge.v1.PortalService.UpsertPortalApplicationProvisioningTarget:input_type -> forge.v1.UpsertPortalApplicationProvisioningTargetRequest
+	58, // 82: forge.v1.PortalService.GetIdentityOverview:input_type -> forge.v1.GetIdentityOverviewRequest
+	60, // 83: forge.v1.PortalService.GetIdentityConsoleLink:input_type -> forge.v1.GetIdentityConsoleLinkRequest
+	62, // 84: forge.v1.PortalService.GetApplicationOnboarding:input_type -> forge.v1.GetApplicationOnboardingRequest
+	64, // 85: forge.v1.PortalService.UpsertApplicationIdentityBinding:input_type -> forge.v1.UpsertApplicationIdentityBindingRequest
+	66, // 86: forge.v1.PortalService.VerifyApplicationIdentity:input_type -> forge.v1.VerifyApplicationIdentityRequest
+	68, // 87: forge.v1.PortalService.SubmitApplicationPublish:input_type -> forge.v1.SubmitApplicationPublishRequest
+	70, // 88: forge.v1.PortalService.PublishApplication:input_type -> forge.v1.PublishApplicationRequest
+	72, // 89: forge.v1.PortalService.DisableApplication:input_type -> forge.v1.DisableApplicationRequest
+	8,  // 90: forge.v1.PortalService.AuthorizePortalApplication:output_type -> forge.v1.AuthorizePortalApplicationResponse
+	9,  // 91: forge.v1.PortalService.ListPortalApplications:output_type -> forge.v1.ListPortalApplicationsResponse
+	11, // 92: forge.v1.PortalService.GetPortalApplication:output_type -> forge.v1.GetPortalApplicationResponse
+	13, // 93: forge.v1.PortalService.LaunchPortalApplication:output_type -> forge.v1.LaunchPortalApplicationResponse
+	15, // 94: forge.v1.PortalService.ListPortalFavorites:output_type -> forge.v1.ListPortalFavoritesResponse
+	17, // 95: forge.v1.PortalService.AddPortalFavorite:output_type -> forge.v1.AddPortalFavoriteResponse
+	19, // 96: forge.v1.PortalService.RemovePortalFavorite:output_type -> forge.v1.RemovePortalFavoriteResponse
+	21, // 97: forge.v1.PortalService.ListRecentPortalApplications:output_type -> forge.v1.ListRecentPortalApplicationsResponse
+	23, // 98: forge.v1.PortalService.ListPortalCategories:output_type -> forge.v1.ListPortalCategoriesResponse
+	25, // 99: forge.v1.PortalService.ListPortalTags:output_type -> forge.v1.ListPortalTagsResponse
+	27, // 100: forge.v1.PortalService.ListAdminPortalApplications:output_type -> forge.v1.ListAdminPortalApplicationsResponse
+	29, // 101: forge.v1.PortalService.CreatePortalApplication:output_type -> forge.v1.CreatePortalApplicationResponse
+	31, // 102: forge.v1.PortalService.UpdatePortalApplication:output_type -> forge.v1.UpdatePortalApplicationResponse
+	33, // 103: forge.v1.PortalService.DeletePortalApplication:output_type -> forge.v1.DeletePortalApplicationResponse
+	35, // 104: forge.v1.PortalService.CreatePortalCategory:output_type -> forge.v1.CreatePortalCategoryResponse
+	37, // 105: forge.v1.PortalService.UpdatePortalCategory:output_type -> forge.v1.UpdatePortalCategoryResponse
+	39, // 106: forge.v1.PortalService.DeletePortalCategory:output_type -> forge.v1.DeletePortalCategoryResponse
+	41, // 107: forge.v1.PortalService.CreatePortalTag:output_type -> forge.v1.CreatePortalTagResponse
+	43, // 108: forge.v1.PortalService.UpdatePortalTag:output_type -> forge.v1.UpdatePortalTagResponse
+	45, // 109: forge.v1.PortalService.DeletePortalTag:output_type -> forge.v1.DeletePortalTagResponse
+	47, // 110: forge.v1.PortalService.ReplacePortalApplicationPolicies:output_type -> forge.v1.ReplacePortalApplicationPoliciesResponse
+	49, // 111: forge.v1.PortalService.ListPortalApplicationRoles:output_type -> forge.v1.ListPortalApplicationRolesResponse
+	51, // 112: forge.v1.PortalService.ReplacePortalApplicationRoles:output_type -> forge.v1.ReplacePortalApplicationRolesResponse
+	53, // 113: forge.v1.PortalService.GetPortalApplicationProvisioningTarget:output_type -> forge.v1.GetPortalApplicationProvisioningTargetResponse
+	55, // 114: forge.v1.PortalService.UpsertPortalApplicationProvisioningTarget:output_type -> forge.v1.UpsertPortalApplicationProvisioningTargetResponse
+	59, // 115: forge.v1.PortalService.GetIdentityOverview:output_type -> forge.v1.GetIdentityOverviewResponse
+	61, // 116: forge.v1.PortalService.GetIdentityConsoleLink:output_type -> forge.v1.GetIdentityConsoleLinkResponse
+	63, // 117: forge.v1.PortalService.GetApplicationOnboarding:output_type -> forge.v1.GetApplicationOnboardingResponse
+	65, // 118: forge.v1.PortalService.UpsertApplicationIdentityBinding:output_type -> forge.v1.UpsertApplicationIdentityBindingResponse
+	67, // 119: forge.v1.PortalService.VerifyApplicationIdentity:output_type -> forge.v1.VerifyApplicationIdentityResponse
+	69, // 120: forge.v1.PortalService.SubmitApplicationPublish:output_type -> forge.v1.SubmitApplicationPublishResponse
+	71, // 121: forge.v1.PortalService.PublishApplication:output_type -> forge.v1.PublishApplicationResponse
+	73, // 122: forge.v1.PortalService.DisableApplication:output_type -> forge.v1.DisableApplicationResponse
+	90, // [90:123] is the sub-list for method output_type
+	57, // [57:90] is the sub-list for method input_type
+	57, // [57:57] is the sub-list for extension type_name
+	57, // [57:57] is the sub-list for extension extendee
+	0,  // [0:57] is the sub-list for field type_name
 }
 
 func init() { file_forge_v1_portal_proto_init() }

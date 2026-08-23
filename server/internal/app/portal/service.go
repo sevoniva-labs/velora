@@ -237,9 +237,7 @@ func (s *Service) PublishApplication(ctx context.Context, principal domain.Princ
 	if err != nil {
 		return portaldomain.Application{}, err
 	}
-	if strings.EqualFold(app.LaunchType, "URL") {
-		// URL applications have no identity-side dependency.
-	} else if binding.ID == "" || binding.VerificationStatus != portaldomain.VerificationPassed || app.LifecycleStatus != portaldomain.LifecycleReady {
+	if err := s.requirePublishPrerequisites(ctx, principal, app, binding); err != nil || (!strings.EqualFold(app.LaunchType, "URL") && app.LifecycleStatus != portaldomain.LifecycleReady) {
 		return portaldomain.Application{}, portaldomain.ErrPublishNotReady
 	}
 	return s.repo.SetApplicationLifecycle(ctx, principal.OrganizationID, principal.UserID, app.ID, portaldomain.LifecyclePublished, portaldomain.StatusEnabled, expectedVersion, true)
@@ -250,10 +248,27 @@ func (s *Service) SubmitApplicationPublish(ctx context.Context, principal domain
 	if err != nil {
 		return portaldomain.Application{}, err
 	}
-	if !strings.EqualFold(app.LaunchType, "URL") && (binding.ID == "" || binding.VerificationStatus != portaldomain.VerificationPassed) {
+	if err := s.requirePublishPrerequisites(ctx, principal, app, binding); err != nil {
 		return portaldomain.Application{}, portaldomain.ErrPublishNotReady
 	}
 	return s.repo.SetApplicationLifecycle(ctx, principal.OrganizationID, principal.UserID, app.ID, portaldomain.LifecycleReady, portaldomain.StatusDisabled, expectedVersion, false)
+}
+
+func (s *Service) requirePublishPrerequisites(ctx context.Context, principal domain.Principal, app portaldomain.Application, binding portaldomain.IdentityBinding) error {
+	if len(app.Policies) == 0 {
+		return portaldomain.ErrPublishNotReady
+	}
+	if strings.EqualFold(app.LaunchType, "URL") {
+		return nil
+	}
+	if binding.ID == "" || binding.VerificationStatus != portaldomain.VerificationPassed {
+		return portaldomain.ErrPublishNotReady
+	}
+	target, err := s.repo.GetProvisioningTarget(ctx, principal.OrganizationID, app.ID)
+	if err != nil || target.DeliveryStatus != "HEALTHY" {
+		return portaldomain.ErrPublishNotReady
+	}
+	return nil
 }
 
 func (s *Service) DisableApplication(ctx context.Context, principal domain.Principal, id string, expectedVersion int64) (portaldomain.Application, error) {

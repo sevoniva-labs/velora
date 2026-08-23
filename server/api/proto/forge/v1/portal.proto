@@ -366,7 +366,17 @@ message GetIdentityOverviewResponse {
 message GetIdentityConsoleLinkRequest {}
 message GetIdentityConsoleLinkResponse { string url = 1; string provider_key = 2; }
 message GetApplicationOnboardingRequest { string application_id = 1; }
-message GetApplicationOnboardingResponse { PortalApplication application = 1; PortalIdentityBinding binding = 2; repeated PortalApplicationVerification verifications = 3; bool can_publish = 4; }
+message GetApplicationOnboardingResponse {
+  PortalApplication application = 1;
+  PortalIdentityBinding binding = 2;
+  repeated PortalApplicationVerification verifications = 3;
+  bool can_publish = 4;
+  string onboarding_status = 5;
+  string next_action = 6;
+  repeated string blockers = 7;
+  repeated PortalApplicationRole roles = 8;
+  PortalApplicationProvisioningTarget provisioning_target = 9;
+}
 message UpsertApplicationIdentityBindingRequest {
   string application_id = 1;
   string provider_key = 2;

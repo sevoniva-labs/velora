@@ -3488,6 +3488,8 @@ components:
                     type: array
                     items:
                         $ref: '#/components/schemas/forge.v1.PortalApplicationOnboardingCheck'
+                latestOperation:
+                    $ref: '#/components/schemas/forge.v1.PortalApplicationOnboardingOperation'
         forge.v1.GetApprovalResponse:
             type: object
             properties:
@@ -4023,6 +4025,31 @@ components:
                 verifiedBy:
                     type: string
                 occurredAt:
+                    type: string
+                    format: date-time
+        forge.v1.PortalApplicationOnboardingOperation:
+            type: object
+            properties:
+                id:
+                    type: string
+                operationType:
+                    type: string
+                desiredVersion:
+                    type: string
+                status:
+                    type: string
+                attemptCount:
+                    type: integer
+                    format: int32
+                errorCode:
+                    type: string
+                nextRetryAt:
+                    type: string
+                    format: date-time
+                updatedAt:
+                    type: string
+                    format: date-time
+                completedAt:
                     type: string
                     format: date-time
         forge.v1.PortalApplicationProvisioningTarget:

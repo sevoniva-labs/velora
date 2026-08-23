@@ -47,6 +47,26 @@ func (s *Service) ConfigureProvisioningCipher(cipher *appcrypto.EnvelopeCipher) 
 	s.provisioningCipher = cipher
 }
 
+func (s *Service) BeginOnboardingOperation(ctx context.Context, principal domain.Principal, applicationID, operationType string, desiredVersion int64, idempotencyKey string) (portaldomain.OnboardingOperation, error) {
+	return s.repo.BeginOnboardingOperation(ctx, principal.OrganizationID, applicationID, operationType, desiredVersion, idempotencyKey)
+}
+
+func (s *Service) CompleteOnboardingOperation(ctx context.Context, operationID, status, errorCode, summary string, retryAt *time.Time) error {
+	return s.repo.CompleteOnboardingOperation(ctx, operationID, status, errorCode, summary, retryAt)
+}
+
+func (s *Service) LatestOnboardingOperation(ctx context.Context, principal domain.Principal, applicationID string) (portaldomain.OnboardingOperation, error) {
+	item, err := s.repo.LatestOnboardingOperation(ctx, principal.OrganizationID, applicationID)
+	if repository.IsOperationNotFound(err) {
+		return portaldomain.OnboardingOperation{}, ErrNotFound
+	}
+	return item, err
+}
+
+func (s *Service) ListProviderReconciliationCandidates(ctx context.Context, limit int) ([]repository.ProviderReconciliationCandidate, error) {
+	return s.repo.ListProviderReconciliationCandidates(ctx, limit)
+}
+
 func (s *Service) ListApplications(ctx context.Context, principal domain.Principal, filter repository.ApplicationFilter) ([]portaldomain.Application, error) {
 	items, err := s.repo.ListApplications(ctx, principal.OrganizationID, principal.UserID, filter, false)
 	if err != nil {

@@ -389,6 +389,18 @@ message GetApplicationOnboardingResponse {
   repeated PortalApplicationRole roles = 8;
   PortalApplicationProvisioningTarget provisioning_target = 9;
   repeated PortalApplicationOnboardingCheck onboarding_checks = 10;
+  PortalApplicationOnboardingOperation latest_operation = 11;
+}
+message PortalApplicationOnboardingOperation {
+  string id = 1;
+  string operation_type = 2;
+  int64 desired_version = 3;
+  string status = 4;
+  int32 attempt_count = 5;
+  string error_code = 6;
+  google.protobuf.Timestamp next_retry_at = 7;
+  google.protobuf.Timestamp updated_at = 8;
+  google.protobuf.Timestamp completed_at = 9;
 }
 message UpsertApplicationIdentityBindingRequest {
   string application_id = 1;

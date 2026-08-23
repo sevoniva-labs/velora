@@ -64,6 +64,7 @@ type App struct {
 	bus           messaging.Bus
 	registry      discovery.Registry
 	traceShutdown observability.Shutdown
+	portal        *kratosapi.PortalService
 }
 
 func New(ctx context.Context, opts Options) (*App, error) {
@@ -350,7 +351,7 @@ func New(ctx context.Context, opts Options) (*App, error) {
 		kratos.Metadata(map[string]string{"environment": cfg.App.Environment, "region": cfg.App.Region, "zone": cfg.App.Zone}),
 		kratos.Server(httpServer, grpcServer), kratos.StopTimeout(cfg.Server.ShutdownTimeout),
 	)
-	return &App{cfg: cfg, log: log, runtime: runtime, db: db, cache: c, bus: bus, registry: reg, traceShutdown: traceShutdown}, nil
+	return &App{cfg: cfg, log: log, runtime: runtime, db: db, cache: c, bus: bus, registry: reg, traceShutdown: traceShutdown, portal: portalService}, nil
 }
 
 func (a *App) Run(ctx context.Context) error {
@@ -358,6 +359,9 @@ func (a *App) Run(ctx context.Context) error {
 		return fmt.Errorf("service register: %w", err)
 	}
 	defer func() { _ = a.registry.Deregister(context.Background()) }()
+	if a.portal != nil {
+		go a.portal.RunProviderReconciler(ctx, 5*time.Minute)
+	}
 	a.log.Info("Kratos servers starting",
 		"http_addr", a.cfg.Server.ListenAddr, "grpc_addr", a.cfg.Server.GRPCListenAddr,
 		"public_url", a.cfg.Server.PublicURL, "database", a.cfg.Database.Provider,

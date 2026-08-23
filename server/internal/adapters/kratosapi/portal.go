@@ -6,8 +6,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"net/url"
+	"sort"
 	"strings"
 	"time"
 
@@ -88,6 +90,47 @@ func (s *PortalService) ConfigureCredentialHandoff(store *credentialhandoff.Stor
 
 func (s *PortalService) ConfigureProvisioningRouter(router *provisioninghttp.Router) {
 	s.provisioningRouter = router
+}
+
+// RunProviderReconciler continuously compares Velora's desired OIDC client
+// configuration with Casdoor. It records only redacted operation evidence and
+// never silently overwrites provider-side changes.
+func (s *PortalService) RunProviderReconciler(ctx context.Context, interval time.Duration) {
+	if s.casdoorAutomation == nil || !s.casdoorAutomation.Enabled() {
+		return
+	}
+	if interval < time.Minute {
+		interval = 5 * time.Minute
+	}
+	run := func() {
+		items, err := s.portal.ListProviderReconciliationCandidates(ctx, 500)
+		if err != nil {
+			slog.Error("application provider reconciliation query failed", "error", err)
+			return
+		}
+		for _, item := range items {
+			if ctx.Err() != nil {
+				return
+			}
+			principal := domain.Principal{OrganizationID: item.Application.OrganizationID}
+			latest, latestErr := s.portal.LatestOnboardingOperation(ctx, principal, item.Application.ID)
+			if latestErr != nil && !errors.Is(latestErr, appportal.ErrNotFound) {
+				continue
+			}
+			s.reconcileProviderDrift(ctx, principal, item.Application, item.Binding, latest)
+		}
+	}
+	run()
+	ticker := time.NewTicker(interval)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			run()
+		}
+	}
 }
 
 func (s *PortalService) audited(ctx context.Context, event *audit.Event, operation func(context.Context) error) error {
@@ -677,12 +720,74 @@ func (s *PortalService) GetApplicationOnboarding(ctx context.Context, req *forge
 	if err != nil {
 		return nil, serviceError(err)
 	}
+	latestOperation, operationErr := s.portal.LatestOnboardingOperation(ctx, principal, app.ID)
+	if operationErr != nil && !errors.Is(operationErr, appportal.ErrNotFound) {
+		return nil, serviceError(operationErr)
+	}
+	if s.casdoorAutomation != nil && s.casdoorAutomation.Enabled() && binding.ID != "" {
+		latestOperation = s.reconcileProviderDrift(ctx, principal, app, binding, latestOperation)
+	}
 	status, nextAction, blockers, canPublish := onboardingState(app, binding, target, checks)
+	if latestOperation.Status == portaldomain.OperationFailed || latestOperation.Status == portaldomain.OperationActionRequired {
+		status, canPublish = "ACTION_REQUIRED", false
+		blockers = append(blockers, "身份提供方配置需要处理："+latestOperation.ErrorCode)
+		nextAction = "修复身份提供方操作或配置漂移后重新检查。"
+	}
 	response := &forgev1.GetApplicationOnboardingResponse{Application: portalApplicationProto(app), Binding: identityBindingProto(binding), Verifications: verificationsProto(verifications), CanPublish: canPublish, OnboardingStatus: status, NextAction: nextAction, Blockers: blockers, Roles: portalApplicationRolesProto(roles), OnboardingChecks: onboardingChecksProto(checks)}
 	if target.ID != "" {
 		response.ProvisioningTarget = provisioningTargetProto(target)
 	}
+	if latestOperation.ID != "" {
+		response.LatestOperation = onboardingOperationProto(latestOperation)
+	}
 	return response, nil
+}
+
+func (s *PortalService) reconcileProviderDrift(ctx context.Context, principal domain.Principal, app portaldomain.Application, binding portaldomain.IdentityBinding, latest portaldomain.OnboardingOperation) portaldomain.OnboardingOperation {
+	providerApp, found, err := s.casdoorAutomation.GetApplication(ctx, binding.ProviderApplicationRef)
+	status, code, summary := portaldomain.OperationSucceeded, "", `{"drift":false}`
+	if err != nil {
+		status, code, summary = portaldomain.OperationFailed, "PROVIDER_RECONCILIATION_FAILED", `{"provider_reachable":false}`
+	} else if providerConfigurationDrift(found, providerApp, binding) {
+		status, code, summary = portaldomain.OperationActionRequired, "PROVIDER_CONFIGURATION_DRIFT", `{"drift":true}`
+	}
+	key := fmt.Sprintf("RECONCILE:%s:%d:%s", app.ID, app.ConfigVersion, code)
+	if latest.OperationType == "RECONCILE_PROVIDER" && latest.IdempotencyKey == key && latest.Status == status {
+		return latest
+	}
+	operation, beginErr := s.portal.BeginOnboardingOperation(ctx, principal, app.ID, "RECONCILE_PROVIDER", app.ConfigVersion, key)
+	if beginErr != nil {
+		return latest
+	}
+	var retryAt *time.Time
+	if status == portaldomain.OperationFailed {
+		next := time.Now().UTC().Add(5 * time.Minute)
+		retryAt = &next
+	}
+	if completeErr := s.portal.CompleteOnboardingOperation(ctx, operation.ID, status, code, summary, retryAt); completeErr != nil {
+		return operation
+	}
+	operation.Status, operation.ErrorCode, operation.ResultSummaryJSON, operation.NextRetryAt = status, code, summary, retryAt
+	return operation
+}
+
+func providerConfigurationDrift(found bool, providerApp casdooradmin.Application, binding portaldomain.IdentityBinding) bool {
+	return !found || providerApp.ClientID != binding.PublicClientID || !equalStrings(providerApp.RedirectURIs, binding.RedirectURIs) || !equalStrings(providerApp.Scopes, binding.Scopes) || !providerApp.Enabled
+}
+
+func equalStrings(left, right []string) bool {
+	a, b := append([]string(nil), left...), append([]string(nil), right...)
+	sort.Strings(a)
+	sort.Strings(b)
+	if len(a) != len(b) {
+		return false
+	}
+	for i := range a {
+		if a[i] != b[i] {
+			return false
+		}
+	}
+	return true
 }
 
 func (s *PortalService) PrepareApplicationCredentialApproval(ctx context.Context, req *forgev1.PrepareApplicationCredentialApprovalRequest) (*forgev1.PrepareApplicationCredentialApprovalResponse, error) {
@@ -852,10 +957,20 @@ func (s *PortalService) UpsertApplicationIdentityBinding(ctx context.Context, re
 		var oneTimeClientSecret string
 		var enrollmentToken string
 		var enrollmentExpiresAt time.Time
+		var onboardingOperation portaldomain.OnboardingOperation
+		operationKey := ""
+		if automationEnabled {
+			digest := sha256.Sum256([]byte(strings.Join([]string{req.GetProviderApplicationRef(), req.GetPublicClientId(), strings.Join(req.GetRedirectUris(), "\x00"), strings.Join(automationScopes, "\x00")}, "\x01")))
+			operationKey = fmt.Sprintf("UPSERT_PROVIDER:%s:%x", req.GetApplicationId(), digest[:16])
+		}
 		event := newAuditEvent(ctx, principal, "iam.integration.update", "portal_application", req.GetApplicationId(), map[string]any{"protocol": req.GetProtocol(), "provider": portaldomain.IdentityProviderCasdoor})
 		if err := s.audited(ctx, event, func(txCtx context.Context) error {
 			var operationErr error
 			binding, app, operationErr = s.portal.UpsertApplicationIdentityBinding(txCtx, principal, req.GetApplicationId(), portaldomain.IdentityBindingInput{ProviderKey: req.GetProviderKey(), Protocol: req.GetProtocol(), ProviderApplicationRef: req.GetProviderApplicationRef(), PublicClientID: req.GetPublicClientId(), Issuer: req.GetIssuer(), RedirectURIs: req.GetRedirectUris(), Scopes: req.GetScopes()}, req.GetExpectedConfigVersion())
+			if operationErr != nil || !automationEnabled {
+				return operationErr
+			}
+			onboardingOperation, operationErr = s.portal.BeginOnboardingOperation(txCtx, principal, app.ID, "UPSERT_PROVIDER", app.ConfigVersion, operationKey)
 			return operationErr
 		}); err != nil {
 			return nil, serviceError(err)
@@ -866,12 +981,18 @@ func (s *PortalService) UpsertApplicationIdentityBinding(ctx context.Context, re
 		if automationEnabled {
 			application, _, automationErr := s.casdoorAutomation.UpsertApplication(ctx, casdooradmin.UpsertInput{Name: req.GetProviderApplicationRef(), Organization: principal.OrganizationID, DisplayName: req.GetProviderApplicationRef(), ClientID: req.GetPublicClientId(), RedirectURIs: req.GetRedirectUris(), GrantTypes: []string{"authorization_code"}, Scopes: automationScopes, ApprovalID: approvalID})
 			if automationErr != nil {
+				next := time.Now().UTC().Add(time.Minute)
+				_ = s.portal.CompleteOnboardingOperation(ctx, onboardingOperation.ID, portaldomain.OperationFailed, "PROVIDER_UPSERT_FAILED", `{"provider":"casdoor"}`, &next)
 				return nil, serviceError(automationErr)
 			}
 			oneTimeClientSecret = application.TakeOneTimeClientSecret()
 		}
 		if strings.EqualFold(strings.TrimSpace(req.GetCredentialDeliveryMode()), "CLI") {
 			if oneTimeClientSecret == "" || s.handoff == nil {
+				if onboardingOperation.ID != "" {
+					next := time.Now().UTC().Add(time.Minute)
+					_ = s.portal.CompleteOnboardingOperation(ctx, onboardingOperation.ID, portaldomain.OperationFailed, "ENROLLMENT_CREDENTIAL_UNAVAILABLE", `{"provider":"casdoor"}`, &next)
+				}
 				return nil, kratoserrors.Conflict("ENROLLMENT_CREDENTIAL_UNAVAILABLE", "new credentials must be generated before CLI enrollment can be issued")
 			}
 			application, target, provisioningSecret, handoffErr := s.portal.ProvisioningCredentialForHandoff(ctx, principal, req.GetApplicationId())
@@ -880,9 +1001,18 @@ func (s *PortalService) UpsertApplicationIdentityBinding(ctx context.Context, re
 			}
 			enrollmentToken, enrollmentExpiresAt, handoffErr = s.handoff.Issue(ctx, credentialhandoff.Bundle{ApplicationCode: application.Code, Issuer: binding.Issuer, ClientID: binding.PublicClientID, ClientSecret: oneTimeClientSecret, RedirectURIs: binding.RedirectURIs, Scopes: binding.Scopes, ProvisioningEndpoint: target.EndpointURL, ProvisioningSecret: provisioningSecret, ProvisioningKeyVersion: target.ActiveKeyVersion, ProvisioningFingerprint: target.SecretFingerprint})
 			if handoffErr != nil {
+				if onboardingOperation.ID != "" {
+					next := time.Now().UTC().Add(time.Minute)
+					_ = s.portal.CompleteOnboardingOperation(ctx, onboardingOperation.ID, portaldomain.OperationFailed, "ENROLLMENT_ISSUE_FAILED", `{"provider":"casdoor"}`, &next)
+				}
 				return nil, internalError(handoffErr)
 			}
 			oneTimeClientSecret = ""
+		}
+		if onboardingOperation.ID != "" {
+			if completeErr := s.portal.CompleteOnboardingOperation(ctx, onboardingOperation.ID, portaldomain.OperationSucceeded, "", `{"provider":"casdoor","configured":true}`, nil); completeErr != nil {
+				return nil, internalError(completeErr)
+			}
 		}
 		return &forgev1.UpsertApplicationIdentityBindingResponse{Binding: identityBindingProto(binding), Application: portalApplicationProto(app), OneTimeClientSecret: oneTimeClientSecret, EnrollmentToken: enrollmentToken, EnrollmentExpiresAt: optionalTimestamp(optionalTime(enrollmentExpiresAt))}, nil
 	}, func(message proto.Message) proto.Message {
@@ -1106,17 +1236,28 @@ func (s *PortalService) DisableApplication(ctx context.Context, req *forgev1.Dis
 	}
 	response, err := s.idempotent(ctx, principal, "portal.application.disable", req, func() proto.Message { return &forgev1.DisableApplicationResponse{} }, func() (proto.Message, error) {
 		var app portaldomain.Application
+		var onboardingOperation portaldomain.OnboardingOperation
 		event := newAuditEvent(ctx, principal, "portal.application.disable", "portal_application", req.GetApplicationId(), map[string]any{"approval_id": req.GetApprovalId(), "casdoor_automation": automationEnabled})
 		if err := s.audited(ctx, event, func(txCtx context.Context) error {
 			var operationErr error
 			app, operationErr = s.portal.DisableApplication(txCtx, principal, req.GetApplicationId(), req.GetExpectedConfigVersion())
+			if operationErr != nil || !automationEnabled {
+				return operationErr
+			}
+			key := fmt.Sprintf("DISABLE_PROVIDER:%s:%d", app.ID, app.ConfigVersion)
+			onboardingOperation, operationErr = s.portal.BeginOnboardingOperation(txCtx, principal, app.ID, "DISABLE_PROVIDER", app.ConfigVersion, key)
 			return operationErr
 		}); err != nil {
 			return nil, serviceError(err)
 		}
 		if automationEnabled {
 			if err := s.casdoorAutomation.DisableApplication(ctx, binding.ProviderApplicationRef, req.GetApprovalId()); err != nil {
+				next := time.Now().UTC().Add(time.Minute)
+				_ = s.portal.CompleteOnboardingOperation(ctx, onboardingOperation.ID, portaldomain.OperationFailed, "PROVIDER_DISABLE_FAILED", `{"provider":"casdoor"}`, &next)
 				return nil, serviceError(err)
+			}
+			if err := s.portal.CompleteOnboardingOperation(ctx, onboardingOperation.ID, portaldomain.OperationSucceeded, "", `{"provider":"casdoor","disabled":true}`, nil); err != nil {
+				return nil, internalError(err)
 			}
 		}
 		return &forgev1.DisableApplicationResponse{Application: portalApplicationProto(app)}, nil
@@ -1219,6 +1360,10 @@ func identityBindingProto(item portaldomain.IdentityBinding) *forgev1.PortalIden
 		return nil
 	}
 	return &forgev1.PortalIdentityBinding{Id: item.ID, OrganizationId: item.OrganizationID, ApplicationId: item.ApplicationID, ProviderKey: item.ProviderKey, Protocol: item.Protocol, ProviderApplicationRef: item.ProviderApplicationRef, PublicClientId: item.PublicClientID, Issuer: item.Issuer, RedirectUris: item.RedirectURIs, Scopes: item.Scopes, ConfigurationStatus: item.ConfigurationStatus, VerificationStatus: item.VerificationStatus, VerifiedAt: optionalTimestamp(item.VerifiedAt), VerifiedBy: item.VerifiedBy, VerificationError: item.VerificationError, ConfigVersion: item.ConfigVersion, CreatedAt: timestamp(item.CreatedAt), UpdatedAt: timestamp(item.UpdatedAt)}
+}
+
+func onboardingOperationProto(item portaldomain.OnboardingOperation) *forgev1.PortalApplicationOnboardingOperation {
+	return &forgev1.PortalApplicationOnboardingOperation{Id: item.ID, OperationType: item.OperationType, DesiredVersion: item.DesiredVersion, Status: item.Status, AttemptCount: int32(item.AttemptCount), ErrorCode: item.ErrorCode, NextRetryAt: optionalTimestamp(item.NextRetryAt), UpdatedAt: timestamp(item.UpdatedAt), CompletedAt: optionalTimestamp(item.CompletedAt)}
 }
 
 func verificationsProto(items []portaldomain.Verification) []*forgev1.PortalApplicationVerification {

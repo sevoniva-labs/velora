@@ -1,5 +1,5 @@
 import { apiFetch } from './client'
-import type { AccessReview, AccessReviewItem, AdminSession, AdminUser, ApplicationAccessGrant, ApplicationAccessImpact, ApplicationEffectiveAccess, ApprovalRequest, ConfigChange, Department, PlatformPermission, PlatformRole, Position, TemporaryRoleGrant, UserAssignment, UserGroup } from '../types'
+import type { AccessReview, AccessReviewItem, AdminSession, AdminUser, ApplicationAccessGrant, ApplicationAccessImpact, ApplicationEffectiveAccess, ApprovalRequest, ConfigChange, Department, PlatformPermission, PlatformRole, Position, TemporaryRoleGrant, UserAssignment, UserEffectiveApplicationAccess, UserGroup } from '../types'
 
 export type DepartmentInput = Pick<Department, 'name' | 'parentId' | 'status' | 'sortOrder'> & { departmentKey?: string }
 export type PositionInput = Pick<Position, 'name' | 'description' | 'departmentId' | 'status' | 'sortOrder'> & { positionKey?: string }
@@ -63,13 +63,13 @@ export async function listPlatformPermissions(): Promise<PlatformPermission[]> {
   return (await apiFetch<{ permissions?: PlatformPermission[] }>('/admin/permissions')).permissions ?? []
 }
 
-export async function updateRolePermissions(roleKey: string, permissions: string[]): Promise<PlatformRole> {
-  const data = await apiFetch<{ role: PlatformRole }>(`/admin/roles/${encodeURIComponent(roleKey)}/permissions`, { method: 'PUT', body: { permissions } })
+export async function updateRolePermissions(roleKey: string, permissions: string[], approvalId?: string): Promise<PlatformRole> {
+  const data = await apiFetch<{ role: PlatformRole }>(`/admin/roles/${encodeURIComponent(roleKey)}/permissions`, { method: 'PUT', body: { permissions, approvalId: approvalId ?? '' } })
   return data.role
 }
 
-export async function updateRoleDataScope(roleKey: string, dataScope: string, departmentIds: string[]): Promise<PlatformRole> {
-  const data = await apiFetch<{ role: PlatformRole }>(`/admin/roles/${encodeURIComponent(roleKey)}/data-scope`, { method: 'PUT', body: { dataScope, departmentIds } })
+export async function updateRoleDataScope(roleKey: string, dataScope: string, departmentIds: string[], approvalId?: string): Promise<PlatformRole> {
+  const data = await apiFetch<{ role: PlatformRole }>(`/admin/roles/${encodeURIComponent(roleKey)}/data-scope`, { method: 'PUT', body: { dataScope, departmentIds, approvalId: approvalId ?? '' } })
   return data.role
 }
 
@@ -89,8 +89,12 @@ export function replaceUserAssignments(userId: string, assignments: UserAssignme
   return apiFetch(`/admin/users/${encodeURIComponent(userId)}/assignments`, { method: 'PUT', body: { assignments } })
 }
 
-export async function updateUserRoles(userId: string, roles: string[]): Promise<AdminUser> {
-  const data = await apiFetch<{ user: AdminUser }>(`/admin/users/${encodeURIComponent(userId)}/roles`, { method: 'PATCH', body: { roles } })
+export async function listUserEffectiveApplicationAccess(userId: string): Promise<UserEffectiveApplicationAccess[]> {
+  return (await apiFetch<{ accesses?: UserEffectiveApplicationAccess[] }>(`/admin/users/${encodeURIComponent(userId)}/effective-application-access`)).accesses ?? []
+}
+
+export async function updateUserRoles(userId: string, roles: string[], approvalId?: string): Promise<AdminUser> {
+  const data = await apiFetch<{ user: AdminUser }>(`/admin/users/${encodeURIComponent(userId)}/roles`, { method: 'PATCH', body: { roles, approvalId: approvalId ?? '' } })
   return data.user
 }
 

@@ -19,62 +19,63 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	PlatformService_ListUsers_FullMethodName                  = "/forge.v1.PlatformService/ListUsers"
-	PlatformService_CreateUser_FullMethodName                 = "/forge.v1.PlatformService/CreateUser"
-	PlatformService_ListDepartments_FullMethodName            = "/forge.v1.PlatformService/ListDepartments"
-	PlatformService_CreateDepartment_FullMethodName           = "/forge.v1.PlatformService/CreateDepartment"
-	PlatformService_UpdateDepartment_FullMethodName           = "/forge.v1.PlatformService/UpdateDepartment"
-	PlatformService_ListPositions_FullMethodName              = "/forge.v1.PlatformService/ListPositions"
-	PlatformService_CreatePosition_FullMethodName             = "/forge.v1.PlatformService/CreatePosition"
-	PlatformService_UpdatePosition_FullMethodName             = "/forge.v1.PlatformService/UpdatePosition"
-	PlatformService_ListUserGroups_FullMethodName             = "/forge.v1.PlatformService/ListUserGroups"
-	PlatformService_CreateUserGroup_FullMethodName            = "/forge.v1.PlatformService/CreateUserGroup"
-	PlatformService_UpdateUserGroup_FullMethodName            = "/forge.v1.PlatformService/UpdateUserGroup"
-	PlatformService_UpdateUserGroupMembers_FullMethodName     = "/forge.v1.PlatformService/UpdateUserGroupMembers"
-	PlatformService_UpdateUserGroupRoles_FullMethodName       = "/forge.v1.PlatformService/UpdateUserGroupRoles"
-	PlatformService_ListUserAssignments_FullMethodName        = "/forge.v1.PlatformService/ListUserAssignments"
-	PlatformService_ReplaceUserAssignments_FullMethodName     = "/forge.v1.PlatformService/ReplaceUserAssignments"
-	PlatformService_GetOrganization_FullMethodName            = "/forge.v1.PlatformService/GetOrganization"
-	PlatformService_UpdateOrganization_FullMethodName         = "/forge.v1.PlatformService/UpdateOrganization"
-	PlatformService_GetSecurityPolicy_FullMethodName          = "/forge.v1.PlatformService/GetSecurityPolicy"
-	PlatformService_UpdateSecurityPolicy_FullMethodName       = "/forge.v1.PlatformService/UpdateSecurityPolicy"
-	PlatformService_ListRoles_FullMethodName                  = "/forge.v1.PlatformService/ListRoles"
-	PlatformService_ListPermissions_FullMethodName            = "/forge.v1.PlatformService/ListPermissions"
-	PlatformService_ListMenus_FullMethodName                  = "/forge.v1.PlatformService/ListMenus"
-	PlatformService_UpdateMenu_FullMethodName                 = "/forge.v1.PlatformService/UpdateMenu"
-	PlatformService_ListDataFieldPolicies_FullMethodName      = "/forge.v1.PlatformService/ListDataFieldPolicies"
-	PlatformService_UpsertDataFieldPolicy_FullMethodName      = "/forge.v1.PlatformService/UpsertDataFieldPolicy"
-	PlatformService_AuthorizeDataExport_FullMethodName        = "/forge.v1.PlatformService/AuthorizeDataExport"
-	PlatformService_ListDataDeletionEvidence_FullMethodName   = "/forge.v1.PlatformService/ListDataDeletionEvidence"
-	PlatformService_RecordDataDeletionEvidence_FullMethodName = "/forge.v1.PlatformService/RecordDataDeletionEvidence"
-	PlatformService_UpdateRoleDataScope_FullMethodName        = "/forge.v1.PlatformService/UpdateRoleDataScope"
-	PlatformService_UpdateRolePermissions_FullMethodName      = "/forge.v1.PlatformService/UpdateRolePermissions"
-	PlatformService_UpdateUserRoles_FullMethodName            = "/forge.v1.PlatformService/UpdateUserRoles"
-	PlatformService_UpdateUserStatus_FullMethodName           = "/forge.v1.PlatformService/UpdateUserStatus"
-	PlatformService_UpdateUserEntitlement_FullMethodName      = "/forge.v1.PlatformService/UpdateUserEntitlement"
-	PlatformService_UnlockUser_FullMethodName                 = "/forge.v1.PlatformService/UnlockUser"
-	PlatformService_ResetUserPassword_FullMethodName          = "/forge.v1.PlatformService/ResetUserPassword"
-	PlatformService_ListSessions_FullMethodName               = "/forge.v1.PlatformService/ListSessions"
-	PlatformService_RevokeSession_FullMethodName              = "/forge.v1.PlatformService/RevokeSession"
-	PlatformService_ListAuditLogs_FullMethodName              = "/forge.v1.PlatformService/ListAuditLogs"
-	PlatformService_VerifyAuditIntegrity_FullMethodName       = "/forge.v1.PlatformService/VerifyAuditIntegrity"
-	PlatformService_ExportAuditLogs_FullMethodName            = "/forge.v1.PlatformService/ExportAuditLogs"
-	PlatformService_ListTemporaryRoleGrants_FullMethodName    = "/forge.v1.PlatformService/ListTemporaryRoleGrants"
-	PlatformService_CreateTemporaryRoleGrant_FullMethodName   = "/forge.v1.PlatformService/CreateTemporaryRoleGrant"
-	PlatformService_RevokeTemporaryRoleGrant_FullMethodName   = "/forge.v1.PlatformService/RevokeTemporaryRoleGrant"
-	PlatformService_ListFederatedIdentityLinks_FullMethodName = "/forge.v1.PlatformService/ListFederatedIdentityLinks"
-	PlatformService_LinkFederatedIdentity_FullMethodName      = "/forge.v1.PlatformService/LinkFederatedIdentity"
-	PlatformService_UnlinkFederatedIdentity_FullMethodName    = "/forge.v1.PlatformService/UnlinkFederatedIdentity"
-	PlatformService_ListAccessReviews_FullMethodName          = "/forge.v1.PlatformService/ListAccessReviews"
-	PlatformService_CreateAccessReview_FullMethodName         = "/forge.v1.PlatformService/CreateAccessReview"
-	PlatformService_ListAccessReviewItems_FullMethodName      = "/forge.v1.PlatformService/ListAccessReviewItems"
-	PlatformService_DecideAccessReviewItem_FullMethodName     = "/forge.v1.PlatformService/DecideAccessReviewItem"
-	PlatformService_ListConfigChanges_FullMethodName          = "/forge.v1.PlatformService/ListConfigChanges"
-	PlatformService_CreateConfigChange_FullMethodName         = "/forge.v1.PlatformService/CreateConfigChange"
-	PlatformService_ApproveConfigChange_FullMethodName        = "/forge.v1.PlatformService/ApproveConfigChange"
-	PlatformService_PublishConfigChange_FullMethodName        = "/forge.v1.PlatformService/PublishConfigChange"
-	PlatformService_RequestConfigRollback_FullMethodName      = "/forge.v1.PlatformService/RequestConfigRollback"
-	PlatformService_RollbackConfigChange_FullMethodName       = "/forge.v1.PlatformService/RollbackConfigChange"
+	PlatformService_ListUsers_FullMethodName                          = "/forge.v1.PlatformService/ListUsers"
+	PlatformService_CreateUser_FullMethodName                         = "/forge.v1.PlatformService/CreateUser"
+	PlatformService_ListDepartments_FullMethodName                    = "/forge.v1.PlatformService/ListDepartments"
+	PlatformService_CreateDepartment_FullMethodName                   = "/forge.v1.PlatformService/CreateDepartment"
+	PlatformService_UpdateDepartment_FullMethodName                   = "/forge.v1.PlatformService/UpdateDepartment"
+	PlatformService_ListPositions_FullMethodName                      = "/forge.v1.PlatformService/ListPositions"
+	PlatformService_CreatePosition_FullMethodName                     = "/forge.v1.PlatformService/CreatePosition"
+	PlatformService_UpdatePosition_FullMethodName                     = "/forge.v1.PlatformService/UpdatePosition"
+	PlatformService_ListUserGroups_FullMethodName                     = "/forge.v1.PlatformService/ListUserGroups"
+	PlatformService_CreateUserGroup_FullMethodName                    = "/forge.v1.PlatformService/CreateUserGroup"
+	PlatformService_UpdateUserGroup_FullMethodName                    = "/forge.v1.PlatformService/UpdateUserGroup"
+	PlatformService_UpdateUserGroupMembers_FullMethodName             = "/forge.v1.PlatformService/UpdateUserGroupMembers"
+	PlatformService_UpdateUserGroupRoles_FullMethodName               = "/forge.v1.PlatformService/UpdateUserGroupRoles"
+	PlatformService_ListUserAssignments_FullMethodName                = "/forge.v1.PlatformService/ListUserAssignments"
+	PlatformService_ReplaceUserAssignments_FullMethodName             = "/forge.v1.PlatformService/ReplaceUserAssignments"
+	PlatformService_ListUserEffectiveApplicationAccess_FullMethodName = "/forge.v1.PlatformService/ListUserEffectiveApplicationAccess"
+	PlatformService_GetOrganization_FullMethodName                    = "/forge.v1.PlatformService/GetOrganization"
+	PlatformService_UpdateOrganization_FullMethodName                 = "/forge.v1.PlatformService/UpdateOrganization"
+	PlatformService_GetSecurityPolicy_FullMethodName                  = "/forge.v1.PlatformService/GetSecurityPolicy"
+	PlatformService_UpdateSecurityPolicy_FullMethodName               = "/forge.v1.PlatformService/UpdateSecurityPolicy"
+	PlatformService_ListRoles_FullMethodName                          = "/forge.v1.PlatformService/ListRoles"
+	PlatformService_ListPermissions_FullMethodName                    = "/forge.v1.PlatformService/ListPermissions"
+	PlatformService_ListMenus_FullMethodName                          = "/forge.v1.PlatformService/ListMenus"
+	PlatformService_UpdateMenu_FullMethodName                         = "/forge.v1.PlatformService/UpdateMenu"
+	PlatformService_ListDataFieldPolicies_FullMethodName              = "/forge.v1.PlatformService/ListDataFieldPolicies"
+	PlatformService_UpsertDataFieldPolicy_FullMethodName              = "/forge.v1.PlatformService/UpsertDataFieldPolicy"
+	PlatformService_AuthorizeDataExport_FullMethodName                = "/forge.v1.PlatformService/AuthorizeDataExport"
+	PlatformService_ListDataDeletionEvidence_FullMethodName           = "/forge.v1.PlatformService/ListDataDeletionEvidence"
+	PlatformService_RecordDataDeletionEvidence_FullMethodName         = "/forge.v1.PlatformService/RecordDataDeletionEvidence"
+	PlatformService_UpdateRoleDataScope_FullMethodName                = "/forge.v1.PlatformService/UpdateRoleDataScope"
+	PlatformService_UpdateRolePermissions_FullMethodName              = "/forge.v1.PlatformService/UpdateRolePermissions"
+	PlatformService_UpdateUserRoles_FullMethodName                    = "/forge.v1.PlatformService/UpdateUserRoles"
+	PlatformService_UpdateUserStatus_FullMethodName                   = "/forge.v1.PlatformService/UpdateUserStatus"
+	PlatformService_UpdateUserEntitlement_FullMethodName              = "/forge.v1.PlatformService/UpdateUserEntitlement"
+	PlatformService_UnlockUser_FullMethodName                         = "/forge.v1.PlatformService/UnlockUser"
+	PlatformService_ResetUserPassword_FullMethodName                  = "/forge.v1.PlatformService/ResetUserPassword"
+	PlatformService_ListSessions_FullMethodName                       = "/forge.v1.PlatformService/ListSessions"
+	PlatformService_RevokeSession_FullMethodName                      = "/forge.v1.PlatformService/RevokeSession"
+	PlatformService_ListAuditLogs_FullMethodName                      = "/forge.v1.PlatformService/ListAuditLogs"
+	PlatformService_VerifyAuditIntegrity_FullMethodName               = "/forge.v1.PlatformService/VerifyAuditIntegrity"
+	PlatformService_ExportAuditLogs_FullMethodName                    = "/forge.v1.PlatformService/ExportAuditLogs"
+	PlatformService_ListTemporaryRoleGrants_FullMethodName            = "/forge.v1.PlatformService/ListTemporaryRoleGrants"
+	PlatformService_CreateTemporaryRoleGrant_FullMethodName           = "/forge.v1.PlatformService/CreateTemporaryRoleGrant"
+	PlatformService_RevokeTemporaryRoleGrant_FullMethodName           = "/forge.v1.PlatformService/RevokeTemporaryRoleGrant"
+	PlatformService_ListFederatedIdentityLinks_FullMethodName         = "/forge.v1.PlatformService/ListFederatedIdentityLinks"
+	PlatformService_LinkFederatedIdentity_FullMethodName              = "/forge.v1.PlatformService/LinkFederatedIdentity"
+	PlatformService_UnlinkFederatedIdentity_FullMethodName            = "/forge.v1.PlatformService/UnlinkFederatedIdentity"
+	PlatformService_ListAccessReviews_FullMethodName                  = "/forge.v1.PlatformService/ListAccessReviews"
+	PlatformService_CreateAccessReview_FullMethodName                 = "/forge.v1.PlatformService/CreateAccessReview"
+	PlatformService_ListAccessReviewItems_FullMethodName              = "/forge.v1.PlatformService/ListAccessReviewItems"
+	PlatformService_DecideAccessReviewItem_FullMethodName             = "/forge.v1.PlatformService/DecideAccessReviewItem"
+	PlatformService_ListConfigChanges_FullMethodName                  = "/forge.v1.PlatformService/ListConfigChanges"
+	PlatformService_CreateConfigChange_FullMethodName                 = "/forge.v1.PlatformService/CreateConfigChange"
+	PlatformService_ApproveConfigChange_FullMethodName                = "/forge.v1.PlatformService/ApproveConfigChange"
+	PlatformService_PublishConfigChange_FullMethodName                = "/forge.v1.PlatformService/PublishConfigChange"
+	PlatformService_RequestConfigRollback_FullMethodName              = "/forge.v1.PlatformService/RequestConfigRollback"
+	PlatformService_RollbackConfigChange_FullMethodName               = "/forge.v1.PlatformService/RollbackConfigChange"
 )
 
 // PlatformServiceClient is the client API for PlatformService service.
@@ -96,6 +97,7 @@ type PlatformServiceClient interface {
 	UpdateUserGroupRoles(ctx context.Context, in *UpdateUserGroupRolesRequest, opts ...grpc.CallOption) (*UpdateUserGroupRolesResponse, error)
 	ListUserAssignments(ctx context.Context, in *ListUserAssignmentsRequest, opts ...grpc.CallOption) (*ListUserAssignmentsResponse, error)
 	ReplaceUserAssignments(ctx context.Context, in *ReplaceUserAssignmentsRequest, opts ...grpc.CallOption) (*ReplaceUserAssignmentsResponse, error)
+	ListUserEffectiveApplicationAccess(ctx context.Context, in *ListUserEffectiveApplicationAccessRequest, opts ...grpc.CallOption) (*ListUserEffectiveApplicationAccessResponse, error)
 	GetOrganization(ctx context.Context, in *GetOrganizationRequest, opts ...grpc.CallOption) (*GetOrganizationResponse, error)
 	UpdateOrganization(ctx context.Context, in *UpdateOrganizationRequest, opts ...grpc.CallOption) (*UpdateOrganizationResponse, error)
 	GetSecurityPolicy(ctx context.Context, in *GetSecurityPolicyRequest, opts ...grpc.CallOption) (*GetSecurityPolicyResponse, error)
@@ -291,6 +293,16 @@ func (c *platformServiceClient) ReplaceUserAssignments(ctx context.Context, in *
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(ReplaceUserAssignmentsResponse)
 	err := c.cc.Invoke(ctx, PlatformService_ReplaceUserAssignments_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *platformServiceClient) ListUserEffectiveApplicationAccess(ctx context.Context, in *ListUserEffectiveApplicationAccessRequest, opts ...grpc.CallOption) (*ListUserEffectiveApplicationAccessResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListUserEffectiveApplicationAccessResponse)
+	err := c.cc.Invoke(ctx, PlatformService_ListUserEffectiveApplicationAccess_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -726,6 +738,7 @@ type PlatformServiceServer interface {
 	UpdateUserGroupRoles(context.Context, *UpdateUserGroupRolesRequest) (*UpdateUserGroupRolesResponse, error)
 	ListUserAssignments(context.Context, *ListUserAssignmentsRequest) (*ListUserAssignmentsResponse, error)
 	ReplaceUserAssignments(context.Context, *ReplaceUserAssignmentsRequest) (*ReplaceUserAssignmentsResponse, error)
+	ListUserEffectiveApplicationAccess(context.Context, *ListUserEffectiveApplicationAccessRequest) (*ListUserEffectiveApplicationAccessResponse, error)
 	GetOrganization(context.Context, *GetOrganizationRequest) (*GetOrganizationResponse, error)
 	UpdateOrganization(context.Context, *UpdateOrganizationRequest) (*UpdateOrganizationResponse, error)
 	GetSecurityPolicy(context.Context, *GetSecurityPolicyRequest) (*GetSecurityPolicyResponse, error)
@@ -821,6 +834,9 @@ func (UnimplementedPlatformServiceServer) ListUserAssignments(context.Context, *
 }
 func (UnimplementedPlatformServiceServer) ReplaceUserAssignments(context.Context, *ReplaceUserAssignmentsRequest) (*ReplaceUserAssignmentsResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ReplaceUserAssignments not implemented")
+}
+func (UnimplementedPlatformServiceServer) ListUserEffectiveApplicationAccess(context.Context, *ListUserEffectiveApplicationAccessRequest) (*ListUserEffectiveApplicationAccessResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListUserEffectiveApplicationAccess not implemented")
 }
 func (UnimplementedPlatformServiceServer) GetOrganization(context.Context, *GetOrganizationRequest) (*GetOrganizationResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetOrganization not implemented")
@@ -1232,6 +1248,24 @@ func _PlatformService_ReplaceUserAssignments_Handler(srv interface{}, ctx contex
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(PlatformServiceServer).ReplaceUserAssignments(ctx, req.(*ReplaceUserAssignmentsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _PlatformService_ListUserEffectiveApplicationAccess_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListUserEffectiveApplicationAccessRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PlatformServiceServer).ListUserEffectiveApplicationAccess(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: PlatformService_ListUserEffectiveApplicationAccess_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PlatformServiceServer).ListUserEffectiveApplicationAccess(ctx, req.(*ListUserEffectiveApplicationAccessRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -2040,6 +2074,10 @@ var PlatformService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ReplaceUserAssignments",
 			Handler:    _PlatformService_ReplaceUserAssignments_Handler,
+		},
+		{
+			MethodName: "ListUserEffectiveApplicationAccess",
+			Handler:    _PlatformService_ListUserEffectiveApplicationAccess_Handler,
 		},
 		{
 			MethodName: "GetOrganization",

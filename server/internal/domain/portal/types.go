@@ -87,6 +87,16 @@ type EffectiveAccess struct {
 	Roles, SourceGrantIDs          []string
 }
 
+type EffectiveApplicationAccessSource struct {
+	GrantID, SubjectType, SubjectID, SubjectName, Effect string
+}
+
+type UserEffectiveApplicationAccess struct {
+	UserID, ApplicationID, ApplicationCode, ApplicationName, Status string
+	Roles                                                           []string
+	Sources                                                         []EffectiveApplicationAccessSource
+}
+
 func ResolveAccessGrants(grants []AccessGrant, profile AccessSubjectProfile, departmentParents map[string]string, now time.Time) EffectiveAccess {
 	result := EffectiveAccess{UserID: profile.UserID, LoginName: profile.LoginName, DisplayName: profile.DisplayName}
 	roleSet := make(map[string]struct{})

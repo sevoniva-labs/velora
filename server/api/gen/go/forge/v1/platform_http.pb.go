@@ -48,6 +48,7 @@ const OperationPlatformServiceListRoles = "/forge.v1.PlatformService/ListRoles"
 const OperationPlatformServiceListSessions = "/forge.v1.PlatformService/ListSessions"
 const OperationPlatformServiceListTemporaryRoleGrants = "/forge.v1.PlatformService/ListTemporaryRoleGrants"
 const OperationPlatformServiceListUserAssignments = "/forge.v1.PlatformService/ListUserAssignments"
+const OperationPlatformServiceListUserEffectiveApplicationAccess = "/forge.v1.PlatformService/ListUserEffectiveApplicationAccess"
 const OperationPlatformServiceListUserGroups = "/forge.v1.PlatformService/ListUserGroups"
 const OperationPlatformServiceListUsers = "/forge.v1.PlatformService/ListUsers"
 const OperationPlatformServicePublishConfigChange = "/forge.v1.PlatformService/PublishConfigChange"
@@ -106,6 +107,7 @@ type PlatformServiceHTTPServer interface {
 	ListSessions(context.Context, *ListSessionsRequest) (*ListSessionsResponse, error)
 	ListTemporaryRoleGrants(context.Context, *ListTemporaryRoleGrantsRequest) (*ListTemporaryRoleGrantsResponse, error)
 	ListUserAssignments(context.Context, *ListUserAssignmentsRequest) (*ListUserAssignmentsResponse, error)
+	ListUserEffectiveApplicationAccess(context.Context, *ListUserEffectiveApplicationAccessRequest) (*ListUserEffectiveApplicationAccessResponse, error)
 	ListUserGroups(context.Context, *ListUserGroupsRequest) (*ListUserGroupsResponse, error)
 	ListUsers(context.Context, *ListUsersRequest) (*ListUsersResponse, error)
 	PublishConfigChange(context.Context, *PublishConfigChangeRequest) (*PublishConfigChangeResponse, error)
@@ -152,6 +154,7 @@ func RegisterPlatformServiceHTTPServer(s *http.Server, srv PlatformServiceHTTPSe
 	r.PUT("/api/v1/admin/user-groups/{group_id}/roles", _PlatformService_UpdateUserGroupRoles0_HTTP_Handler(srv))
 	r.GET("/api/v1/admin/users/{user_id}/assignments", _PlatformService_ListUserAssignments0_HTTP_Handler(srv))
 	r.PUT("/api/v1/admin/users/{user_id}/assignments", _PlatformService_ReplaceUserAssignments0_HTTP_Handler(srv))
+	r.GET("/api/v1/admin/users/{user_id}/effective-application-access", _PlatformService_ListUserEffectiveApplicationAccess0_HTTP_Handler(srv))
 	r.GET("/api/v1/admin/organization", _PlatformService_GetOrganization0_HTTP_Handler(srv))
 	r.PATCH("/api/v1/admin/organization", _PlatformService_UpdateOrganization0_HTTP_Handler(srv))
 	r.GET("/api/v1/admin/security-config", _PlatformService_GetSecurityPolicy0_HTTP_Handler(srv))
@@ -527,6 +530,28 @@ func _PlatformService_ReplaceUserAssignments0_HTTP_Handler(srv PlatformServiceHT
 			return err
 		}
 		reply := out.(*ReplaceUserAssignmentsResponse)
+		return ctx.Result(200, reply)
+	}
+}
+
+func _PlatformService_ListUserEffectiveApplicationAccess0_HTTP_Handler(srv PlatformServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in ListUserEffectiveApplicationAccessRequest
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindVars(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationPlatformServiceListUserEffectiveApplicationAccess)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.ListUserEffectiveApplicationAccess(ctx, req.(*ListUserEffectiveApplicationAccessRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*ListUserEffectiveApplicationAccessResponse)
 		return ctx.Result(200, reply)
 	}
 }
@@ -1466,6 +1491,7 @@ type PlatformServiceHTTPClient interface {
 	ListSessions(ctx context.Context, req *ListSessionsRequest, opts ...http.CallOption) (rsp *ListSessionsResponse, err error)
 	ListTemporaryRoleGrants(ctx context.Context, req *ListTemporaryRoleGrantsRequest, opts ...http.CallOption) (rsp *ListTemporaryRoleGrantsResponse, err error)
 	ListUserAssignments(ctx context.Context, req *ListUserAssignmentsRequest, opts ...http.CallOption) (rsp *ListUserAssignmentsResponse, err error)
+	ListUserEffectiveApplicationAccess(ctx context.Context, req *ListUserEffectiveApplicationAccessRequest, opts ...http.CallOption) (rsp *ListUserEffectiveApplicationAccessResponse, err error)
 	ListUserGroups(ctx context.Context, req *ListUserGroupsRequest, opts ...http.CallOption) (rsp *ListUserGroupsResponse, err error)
 	ListUsers(ctx context.Context, req *ListUsersRequest, opts ...http.CallOption) (rsp *ListUsersResponse, err error)
 	PublishConfigChange(ctx context.Context, req *PublishConfigChangeRequest, opts ...http.CallOption) (rsp *PublishConfigChangeResponse, err error)
@@ -1872,6 +1898,19 @@ func (c *PlatformServiceHTTPClientImpl) ListUserAssignments(ctx context.Context,
 	pattern := "/api/v1/admin/users/{user_id}/assignments"
 	path := binding.EncodeURL(pattern, in, true)
 	opts = append(opts, http.Operation(OperationPlatformServiceListUserAssignments))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "GET", path, nil, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+func (c *PlatformServiceHTTPClientImpl) ListUserEffectiveApplicationAccess(ctx context.Context, in *ListUserEffectiveApplicationAccessRequest, opts ...http.CallOption) (*ListUserEffectiveApplicationAccessResponse, error) {
+	var out ListUserEffectiveApplicationAccessResponse
+	pattern := "/api/v1/admin/users/{user_id}/effective-application-access"
+	path := binding.EncodeURL(pattern, in, true)
+	opts = append(opts, http.Operation(OperationPlatformServiceListUserEffectiveApplicationAccess))
 	opts = append(opts, http.PathTemplate(pattern))
 	err := c.cc.Invoke(ctx, "GET", path, nil, &out, opts...)
 	if err != nil {

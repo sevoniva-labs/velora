@@ -1824,6 +1824,27 @@ paths:
                 - SessionCookie: []
                   CsrfToken: []
                 - BearerAuth: []
+    /api/v1/admin/users/{userId}/effective-application-access:
+        get:
+            tags:
+                - PlatformService
+            operationId: PlatformService_ListUserEffectiveApplicationAccess
+            parameters:
+                - name: userId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/forge.v1.ListUserEffectiveApplicationAccessResponse'
+            security:
+                - SessionCookie: []
+                - BearerAuth: []
     /api/v1/admin/users/{userId}/entitlements/{applicationCode}:
         put:
             tags:
@@ -3512,6 +3533,19 @@ components:
         forge.v1.DisableMFAResponse:
             type: object
             properties: {}
+        forge.v1.EffectiveApplicationAccessSource:
+            type: object
+            properties:
+                grantId:
+                    type: string
+                subjectType:
+                    type: string
+                subjectId:
+                    type: string
+                subjectName:
+                    type: string
+                effect:
+                    type: string
         forge.v1.EffectiveDataScope:
             type: object
             properties:
@@ -3907,6 +3941,13 @@ components:
                     type: array
                     items:
                         $ref: '#/components/schemas/forge.v1.UserAssignment'
+        forge.v1.ListUserEffectiveApplicationAccessResponse:
+            type: object
+            properties:
+                accesses:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/forge.v1.UserEffectiveApplicationAccess'
         forge.v1.ListUserGroupsResponse:
             type: object
             properties:
@@ -5290,6 +5331,27 @@ components:
                 createdAt:
                     type: string
                     format: date-time
+        forge.v1.UserEffectiveApplicationAccess:
+            type: object
+            properties:
+                userId:
+                    type: string
+                applicationId:
+                    type: string
+                applicationCode:
+                    type: string
+                applicationName:
+                    type: string
+                roles:
+                    type: array
+                    items:
+                        type: string
+                status:
+                    type: string
+                sources:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/forge.v1.EffectiveApplicationAccessSource'
         forge.v1.UserGroup:
             type: object
             properties:

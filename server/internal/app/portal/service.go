@@ -591,6 +591,13 @@ func (s *Service) ListEffectiveAccess(ctx context.Context, principal domain.Prin
 	return effective, err
 }
 
+func (s *Service) ListUserEffectiveApplicationAccess(ctx context.Context, principal domain.Principal, userID string) ([]portaldomain.UserEffectiveApplicationAccess, error) {
+	if strings.TrimSpace(userID) == "" {
+		return nil, ErrInvalid
+	}
+	return s.repo.ListUserEffectiveApplicationAccess(ctx, principal.OrganizationID, strings.TrimSpace(userID))
+}
+
 func normalizeAccessGrants(grants []portaldomain.AccessGrant) error {
 	for i := range grants {
 		grants[i].SubjectType = strings.ToUpper(strings.TrimSpace(grants[i].SubjectType))

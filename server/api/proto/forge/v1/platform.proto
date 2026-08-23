@@ -211,6 +211,10 @@ service PlatformService {
     option (google.api.http) = {put: "/api/v1/admin/users/{user_id}/assignments" body: "*"};
     option (openapi.v3.operation) = {security: [{additional_properties: [{name: "SessionCookie" value: {value: []}}, {name: "CsrfToken" value: {value: []}}]}, {additional_properties: [{name: "BearerAuth" value: {value: []}}]}]};
   }
+  rpc ListUserEffectiveApplicationAccess(ListUserEffectiveApplicationAccessRequest) returns (ListUserEffectiveApplicationAccessResponse) {
+    option (google.api.http) = {get: "/api/v1/admin/users/{user_id}/effective-application-access"};
+    option (openapi.v3.operation) = {security: [{additional_properties: [{name: "SessionCookie" value: {value: []}}]}, {additional_properties: [{name: "BearerAuth" value: {value: []}}]}]};
+  }
   rpc GetOrganization(GetOrganizationRequest) returns (GetOrganizationResponse) {
     option (google.api.http) = {get: "/api/v1/admin/organization"};
     option (openapi.v3.operation) = {
@@ -1030,6 +1034,24 @@ message ReplaceUserAssignmentsRequest {
   repeated UserAssignment assignments = 2;
 }
 message ReplaceUserAssignmentsResponse {}
+message ListUserEffectiveApplicationAccessRequest { string user_id = 1; }
+message EffectiveApplicationAccessSource {
+  string grant_id = 1;
+  string subject_type = 2;
+  string subject_id = 3;
+  string subject_name = 4;
+  string effect = 5;
+}
+message UserEffectiveApplicationAccess {
+  string user_id = 1;
+  string application_id = 2;
+  string application_code = 3;
+  string application_name = 4;
+  repeated string roles = 5;
+  string status = 6;
+  repeated EffectiveApplicationAccessSource sources = 7;
+}
+message ListUserEffectiveApplicationAccessResponse { repeated UserEffectiveApplicationAccess accesses = 1; }
 
 message GetOrganizationRequest {}
 message GetOrganizationResponse {

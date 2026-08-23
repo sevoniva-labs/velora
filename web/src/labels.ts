@@ -172,3 +172,18 @@ export const AUDIT_ACTION_LABEL: Record<string, string> = {
 export function auditActionLabel(action: string): string {
   return AUDIT_ACTION_LABEL[action] ?? action
 }
+
+export const APPROVAL_TYPE_LABEL: Record<string, string> = {
+  APPLICATION_ACCESS_CHANGE: '应用访问变更',
+  TEMPORARY_ROLE_GRANT: '临时授权',
+  USER_ROLE_CHANGE: '用户角色变更',
+  ROLE_PERMISSION_CHANGE: '角色权限变更',
+  ROLE_DATA_SCOPE_CHANGE: '角色数据范围变更',
+  CONFIG_CHANGE_APPROVE: '配置批准',
+  CONFIG_CHANGE_PUBLISH: '配置发布',
+  CONFIG_CHANGE_ROLLBACK_REQUEST: '配置回滚申请',
+  CONFIG_CHANGE_ROLLBACK: '配置回滚',
+  SECURITY_POLICY_CHANGE: '安全策略变更',
+}
+
+export function approvalTypeLabel(type: string): string { return APPROVAL_TYPE_LABEL[type] ?? '权限变更' }

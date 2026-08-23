@@ -168,6 +168,54 @@ func (r *PortalRepo) ResolveApplicationAccess(ctx context.Context, orgID, applic
 	return portaldomain.EffectiveAccess{UserID: userID}, true, nil
 }
 
+func (r *PortalRepo) ListUserEffectiveApplicationAccess(ctx context.Context, orgID, userID string) ([]portaldomain.UserEffectiveApplicationAccess, error) {
+	rows, err := r.db.QueryContext(ctx, r.db.Rebind(`SELECT a.id,a.code,a.name,e.roles_json,e.status FROM user_application_entitlements e JOIN portal_applications a ON a.id=e.application_id AND a.organization_id=? JOIN users u ON u.id=e.user_id AND u.organization_id=a.organization_id WHERE e.user_id=? AND e.status='ACTIVE' AND u.status='ACTIVE' ORDER BY a.name,a.code`), orgID, userID)
+	if err != nil {
+		return nil, err
+	}
+	items := make([]portaldomain.UserEffectiveApplicationAccess, 0)
+	for rows.Next() {
+		var item portaldomain.UserEffectiveApplicationAccess
+		var rolesJSON string
+		if err := rows.Scan(&item.ApplicationID, &item.ApplicationCode, &item.ApplicationName, &rolesJSON, &item.Status); err != nil {
+			_ = rows.Close()
+			return nil, err
+		}
+		item.UserID = userID
+		if err := json.Unmarshal([]byte(rolesJSON), &item.Roles); err != nil {
+			_ = rows.Close()
+			return nil, err
+		}
+		items = append(items, item)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	for index := range items {
+		grantRows, err := r.db.QueryContext(ctx, r.db.Rebind(`SELECT g.id,g.subject_type,g.subject_id,g.effect FROM user_application_entitlement_sources s JOIN application_access_grants g ON g.id=s.grant_id AND g.organization_id=? WHERE s.user_id=? AND s.application_id=? ORDER BY g.subject_type,g.subject_id,g.id`), orgID, userID, items[index].ApplicationID)
+		if err != nil {
+			return nil, err
+		}
+		sources := make([]portaldomain.EffectiveApplicationAccessSource, 0)
+		for grantRows.Next() {
+			var source portaldomain.EffectiveApplicationAccessSource
+			if err := grantRows.Scan(&source.GrantID, &source.SubjectType, &source.SubjectID, &source.Effect); err != nil {
+				_ = grantRows.Close()
+				return nil, err
+			}
+			sources = append(sources, source)
+		}
+		if err := grantRows.Close(); err != nil {
+			return nil, err
+		}
+		for sourceIndex := range sources {
+			sources[sourceIndex].SubjectName = r.accessSubjectName(ctx, orgID, portaldomain.AccessGrant{SubjectType: sources[sourceIndex].SubjectType, SubjectID: sources[sourceIndex].SubjectID})
+		}
+		items[index].Sources = sources
+	}
+	return items, nil
+}
+
 func (r *PortalRepo) validateAccessGrants(ctx context.Context, orgID, applicationID string, grants []portaldomain.AccessGrant) error {
 	if len(grants) > 500 {
 		return errors.New("too many application access grants")

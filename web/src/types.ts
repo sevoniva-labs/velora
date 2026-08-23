@@ -150,6 +150,24 @@ export interface ApplicationEffectiveAccess {
   sourceGrantIds: string[]
 }
 
+export interface EffectiveApplicationAccessSource {
+  grantId: string
+  subjectType: string
+  subjectId: string
+  subjectName: string
+  effect: string
+}
+
+export interface UserEffectiveApplicationAccess {
+  userId: string
+  applicationId: string
+  applicationCode: string
+  applicationName: string
+  roles: string[]
+  status: string
+  sources: EffectiveApplicationAccessSource[]
+}
+
 export interface ApprovalTask {
   id: string
   assigneeId: string

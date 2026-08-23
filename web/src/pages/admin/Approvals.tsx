@@ -7,6 +7,7 @@ import type { ApprovalRequest } from '../../types'
 import { useMe } from '../../auth/useMe'
 import { usePageTitle } from '../../hooks/usePageTitle'
 import { formatDateTime } from '../../utils/format'
+import { approvalTypeLabel } from '../../labels'
 
 interface DecisionForm { decision: 'APPROVE' | 'REJECT'; comment: string }
 const STATUS_LABELS: Record<string, string> = { PENDING: '待审批', APPROVED: '已批准', REJECTED: '已拒绝', WITHDRAWN: '已撤回', EXPIRED: '已过期', EXECUTED: '已执行' }
@@ -20,7 +21,7 @@ export default function Approvals() {
   const approvals = useQuery({ queryKey: ['admin', 'approvals'], queryFn: listApprovals, refetchInterval: 30_000 })
   const decide = useMutation({ mutationFn: (values: DecisionForm) => decideApproval(selected!.id, values.decision, values.comment ?? ''), onSuccess: async (_, values) => { message.success(values.decision === 'APPROVE' ? '已批准' : '已拒绝'); setSelected(undefined); await queryClient.invalidateQueries({ queryKey: ['admin', 'approvals'] }) }, onError: (error) => message.error(error instanceof Error ? error.message : '审批处理失败') })
   const columns: ProColumns<ApprovalRequest>[] = [
-    { title: '事项', dataIndex: 'summary', render: (_, row) => <Space direction="vertical" size={0}><Typography.Text strong>{row.summary}</Typography.Text><Typography.Text type="secondary">{row.requestType}</Typography.Text></Space> },
+    { title: '事项', dataIndex: 'summary', render: (_, row) => <Space direction="vertical" size={0}><Typography.Text strong>{row.summary}</Typography.Text><Typography.Text type="secondary">{approvalTypeLabel(row.requestType)}</Typography.Text></Space> },
     { title: '申请时间', dataIndex: 'createdAt', valueType: 'dateTime', render: (_, row) => formatDateTime(row.createdAt) },
     { title: '到期时间', dataIndex: 'expiresAt', valueType: 'dateTime', search: false, render: (_, row) => formatDateTime(row.expiresAt) },
     { title: '状态', dataIndex: 'status', valueType: 'select', valueEnum: Object.fromEntries(Object.entries(STATUS_LABELS).map(([key, text]) => [key, { text }])), render: (_, row) => <Tag color={row.status === 'PENDING' ? 'processing' : row.status === 'APPROVED' ? 'success' : 'default'}>{STATUS_LABELS[row.status] ?? '已结束'}</Tag> },

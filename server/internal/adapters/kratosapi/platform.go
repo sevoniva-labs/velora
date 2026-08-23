@@ -367,6 +367,26 @@ func (s *PlatformService) ReplaceUserAssignments(ctx context.Context, req *forge
 	return &forgev1.ReplaceUserAssignmentsResponse{}, nil
 }
 
+func (s *PlatformService) ListUserEffectiveApplicationAccess(ctx context.Context, req *forgev1.ListUserEffectiveApplicationAccessRequest) (*forgev1.ListUserEffectiveApplicationAccessResponse, error) {
+	principal, err := requiredPrincipal(ctx)
+	if err != nil {
+		return nil, err
+	}
+	items, err := s.portal.ListUserEffectiveApplicationAccess(ctx, principal, req.GetUserId())
+	if err != nil {
+		return nil, serviceError(err)
+	}
+	reply := &forgev1.ListUserEffectiveApplicationAccessResponse{Accesses: make([]*forgev1.UserEffectiveApplicationAccess, 0, len(items))}
+	for _, item := range items {
+		access := &forgev1.UserEffectiveApplicationAccess{UserId: item.UserID, ApplicationId: item.ApplicationID, ApplicationCode: item.ApplicationCode, ApplicationName: item.ApplicationName, Roles: item.Roles, Status: item.Status}
+		for _, itemSource := range item.Sources {
+			access.Sources = append(access.Sources, &forgev1.EffectiveApplicationAccessSource{GrantId: itemSource.GrantID, SubjectType: itemSource.SubjectType, SubjectId: itemSource.SubjectID, SubjectName: itemSource.SubjectName, Effect: itemSource.Effect})
+		}
+		reply.Accesses = append(reply.Accesses, access)
+	}
+	return reply, nil
+}
+
 func (s *PlatformService) UpdateOrganization(ctx context.Context, req *forgev1.UpdateOrganizationRequest) (*forgev1.UpdateOrganizationResponse, error) {
 	principal, err := requiredPrincipal(ctx)
 	if err != nil {

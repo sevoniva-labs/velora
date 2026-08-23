@@ -1,9 +1,9 @@
 # Velora 应用 OIDC 接入指南
 
-状态：Reference App 与 Spectra 已真实验收；本指南作为后续业务应用接入规范
+状态：历史原理与排障资料（不得作为新应用操作手册）
 适用角色：应用开发者、Velora 应用管理员、身份管理员
 
-强制验收清单以[《Velora 应用接入规范 V1》](./application-integration-standard-v1.md)为唯一权威；本文件保留 OIDC 原理、排障和历史验收细节。
+接入步骤和强制验收清单仅以[《Velora 应用接入规范 V1》](./application-integration-standard-v1.md)为准；本文件只保留 OIDC 原理、排障和历史验收细节。下文手工创建 Casdoor Client、复制 Secret 等步骤均已废止。
 
 整体建设顺序和生产约束以[《Velora 新服务器整体建设与上线方案》](./production-clean-deployment-overall-plan.md)为准；本文件只定义下游应用如何接入。
 

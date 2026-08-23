@@ -21,6 +21,7 @@ import (
 	"time"
 
 	"github.com/coreos/go-oidc/v3/oidc"
+	velorasdk "github.com/sevoniva-labs/velora/server/sdk/velora"
 	"golang.org/x/oauth2"
 )
 
@@ -59,6 +60,7 @@ type demo struct {
 	mu            sync.Mutex
 	tx            map[string]transaction
 	sessions      map[string]session
+	provisioning  http.Handler
 }
 
 var page = template.Must(template.New("page").Parse(`<!doctype html>
@@ -120,7 +122,18 @@ func newDemo(ctx context.Context) (*demo, error) {
 	if publicURL == "" || !strings.HasPrefix(publicURL, "https://") || !strings.HasPrefix(logoutURL, "https://") {
 		return nil, errors.New("DEMO_PUBLIC_URL and DEMO_POST_LOGOUT_REDIRECT_URL must use HTTPS")
 	}
-	return &demo{issuer: issuer, publicURL: publicURL, redirectURL: redirectURL, logoutURL: logoutURL, client: oauth2.Config{ClientID: clientID, ClientSecret: secret, Endpoint: provider.Endpoint(), RedirectURL: redirectURL, Scopes: []string{oidc.ScopeOpenID, "profile", "email"}}, provider: provider, verifier: provider.Verifier(&oidc.Config{ClientID: clientID}), endSessionURL: strings.TrimSpace(metadata.EndSessionEndpoint), secure: true, tx: make(map[string]transaction), sessions: make(map[string]session)}, nil
+	var provisioning http.Handler
+	if provisioningConfigured := strings.TrimSpace(os.Getenv("DEMO_PROVISIONING_SECRET")) != "" || strings.TrimSpace(os.Getenv("DEMO_PROVISIONING_SECRET_FILE")) != ""; provisioningConfigured {
+		provisioningSecret, secretErr := readSecret("DEMO_PROVISIONING_SECRET")
+		if secretErr != nil {
+			return nil, secretErr
+		}
+		provisioning, err = velorasdk.NewProvisioningHandler(provisioningSecret, velorasdk.NewMemoryProvisioningStore())
+		if err != nil {
+			return nil, fmt.Errorf("provisioning handler: %w", err)
+		}
+	}
+	return &demo{issuer: issuer, publicURL: publicURL, redirectURL: redirectURL, logoutURL: logoutURL, client: oauth2.Config{ClientID: clientID, ClientSecret: secret, Endpoint: provider.Endpoint(), RedirectURL: redirectURL, Scopes: []string{oidc.ScopeOpenID, "profile", "email"}}, provider: provider, verifier: provider.Verifier(&oidc.Config{ClientID: clientID}), endSessionURL: strings.TrimSpace(metadata.EndSessionEndpoint), secure: true, tx: make(map[string]transaction), sessions: make(map[string]session), provisioning: provisioning}, nil
 }
 
 func (d *demo) routes() http.Handler {
@@ -137,6 +150,13 @@ func (d *demo) routes() http.Handler {
 	mux.HandleFunc("/login", d.login)
 	mux.HandleFunc("/oauth/callback", d.callback)
 	mux.HandleFunc("/logout", d.logout)
+	mux.HandleFunc("/api/v1/integrations/velora/provisioning", func(w http.ResponseWriter, r *http.Request) {
+		if d.provisioning == nil {
+			http.Error(w, "provisioning is not configured", http.StatusServiceUnavailable)
+			return
+		}
+		d.provisioning.ServeHTTP(w, r)
+	})
 	return securityHeaders(mux)
 }
 

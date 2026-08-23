@@ -1,9 +1,9 @@
 # Velora 统一账号与应用接入标准
 
-状态：生产标准（Spectra 为首个参考实现）  
+状态：历史设计说明（不得作为新应用操作手册）
 适用对象：平台管理员、应用开发者、运维与安全人员
 
-完整发布门槛见[《Velora 应用接入规范 V1》](./application-integration-standard-v1.md)。本文重点定义账号、角色、幂等和撤权事件契约。
+唯一有效的接入流程和发布门槛见[《Velora 应用接入规范 V1》](./application-integration-standard-v1.md)。本文仅保留账号、角色、幂等和撤权事件的历史背景；其中任何手工创建 Casdoor Client、复制 Secret 或应用专属配置步骤均已废止。
 
 ## 1. 产品边界
 

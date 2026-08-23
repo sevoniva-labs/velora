@@ -364,11 +364,13 @@ services:
       DEMO_OIDC_ISSUER: "${DEMO_OIDC_ISSUER:?DEMO_OIDC_ISSUER is required}"
       DEMO_OIDC_CLIENT_ID: "${DEMO_OIDC_CLIENT_ID:?DEMO_OIDC_CLIENT_ID is required}"
       DEMO_OIDC_CLIENT_SECRET_FILE: /run/secrets/demo_oidc_client_secret
+      DEMO_PROVISIONING_SECRET_FILE: /run/secrets/demo_provisioning_secret
       DEMO_OIDC_REDIRECT_URL: "${DEMO_OIDC_REDIRECT_URL:?DEMO_OIDC_REDIRECT_URL is required}"
       DEMO_PUBLIC_URL: "${DEMO_PUBLIC_URL:?DEMO_PUBLIC_URL is required}"
       DEMO_POST_LOGOUT_REDIRECT_URL: "${DEMO_POST_LOGOUT_REDIRECT_URL:?DEMO_POST_LOGOUT_REDIRECT_URL is required}"
     secrets:
       - demo_oidc_client_secret
+      - demo_provisioning_secret
     expose:
       - "8090"
     networks:
@@ -457,6 +459,8 @@ secrets:
     file: "${VELORA_TURNSTILE_SECRET_FILE:?VELORA_TURNSTILE_SECRET_FILE is required}"
   demo_oidc_client_secret:
     file: "${DEMO_OIDC_CLIENT_SECRET_FILE:?DEMO_OIDC_CLIENT_SECRET_FILE is required}"
+  demo_provisioning_secret:
+    file: "${DEMO_PROVISIONING_SECRET_FILE:?DEMO_PROVISIONING_SECRET_FILE is required}"
 
 networks:
   edge:

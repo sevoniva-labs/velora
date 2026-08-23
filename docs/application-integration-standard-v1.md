@@ -1,202 +1,96 @@
 # Velora 应用接入规范 V1
 
-状态：强制执行（唯一权威清单，2026-08-23 修订）
-适用范围：所有新接入 Velora 的生产应用  
-当前样板：Spectra  
-协议范围：OIDC Authorization Code + PKCE S256、账号与权限事件下发
+状态：唯一权威规范（2026-08-23）
+排障：[application-integration-troubleshooting.md](./application-integration-troubleshooting.md)
 
-本文定义“接入完成”的最低产品、协议、安全、运维与回滚标准。详细原理见[OIDC 接入指南](./application-oidc-integration-guide.md)，账号事件结构见[统一账号与应用接入标准](./account-provisioning-and-application-onboarding.md)。两份文档与本文冲突时，以本文为准。
+## 1. 产品边界
 
-## 1. 产品与数据边界
+Velora 是管理员和用户的唯一入口，负责应用目录、访问范围、账号生命周期、角色、审批、验证证据和发布。Casdoor 是隐藏的认证协议引擎，负责密码、MFA、OIDC Client、Token 和统一会话；标准流程不打开 Casdoor。目标应用负责 OIDC RP、本地 Session、账号同步接收端和最终业务鉴权。
 
-| 系统 | 必须负责 | 禁止负责 |
-|---|---|---|
-| Velora | 用户生命周期、应用目录、应用发布、访问策略、应用角色授权、下发状态、管理审计 | 保存密码、下游 Client Secret、应用业务权限判定、签发 OIDC Token |
-| Casdoor | 密码与 MFA、浏览器 SSO、OIDC Client、Code/Token/JWKS/UserInfo | 面向普通用户提供独立入口、管理下游业务角色、替代 Velora 应用授权 |
-| 下游应用 | OIDC RP 校验、本地业务 Session、业务 RBAC/数据权限、接收账号与角色事件、应用审计 | JIT 默认建号、默认授予角色、读取 Velora/Casdoor Cookie、接收用户密码或 MFA Secret |
+Velora 不自建 OIDC Provider，不修改 Casdoor，不向下游发送密码、MFA Secret、Cookie 或 Token。Client Secret 不进入业务数据库；Provisioning Secret 使用 KEK 信封加密。新增应用不得修改 Velora 代码、Worker 分支或增加应用专属环境变量。
 
-普通用户只看到 Velora 登录页。`auth.sevoniva.com` 是协议域，不是产品入口；根路径、Casdoor SPA、账号页和管理 API 默认 404。Casdoor 源码不修改，Velora 不建设第二个 OIDC Provider。
+## 2. 管理员流程
 
-## 2. 十五分钟标准接入路径
+入口：`管理后台 → 应用管理 → 新建应用/接入配置`。
 
-1. 应用团队提交不可变应用编码、HTTPS 首页、精确 Callback、登出回跳、负责人和角色目录。
-2. 身份管理员创建独立 OIDC Client；只启用 Authorization Code、`openid profile email`、Signin Session，Callback 不得使用通配符。
-3. Client Secret 一次性写入应用 Secret Manager/只读文件；禁止进入 Velora、Git、镜像、前端或工单正文。
-4. Velora 创建应用和身份绑定，Issuer 必须精确为 `https://auth.sevoniva.com`，保存公开 Client ID 与 Callback 清单。
-5. 应用实现服务端 OIDC、服务端 Session、账号下发接收端和业务权限默认拒绝。
-6. 先部署应用接收端，再启用 Velora 下发；用专用测试账号执行本文第 10 节全链路验收。
-7. Velora 验证身份绑定、配置允许范围、审批发布；记录 commit、镜像摘要、配置摘要和回滚点。
+1. 填写名称、不可变编码、负责人、分类和生产地址。
+2. OIDC 应用填写精确 HTTPS Callback；Issuer、Scopes、Client ID、PKCE 和 Provider Ref 由 Velora 生成。
+3. 填写账号同步 HTTPS Endpoint、角色目录和访问范围。无策略默认拒绝；全员必须显式选择 `EVERYONE`。
+4. 点击“申请审批并生成接入配置”。Velora 自动选择独立安全审批人并创建待办，不输入审批 ID。
+5. 审批通过后再次点击，Velora 自动编排 Casdoor，返回五分钟、单次消费的 Enrollment Token。
+6. 在应用服务器用 `velora-connect` 领取并部署，运行全部自动检查后试运行、发布。
 
-任一步缺失都只能标记 `DRAFT` 或 `VERIFICATION_PENDING`，不得显示为“已接入”。
+状态以服务端 `status / next_action / blockers` 为准：`DRAFT → APPROVAL_PENDING → CREDENTIALS_ISSUED → WAITING_FOR_DEPLOYMENT → VERIFIED → PILOT → PUBLISHED`；异常为 `ACTION_REQUIRED / DEGRADED / SUSPENDED`。
 
-## 3. OIDC 强制配置
+## 3. 安全领取
 
-```text
-Issuer=https://auth.sevoniva.com
-Discovery=https://auth.sevoniva.com/.well-known/openid-configuration
-Flow=authorization_code
-PKCE=S256
-Scopes=openid profile email
-RedirectURI=https://<application-domain>/<exact-callback>
+从 release 获取并核对 `SHA256SUMS`：
+
+```bash
+install -d -m 0700 /etc/<application>/velora
+velora-connect enroll --portal https://home.sevoniva.com --output /etc/<application>/velora
+velora-connect doctor --config /etc/<application>/velora/velora.env
 ```
 
-应用必须自行生成并在服务端单次事务中保存：
+Token 从标准输入或权限 `0600` 的 `--token-file` 读取，不放入命令参数、Shell History、工单或聊天。CLI 原子写入 `velora.env`、`oidc-client-secret`、`provisioning-secret`，权限均为 `0600`。领取即销毁；丢失时轮换，不能查询旧值。
 
-- 至少 256 bit 随机 `state`；
-- 至少 256 bit 随机 `nonce`；
-- PKCE verifier，以及它的 S256 challenge；
-- 创建时间、五分钟以内的过期时间和安全站内回跳路径。
+## 4. OIDC 契约
 
-事务 Cookie 必须为 Host-only、Secure、HttpOnly、SameSite=Lax，回调后立即删除；事务只能消费一次。应用不能让 Velora 为自己生成 state、nonce 或 verifier。
+必须使用 Authorization Code + PKCE S256，Scopes 为 `openid profile email`，Callback 为精确 HTTPS，禁止通配符、Query、Fragment 和 userinfo。应用 Session 使用 Host-only、Secure、HttpOnly、SameSite=Lax Cookie。
 
-Velora 的跨域会话桥接还会在 `auth` 域设置一次性浏览器 nonce，并把摘要绑定到 30 秒票据。票据必须同时满足可信 `Origin`、非 cross-site Fetch Metadata、原浏览器 nonce 和原子单次消费；应用不得读取、转发或自行模拟该票据。
+Go SDK：`github.com/sevoniva-labs/velora/server/sdk/velora`。
 
-## 4. Callback 与 Token 校验
+```go
+client, err := velora.NewOIDCClient(ctx, velora.OIDCConfig{
+    Issuer: issuer, ClientID: clientID, ClientSecret: secret, RedirectURL: callback,
+})
+authorization, err := client.NewAuthorization()
+// State、Nonce、PKCEVerifier、ExpiresAt 保存到服务端单次事务存储。
+identity, err := client.Exchange(ctx, code, authorization.Nonce, authorization.PKCEVerifier)
+```
 
-Callback 必须依次执行，任一步失败即拒绝：
+SDK 校验 Discovery/JWKS、Issuer、Audience、Expiry、Nonce 和 PKCE；应用负责将 State 绑定浏览器会话、恒定时间比较并单次删除。默认登录跳 Velora；`/normal-login` 仅作受控 break-glass。
 
-1. 校验浏览器事务 Cookie 与 Query `state` 恒定时间相等并原子消费；
-2. 拒绝 IdP `error`、空 Code、过期或重放事务；
-3. 携带原 PKCE verifier 从服务端交换 Code；
-4. 使用 Discovery/JWKS 验证 ID Token 签名；
-5. `iss` 精确等于生产 Issuer；
-6. `aud` 包含当前 Client ID，`exp` 有效，允许时钟偏差不得超过批准值；
-7. Token `nonce` 与事务一致；
-8. UserInfo `sub` 与 ID Token `sub` 一致；
-9. 只允许已预配且状态为 `ACTIVE` 的本地账号建立业务 Session。
-
-`sub + iss` 是跨系统稳定身份键；登录名、邮箱和显示名均可变化，不得作为关联主键。应用更换 Issuer 或 Client 必须重新验证和发布，不能静默迁移 subject。
-
-## 5. 应用本地 Session
-
-- OIDC Token 只在应用后端交换与验证，不写 LocalStorage、SessionStorage、URL 或日志。
-- 应用签发自己的随机服务端 Session；Cookie 使用 Host-only、Secure、HttpOnly、SameSite=Lax、Path `/`。
-- Session 绑定本地用户、组织、认证来源、创建/最后活动/绝对过期时间和撤销状态。
-- 每次请求重新检查用户为启用状态；停用事件必须撤销全部 Session 和个人 API Token。
-- 登录、Callback、退出响应使用 `Cache-Control: no-store`。
-
-## 6. 默认登录与应急本地登录
-
-- 应用 `/login` 必须直接发起 Velora SSO，并只接受经过校验的站内 `redirect`。
-- 未认证访问业务页面必须跳 `/login?redirect=<safe-relative-path>`。
-- 不得在普通登录页展示 Casdoor URL、Client ID、技术错误或账号密码表单。
-- 若业务必须保留 break-glass，本地账号密码页只能位于不导航展示的 `/normal-login` 等专用路径。
-- 专用本地登录仍必须执行短时随机登录 CSRF、同站 Cookie、IP 限流、失败锁定、强密码、TOTP/恢复码和独立审计；隐藏 URL 本身不是安全控制。
-- 普通用户由 Velora/Casdoor 统一账号体系管理；本地账号仅用于批准的应急操作，不能承接日常用户。
-
-## 7. MFA 规范
-
-V1 暂不强制全部用户 MFA，但应用和门户必须允许用户自助开启、验证、生成恢复码和关闭 TOTP。管理员或敏感操作的强制策略可单独开启。
-
-MFA 完成状态只能来自已验证的签名 Claims（如 AMR/ACR）或本系统实际完成的 TOTP/WebAuthn 校验。请求中出现非空 `mfa_code`、`recovery_code` 或前端布尔值绝不是 MFA 证明。认证来源与认证强度必须分开保存，不能因完成 MFA 丢失 `FEDERATED` 来源。
-
-## 8. 账号与角色下发
-
-应用必须实现 `POST /api/v1/provisioning/events`，使用每应用独立 HMAC Secret：
+## 5. 账号同步契约
 
 ```text
+POST <Provisioning Endpoint>
 X-Velora-Timestamp: <Unix seconds>
-X-Velora-Signature: v1=<HMAC-SHA256(secret, timestamp + "." + raw-body)>
+X-Velora-Signature: v1=<hex HMAC-SHA256(secret, timestamp + "." + raw-body)>
+X-Request-ID: <event id>
 ```
 
-接收端必须限制 Body 64 KiB、严格 JSON、五分钟时钟偏差、恒定时间验签，并满足：
+```go
+handler, err := velora.NewProvisioningHandler(secret, productionTransactionalStore)
+mux.Handle("/api/v1/integrations/velora/provisioning", handler)
+```
 
-- `event_id` 全局幂等；重复返回 `DUPLICATE`；
-- `aggregate_version` 单调；旧版本返回 `STALE`；
-- 应用编码和角色必须在本地白名单；未知值拒绝；
-- `ACTIVE` 只替换 `source=VELORA` 的角色；
-- `DISABLED` 必须为空角色并原子完成停用、撤销 Session/API Token、保存事件和审计；
-- 不接收密码、MFA Secret、Cookie、OIDC Token 或 Client Secret。
+`ProvisioningStore.Apply` 必须在同一数据库事务完成 event_id 幂等、聚合版本、用户投影、角色替换、停用和 Session/Token 撤销，只返回 `APPLIED / DUPLICATE / STALE`。未知角色、未预配用户和未知状态失败关闭；`DISABLED` 的角色必须为空。SDK 强制 64 KiB、严格 JSON、五分钟时钟偏差、恒定时间 HMAC 和 `integration.challenge`，不替应用实现 RBAC 或持久化事务。
 
-Velora 负责平台角色与应用角色的映射。下游应用仍负责把收到的应用角色映射到业务 permission/data scope；未知或无角色用户可以合法登录但只能看到无权限空态，不能报“网络异常”，也不能得到默认 `developer/admin`。
+## 6. 发布门禁
 
-## 9. 退出与撤权
+当前配置版本必须通过：显式访问范围、OIDC Discovery/Issuer/JWKS、签名 challenge=`APPLIED`、相同事件=`DUPLICATE`、低版本事件=`STALE`。配置变化使旧证据失效；后端强制门禁，不能绕过前端发布。
 
-应用退出顺序固定为：
+人工验收还需确认：真实浏览器登录及原路径回跳、无角色空态、退出回到 Velora且不暴露 Casdoor、停用撤销应用 Session、恢复后显式重新授权。
 
-1. 撤销应用本地 Session 并清 Cookie；
-2. 若认证来源为 OIDC，跳转受信任的 `https://auth.sevoniva.com/_velora/logout`；
-3. 身份域清理 Casdoor 和 Velora gateway 会话；
-4. 回到 Velora 登录入口或已登记的安全回跳。
+## 7. 样板、发布与回滚
 
-退出 URL 必须来自受信任配置，并限制为 Issuer 主机和批准路径；不得接受任意 Query URL。普通 OIDC、OIDC+MFA 都必须走联邦退出。未实现并验证 Back-Channel Logout 前，不得宣称一个应用退出会主动撤销其他应用已建立的本地 Session；用户停用事件必须作为立即撤权通道。
+`server/cmd/oidc-demo` 是最小 Reference App，使用 SDK Provisioning Handler；Spectra 是复杂样板，但不是特殊分支。Reference App 账号同步路径为 `/api/v1/integrations/velora/provisioning`，配置增加 `DEMO_PROVISIONING_SECRET_FILE`。
 
-## 10. 发布验收矩阵
+发布顺序：备份与配置摘要 → additive migration → Server/Web/Worker → 目标应用 → 自动检查 → 试运行 → 人工登录/退出 → 发布。监控 Reliable Message 积压/失败、Target `DEGRADED`、签名/时钟、OIDC、审批和 Enrollment；日志不得含 Secret/Token/Cookie/授权码。
 
-| 场景 | 必须结果 |
-|---|---|
-| Discovery/JWKS | Issuer 与端点均为 `auth.sevoniva.com`，TLS 有效 |
-| 正常登录 | Code + PKCE、state、nonce 全部通过并建立应用 Session |
-| 默认入口 | `/login` 进入 Velora，用户看不到 Casdoor UI |
-| 站内回跳 | 登录后回原业务路径；`//host`、绝对 URL、反斜杠和 Fragment 被拒绝 |
-| Callback 攻击 | 错 state、nonce、aud、iss、过期 Token、重放 Code 全部拒绝 |
-| 会话桥接 | 浏览器 A 生成的票据在浏览器 B 拒绝；跨站表单拒绝；票据不进入 URL/日志 |
-| 无账号 | OIDC 身份有效但未预配时拒绝应用 Session |
-| 无权限 | 返回空态/403，不报网络异常、不默认授权 |
-| 角色变化 | 更高版本事件生效，旧版本不能覆盖 |
-| 停用 | 应用 Session/API Token 撤销，后续登录拒绝 |
-| 重试 | 同一事件得到 `DUPLICATE`，不产生重复副作用 |
-| 退出 | 应用 Session、gateway、Casdoor 会话清理；不展示 JSON 响应页 |
-| 本地应急 | 仅专用路径可见；CSRF、限流、锁定、MFA、审计有效 |
-| Secret | Git、镜像、前端、日志和验收文档均无 Secret/Token/Cookie |
-| 审计 | 登录成功/失败、下发、角色变化、停用、退出和管理发布可追踪 |
+回滚先暂停入口和新下发，再恢复上一镜像；事故窗口不删除 additive 表列。已签发 Secret 不随镜像回滚，必须轮换；Casdoor 自动化失败时保留既有 Client。
 
-测试必须同时覆盖允许与拒绝场景。Mock 只能作为单元测试；生产发布必须使用真实 Issuer、真实 Client、真实浏览器和真实测试账号。
-
-## 11. 稳定错误与用户文案
-
-应用应保留稳定内部错误码并向用户显示可行动文案：
-
-| 类别 | 用户提示 | 运维动作 |
-|---|---|---|
-| OIDC 暂不可用 | “统一登录暂时不可用，请稍后重试” | 检查 Discovery、证书、gateway、Casdoor |
-| 登录事务失效 | “登录请求已失效，请重新登录” | 记录 request ID，不回显 state/code |
-| 未开通 | “账号尚未开通此应用，请联系管理员” | 检查预配事件和 entitlement |
-| 无业务权限 | 正常空态并说明申请方式 | 检查角色映射，不返回 5xx |
-| 账号停用 | “账号已停用，请联系管理员” | 检查 Velora/Casdoor/应用状态一致性 |
-| 下发失败 | 管理端显示重试状态 | 保留可靠事件并告警，禁止伪成功 |
-
-日志只记录 request ID、内部用户 ID、应用编码、事件 ID、版本和稳定错误码；不记录敏感协议载荷。
-
-## 12. 配置、发布与回滚
-
-最低配置：
+## 8. 验收记录
 
 ```text
-OIDC_ISSUER=https://auth.sevoniva.com
-OIDC_CLIENT_ID=<public-client-id>
-OIDC_CLIENT_SECRET_FILE=/run/secrets/<application>-oidc-client-secret
-OIDC_REDIRECT_URL=https://<application-domain>/<exact-callback>
-OIDC_LOGOUT_URL=https://auth.sevoniva.com/_velora/logout
-PROVISIONING_SECRET_FILE=/run/secrets/<application>-provisioning-secret
+Velora/Application commit+image:
+Config version / test account:
+Enrollment without copied Secret: PASS/FAIL
+OIDC Discovery + real login + original path: PASS/FAIL
+Provision APPLIED/DUPLICATE/STALE: PASS/FAIL
+No-role empty state: PASS/FAIL
+Disable/session revoke/restore/logout: PASS/FAIL
+Secret absent from DB/log/audit/idempotency replay: PASS/FAIL
+Rollback point / executed at/by:
 ```
-
-发布前：创建数据库/制品/配置回滚点，校验 Secret 可读权限，执行迁移，部署接收端，再启用下发和入口。发布后：检查 commit/镜像一致性、健康、登录、无权限、停用、退出和审计。
-
-回滚时先在 Velora 下架入口并暂停对应下发，恢复上一制品和配置；additive migration 与账号/事件/审计数据保留，不以删除表或覆盖生产数据库作为普通回滚方式。必要时停用 OIDC Client，防止旧版本继续接受登录。
-
-## 13. Spectra 样板映射
-
-| 标准能力 | Spectra 实现 |
-|---|---|
-| 默认 SSO | `/login` → `/api/v1/auth/oidc/login` |
-| 受控本地登录 | `/normal-login`，一次性登录 CSRF + 限流 + 锁定 + TOTP/恢复码 + 审计 |
-| OIDC Callback | `/api/v1/auth/oidc/callback`，state/nonce/PKCE/ID Token/UserInfo 校验 |
-| 安全回跳 | OIDC 服务端单次事务保存校验后的相对路径 |
-| 账号下发 | `/api/v1/provisioning/events`，HMAC、幂等、版本、事务与审计 |
-| MFA 自助 | 账户安全页开启、校验、恢复码再生成、关闭 |
-| 联邦退出 | 本地撤销后跳受信任的 Velora logout URL |
-| SecretStore | `SPECTRA_MASTER_KEY_FILE` 只读 Secret 文件，禁止写入环境变量、镜像或 Git |
-
-代码验收基线：Velora `main` 的 `05f1216`，Spectra `main` 的 `c5e3c40`。自动化测试、部署状态和仍需人工完成的真实浏览器验收见[生产 V1 收口记录](./production-v1-closure-2026-08-23.md)。
-
-## 14. 每个接入应用必须交付
-
-- 应用登记表：编码、负责人、生产域名、精确 Callback、登出回跳、角色目录和数据分级；
-- 配置清单：Issuer、Client ID、Secret 文件路径、Provisioning URL 与 Secret 文件路径；
-- 自动化证据：state/nonce/PKCE、错误 Callback、幂等/旧版本、停用撤权、无权限空态和安全回跳；
-- 生产证据：真实浏览器登录/退出、commit、镜像摘要、配置摘要、健康检查和审计事件；
-- 回滚包：上一制品、上一配置、数据库备份、应用下架与 Client 停用步骤；
-- 运维归属：告警接收人、Secret/证书轮换人、故障升级路径和维护窗口。
-
-缺少任一项，应用状态只能是 `DRAFT` 或 `VERIFICATION_PENDING`，不能标记为 `PUBLISHED`。

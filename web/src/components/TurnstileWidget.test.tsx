@@ -25,6 +25,8 @@ describe('TurnstileWidget', () => {
 
     await waitFor(() => expect(window.turnstile?.render).toHaveBeenCalledOnce())
     expect(options?.appearance).toBe('interaction-only')
+    expect(options).not.toHaveProperty('before-interactive-callback')
+    expect(options).not.toHaveProperty('after-interactive-callback')
     options?.callback('verified-token')
     expect(onVerify).toHaveBeenLastCalledWith('verified-token')
   })

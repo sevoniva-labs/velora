@@ -1,12 +1,14 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { ConfigProvider, App as AntApp } from 'antd'
+import { ProConfigProvider } from '@ant-design/pro-components'
 import zhCN from 'antd/locale/zh_CN'
 import dayjs from 'dayjs'
 import 'dayjs/locale/zh-cn'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { RouterProvider } from 'react-router-dom'
 import './index.css'
+import './styles/admin-pro.css'
 import { veloraTheme } from './theme/tokens'
 import { router } from './router'
 import UiScale from './components/UiScale'
@@ -29,12 +31,14 @@ createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <AppErrorBoundary>
       <ConfigProvider locale={zhCN} theme={veloraTheme} card={{ variant: 'outlined' }}>
-        <AntApp>
-          <QueryClientProvider client={queryClient}>
-            <UiScale />
-            <RouterProvider router={router} />
-          </QueryClientProvider>
-        </AntApp>
+        <ProConfigProvider>
+          <AntApp>
+            <QueryClientProvider client={queryClient}>
+              <UiScale />
+              <RouterProvider router={router} />
+            </QueryClientProvider>
+          </AntApp>
+        </ProConfigProvider>
       </ConfigProvider>
     </AppErrorBoundary>
   </StrictMode>,

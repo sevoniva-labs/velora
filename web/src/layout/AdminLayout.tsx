@@ -1,171 +1,83 @@
-// 管理后台外壳：顶栏（品牌 + 返回门户 + 头像）+ 左侧菜单（访问策略/审计等）。
-// 与普通门户保持同一套品牌语言。
-import { useState, type ReactNode } from 'react'
-import { App as AntdApp, Avatar, Button, Drawer, Dropdown, Layout, Menu } from 'antd'
-import { HomeOutlined, LogoutOutlined, MenuFoldOutlined, MenuOutlined, MenuUnfoldOutlined, UserOutlined } from '@ant-design/icons'
+import { useMemo, useState, type ReactNode } from 'react'
+import { ProLayout, type MenuDataItem } from '@ant-design/pro-components'
+import { Avatar, Button, Dropdown } from 'antd'
+import { HomeOutlined, LogoutOutlined, UserOutlined } from '@ant-design/icons'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { getPortalSettings, queryKeys } from '../api/api'
+import { getPortalSettings, logout, queryKeys } from '../api/api'
 import { useMe } from '../auth/useMe'
-import { logout } from '../api/api'
-import { adminActiveKey, adminNavGroups } from './menu'
+import { adminNavItems, type AdminNavItem } from './menu'
 import { hasAnyPermission } from '../auth/permissions'
 
-export interface AdminLayoutProps {
-  children: ReactNode
+export interface AdminLayoutProps { children: ReactNode }
+
+const ROLE_LABELS: Record<string, string> = {
+  system_admin: '系统管理员', application_admin: '应用管理员', iam_admin: '身份管理员', auditor: '审计员', user: '普通用户',
+}
+
+export function visibleNavigation(items: AdminNavItem[], permissions: string[], roles: string[]): AdminNavItem[] {
+  return items.flatMap((item) => {
+    const children = item.children ? visibleNavigation(item.children, permissions, roles) : undefined
+    const ownVisible = !item.permissions?.length || hasAnyPermission(permissions, item.permissions, roles)
+    if (!ownVisible && !children?.length) return []
+    return [{ ...item, children }]
+  })
+}
+
+function toMenuData(items: AdminNavItem[]): MenuDataItem[] {
+  return items.map((item) => ({ key: item.key, path: item.path, name: item.label, icon: item.icon, children: item.children ? toMenuData(item.children) : undefined }))
 }
 
 export function AdminLayout({ children }: AdminLayoutProps) {
   const [collapsed, setCollapsed] = useState(false)
-  const [mobileOpen, setMobileOpen] = useState(false)
-  const { message } = AntdApp.useApp()
   const location = useLocation()
   const navigate = useNavigate()
   const me = useMe()
   const queryClient = useQueryClient()
-
   const { data: settings } = useQuery({ queryKey: queryKeys.portalSettings, queryFn: getPortalSettings })
-  const portalName = settings?.find((s) => s.key === 'portal_name')?.value || 'Velora'
-  const portalWelcome = settings?.find((s) => s.key === 'portal_welcome')?.value || '企业应用门户'
-
+  const portalName = settings?.find((item) => item.key === 'portal_name')?.value || 'Velora'
   const displayName = me.data?.displayName || me.data?.username || '用户'
-  const activeKey = adminActiveKey(location.pathname)
+  const roleLabel = me.data?.roles.map((role) => ROLE_LABELS[role]).find(Boolean) || '管理成员'
+  const menuData = useMemo(() => toMenuData(visibleNavigation(adminNavItems, me.data?.permissions ?? [], me.data?.roles ?? [])), [me.data?.permissions, me.data?.roles])
 
   const logoutMutation = useMutation({
     mutationFn: logout,
-    onSuccess: (result) => {
-      queryClient.clear()
-      // 整页跳转：让浏览器应用服务端下发的清除 Cookie，并彻底重置前端状态。
-      window.location.assign(result.federatedLogoutUrl || '/login')
-    },
-    onError: (err) => {
-      message.error(err instanceof Error ? err.message : '退出失败，请稍后再试')
-    },
+    onSuccess: (result) => { queryClient.clear(); window.location.assign(result.federatedLogoutUrl || '/login') },
   })
 
-  const permissions = me.data?.permissions ?? []
-  const canSee = (required?: string[]) => !required?.length || hasAnyPermission(permissions, required, me.data?.roles)
-  const visibleGroups = adminNavGroups.map((g) => ({ ...g, items: g.items.filter((item) => canSee(item.permissions)) })).filter((g) => g.items.length > 0)
-  const menuItems = visibleGroups.map((g) => ({
-    type: 'group' as const,
-    key: g.key,
-    label: g.label,
-    children: g.items.map((item) => ({
-      key: item.key,
-      icon: item.icon,
-      label: (
-        <Link className="velora-side-link" to={item.path}>
-          {item.label}
-        </Link>
-      ),
-    })),
-  }))
-  const flatItems = visibleGroups.flatMap((g) => g.items)
-
   return (
-    <Layout className={collapsed ? 'velora-layout is-collapsed' : 'velora-layout'}>
-      <Layout.Header className="velora-header">
-        <Button
-          type="text"
-          className="velora-header-trigger velora-mobile-menu-trigger"
-          aria-label="打开导航"
-          icon={<MenuOutlined />}
-          onClick={() => setMobileOpen(true)}
-        />
-        <div className="velora-header-brand">
-          <Link className="velora-brand" to="/admin" aria-label="管理后台">
-            <span className="velora-brand-mark" aria-hidden="true">
-              <img src="/sevoniva-mark.svg" alt="" width={19} height={19} style={{ display: 'block' }} />
-            </span>
-            <span className="velora-brand-text">
-              <span className="velora-brand-name">{portalName}</span>
-              <span className="velora-brand-sub">{portalWelcome} · 管理后台</span>
-            </span>
-          </Link>
-        </div>
-        <Button
-          type="text"
-          className="velora-header-trigger velora-sider-trigger"
-          aria-label={collapsed ? '展开' : '折叠'}
-          icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
-          onClick={() => setCollapsed((v) => !v)}
-        />
-        <div className="velora-header-toolbar">
-          <Button className="velora-back-portal" icon={<HomeOutlined />} onClick={() => navigate('/home')}>
-            返回门户
-          </Button>
-          <span className="velora-header-divider" aria-hidden="true" />
-          <Dropdown
-            menu={{
-              items: [
-                {
-                  key: 'sign-out',
-                  icon: <LogoutOutlined />,
-                  label: '退出登录',
-                  onClick: () => logoutMutation.mutate(),
-                },
-              ],
-            }}
-            trigger={['click']}
-          >
-            <button type="button" className="velora-user-chip" aria-label={`当前用户：${displayName}`}>
-              <Avatar size={28} icon={<UserOutlined />} />
-              <span className="velora-user-chip-info">
-                <span className="velora-user-chip-name">{displayName}</span>
-                <span className="velora-user-chip-role">管理员</span>
-              </span>
-            </button>
-          </Dropdown>
-        </div>
-      </Layout.Header>
-
-      <Drawer
-        placement="left"
-        width={220}
-        open={mobileOpen}
-        title="Velora 管理后台"
-        styles={{ body: { padding: 0 } }}
-        onClose={() => setMobileOpen(false)}
-      >
-        <Menu
-          mode="inline"
-          selectable={false}
-          selectedKeys={[activeKey]}
-          items={menuItems}
-          style={{ borderInlineEnd: 'none' }}
-          onClick={({ key }) => {
-            setMobileOpen(false)
-            const item = flatItems.find((i) => i.key === key)
-            if (item) navigate(item.path)
-          }}
-        />
-      </Drawer>
-
-      <Layout hasSider className="velora-body">
-        <Layout.Sider
-          width={220}
-          collapsedWidth={64}
-          collapsible
-          collapsed={collapsed}
-          trigger={null}
-          theme="light"
-          className="velora-sider"
-        >
-          <div className="velora-sider-inner">
-            <Menu
-              mode="inline"
-              inlineCollapsed={collapsed}
-              selectable={false}
-              selectedKeys={[activeKey]}
-              items={menuItems}
-              className="velora-side-menu"
-            />
-          </div>
-        </Layout.Sider>
-        <Layout.Content id="main" className="velora-main-content">
-          <div className="velora-page-content velora-admin-content">{children}</div>
-        </Layout.Content>
-      </Layout>
-    </Layout>
+    <ProLayout
+      className="velora-admin-pro-layout"
+      layout="side"
+      title={portalName}
+      logo="/sevoniva-mark.svg"
+      location={{ pathname: location.pathname }}
+      menuDataRender={() => menuData}
+      menuItemRender={(item, dom) => item.path ? <Link to={item.path}>{dom}</Link> : dom}
+      collapsed={collapsed}
+      onCollapse={setCollapsed}
+      siderWidth={208}
+      fixedHeader
+      fixSiderbar
+      breakpoint="lg"
+      token={{
+        header: { colorBgHeader: 'var(--admin-bg-canvas)', colorHeaderTitle: 'var(--admin-text-primary)' },
+        sider: { colorMenuBackground: 'var(--admin-bg-canvas)', colorTextMenu: 'var(--admin-text-secondary)', colorTextMenuSelected: 'var(--admin-text-primary)', colorBgMenuItemSelected: 'var(--admin-menu-active)' },
+        pageContainer: { paddingInlinePageContainerContent: 0, paddingBlockPageContainerContent: 0 },
+      }}
+      actionsRender={() => [<Button key="portal" type="text" icon={<HomeOutlined />} onClick={() => navigate('/home')}>返回门户</Button>]}
+      avatarProps={{
+        src: <Avatar size={28} icon={<UserOutlined />} />,
+        title: displayName,
+        render: (_, dom) => <Dropdown trigger={['click']} menu={{ items: [
+          { key: 'role', label: roleLabel, disabled: true },
+          { type: 'divider' },
+          { key: 'logout', label: '退出登录', icon: <LogoutOutlined />, danger: true, onClick: () => logoutMutation.mutate() },
+        ] }}>{dom}</Dropdown>,
+      }}
+      contentStyle={{ padding: 24, minHeight: 'calc(100vh - 56px)' }}
+    >
+      <main id="main" className="velora-admin-content">{children}</main>
+    </ProLayout>
   )
 }

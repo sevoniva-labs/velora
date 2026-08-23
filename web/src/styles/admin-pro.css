@@ -1,0 +1,30 @@
+:root {
+  --admin-bg-canvas: #f7f8fa;
+  --admin-bg-surface: #ffffff;
+  --admin-text-primary: rgba(0, 0, 0, 0.88);
+  --admin-text-secondary: rgba(0, 0, 0, 0.65);
+  --admin-menu-active: rgba(0, 0, 0, 0.04);
+  --admin-border: rgba(0, 0, 0, 0.06);
+  --admin-shadow: 0 1px 2px rgba(0, 0, 0, 0.03), 0 4px 12px rgba(0, 0, 0, 0.04);
+}
+
+.velora-admin-pro-layout,
+.velora-admin-pro-layout .ant-pro-layout-container,
+.velora-admin-pro-layout .ant-layout,
+.velora-admin-pro-layout .ant-layout-header,
+.velora-admin-pro-layout .ant-pro-sider { background: var(--admin-bg-canvas) !important; }
+
+.velora-admin-pro-layout .ant-pro-layout-content { padding: 24px !important; background: var(--admin-bg-canvas) !important; }
+.velora-admin-pro-layout .ant-pro-sider { border-inline-end: 1px solid var(--admin-border); box-shadow: none; }
+.velora-admin-pro-layout .ant-pro-global-header { border-block-end: 1px solid var(--admin-border); box-shadow: none; }
+.velora-admin-pro-layout .ant-menu-item-selected { font-weight: 600; }
+.velora-admin-content { min-width: 0; }
+.velora-admin-content .ant-card,
+.velora-admin-content .ant-table-wrapper { border: 0; border-radius: 8px; background: var(--admin-bg-surface); box-shadow: var(--admin-shadow); }
+.velora-admin-content .ant-card .ant-table-wrapper { box-shadow: none; }
+.velora-admin-content .ant-alert-description { max-width: 920px; }
+.velora-admin-pro-table-card { padding: 16px 24px; border-radius: 8px; background: var(--admin-bg-surface); box-shadow: var(--admin-shadow); }
+
+@media (max-width: 760px) {
+  .velora-admin-pro-layout .ant-pro-layout-content { padding: 16px !important; }
+}

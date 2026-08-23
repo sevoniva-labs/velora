@@ -3,8 +3,8 @@
 import type { SSOType, AppStatus, HealthStatus, PolicyType } from './types'
 
 export const SSO_TYPE_LABEL: Record<SSOType, string> = {
-  URL: '直链',
-  OIDC: 'OIDC',
+  URL: '普通链接',
+  OIDC: '统一登录',
   VELORA_OIDC: '待迁移：Velora OIDC',
   SAML: 'SAML',
   CAS: 'CAS',

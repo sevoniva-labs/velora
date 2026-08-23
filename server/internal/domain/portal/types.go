@@ -246,32 +246,36 @@ func OnboardingChecksPassed(items []OnboardingCheck) bool {
 }
 
 type Application struct {
-	ID              string
-	OrganizationID  string
-	Code            string
-	Name            string
-	Description     string
-	Icon            string
-	CategoryID      string
-	CategoryName    string
-	HomeURL         string
-	LaunchURL       string
-	LaunchType      string
-	Status          string
-	SortOrder       int
-	Featured        bool
-	Favorite        bool
-	VisitCount      int64
-	Tags            []Tag
-	Policies        []AccessPolicy
-	CreatedBy       string
-	UpdatedBy       string
-	CreatedAt       time.Time
-	UpdatedAt       time.Time
-	LifecycleStatus string
-	PublishedAt     *time.Time
-	PublishedBy     string
-	ConfigVersion   int64
+	ID                  string
+	OrganizationID      string
+	Code                string
+	Name                string
+	Description         string
+	Icon                string
+	CategoryID          string
+	CategoryName        string
+	OwnerUserID         string
+	OwnerUserName       string
+	OwnerDepartmentID   string
+	OwnerDepartmentName string
+	HomeURL             string
+	LaunchURL           string
+	LaunchType          string
+	Status              string
+	SortOrder           int
+	Featured            bool
+	Favorite            bool
+	VisitCount          int64
+	Tags                []Tag
+	Policies            []AccessPolicy
+	CreatedBy           string
+	UpdatedBy           string
+	CreatedAt           time.Time
+	UpdatedAt           time.Time
+	LifecycleStatus     string
+	PublishedAt         *time.Time
+	PublishedBy         string
+	ConfigVersion       int64
 }
 
 type AccessContext struct {

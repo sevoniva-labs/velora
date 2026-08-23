@@ -3232,6 +3232,10 @@ components:
                     type: array
                     items:
                         type: string
+                ownerUserId:
+                    type: string
+                ownerDepartmentId:
+                    type: string
         forge.v1.CreatePortalApplicationResponse:
             type: object
             properties:
@@ -4114,6 +4118,14 @@ components:
                     format: date-time
                 publishedBy:
                     type: string
+                ownerUserId:
+                    type: string
+                ownerUserName:
+                    type: string
+                ownerDepartmentId:
+                    type: string
+                ownerDepartmentName:
+                    type: string
         forge.v1.PortalApplicationAccessGrant:
             type: object
             properties:
@@ -4946,6 +4958,10 @@ components:
                     type: array
                     items:
                         type: string
+                ownerUserId:
+                    type: string
+                ownerDepartmentId:
+                    type: string
         forge.v1.UpdatePortalApplicationResponse:
             type: object
             properties:

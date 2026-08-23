@@ -308,7 +308,8 @@ func (s *Service) SubmitApplicationPublish(ctx context.Context, principal domain
 }
 
 func (s *Service) requirePublishPrerequisites(ctx context.Context, principal domain.Principal, app portaldomain.Application, binding portaldomain.IdentityBinding) error {
-	if len(app.Policies) == 0 {
+	grants, err := s.repo.ListAccessGrants(ctx, principal.OrganizationID, app.ID)
+	if err != nil || len(grants) == 0 && len(app.Policies) == 0 {
 		return portaldomain.ErrPublishNotReady
 	}
 	if strings.EqualFold(app.LaunchType, "URL") {

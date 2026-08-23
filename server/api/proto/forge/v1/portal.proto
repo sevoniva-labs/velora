@@ -195,6 +195,10 @@ message PortalApplication {
   int64 config_version = 22;
   google.protobuf.Timestamp published_at = 23;
   string published_by = 24;
+  string owner_user_id = 25;
+  string owner_user_name = 26;
+  string owner_department_id = 27;
+  string owner_department_name = 28;
 }
 
 message PortalCategory {
@@ -338,6 +342,8 @@ message CreatePortalApplicationRequest {
   int64 sort_order = 10;
   bool featured = 11;
   repeated string tag_ids = 12;
+  string owner_user_id = 13;
+  string owner_department_id = 14;
 }
 message CreatePortalApplicationResponse { PortalApplication application = 1; }
 message UpdatePortalApplicationRequest {
@@ -353,6 +359,8 @@ message UpdatePortalApplicationRequest {
   int64 sort_order = 10;
   bool featured = 11;
   repeated string tag_ids = 12;
+  string owner_user_id = 13;
+  string owner_department_id = 14;
 }
 message UpdatePortalApplicationResponse { PortalApplication application = 1; }
 message DeletePortalApplicationRequest { string application_id = 1; }

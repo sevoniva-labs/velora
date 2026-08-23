@@ -27,18 +27,20 @@ type ApplicationFilter struct {
 }
 
 type ApplicationInput struct {
-	Code        string
-	Name        string
-	Description string
-	Icon        string
-	CategoryID  string
-	HomeURL     string
-	LaunchURL   string
-	LaunchType  string
-	Status      string
-	SortOrder   int
-	Featured    bool
-	TagIDs      []string
+	Code              string
+	Name              string
+	Description       string
+	Icon              string
+	CategoryID        string
+	HomeURL           string
+	LaunchURL         string
+	LaunchType        string
+	Status            string
+	SortOrder         int
+	Featured          bool
+	TagIDs            []string
+	OwnerUserID       string
+	OwnerDepartmentID string
 }
 
 type CategoryInput struct {
@@ -56,11 +58,11 @@ type TagInput struct {
 }
 
 func (r *PortalRepo) ListApplications(ctx context.Context, orgID, userID string, f ApplicationFilter, includeDisabled bool) ([]portaldomain.Application, error) {
-	query := `SELECT a.id,a.organization_id,a.code,a.name,a.description,a.icon,COALESCE(a.category_id,''),COALESCE(c.name,''),a.home_url,a.launch_url,a.launch_type,a.status,a.sort_order,a.featured,a.created_by,a.updated_by,a.created_at,a.updated_at,
+	query := `SELECT a.id,a.organization_id,a.code,a.name,a.description,a.icon,COALESCE(a.category_id,''),COALESCE(c.name,''),COALESCE(a.owner_user_id,''),COALESCE(ou.display_name,''),COALESCE(a.owner_department_id,''),COALESCE(od.name,''),a.home_url,a.launch_url,a.launch_type,a.status,a.sort_order,a.featured,a.created_by,a.updated_by,a.created_at,a.updated_at,
 		CASE WHEN EXISTS (SELECT 1 FROM portal_favorites f WHERE f.organization_id=a.organization_id AND f.user_id=? AND f.application_id=a.id) THEN 1 ELSE 0 END,
 		COALESCE((SELECT v.visit_count FROM portal_visits v WHERE v.organization_id=a.organization_id AND v.user_id=? AND v.application_id=a.id),0),
 		a.lifecycle_status,a.published_at,a.published_by,a.config_version
-		FROM portal_applications a LEFT JOIN portal_categories c ON c.id=a.category_id AND c.organization_id=a.organization_id WHERE a.organization_id=?`
+		FROM portal_applications a LEFT JOIN portal_categories c ON c.id=a.category_id AND c.organization_id=a.organization_id LEFT JOIN users ou ON ou.id=a.owner_user_id AND ou.organization_id=a.organization_id LEFT JOIN departments od ON od.id=a.owner_department_id AND od.organization_id=a.organization_id WHERE a.organization_id=?`
 	args := []any{userID, userID, orgID}
 	if !includeDisabled {
 		query += ` AND a.status=?`
@@ -101,7 +103,7 @@ func (r *PortalRepo) ListApplications(ctx context.Context, orgID, userID string,
 	for rows.Next() {
 		var item portaldomain.Application
 		var favorite int
-		if err := rows.Scan(&item.ID, &item.OrganizationID, &item.Code, &item.Name, &item.Description, &item.Icon, &item.CategoryID, &item.CategoryName, &item.HomeURL, &item.LaunchURL, &item.LaunchType, &item.Status, &item.SortOrder, &item.Featured, &item.CreatedBy, &item.UpdatedBy, &item.CreatedAt, &item.UpdatedAt, &favorite, &item.VisitCount, &item.LifecycleStatus, &item.PublishedAt, &item.PublishedBy, &item.ConfigVersion); err != nil {
+		if err := rows.Scan(&item.ID, &item.OrganizationID, &item.Code, &item.Name, &item.Description, &item.Icon, &item.CategoryID, &item.CategoryName, &item.OwnerUserID, &item.OwnerUserName, &item.OwnerDepartmentID, &item.OwnerDepartmentName, &item.HomeURL, &item.LaunchURL, &item.LaunchType, &item.Status, &item.SortOrder, &item.Featured, &item.CreatedBy, &item.UpdatedBy, &item.CreatedAt, &item.UpdatedAt, &favorite, &item.VisitCount, &item.LifecycleStatus, &item.PublishedAt, &item.PublishedBy, &item.ConfigVersion); err != nil {
 			return nil, err
 		}
 		item.Favorite = favorite == 1
@@ -192,7 +194,10 @@ func (r *PortalRepo) CreateApplication(ctx context.Context, orgID, actorID strin
 	id := uuid.NewString()
 	now := time.Now().UTC()
 	err := r.db.WithinTx(ctx, func(txCtx context.Context) error {
-		if _, err := r.db.ExecContext(txCtx, r.db.Rebind(`INSERT INTO portal_applications(id,organization_id,code,name,description,icon,category_id,home_url,launch_url,launch_type,status,sort_order,featured,created_by,updated_by,created_at,updated_at,lifecycle_status,config_version) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`), id, orgID, input.Code, input.Name, input.Description, input.Icon, nullIfEmpty(input.CategoryID), input.HomeURL, input.LaunchURL, input.LaunchType, input.Status, input.SortOrder, input.Featured, actorID, actorID, now, now, portaldomain.LifecyclePublished, 1); err != nil {
+		if err := r.validateApplicationOwnership(txCtx, orgID, input.OwnerUserID, input.OwnerDepartmentID); err != nil {
+			return err
+		}
+		if _, err := r.db.ExecContext(txCtx, r.db.Rebind(`INSERT INTO portal_applications(id,organization_id,code,name,description,icon,category_id,owner_user_id,owner_department_id,home_url,launch_url,launch_type,status,sort_order,featured,created_by,updated_by,created_at,updated_at,lifecycle_status,config_version) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`), id, orgID, input.Code, input.Name, input.Description, input.Icon, nullIfEmpty(input.CategoryID), nullIfEmpty(input.OwnerUserID), nullIfEmpty(input.OwnerDepartmentID), input.HomeURL, input.LaunchURL, input.LaunchType, input.Status, input.SortOrder, input.Featured, actorID, actorID, now, now, portaldomain.LifecyclePublished, 1); err != nil {
 			return err
 		}
 		return r.replaceTags(txCtx, orgID, id, input.TagIDs)
@@ -205,7 +210,10 @@ func (r *PortalRepo) CreateApplication(ctx context.Context, orgID, actorID strin
 
 func (r *PortalRepo) UpdateApplication(ctx context.Context, orgID, actorID, id string, input ApplicationInput) (portaldomain.Application, error) {
 	err := r.db.WithinTx(ctx, func(txCtx context.Context) error {
-		res, err := r.db.ExecContext(txCtx, r.db.Rebind(`UPDATE portal_applications SET name=?,description=?,icon=?,category_id=?,home_url=?,launch_url=?,launch_type=?,status=?,sort_order=?,featured=?,updated_by=?,updated_at=?,config_version=config_version+1 WHERE organization_id=? AND id=?`), input.Name, input.Description, input.Icon, nullIfEmpty(input.CategoryID), input.HomeURL, input.LaunchURL, input.LaunchType, input.Status, input.SortOrder, input.Featured, actorID, time.Now().UTC(), orgID, id)
+		if err := r.validateApplicationOwnership(txCtx, orgID, input.OwnerUserID, input.OwnerDepartmentID); err != nil {
+			return err
+		}
+		res, err := r.db.ExecContext(txCtx, r.db.Rebind(`UPDATE portal_applications SET name=?,description=?,icon=?,category_id=?,owner_user_id=?,owner_department_id=?,home_url=?,launch_url=?,launch_type=?,status=?,sort_order=?,featured=?,updated_by=?,updated_at=?,config_version=config_version+1 WHERE organization_id=? AND id=?`), input.Name, input.Description, input.Icon, nullIfEmpty(input.CategoryID), nullIfEmpty(input.OwnerUserID), nullIfEmpty(input.OwnerDepartmentID), input.HomeURL, input.LaunchURL, input.LaunchType, input.Status, input.SortOrder, input.Featured, actorID, time.Now().UTC(), orgID, id)
 		if err != nil {
 			return err
 		}
@@ -221,6 +229,26 @@ func (r *PortalRepo) UpdateApplication(ctx context.Context, orgID, actorID, id s
 		return portaldomain.Application{}, err
 	}
 	return r.GetApplication(ctx, orgID, actorID, id, true)
+}
+
+func (r *PortalRepo) validateApplicationOwnership(ctx context.Context, orgID, ownerUserID, ownerDepartmentID string) error {
+	for _, target := range []struct {
+		table string
+		id    string
+	}{{"users", strings.TrimSpace(ownerUserID)}, {"departments", strings.TrimSpace(ownerDepartmentID)}} {
+		if target.id == "" {
+			continue
+		}
+		var count int
+		query := fmt.Sprintf("SELECT COUNT(*) FROM %s WHERE organization_id=? AND id=?", target.table)
+		if err := r.db.QueryRowContext(ctx, r.db.Rebind(query), orgID, target.id).Scan(&count); err != nil {
+			return err
+		}
+		if count != 1 {
+			return fmt.Errorf("application owner does not belong to organization")
+		}
+	}
+	return nil
 }
 
 func (r *PortalRepo) DeleteApplication(ctx context.Context, orgID, id string) error {

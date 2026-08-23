@@ -186,6 +186,8 @@ export interface Application {
   ssoType: SSOType
   owner: string
   department: string
+  ownerUserId?: string
+  ownerDepartmentId?: string
   status: AppStatus
   sort: number
   isFeatured: boolean

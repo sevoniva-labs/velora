@@ -25,33 +25,37 @@ const (
 )
 
 type PortalApplication struct {
-	state           protoimpl.MessageState `protogen:"open.v1"`
-	Id              string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	OrganizationId  string                 `protobuf:"bytes,2,opt,name=organization_id,json=organizationId,proto3" json:"organization_id,omitempty"`
-	Code            string                 `protobuf:"bytes,3,opt,name=code,proto3" json:"code,omitempty"`
-	Name            string                 `protobuf:"bytes,4,opt,name=name,proto3" json:"name,omitempty"`
-	Description     string                 `protobuf:"bytes,5,opt,name=description,proto3" json:"description,omitempty"`
-	Icon            string                 `protobuf:"bytes,6,opt,name=icon,proto3" json:"icon,omitempty"`
-	CategoryId      string                 `protobuf:"bytes,7,opt,name=category_id,json=categoryId,proto3" json:"category_id,omitempty"`
-	CategoryName    string                 `protobuf:"bytes,8,opt,name=category_name,json=categoryName,proto3" json:"category_name,omitempty"`
-	HomeUrl         string                 `protobuf:"bytes,9,opt,name=home_url,json=homeUrl,proto3" json:"home_url,omitempty"`
-	LaunchUrl       string                 `protobuf:"bytes,10,opt,name=launch_url,json=launchUrl,proto3" json:"launch_url,omitempty"`
-	LaunchType      string                 `protobuf:"bytes,11,opt,name=launch_type,json=launchType,proto3" json:"launch_type,omitempty"`
-	Status          string                 `protobuf:"bytes,12,opt,name=status,proto3" json:"status,omitempty"`
-	SortOrder       int64                  `protobuf:"varint,13,opt,name=sort_order,json=sortOrder,proto3" json:"sort_order,omitempty"`
-	Featured        bool                   `protobuf:"varint,14,opt,name=featured,proto3" json:"featured,omitempty"`
-	Favorite        bool                   `protobuf:"varint,15,opt,name=favorite,proto3" json:"favorite,omitempty"`
-	VisitCount      int64                  `protobuf:"varint,16,opt,name=visit_count,json=visitCount,proto3" json:"visit_count,omitempty"`
-	Tags            []*PortalTag           `protobuf:"bytes,17,rep,name=tags,proto3" json:"tags,omitempty"`
-	Policies        []*PortalAccessPolicy  `protobuf:"bytes,18,rep,name=policies,proto3" json:"policies,omitempty"`
-	CreatedAt       *timestamppb.Timestamp `protobuf:"bytes,19,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
-	UpdatedAt       *timestamppb.Timestamp `protobuf:"bytes,20,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
-	LifecycleStatus string                 `protobuf:"bytes,21,opt,name=lifecycle_status,json=lifecycleStatus,proto3" json:"lifecycle_status,omitempty"`
-	ConfigVersion   int64                  `protobuf:"varint,22,opt,name=config_version,json=configVersion,proto3" json:"config_version,omitempty"`
-	PublishedAt     *timestamppb.Timestamp `protobuf:"bytes,23,opt,name=published_at,json=publishedAt,proto3" json:"published_at,omitempty"`
-	PublishedBy     string                 `protobuf:"bytes,24,opt,name=published_by,json=publishedBy,proto3" json:"published_by,omitempty"`
-	unknownFields   protoimpl.UnknownFields
-	sizeCache       protoimpl.SizeCache
+	state               protoimpl.MessageState `protogen:"open.v1"`
+	Id                  string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	OrganizationId      string                 `protobuf:"bytes,2,opt,name=organization_id,json=organizationId,proto3" json:"organization_id,omitempty"`
+	Code                string                 `protobuf:"bytes,3,opt,name=code,proto3" json:"code,omitempty"`
+	Name                string                 `protobuf:"bytes,4,opt,name=name,proto3" json:"name,omitempty"`
+	Description         string                 `protobuf:"bytes,5,opt,name=description,proto3" json:"description,omitempty"`
+	Icon                string                 `protobuf:"bytes,6,opt,name=icon,proto3" json:"icon,omitempty"`
+	CategoryId          string                 `protobuf:"bytes,7,opt,name=category_id,json=categoryId,proto3" json:"category_id,omitempty"`
+	CategoryName        string                 `protobuf:"bytes,8,opt,name=category_name,json=categoryName,proto3" json:"category_name,omitempty"`
+	HomeUrl             string                 `protobuf:"bytes,9,opt,name=home_url,json=homeUrl,proto3" json:"home_url,omitempty"`
+	LaunchUrl           string                 `protobuf:"bytes,10,opt,name=launch_url,json=launchUrl,proto3" json:"launch_url,omitempty"`
+	LaunchType          string                 `protobuf:"bytes,11,opt,name=launch_type,json=launchType,proto3" json:"launch_type,omitempty"`
+	Status              string                 `protobuf:"bytes,12,opt,name=status,proto3" json:"status,omitempty"`
+	SortOrder           int64                  `protobuf:"varint,13,opt,name=sort_order,json=sortOrder,proto3" json:"sort_order,omitempty"`
+	Featured            bool                   `protobuf:"varint,14,opt,name=featured,proto3" json:"featured,omitempty"`
+	Favorite            bool                   `protobuf:"varint,15,opt,name=favorite,proto3" json:"favorite,omitempty"`
+	VisitCount          int64                  `protobuf:"varint,16,opt,name=visit_count,json=visitCount,proto3" json:"visit_count,omitempty"`
+	Tags                []*PortalTag           `protobuf:"bytes,17,rep,name=tags,proto3" json:"tags,omitempty"`
+	Policies            []*PortalAccessPolicy  `protobuf:"bytes,18,rep,name=policies,proto3" json:"policies,omitempty"`
+	CreatedAt           *timestamppb.Timestamp `protobuf:"bytes,19,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	UpdatedAt           *timestamppb.Timestamp `protobuf:"bytes,20,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
+	LifecycleStatus     string                 `protobuf:"bytes,21,opt,name=lifecycle_status,json=lifecycleStatus,proto3" json:"lifecycle_status,omitempty"`
+	ConfigVersion       int64                  `protobuf:"varint,22,opt,name=config_version,json=configVersion,proto3" json:"config_version,omitempty"`
+	PublishedAt         *timestamppb.Timestamp `protobuf:"bytes,23,opt,name=published_at,json=publishedAt,proto3" json:"published_at,omitempty"`
+	PublishedBy         string                 `protobuf:"bytes,24,opt,name=published_by,json=publishedBy,proto3" json:"published_by,omitempty"`
+	OwnerUserId         string                 `protobuf:"bytes,25,opt,name=owner_user_id,json=ownerUserId,proto3" json:"owner_user_id,omitempty"`
+	OwnerUserName       string                 `protobuf:"bytes,26,opt,name=owner_user_name,json=ownerUserName,proto3" json:"owner_user_name,omitempty"`
+	OwnerDepartmentId   string                 `protobuf:"bytes,27,opt,name=owner_department_id,json=ownerDepartmentId,proto3" json:"owner_department_id,omitempty"`
+	OwnerDepartmentName string                 `protobuf:"bytes,28,opt,name=owner_department_name,json=ownerDepartmentName,proto3" json:"owner_department_name,omitempty"`
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
 }
 
 func (x *PortalApplication) Reset() {
@@ -248,6 +252,34 @@ func (x *PortalApplication) GetPublishedAt() *timestamppb.Timestamp {
 func (x *PortalApplication) GetPublishedBy() string {
 	if x != nil {
 		return x.PublishedBy
+	}
+	return ""
+}
+
+func (x *PortalApplication) GetOwnerUserId() string {
+	if x != nil {
+		return x.OwnerUserId
+	}
+	return ""
+}
+
+func (x *PortalApplication) GetOwnerUserName() string {
+	if x != nil {
+		return x.OwnerUserName
+	}
+	return ""
+}
+
+func (x *PortalApplication) GetOwnerDepartmentId() string {
+	if x != nil {
+		return x.OwnerDepartmentId
+	}
+	return ""
+}
+
+func (x *PortalApplication) GetOwnerDepartmentName() string {
+	if x != nil {
+		return x.OwnerDepartmentName
 	}
 	return ""
 }
@@ -2257,21 +2289,23 @@ func (x *ListAdminPortalApplicationsResponse) GetApplications() []*PortalApplica
 }
 
 type CreatePortalApplicationRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Code          string                 `protobuf:"bytes,1,opt,name=code,proto3" json:"code,omitempty"`
-	Name          string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
-	Description   string                 `protobuf:"bytes,3,opt,name=description,proto3" json:"description,omitempty"`
-	Icon          string                 `protobuf:"bytes,4,opt,name=icon,proto3" json:"icon,omitempty"`
-	CategoryId    string                 `protobuf:"bytes,5,opt,name=category_id,json=categoryId,proto3" json:"category_id,omitempty"`
-	HomeUrl       string                 `protobuf:"bytes,6,opt,name=home_url,json=homeUrl,proto3" json:"home_url,omitempty"`
-	LaunchUrl     string                 `protobuf:"bytes,7,opt,name=launch_url,json=launchUrl,proto3" json:"launch_url,omitempty"`
-	LaunchType    string                 `protobuf:"bytes,8,opt,name=launch_type,json=launchType,proto3" json:"launch_type,omitempty"`
-	Status        string                 `protobuf:"bytes,9,opt,name=status,proto3" json:"status,omitempty"`
-	SortOrder     int64                  `protobuf:"varint,10,opt,name=sort_order,json=sortOrder,proto3" json:"sort_order,omitempty"`
-	Featured      bool                   `protobuf:"varint,11,opt,name=featured,proto3" json:"featured,omitempty"`
-	TagIds        []string               `protobuf:"bytes,12,rep,name=tag_ids,json=tagIds,proto3" json:"tag_ids,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state             protoimpl.MessageState `protogen:"open.v1"`
+	Code              string                 `protobuf:"bytes,1,opt,name=code,proto3" json:"code,omitempty"`
+	Name              string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	Description       string                 `protobuf:"bytes,3,opt,name=description,proto3" json:"description,omitempty"`
+	Icon              string                 `protobuf:"bytes,4,opt,name=icon,proto3" json:"icon,omitempty"`
+	CategoryId        string                 `protobuf:"bytes,5,opt,name=category_id,json=categoryId,proto3" json:"category_id,omitempty"`
+	HomeUrl           string                 `protobuf:"bytes,6,opt,name=home_url,json=homeUrl,proto3" json:"home_url,omitempty"`
+	LaunchUrl         string                 `protobuf:"bytes,7,opt,name=launch_url,json=launchUrl,proto3" json:"launch_url,omitempty"`
+	LaunchType        string                 `protobuf:"bytes,8,opt,name=launch_type,json=launchType,proto3" json:"launch_type,omitempty"`
+	Status            string                 `protobuf:"bytes,9,opt,name=status,proto3" json:"status,omitempty"`
+	SortOrder         int64                  `protobuf:"varint,10,opt,name=sort_order,json=sortOrder,proto3" json:"sort_order,omitempty"`
+	Featured          bool                   `protobuf:"varint,11,opt,name=featured,proto3" json:"featured,omitempty"`
+	TagIds            []string               `protobuf:"bytes,12,rep,name=tag_ids,json=tagIds,proto3" json:"tag_ids,omitempty"`
+	OwnerUserId       string                 `protobuf:"bytes,13,opt,name=owner_user_id,json=ownerUserId,proto3" json:"owner_user_id,omitempty"`
+	OwnerDepartmentId string                 `protobuf:"bytes,14,opt,name=owner_department_id,json=ownerDepartmentId,proto3" json:"owner_department_id,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
 }
 
 func (x *CreatePortalApplicationRequest) Reset() {
@@ -2388,6 +2422,20 @@ func (x *CreatePortalApplicationRequest) GetTagIds() []string {
 	return nil
 }
 
+func (x *CreatePortalApplicationRequest) GetOwnerUserId() string {
+	if x != nil {
+		return x.OwnerUserId
+	}
+	return ""
+}
+
+func (x *CreatePortalApplicationRequest) GetOwnerDepartmentId() string {
+	if x != nil {
+		return x.OwnerDepartmentId
+	}
+	return ""
+}
+
 type CreatePortalApplicationResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Application   *PortalApplication     `protobuf:"bytes,1,opt,name=application,proto3" json:"application,omitempty"`
@@ -2433,21 +2481,23 @@ func (x *CreatePortalApplicationResponse) GetApplication() *PortalApplication {
 }
 
 type UpdatePortalApplicationRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	ApplicationId string                 `protobuf:"bytes,1,opt,name=application_id,json=applicationId,proto3" json:"application_id,omitempty"`
-	Name          string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
-	Description   string                 `protobuf:"bytes,3,opt,name=description,proto3" json:"description,omitempty"`
-	Icon          string                 `protobuf:"bytes,4,opt,name=icon,proto3" json:"icon,omitempty"`
-	CategoryId    string                 `protobuf:"bytes,5,opt,name=category_id,json=categoryId,proto3" json:"category_id,omitempty"`
-	HomeUrl       string                 `protobuf:"bytes,6,opt,name=home_url,json=homeUrl,proto3" json:"home_url,omitempty"`
-	LaunchUrl     string                 `protobuf:"bytes,7,opt,name=launch_url,json=launchUrl,proto3" json:"launch_url,omitempty"`
-	LaunchType    string                 `protobuf:"bytes,8,opt,name=launch_type,json=launchType,proto3" json:"launch_type,omitempty"`
-	Status        string                 `protobuf:"bytes,9,opt,name=status,proto3" json:"status,omitempty"`
-	SortOrder     int64                  `protobuf:"varint,10,opt,name=sort_order,json=sortOrder,proto3" json:"sort_order,omitempty"`
-	Featured      bool                   `protobuf:"varint,11,opt,name=featured,proto3" json:"featured,omitempty"`
-	TagIds        []string               `protobuf:"bytes,12,rep,name=tag_ids,json=tagIds,proto3" json:"tag_ids,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state             protoimpl.MessageState `protogen:"open.v1"`
+	ApplicationId     string                 `protobuf:"bytes,1,opt,name=application_id,json=applicationId,proto3" json:"application_id,omitempty"`
+	Name              string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	Description       string                 `protobuf:"bytes,3,opt,name=description,proto3" json:"description,omitempty"`
+	Icon              string                 `protobuf:"bytes,4,opt,name=icon,proto3" json:"icon,omitempty"`
+	CategoryId        string                 `protobuf:"bytes,5,opt,name=category_id,json=categoryId,proto3" json:"category_id,omitempty"`
+	HomeUrl           string                 `protobuf:"bytes,6,opt,name=home_url,json=homeUrl,proto3" json:"home_url,omitempty"`
+	LaunchUrl         string                 `protobuf:"bytes,7,opt,name=launch_url,json=launchUrl,proto3" json:"launch_url,omitempty"`
+	LaunchType        string                 `protobuf:"bytes,8,opt,name=launch_type,json=launchType,proto3" json:"launch_type,omitempty"`
+	Status            string                 `protobuf:"bytes,9,opt,name=status,proto3" json:"status,omitempty"`
+	SortOrder         int64                  `protobuf:"varint,10,opt,name=sort_order,json=sortOrder,proto3" json:"sort_order,omitempty"`
+	Featured          bool                   `protobuf:"varint,11,opt,name=featured,proto3" json:"featured,omitempty"`
+	TagIds            []string               `protobuf:"bytes,12,rep,name=tag_ids,json=tagIds,proto3" json:"tag_ids,omitempty"`
+	OwnerUserId       string                 `protobuf:"bytes,13,opt,name=owner_user_id,json=ownerUserId,proto3" json:"owner_user_id,omitempty"`
+	OwnerDepartmentId string                 `protobuf:"bytes,14,opt,name=owner_department_id,json=ownerDepartmentId,proto3" json:"owner_department_id,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
 }
 
 func (x *UpdatePortalApplicationRequest) Reset() {
@@ -2562,6 +2612,20 @@ func (x *UpdatePortalApplicationRequest) GetTagIds() []string {
 		return x.TagIds
 	}
 	return nil
+}
+
+func (x *UpdatePortalApplicationRequest) GetOwnerUserId() string {
+	if x != nil {
+		return x.OwnerUserId
+	}
+	return ""
+}
+
+func (x *UpdatePortalApplicationRequest) GetOwnerDepartmentId() string {
+	if x != nil {
+		return x.OwnerDepartmentId
+	}
+	return ""
 }
 
 type UpdatePortalApplicationResponse struct {
@@ -6008,7 +6072,7 @@ var File_forge_v1_portal_proto protoreflect.FileDescriptor
 
 const file_forge_v1_portal_proto_rawDesc = "" +
 	"\n" +
-	"\x15forge/v1/portal.proto\x12\bforge.v1\x1a\x1cgoogle/api/annotations.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1bopenapiv3/annotations.proto\"\xe8\x06\n" +
+	"\x15forge/v1/portal.proto\x12\bforge.v1\x1a\x1cgoogle/api/annotations.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1bopenapiv3/annotations.proto\"\x98\b\n" +
 	"\x11PortalApplication\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12'\n" +
 	"\x0forganization_id\x18\x02 \x01(\tR\x0eorganizationId\x12\x12\n" +
@@ -6041,7 +6105,11 @@ const file_forge_v1_portal_proto_rawDesc = "" +
 	"\x10lifecycle_status\x18\x15 \x01(\tR\x0flifecycleStatus\x12%\n" +
 	"\x0econfig_version\x18\x16 \x01(\x03R\rconfigVersion\x12=\n" +
 	"\fpublished_at\x18\x17 \x01(\v2\x1a.google.protobuf.TimestampR\vpublishedAt\x12!\n" +
-	"\fpublished_by\x18\x18 \x01(\tR\vpublishedBy\"\xcf\x02\n" +
+	"\fpublished_by\x18\x18 \x01(\tR\vpublishedBy\x12\"\n" +
+	"\rowner_user_id\x18\x19 \x01(\tR\vownerUserId\x12&\n" +
+	"\x0fowner_user_name\x18\x1a \x01(\tR\rownerUserName\x12.\n" +
+	"\x13owner_department_id\x18\x1b \x01(\tR\x11ownerDepartmentId\x122\n" +
+	"\x15owner_department_name\x18\x1c \x01(\tR\x13ownerDepartmentName\"\xcf\x02\n" +
 	"\x0ePortalCategory\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12'\n" +
 	"\x0forganization_id\x18\x02 \x01(\tR\x0eorganizationId\x12!\n" +
@@ -6218,7 +6286,7 @@ const file_forge_v1_portal_proto_rawDesc = "" +
 	"\"ListAdminPortalApplicationsRequest\x12\x14\n" +
 	"\x05limit\x18\x01 \x01(\x05R\x05limit\"f\n" +
 	"#ListAdminPortalApplicationsResponse\x12?\n" +
-	"\fapplications\x18\x01 \x03(\v2\x1b.forge.v1.PortalApplicationR\fapplications\"\xe6\x02\n" +
+	"\fapplications\x18\x01 \x03(\v2\x1b.forge.v1.PortalApplicationR\fapplications\"\xba\x03\n" +
 	"\x1eCreatePortalApplicationRequest\x12\x12\n" +
 	"\x04code\x18\x01 \x01(\tR\x04code\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12 \n" +
@@ -6236,9 +6304,11 @@ const file_forge_v1_portal_proto_rawDesc = "" +
 	"sort_order\x18\n" +
 	" \x01(\x03R\tsortOrder\x12\x1a\n" +
 	"\bfeatured\x18\v \x01(\bR\bfeatured\x12\x17\n" +
-	"\atag_ids\x18\f \x03(\tR\x06tagIds\"`\n" +
+	"\atag_ids\x18\f \x03(\tR\x06tagIds\x12\"\n" +
+	"\rowner_user_id\x18\r \x01(\tR\vownerUserId\x12.\n" +
+	"\x13owner_department_id\x18\x0e \x01(\tR\x11ownerDepartmentId\"`\n" +
 	"\x1fCreatePortalApplicationResponse\x12=\n" +
-	"\vapplication\x18\x01 \x01(\v2\x1b.forge.v1.PortalApplicationR\vapplication\"\xf9\x02\n" +
+	"\vapplication\x18\x01 \x01(\v2\x1b.forge.v1.PortalApplicationR\vapplication\"\xcd\x03\n" +
 	"\x1eUpdatePortalApplicationRequest\x12%\n" +
 	"\x0eapplication_id\x18\x01 \x01(\tR\rapplicationId\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12 \n" +
@@ -6256,7 +6326,9 @@ const file_forge_v1_portal_proto_rawDesc = "" +
 	"sort_order\x18\n" +
 	" \x01(\x03R\tsortOrder\x12\x1a\n" +
 	"\bfeatured\x18\v \x01(\bR\bfeatured\x12\x17\n" +
-	"\atag_ids\x18\f \x03(\tR\x06tagIds\"`\n" +
+	"\atag_ids\x18\f \x03(\tR\x06tagIds\x12\"\n" +
+	"\rowner_user_id\x18\r \x01(\tR\vownerUserId\x12.\n" +
+	"\x13owner_department_id\x18\x0e \x01(\tR\x11ownerDepartmentId\"`\n" +
 	"\x1fUpdatePortalApplicationResponse\x12=\n" +
 	"\vapplication\x18\x01 \x01(\v2\x1b.forge.v1.PortalApplicationR\vapplication\"G\n" +
 	"\x1eDeletePortalApplicationRequest\x12%\n" +

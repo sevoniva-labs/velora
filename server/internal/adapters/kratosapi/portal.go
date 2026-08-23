@@ -373,7 +373,7 @@ func (s *PortalService) UpdatePortalApplication(ctx context.Context, req *forgev
 		event := newAuditEvent(ctx, principal, "portal.application.update", "portal_application", req.GetApplicationId(), nil)
 		if err := s.audited(ctx, event, func(txCtx context.Context) error {
 			var updateErr error
-			item, updateErr = s.portal.UpdateApplication(txCtx, principal, req.GetApplicationId(), repository.ApplicationInput{Name: req.GetName(), Description: req.GetDescription(), Icon: req.GetIcon(), CategoryID: req.GetCategoryId(), HomeURL: req.GetHomeUrl(), LaunchURL: req.GetLaunchUrl(), LaunchType: req.GetLaunchType(), Status: req.GetStatus(), SortOrder: int(req.GetSortOrder()), Featured: req.GetFeatured(), TagIDs: req.GetTagIds()})
+			item, updateErr = s.portal.UpdateApplication(txCtx, principal, req.GetApplicationId(), repository.ApplicationInput{Name: req.GetName(), Description: req.GetDescription(), Icon: req.GetIcon(), CategoryID: req.GetCategoryId(), HomeURL: req.GetHomeUrl(), LaunchURL: req.GetLaunchUrl(), LaunchType: req.GetLaunchType(), Status: req.GetStatus(), SortOrder: int(req.GetSortOrder()), Featured: req.GetFeatured(), TagIDs: req.GetTagIds(), OwnerUserID: req.GetOwnerUserId(), OwnerDepartmentID: req.GetOwnerDepartmentId()})
 			return updateErr
 		}); err != nil {
 			return nil, serviceError(err)
@@ -1187,7 +1187,9 @@ func (s *PortalService) RunApplicationOnboardingChecks(ctx context.Context, req 
 		raw, _ := json.Marshal(evidence)
 		checks = append(checks, portaldomain.OnboardingCheck{CheckType: checkType, Result: result, ErrorCode: code, EvidenceJSON: string(raw)})
 	}
-	add("access_policy", len(app.Policies) > 0, valueIf(len(app.Policies) == 0, "ACCESS_POLICY_REQUIRED"), map[string]any{"policy_count": len(app.Policies)})
+	accessGrants, accessErr := s.portal.ListAccessGrants(ctx, principal, app.ID)
+	hasAccess := accessErr == nil && len(accessGrants) > 0 || len(app.Policies) > 0
+	add("access_policy", hasAccess, valueIf(!hasAccess, "ACCESS_POLICY_REQUIRED"), map[string]any{"grant_count": len(accessGrants)})
 	identityPassed := false
 	if binding.ID != "" {
 		_, updatedApp, _, passed, verifyErr := s.portal.VerifyApplicationIdentity(ctx, principal, app.ID, binding.ConfigVersion)
@@ -1420,7 +1422,7 @@ func (s *PortalService) deleteCategory(ctx context.Context, req *forgev1.DeleteP
 }
 
 func applicationInput(req *forgev1.CreatePortalApplicationRequest) repository.ApplicationInput {
-	return repository.ApplicationInput{Code: req.GetCode(), Name: req.GetName(), Description: req.GetDescription(), Icon: req.GetIcon(), CategoryID: req.GetCategoryId(), HomeURL: req.GetHomeUrl(), LaunchURL: req.GetLaunchUrl(), LaunchType: req.GetLaunchType(), Status: req.GetStatus(), SortOrder: int(req.GetSortOrder()), Featured: req.GetFeatured(), TagIDs: req.GetTagIds()}
+	return repository.ApplicationInput{Code: req.GetCode(), Name: req.GetName(), Description: req.GetDescription(), Icon: req.GetIcon(), CategoryID: req.GetCategoryId(), HomeURL: req.GetHomeUrl(), LaunchURL: req.GetLaunchUrl(), LaunchType: req.GetLaunchType(), Status: req.GetStatus(), SortOrder: int(req.GetSortOrder()), Featured: req.GetFeatured(), TagIDs: req.GetTagIds(), OwnerUserID: req.GetOwnerUserId(), OwnerDepartmentID: req.GetOwnerDepartmentId()}
 }
 
 func portalApplicationsProto(items []portaldomain.Application) []*forgev1.PortalApplication {
@@ -1432,7 +1434,7 @@ func portalApplicationsProto(items []portaldomain.Application) []*forgev1.Portal
 }
 
 func portalApplicationProto(item portaldomain.Application) *forgev1.PortalApplication {
-	return &forgev1.PortalApplication{Id: item.ID, OrganizationId: item.OrganizationID, Code: item.Code, Name: item.Name, Description: item.Description, Icon: item.Icon, CategoryId: item.CategoryID, CategoryName: item.CategoryName, HomeUrl: item.HomeURL, LaunchUrl: item.LaunchURL, LaunchType: item.LaunchType, Status: item.Status, SortOrder: int64(item.SortOrder), Featured: item.Featured, Favorite: item.Favorite, VisitCount: item.VisitCount, Tags: portalTagsProto(item.Tags), Policies: portalPoliciesProto(item.Policies), CreatedAt: timestamp(item.CreatedAt), UpdatedAt: timestamp(item.UpdatedAt), LifecycleStatus: item.LifecycleStatus, ConfigVersion: item.ConfigVersion, PublishedAt: optionalTimestamp(item.PublishedAt), PublishedBy: item.PublishedBy}
+	return &forgev1.PortalApplication{Id: item.ID, OrganizationId: item.OrganizationID, Code: item.Code, Name: item.Name, Description: item.Description, Icon: item.Icon, CategoryId: item.CategoryID, CategoryName: item.CategoryName, HomeUrl: item.HomeURL, LaunchUrl: item.LaunchURL, LaunchType: item.LaunchType, Status: item.Status, SortOrder: int64(item.SortOrder), Featured: item.Featured, Favorite: item.Favorite, VisitCount: item.VisitCount, Tags: portalTagsProto(item.Tags), Policies: portalPoliciesProto(item.Policies), CreatedAt: timestamp(item.CreatedAt), UpdatedAt: timestamp(item.UpdatedAt), LifecycleStatus: item.LifecycleStatus, ConfigVersion: item.ConfigVersion, PublishedAt: optionalTimestamp(item.PublishedAt), PublishedBy: item.PublishedBy, OwnerUserId: item.OwnerUserID, OwnerUserName: item.OwnerUserName, OwnerDepartmentId: item.OwnerDepartmentID, OwnerDepartmentName: item.OwnerDepartmentName}
 }
 
 func identityBindingProto(item portaldomain.IdentityBinding) *forgev1.PortalIdentityBinding {

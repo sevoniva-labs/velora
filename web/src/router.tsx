@@ -45,6 +45,7 @@ const UserCenter = lazyWithReload(() => import('./pages/UserCenter'))
 const AdminDashboard = lazyWithReload(() => import('./pages/admin/Dashboard'))
 const AdminApplications = lazyWithReload(() => import('./pages/admin/Applications'))
 const AdminApplicationManagement = lazyWithReload(() => import('./pages/admin/ApplicationManagement'))
+const AdminTaxonomy = lazyWithReload(() => import('./pages/admin/Taxonomy'))
 const AdminAudit = lazyWithReload(() => import('./pages/admin/Audit'))
 const AdminIntegrationTokens = lazyWithReload(() => import('./pages/admin/IntegrationTokens'))
 const AdminUsers = lazyWithReload(() => import('./pages/admin/Users'))
@@ -100,8 +101,9 @@ export const router = createBrowserRouter([
       { index: true, element: <AdminDashboard /> },
       { path: 'applications', element: <AdminApplications /> },
       { path: 'applications/:id', element: <AdminApplicationManagement /> },
-      { path: 'categories', element: <Navigate to="/admin/applications" replace /> },
-      { path: 'tags', element: <Navigate to="/admin/applications" replace /> },
+      { path: 'taxonomy', element: <AdminTaxonomy /> },
+      { path: 'categories', element: <Navigate to="/admin/taxonomy" replace /> },
+      { path: 'tags', element: <Navigate to="/admin/taxonomy" replace /> },
       { path: 'policies', element: <Navigate to="/admin/applications" replace /> },
       { path: 'audit', element: <AdminAudit /> },
       { path: 'integration-tokens', element: <AdminIntegrationTokens /> },

@@ -29,7 +29,10 @@ export const adminNavItems: AdminNavItem[] = [
   { key: 'admin-overview', path: '/admin', label: '工作台', icon: <DashboardOutlined />, permissions: [PORTAL_MANAGE, AUDIT_READ, SYSTEM_USER_READ] },
   {
     key: 'admin-app-center', label: '应用中心', icon: <AppstoreOutlined />, permissions: [PORTAL_MANAGE],
-    children: [{ key: 'admin-apps', path: '/admin/applications', label: '应用', permissions: [PORTAL_MANAGE] }],
+    children: [
+      { key: 'admin-apps', path: '/admin/applications', label: '应用', permissions: [PORTAL_MANAGE] },
+      { key: 'admin-taxonomy', path: '/admin/taxonomy', label: '分类与标签', permissions: [PORTAL_MANAGE] },
+    ],
   },
   {
     key: 'admin-people', label: '组织与人员', icon: <TeamOutlined />, permissions: [SYSTEM_USER_READ, SYSTEM_DEPARTMENT_READ, SYSTEM_POSITION_READ, SYSTEM_USER_GROUP_READ],
@@ -74,6 +77,7 @@ export function adminActiveKey(pathname: string): string {
   if (pathname.startsWith('/admin/login-security')) return 'admin-login-security'
   if (pathname.startsWith('/admin/sessions')) return 'admin-sessions'
   if (pathname.startsWith('/admin/applications')) return 'admin-apps'
+  if (pathname.startsWith('/admin/taxonomy')) return 'admin-taxonomy'
   if (pathname.startsWith('/admin/audit')) return 'admin-audit'
   if (pathname.startsWith('/admin/integration-tokens')) return 'admin-integration-tokens'
   if (pathname.startsWith('/admin/config-changes')) return 'admin-config-changes'

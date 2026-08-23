@@ -20,6 +20,7 @@ describe('admin navigation', () => {
     expect(labels).not.toContain('访问策略')
     expect(labels).not.toContain('分类管理')
     expect(labels).not.toContain('标签管理')
+    expect(labels).toContain('分类与标签')
   })
 
   it('exposes governance and configuration through product tasks', () => {
@@ -32,6 +33,7 @@ describe('admin navigation', () => {
 
   it('selects the correct navigation item for nested routes', () => {
     expect(adminActiveKey('/admin/applications/app-1')).toBe('admin-apps')
+    expect(adminActiveKey('/admin/taxonomy')).toBe('admin-taxonomy')
     expect(adminActiveKey('/admin/users/user-1')).toBe('admin-users')
     expect(adminActiveKey('/admin/access-reviews')).toBe('admin-access-reviews')
     expect(adminActiveKey('/admin/config-changes')).toBe('admin-config-changes')

@@ -66,7 +66,7 @@ type demo struct {
 var page = template.Must(template.New("page").Parse(`<!doctype html>
 <html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Velora OIDC Demo</title>
 <style>body{font:16px system-ui,sans-serif;max-width:720px;margin:10vh auto;padding:0 24px;color:#172033}main{border:1px solid #d9e1ec;border-radius:16px;padding:32px;box-shadow:0 12px 32px #17203312}a,button{display:inline-block;padding:10px 16px;border-radius:8px;border:1px solid #1677ff;background:#1677ff;color:white;text-decoration:none;cursor:pointer}small{color:#667085}dt{font-weight:600;margin-top:12px}dd{margin:4px 0 0;word-break:break-all}</style></head>
-<body><main><h1>Velora OIDC Demo</h1>{{if .Session}}<p>已通过 Casdoor OIDC 完成登录。</p><dl><dt>Subject</dt><dd>{{.Session.Subject}}</dd><dt>姓名</dt><dd>{{.Session.Name}}</dd><dt>邮箱</dt><dd>{{.Session.Email}}</dd></dl><p><a href="/logout">退出登录</a></p>{{else}}<p>这是用于验收 Authorization Code + PKCE、State、Nonce 和 Token 校验的参考应用。</p><p><a href="/login">使用 Velora 统一身份登录</a></p>{{end}}<p><small>Issuer: {{.Issuer}}</small></p></main></body></html>`))
+<body><main><h1>Velora 接入示例</h1>{{if .Session}}<p>已通过企业统一身份认证完成登录。</p><dl><dt>用户标识</dt><dd>{{.Session.Subject}}</dd><dt>姓名</dt><dd>{{.Session.Name}}</dd><dt>邮箱</dt><dd>{{.Session.Email}}</dd></dl><p><a href="/logout">退出登录</a></p>{{else}}<p>用于验证标准 OIDC 登录、PKCE 安全校验和账号同步能力。</p><p><a href="/login">使用企业账号登录</a></p>{{end}}<p><small>身份域名：{{.Issuer}}</small></p></main></body></html>`))
 
 func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)

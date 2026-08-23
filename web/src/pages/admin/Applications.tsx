@@ -6,6 +6,7 @@ import { isSafeHttpUrl } from '../../utils/format'
 import { App as AntdApp, Button, Form, Input, InputNumber, Modal, Popconfirm, Select, Space, Switch, Table, Tag } from 'antd'
 import { PlusOutlined } from '@ant-design/icons'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useNavigate } from 'react-router-dom'
 import {
   adminCreateApplication,
   adminDeleteApplication,
@@ -54,6 +55,7 @@ export default function AdminApplications() {
   usePageTitle('应用管理')
 
   const { message } = AntdApp.useApp()
+  const navigate = useNavigate()
   const queryClient = useQueryClient()
   const [page, setPage] = useState(1)
   const [keyword, setKeyword] = useState('')
@@ -78,12 +80,13 @@ export default function AdminApplications() {
   const saveMutation = useMutation({
     mutationFn: (input: AdminApplicationInput) =>
       editing ? adminUpdateApplication(editing.id, input) : adminCreateApplication(input),
-    onSuccess: () => {
+    onSuccess: (application) => {
       message.success(editing ? '应用已更新' : '应用已创建')
       if (!editing) clearApplicationDraft()
       setModalOpen(false)
       setEditing(null)
       invalidate()
+      if (!editing && application.ssoType === 'OIDC') navigate(`/admin/identity?application=${encodeURIComponent(String(application.id))}`)
     },
     onError: (err) => message.error(err instanceof Error ? err.message : '保存失败'),
   })
@@ -245,9 +248,12 @@ export default function AdminApplications() {
           {
             title: '操作',
             key: 'actions',
-            width: 210,
+            width: 260,
             render: (_, app) => (
               <Space>
+                <Button type="link" size="small" onClick={() => navigate(`/admin/identity?application=${encodeURIComponent(String(app.id))}`)}>
+                  接入配置
+                </Button>
                 <Button type="link" size="small" onClick={() => openEdit(app)}>
                   编辑
                 </Button>

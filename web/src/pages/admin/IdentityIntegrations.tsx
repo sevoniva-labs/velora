@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Alert, App as AntdApp, Button, Card, Descriptions, Empty, Form, Input, List, Modal, Select, Space, Spin, Steps, Tag, Typography } from 'antd'
-import { ExportOutlined, SafetyCertificateOutlined } from '@ant-design/icons'
+import { Alert, App as AntdApp, Button, Card, Descriptions, Divider, Empty, Form, Input, List, Modal, Select, Space, Spin, Steps, Tag, Typography } from 'antd'
+import { DeleteOutlined, ExportOutlined, PlusOutlined, SafetyCertificateOutlined } from '@ant-design/icons'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useSearchParams } from 'react-router-dom'
 import AdminPageHead from '../../components/AdminPageHead'
 import QueryErrorState from '../../components/QueryErrorState'
 import { usePageTitle } from '../../hooks/usePageTitle'
@@ -16,6 +17,10 @@ import {
 } from '../../auth/permissions'
 import {
   adminListApplications,
+  adminGetApplicationProvisioningTarget,
+  adminListApplicationRoles,
+  adminReplaceApplicationRoles,
+  adminUpsertApplicationProvisioningTarget,
   getApplicationOnboarding,
   getIdentityConsoleLink,
   getIdentityOverview,
@@ -24,6 +29,7 @@ import {
   submitApplicationPublish,
   upsertApplicationIdentityBinding,
   verifyApplicationIdentity,
+  type ApplicationRole,
 } from '../../api/api'
 
 const { Paragraph, Text } = Typography
@@ -43,10 +49,12 @@ export default function IdentityIntegrations() {
   usePageTitle('身份与单点登录')
   const { message } = AntdApp.useApp()
   const queryClient = useQueryClient()
+  const [searchParams, setSearchParams] = useSearchParams()
   const me = useMe()
-  const [selectedId, setSelectedId] = useState<string>()
+  const [selectedId, setSelectedId] = useState<string | undefined>(() => searchParams.get('application') || undefined)
   const [step, setStep] = useState(0)
   const [form] = Form.useForm()
+  const [accessForm] = Form.useForm<{ endpointUrl: string; roles: Array<Pick<ApplicationRole, 'roleKey' | 'name' | 'description' | 'riskLevel' | 'status'>> }>()
   const canRead = hasPermission(me.data?.permissions, IDENTITY_READ, me.data?.roles)
   const canManage = hasPermission(me.data?.permissions, IDENTITY_MANAGE, me.data?.roles)
   const canVerify = hasPermission(me.data?.permissions, IDENTITY_VERIFY, me.data?.roles)
@@ -57,6 +65,8 @@ export default function IdentityIntegrations() {
   const selected = useMemo(() => apps?.items.find((item) => String(item.id) === selectedId), [apps, selectedId])
   const identityTypeSupported = selected?.ssoType === 'OIDC'
   const onboarding = useQuery({ queryKey: queryKeys.applicationOnboarding(selectedId ?? ''), queryFn: () => getApplicationOnboarding(selectedId!), enabled: Boolean(selectedId) })
+  const rolesQuery = useQuery({ queryKey: queryKeys.applicationRoles(selectedId ?? ''), queryFn: () => adminListApplicationRoles(selectedId!), enabled: Boolean(selectedId) })
+  const targetQuery = useQuery({ queryKey: queryKeys.applicationProvisioningTarget(selectedId ?? ''), queryFn: () => adminGetApplicationProvisioningTarget(selectedId!), enabled: Boolean(selectedId) })
 
   useEffect(() => {
     if (!selectedId || !onboarding.data || selected?.ssoType === 'URL') return
@@ -77,11 +87,40 @@ export default function IdentityIntegrations() {
     form.setFieldsValue(restored ?? serverValues)
   }, [form, onboarding.data, selected, selectedId])
 
+  useEffect(() => {
+    if (!selectedId || rolesQuery.isLoading || targetQuery.isLoading) return
+    accessForm.setFieldsValue({
+      endpointUrl: targetQuery.data?.endpointUrl ?? '',
+      roles: (rolesQuery.data ?? []).map(({ roleKey, name, description, riskLevel, status }) => ({ roleKey, name, description, riskLevel, status })),
+    })
+  }, [accessForm, rolesQuery.data, rolesQuery.isLoading, selectedId, targetQuery.data, targetQuery.isLoading])
+
   const invalidate = () => {
     void queryClient.invalidateQueries({ queryKey: queryKeys.applicationOnboarding(selectedId ?? '') })
     void queryClient.invalidateQueries({ queryKey: queryKeys.adminApplications() })
     void queryClient.invalidateQueries({ queryKey: queryKeys.applications() })
+    if (selectedId) {
+      void queryClient.invalidateQueries({ queryKey: queryKeys.applicationRoles(selectedId) })
+      void queryClient.invalidateQueries({ queryKey: queryKeys.applicationProvisioningTarget(selectedId) })
+    }
   }
+  const accessMutation = useMutation({
+    mutationFn: async (values: { endpointUrl: string; roles: Array<Pick<ApplicationRole, 'roleKey' | 'name' | 'description' | 'riskLevel' | 'status'>> }) => {
+      const roles = await adminReplaceApplicationRoles(selectedId!, values.roles ?? [])
+      const target = await adminUpsertApplicationProvisioningTarget(selectedId!, { endpointUrl: values.endpointUrl, expectedConfigVersion: targetQuery.data?.configVersion })
+      return { roles, ...target }
+    },
+    onSuccess: (result) => {
+      const secret = result.oneTimeProvisioningSecret
+      if (secret) {
+        Modal.info({ title: '账号同步密钥（仅显示一次）', content: <Space direction="vertical" style={{ width: '100%' }}><Alert type="warning" showIcon message="请立即写入目标应用的 Secret Manager" description="关闭后无法再次查看；Velora 只保存信封加密密文。遗失时请执行密钥轮换。" /><Input.Password value={secret} readOnly visibilityToggle /></Space>, okText: '已安全保存', maskClosable: false })
+      }
+      message.success('账号与权限配置已保存')
+      invalidate()
+      setStep(3)
+    },
+    onError: (err) => message.error(err instanceof Error ? err.message : '账号与权限配置保存失败'),
+  })
   const bindingMutation = useMutation({
     mutationFn: (values: { providerApplicationRef: string; publicClientId: string; issuer: string; redirectUris: string; scopes: string; approvalId?: string }) => upsertApplicationIdentityBinding(selectedId!, { providerKey: 'casdoor', protocol: selected?.ssoType ?? 'OIDC', providerApplicationRef: values.providerApplicationRef, publicClientId: values.publicClientId, issuer: values.issuer, redirectUris: values.redirectUris.split(/\r?\n/).map((value) => value.trim()).filter(Boolean), scopes: values.scopes.split(/\s+/).map((value) => value.trim()).filter(Boolean), approvalId: values.approvalId?.trim() || undefined, expectedConfigVersion: onboarding.data?.binding?.configVersion }),
     onSuccess: (result) => {
@@ -112,7 +151,7 @@ export default function IdentityIntegrations() {
       window.open(result.url, '_blank', 'noopener,noreferrer')
     } catch (err) { message.error(err instanceof Error ? err.message : '无法打开身份管理控制台') }
   }
-  const selectApplication = (id: string) => { setSelectedId(id); setStep(0); form.resetFields() }
+  const selectApplication = (id: string) => { setSelectedId(id); setSearchParams({ application: id }, { replace: true }); setStep(0); form.resetFields(); accessForm.resetFields() }
 
   if (!canRead) return <Alert type="warning" showIcon message="没有身份接入查看权限" description="请联系身份管理员开通 iam.integration.read 权限。" />
   if (overviewError) return <QueryErrorState refetch={refetchOverview} />
@@ -129,11 +168,36 @@ export default function IdentityIntegrations() {
       {selectedId && onboarding.isLoading ? <Card><Spin tip="正在加载接入配置" /></Card> : null}
       {selectedId && onboarding.isError ? <QueryErrorState refetch={() => void onboarding.refetch()} description="接入配置加载失败，请重试。" /> : null}
       {selected && onboarding.data ? <Card title={`${selected.name} · 接入向导`}>
-        <Steps current={step} onChange={setStep} items={[{ title: '基础信息' }, { title: '访问方式' }, { title: '身份接入' }, { title: '访问策略' }, { title: '验证与发布' }]} style={{ marginBottom: 28 }} />
+        <Steps current={step} onChange={setStep} items={[{ title: '应用资料' }, { title: '统一登录' }, { title: '账号与权限' }, { title: '接入配置' }, { title: '验证与发布' }]} style={{ marginBottom: 28 }} />
         {step === 0 ? <Descriptions bordered column={1} size="small"><Descriptions.Item label="应用编码">{selected.code}</Descriptions.Item><Descriptions.Item label="应用名称">{selected.name}</Descriptions.Item><Descriptions.Item label="负责人">{selected.owner || '-'}</Descriptions.Item><Descriptions.Item label="生命周期"><Tag>{selected.lifecycleStatus || 'PUBLISHED'}</Tag></Descriptions.Item></Descriptions> : null}
         {step === 1 ? <Alert type={selected.ssoType === 'URL' ? 'info' : identityTypeSupported ? 'info' : 'warning'} showIcon message={`当前接入方式：${selected.ssoType === 'URL' ? '普通链接' : selected.ssoType}`} description={selected.ssoType === 'URL' ? '普通链接不需要在身份中心创建客户端。' : identityTypeSupported ? 'OIDC 应用必须完成身份绑定和真实 Discovery 验证后才能发布。' : '该接入类型暂未验收，当前禁止保存、验证和发布；请迁移为 OIDC 或普通链接。'} /> : null}
-        {step === 2 ? selected.ssoType === 'URL' ? <Alert type="success" showIcon message="普通链接无需身份配置" description="可直接进入验证与发布步骤。" /> : !identityTypeSupported ? <Alert type="warning" showIcon message="该接入类型暂未开放" description="SAML、CAS 和 ForwardAuth 在完成独立验收前不能保存或发布。" /> : <Form form={form} layout="vertical" disabled={!canManage} onValuesChange={(_, values: IdentityDraft) => { if (!selectedId) return; try { window.localStorage.setItem(draftStorageKey(selectedId), JSON.stringify(values)) } catch { /* 浏览器存储不可用时仍可继续提交 */ } }} onFinish={(values) => bindingMutation.mutate(values)}><Descriptions bordered column={1} size="small" style={{ marginBottom: 16 }}><Descriptions.Item label="协议">OIDC Authorization Code + PKCE</Descriptions.Item><Descriptions.Item label="Secret">不在 Velora 输入或保存</Descriptions.Item></Descriptions>{!canManage ? <Alert type="info" showIcon style={{ marginBottom: 16 }} message="当前账号仅具备查看权限" description="需要 iam.integration.manage 才能保存身份绑定。" /> : null}<Form.Item label="身份应用引用" name="providerApplicationRef" rules={[{ required: true, message: '请输入身份中心中的应用引用' }]}><Input placeholder="例如：app-portal-demo" /></Form.Item><Form.Item label="公开 Client ID" name="publicClientId" rules={[{ required: true, message: '请输入公开 Client ID' }]}><Input /></Form.Item><Form.Item label="Issuer" name="issuer" rules={[{ required: true, message: '请输入 Issuer' }]}><Input placeholder="https://identity.example.com" /></Form.Item><Form.Item label="Scopes" name="scopes" initialValue="openid profile email" rules={[{ required: true, message: '请输入 OIDC Scopes' }]}><Input placeholder="openid profile email" /></Form.Item><Form.Item label="Redirect URI（每行一个）" name="redirectUris" rules={[{ required: true, message: '请输入回调地址' }]}><Input.TextArea rows={4} placeholder="https://app.example.com/auth/callback" /></Form.Item>{overview?.automationEnabled ? <Form.Item label="自动化审批执行票据" name="approvalId" rules={[{ required: true, message: '自动化开启时请输入已批准的执行票据' }]}><Input placeholder="审批中心生成的 approval_id" /></Form.Item> : null}<Space><Button type="primary" htmlType="submit" loading={bindingMutation.isPending} disabled={!canManage}>保存身份绑定</Button>{overview?.adminEntryEnabled && canOpenConsole ? <Button icon={<ExportOutlined />} onClick={() => void openConsole()}>打开身份管理控制台</Button> : null}</Space></Form> : null}
-        {step === 3 ? <Alert type="info" showIcon message="配置访问策略" description="请在 Velora 的访问策略页面配置用户、角色、用户组或组织范围；身份中心只负责认证，不替代下游业务授权。" action={canManage ? <Button size="small" onClick={() => window.location.assign('/admin/policies')}>前往访问策略</Button> : undefined} /> : null}
+        {step === 2 ? <Form form={accessForm} layout="vertical" disabled={!canManage} onFinish={(values) => accessMutation.mutate(values)} initialValues={{ roles: [] }}>
+          <Alert type="info" showIcon message="账号由 Velora 统一下发，业务权限由目标应用执行" description="角色编码一旦被目标应用使用应保持稳定。未配置访问策略时默认没有用户可见；确需全员开放时请显式选择全体成员。" style={{ marginBottom: 16 }} />
+          <Form.Item label="账号同步地址" name="endpointUrl" rules={[{ required: true, message: '请输入账号同步地址' }, { type: 'url', message: '请输入完整 HTTPS 地址' }, { pattern: /^https:\/\//i, message: '生产接入只允许 HTTPS' }]} extra="例如 https://app.example.com/api/v1/integrations/velora/provisioning">
+            <Input placeholder="https://app.example.com/api/v1/integrations/velora/provisioning" />
+          </Form.Item>
+          {targetQuery.data ? <Descriptions bordered size="small" column={{ xs: 1, sm: 3 }} style={{ marginBottom: 16 }}><Descriptions.Item label="同步状态"><Tag>{targetQuery.data.deliveryStatus}</Tag></Descriptions.Item><Descriptions.Item label="密钥版本">v{targetQuery.data.activeKeyVersion}</Descriptions.Item><Descriptions.Item label="密钥指纹">{targetQuery.data.secretFingerprint || '-'}</Descriptions.Item></Descriptions> : null}
+          <Divider>应用角色</Divider>
+          <Form.List name="roles">
+            {(fields, { add, remove }) => <Space direction="vertical" style={{ width: '100%' }} size="middle">
+              {fields.map(({ key, name, ...rest }) => <Card key={key} size="small">
+                <div className="velora-form-grid">
+                  <Form.Item {...rest} label="角色编码" name={[name, 'roleKey']} rules={[{ required: true, message: '请输入角色编码' }, { pattern: /^[a-z][a-z0-9._-]{0,99}$/, message: '使用小写字母开头，可包含数字 . _ -' }]}><Input placeholder="developer" /></Form.Item>
+                  <Form.Item {...rest} label="显示名称" name={[name, 'name']} rules={[{ required: true, message: '请输入显示名称' }]}><Input placeholder="开发人员" /></Form.Item>
+                </div>
+                <div className="velora-form-grid">
+                  <Form.Item {...rest} label="风险级别" name={[name, 'riskLevel']} initialValue="NORMAL"><Select options={[{ value: 'NORMAL', label: '普通' }, { value: 'PRIVILEGED', label: '高权限' }, { value: 'CRITICAL', label: '关键权限' }]} /></Form.Item>
+                  <Form.Item {...rest} label="状态" name={[name, 'status']} initialValue="ACTIVE"><Select options={[{ value: 'ACTIVE', label: '启用' }, { value: 'DISABLED', label: '停用' }]} /></Form.Item>
+                </div>
+                <Form.Item {...rest} label="说明" name={[name, 'description']}><Input placeholder="说明该角色可执行的业务操作" /></Form.Item>
+                <Button danger type="text" icon={<DeleteOutlined />} onClick={() => remove(name)}>移除角色</Button>
+              </Card>)}
+              <Button type="dashed" icon={<PlusOutlined />} onClick={() => add({ riskLevel: 'NORMAL', status: 'ACTIVE' })}>添加角色</Button>
+            </Space>}
+          </Form.List>
+          <Space wrap style={{ marginTop: 20 }}><Button type="primary" htmlType="submit" loading={accessMutation.isPending}>保存账号与权限配置</Button><Button onClick={() => window.location.assign('/admin/policies')}>配置访问范围</Button>{targetQuery.data ? <Button danger loading={accessMutation.isPending} onClick={() => accessForm.validateFields().then((values) => adminUpsertApplicationProvisioningTarget(selectedId!, { endpointUrl: values.endpointUrl, rotateSecret: true, expectedConfigVersion: targetQuery.data?.configVersion })).then((result) => { if (result.oneTimeProvisioningSecret) Modal.info({ title: '新账号同步密钥（仅显示一次）', content: <Input.Password value={result.oneTimeProvisioningSecret} readOnly visibilityToggle />, okText: '已安全保存', maskClosable: false }); invalidate(); message.success('密钥已轮换') }).catch((err) => message.error(err instanceof Error ? err.message : '密钥轮换失败'))}>轮换同步密钥</Button> : null}</Space>
+        </Form> : null}
+        {step === 3 ? selected.ssoType === 'URL' ? <Alert type="success" showIcon message="普通链接无需身份配置" description="账号与访问策略保存后可直接进入验证与发布。" /> : !identityTypeSupported ? <Alert type="warning" showIcon message="该接入类型暂未开放" description="当前仅开放 OIDC 与普通链接。" /> : <Form form={form} layout="vertical" disabled={!canManage} onValuesChange={(_, values: IdentityDraft) => { if (!selectedId) return; try { window.localStorage.setItem(draftStorageKey(selectedId), JSON.stringify(values)) } catch { /* 仅保存非敏感草稿 */ } }} onFinish={(values) => bindingMutation.mutate(values)}><Descriptions bordered column={1} size="small" style={{ marginBottom: 16 }}><Descriptions.Item label="登录协议">OIDC Authorization Code + PKCE S256</Descriptions.Item><Descriptions.Item label="账号入口">用户始终从 Velora 登录，Casdoor 不直接暴露</Descriptions.Item><Descriptions.Item label="凭据保护">Client Secret 仅签发时显示一次</Descriptions.Item></Descriptions>{!canManage ? <Alert type="info" showIcon style={{ marginBottom: 16 }} message="当前账号仅具备查看权限" /> : null}<Form.Item label="回调地址（每行一个）" name="redirectUris" rules={[{ required: true, message: '请输入回调地址' }]}><Input.TextArea rows={3} placeholder="https://app.example.com/api/v1/auth/oidc/callback" /></Form.Item><details><summary style={{ cursor: 'pointer', marginBottom: 16 }}>高级设置</summary><Form.Item label="身份应用引用" name="providerApplicationRef" rules={[{ required: true, message: '请输入身份应用引用' }]}><Input /></Form.Item><Form.Item label="公开 Client ID" name="publicClientId" rules={[{ required: true, message: '请输入 Client ID' }]}><Input /></Form.Item><Form.Item label="Issuer" name="issuer" rules={[{ required: true, message: '请输入 Issuer' }]}><Input /></Form.Item><Form.Item label="Scopes" name="scopes" initialValue="openid profile email"><Input readOnly={Boolean(overview?.automationEnabled)} /></Form.Item>{overview?.automationEnabled ? <Form.Item label="审批执行票据" name="approvalId" rules={[{ required: true, message: '请输入已批准的执行票据' }]}><Input /></Form.Item> : null}</details><Button type="primary" htmlType="submit" loading={bindingMutation.isPending}>生成并保存接入配置</Button></Form> : null}
         {step === 4 ? <Space direction="vertical" style={{ width: '100%' }} size="middle"><List size="small" header="最近验证记录" dataSource={onboarding.data.verifications} locale={{ emptyText: '尚无验证记录' }} renderItem={(item) => <List.Item><Space><Tag color={item.result === 'PASSED' ? 'success' : 'error'}>{item.result}</Tag><Text>{item.checkType}</Text><Text type="secondary">{item.errorCode || '通过'}</Text></Space></List.Item>} /><Space wrap>{identityTypeSupported ? <Button icon={<SafetyCertificateOutlined />} loading={verifyMutation.isPending} onClick={() => verifyMutation.mutate()} disabled={!canVerify}>执行真实验证</Button> : null}<Button onClick={() => submitMutation.mutate()} loading={submitMutation.isPending} disabled={!canPublish || !onboarding.data.canPublish}>提交发布</Button><Button type="primary" onClick={() => publishMutation.mutate()} loading={publishMutation.isPending} disabled={!canPublish || !onboarding.data.canPublish}>发布应用</Button></Space><Paragraph type="secondary">未完成身份验证的 OIDC 应用不会进入门户。发布操作会记录操作者和配置版本。</Paragraph></Space> : null}
         <Space style={{ marginTop: 24 }}><Button disabled={step === 0} onClick={() => setStep((value) => value - 1)}>上一步</Button><Button disabled={step === 4} onClick={() => setStep((value) => value + 1)}>下一步</Button></Space>
       </Card> : !selectedId && !appsLoading && (apps?.items?.length ?? 0) === 0 ? <Empty description="暂无可配置应用" /> : !selectedId ? <Alert type="info" message="请选择应用开始接入" /> : null}

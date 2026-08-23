@@ -6,7 +6,7 @@ Phase 0–4 已在真实生产环境闭环。Velora 的应用接入不再依赖 
 
 ## 发布版本
 
-- Velora `main`：`e0d0066`；状态机与接入修复包含 `d8076f0`、`00162df`、`5574c79`、`bcd033f`、`b159e7d`。
+- Velora 生产应用制品：`e0d0066`；状态机与接入修复包含 `d8076f0`、`00162df`、`5574c79`、`bcd033f`、`b159e7d`。验收文档提交后仓库 `main` 为 `a32043d`，未改变生产二进制。
 - Spectra `main`：`ab230a1`；新增标准接收路径和 challenge 的 `APPLIED / DUPLICATE / STALE` 语义。
 - 生产域名：`home.sevoniva.com`、`auth.sevoniva.com`、`spectra.sevoniva.com`、`demo.sevoniva.com`。
 - Velora Server 回滚镜像和时间戳保存在 `/opt/velora/prod/releases/*/rollback-stamp`；Spectra 回滚二进制和镜像保存在 `/home/ubuntu/spectra-releases/*/rollback-*`。
@@ -36,6 +36,7 @@ Spectra 的 `carson` 投影为 `ACTIVE / managed_by=VELORA / provisioning_versio
 - 未登录访问 Reference App 授权端点会由身份网关 302 到 `home.sevoniva.com/login?app=velora-demo...`；用户可见页面不出现 Casdoor。Demo 页面文案也仅使用“企业统一身份认证”。
 - 已发布应用重新验签保持 `PUBLISHED`；已就绪应用重复提交不递增配置版本；检查证据不会被无意义状态写入作废。
 - 无访问权限的用户接口按既有权限测试返回空应用集合而非 403；Spectra 对未预配或无业务角色用户失败关闭，`/normal-login` 仅保留为不展示的 break-glass 入口。
+- 验收结束后，临时 Bootstrap API Token 和 Session 已全部撤销或删除；`carson` 仅保留普通 `user`，临时审批账号已禁用且无角色。领取目录和 `/run` 中的临时 Secret/响应文件已安全擦除，正式 Demo Secret 文件保持 `0400`、专用运行用户所有。
 
 ## 自动化验证
 

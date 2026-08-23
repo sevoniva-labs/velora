@@ -1,6 +1,6 @@
 # Velora 管理后台产品复盘与重构实施方案
 
-状态：Phase 0–4 已实现并部署，认证管理 API 已验收；等待登录后的浏览器目视验收（2026-08-24）
+状态：Phase 0–4 已实现并部署，自动门禁与认证管理 API 已验收；等待登录后的浏览器目视验收（2026-08-24）
 日期：2026-08-24  
 适用范围：Velora 管理后台、管理 API、Velora 与 Casdoor 管理边界  
 技术约束：前端使用 `@ant-design/pro-components`；不修改 Casdoor；不建设 Velora 自有 OIDC Provider

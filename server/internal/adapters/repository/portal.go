@@ -556,7 +556,9 @@ func (r *PortalRepo) RetryProvisioning(ctx context.Context, orgID, applicationID
 			return err
 		}
 		retried, _ = result.RowsAffected()
-		_, err = tx.ExecContext(ctx, r.db.Rebind(`UPDATE portal_application_provisioning_targets SET delivery_status='PENDING',updated_at=? WHERE organization_id=? AND application_id=?`), time.Now().UTC(), orgID, applicationID)
+		if retried > 0 {
+			_, err = tx.ExecContext(ctx, r.db.Rebind(`UPDATE portal_application_provisioning_targets SET delivery_status='PENDING',updated_at=? WHERE organization_id=? AND application_id=?`), time.Now().UTC(), orgID, applicationID)
+		}
 		return err
 	})
 	if err != nil {

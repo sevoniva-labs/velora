@@ -149,6 +149,8 @@ func PortalRules() map[string][]string {
 		forgev1.OperationPortalServiceUpdatePortalTag:                  {"portal.application.manage"},
 		forgev1.OperationPortalServiceDeletePortalTag:                  {"portal.application.manage"},
 		forgev1.OperationPortalServiceReplacePortalApplicationPolicies: {"portal.application.manage"},
+		forgev1.OperationPortalServiceListPortalApplicationRoles:       {"portal.application.manage", "iam.integration.read"},
+		forgev1.OperationPortalServiceReplacePortalApplicationRoles:    {"portal.application.manage"},
 		forgev1.OperationPortalServiceGetIdentityOverview:              {"iam.integration.read"},
 		forgev1.OperationPortalServiceGetIdentityConsoleLink:           {"iam.console.open"},
 		forgev1.OperationPortalServiceGetApplicationOnboarding:         {"iam.integration.read"},

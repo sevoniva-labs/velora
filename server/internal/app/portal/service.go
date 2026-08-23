@@ -461,3 +461,59 @@ func (s *Service) ReplacePolicies(ctx context.Context, principal domain.Principa
 	}
 	return items, err
 }
+
+func (s *Service) ListApplicationRoles(ctx context.Context, principal domain.Principal, appID string) ([]portaldomain.ApplicationRole, error) {
+	if _, err := s.repo.GetApplication(ctx, principal.OrganizationID, principal.UserID, strings.TrimSpace(appID), true); errors.Is(err, sql.ErrNoRows) {
+		return nil, ErrNotFound
+	} else if err != nil {
+		return nil, err
+	}
+	return s.repo.ListApplicationRoles(ctx, principal.OrganizationID, strings.TrimSpace(appID))
+}
+
+func (s *Service) ReplaceApplicationRoles(ctx context.Context, principal domain.Principal, appID string, roles []portaldomain.ApplicationRole) ([]portaldomain.ApplicationRole, error) {
+	seen := make(map[string]struct{}, len(roles))
+	for i := range roles {
+		roles[i].Key = strings.ToLower(strings.TrimSpace(roles[i].Key))
+		roles[i].Name = strings.TrimSpace(roles[i].Name)
+		roles[i].Description = strings.TrimSpace(roles[i].Description)
+		roles[i].RiskLevel = strings.ToUpper(strings.TrimSpace(roles[i].RiskLevel))
+		roles[i].Status = strings.ToUpper(strings.TrimSpace(roles[i].Status))
+		if roles[i].Status == "" {
+			roles[i].Status = portaldomain.StatusActive
+		}
+		if roles[i].RiskLevel == "" {
+			roles[i].RiskLevel = portaldomain.RoleRiskNormal
+		}
+		if roles[i].Key == "" || len(roles[i].Key) > 100 || roles[i].Name == "" || len(roles[i].Name) > 200 || len(roles[i].Description) > 500 || !validApplicationRoleKey(roles[i].Key) {
+			return nil, ErrInvalid
+		}
+		if roles[i].RiskLevel != portaldomain.RoleRiskNormal && roles[i].RiskLevel != portaldomain.RoleRiskPrivileged && roles[i].RiskLevel != portaldomain.RoleRiskCritical {
+			return nil, ErrInvalid
+		}
+		if roles[i].Status != portaldomain.StatusActive && roles[i].Status != portaldomain.StatusDisabled {
+			return nil, ErrInvalid
+		}
+		if _, exists := seen[roles[i].Key]; exists {
+			return nil, ErrInvalid
+		}
+		seen[roles[i].Key] = struct{}{}
+	}
+	items, err := s.repo.ReplaceApplicationRoles(ctx, principal.OrganizationID, strings.TrimSpace(appID), roles)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, ErrNotFound
+	}
+	return items, err
+}
+
+func validApplicationRoleKey(value string) bool {
+	if value == "" {
+		return false
+	}
+	for _, r := range value {
+		if r != '_' && r != '-' && (r < 'a' || r > 'z') && (r < '0' || r > '9') {
+			return false
+		}
+	}
+	return true
+}

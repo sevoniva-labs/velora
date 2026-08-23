@@ -888,6 +888,54 @@ paths:
                 - SessionCookie: []
                   CsrfToken: []
                 - BearerAuth: []
+    /api/v1/admin/portal/applications/{applicationId}/roles:
+        get:
+            tags:
+                - PortalService
+            operationId: PortalService_ListPortalApplicationRoles
+            parameters:
+                - name: applicationId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/forge.v1.ListPortalApplicationRolesResponse'
+            security:
+                - SessionCookie: []
+                - BearerAuth: []
+        put:
+            tags:
+                - PortalService
+            operationId: PortalService_ReplacePortalApplicationRoles
+            parameters:
+                - name: applicationId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/forge.v1.ReplacePortalApplicationRolesRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/forge.v1.ReplacePortalApplicationRolesResponse'
+            security:
+                - SessionCookie: []
+                  CsrfToken: []
+                - BearerAuth: []
     /api/v1/admin/portal/applications/{applicationId}/submit-publish:
         post:
             tags:
@@ -3490,6 +3538,13 @@ components:
                     type: array
                     items:
                         $ref: '#/components/schemas/forge.v1.Permission'
+        forge.v1.ListPortalApplicationRolesResponse:
+            type: object
+            properties:
+                roles:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/forge.v1.PortalApplicationRole'
         forge.v1.ListPortalApplicationsResponse:
             type: object
             properties:
@@ -3771,6 +3826,31 @@ components:
                     format: date-time
                 publishedBy:
                     type: string
+        forge.v1.PortalApplicationRole:
+            type: object
+            properties:
+                id:
+                    type: string
+                applicationId:
+                    type: string
+                roleKey:
+                    type: string
+                name:
+                    type: string
+                description:
+                    type: string
+                riskLevel:
+                    type: string
+                status:
+                    type: string
+                configVersion:
+                    type: string
+                createdAt:
+                    type: string
+                    format: date-time
+                updatedAt:
+                    type: string
+                    format: date-time
         forge.v1.PortalApplicationVerification:
             type: object
             properties:
@@ -3985,6 +4065,22 @@ components:
                     type: array
                     items:
                         $ref: '#/components/schemas/forge.v1.PortalAccessPolicy'
+        forge.v1.ReplacePortalApplicationRolesRequest:
+            type: object
+            properties:
+                applicationId:
+                    type: string
+                roles:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/forge.v1.PortalApplicationRole'
+        forge.v1.ReplacePortalApplicationRolesResponse:
+            type: object
+            properties:
+                roles:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/forge.v1.PortalApplicationRole'
         forge.v1.ReplaceUserAssignmentsRequest:
             type: object
             properties:

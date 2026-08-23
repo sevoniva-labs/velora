@@ -40,6 +40,8 @@ const (
 	PortalService_UpdatePortalTag_FullMethodName                  = "/forge.v1.PortalService/UpdatePortalTag"
 	PortalService_DeletePortalTag_FullMethodName                  = "/forge.v1.PortalService/DeletePortalTag"
 	PortalService_ReplacePortalApplicationPolicies_FullMethodName = "/forge.v1.PortalService/ReplacePortalApplicationPolicies"
+	PortalService_ListPortalApplicationRoles_FullMethodName       = "/forge.v1.PortalService/ListPortalApplicationRoles"
+	PortalService_ReplacePortalApplicationRoles_FullMethodName    = "/forge.v1.PortalService/ReplacePortalApplicationRoles"
 	PortalService_GetIdentityOverview_FullMethodName              = "/forge.v1.PortalService/GetIdentityOverview"
 	PortalService_GetIdentityConsoleLink_FullMethodName           = "/forge.v1.PortalService/GetIdentityConsoleLink"
 	PortalService_GetApplicationOnboarding_FullMethodName         = "/forge.v1.PortalService/GetApplicationOnboarding"
@@ -75,6 +77,8 @@ type PortalServiceClient interface {
 	UpdatePortalTag(ctx context.Context, in *UpdatePortalTagRequest, opts ...grpc.CallOption) (*UpdatePortalTagResponse, error)
 	DeletePortalTag(ctx context.Context, in *DeletePortalTagRequest, opts ...grpc.CallOption) (*DeletePortalTagResponse, error)
 	ReplacePortalApplicationPolicies(ctx context.Context, in *ReplacePortalApplicationPoliciesRequest, opts ...grpc.CallOption) (*ReplacePortalApplicationPoliciesResponse, error)
+	ListPortalApplicationRoles(ctx context.Context, in *ListPortalApplicationRolesRequest, opts ...grpc.CallOption) (*ListPortalApplicationRolesResponse, error)
+	ReplacePortalApplicationRoles(ctx context.Context, in *ReplacePortalApplicationRolesRequest, opts ...grpc.CallOption) (*ReplacePortalApplicationRolesResponse, error)
 	GetIdentityOverview(ctx context.Context, in *GetIdentityOverviewRequest, opts ...grpc.CallOption) (*GetIdentityOverviewResponse, error)
 	GetIdentityConsoleLink(ctx context.Context, in *GetIdentityConsoleLinkRequest, opts ...grpc.CallOption) (*GetIdentityConsoleLinkResponse, error)
 	GetApplicationOnboarding(ctx context.Context, in *GetApplicationOnboardingRequest, opts ...grpc.CallOption) (*GetApplicationOnboardingResponse, error)
@@ -303,6 +307,26 @@ func (c *portalServiceClient) ReplacePortalApplicationPolicies(ctx context.Conte
 	return out, nil
 }
 
+func (c *portalServiceClient) ListPortalApplicationRoles(ctx context.Context, in *ListPortalApplicationRolesRequest, opts ...grpc.CallOption) (*ListPortalApplicationRolesResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListPortalApplicationRolesResponse)
+	err := c.cc.Invoke(ctx, PortalService_ListPortalApplicationRoles_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *portalServiceClient) ReplacePortalApplicationRoles(ctx context.Context, in *ReplacePortalApplicationRolesRequest, opts ...grpc.CallOption) (*ReplacePortalApplicationRolesResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ReplacePortalApplicationRolesResponse)
+	err := c.cc.Invoke(ctx, PortalService_ReplacePortalApplicationRoles_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *portalServiceClient) GetIdentityOverview(ctx context.Context, in *GetIdentityOverviewRequest, opts ...grpc.CallOption) (*GetIdentityOverviewResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(GetIdentityOverviewResponse)
@@ -408,6 +432,8 @@ type PortalServiceServer interface {
 	UpdatePortalTag(context.Context, *UpdatePortalTagRequest) (*UpdatePortalTagResponse, error)
 	DeletePortalTag(context.Context, *DeletePortalTagRequest) (*DeletePortalTagResponse, error)
 	ReplacePortalApplicationPolicies(context.Context, *ReplacePortalApplicationPoliciesRequest) (*ReplacePortalApplicationPoliciesResponse, error)
+	ListPortalApplicationRoles(context.Context, *ListPortalApplicationRolesRequest) (*ListPortalApplicationRolesResponse, error)
+	ReplacePortalApplicationRoles(context.Context, *ReplacePortalApplicationRolesRequest) (*ReplacePortalApplicationRolesResponse, error)
 	GetIdentityOverview(context.Context, *GetIdentityOverviewRequest) (*GetIdentityOverviewResponse, error)
 	GetIdentityConsoleLink(context.Context, *GetIdentityConsoleLinkRequest) (*GetIdentityConsoleLinkResponse, error)
 	GetApplicationOnboarding(context.Context, *GetApplicationOnboardingRequest) (*GetApplicationOnboardingResponse, error)
@@ -488,6 +514,12 @@ func (UnimplementedPortalServiceServer) DeletePortalTag(context.Context, *Delete
 }
 func (UnimplementedPortalServiceServer) ReplacePortalApplicationPolicies(context.Context, *ReplacePortalApplicationPoliciesRequest) (*ReplacePortalApplicationPoliciesResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ReplacePortalApplicationPolicies not implemented")
+}
+func (UnimplementedPortalServiceServer) ListPortalApplicationRoles(context.Context, *ListPortalApplicationRolesRequest) (*ListPortalApplicationRolesResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListPortalApplicationRoles not implemented")
+}
+func (UnimplementedPortalServiceServer) ReplacePortalApplicationRoles(context.Context, *ReplacePortalApplicationRolesRequest) (*ReplacePortalApplicationRolesResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ReplacePortalApplicationRoles not implemented")
 }
 func (UnimplementedPortalServiceServer) GetIdentityOverview(context.Context, *GetIdentityOverviewRequest) (*GetIdentityOverviewResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetIdentityOverview not implemented")
@@ -912,6 +944,42 @@ func _PortalService_ReplacePortalApplicationPolicies_Handler(srv interface{}, ct
 	return interceptor(ctx, in, info, handler)
 }
 
+func _PortalService_ListPortalApplicationRoles_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListPortalApplicationRolesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PortalServiceServer).ListPortalApplicationRoles(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: PortalService_ListPortalApplicationRoles_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PortalServiceServer).ListPortalApplicationRoles(ctx, req.(*ListPortalApplicationRolesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _PortalService_ReplacePortalApplicationRoles_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ReplacePortalApplicationRolesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PortalServiceServer).ReplacePortalApplicationRoles(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: PortalService_ReplacePortalApplicationRoles_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PortalServiceServer).ReplacePortalApplicationRoles(ctx, req.(*ReplacePortalApplicationRolesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _PortalService_GetIdentityOverview_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(GetIdentityOverviewRequest)
 	if err := dec(in); err != nil {
@@ -1146,6 +1214,14 @@ var PortalService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ReplacePortalApplicationPolicies",
 			Handler:    _PortalService_ReplacePortalApplicationPolicies_Handler,
+		},
+		{
+			MethodName: "ListPortalApplicationRoles",
+			Handler:    _PortalService_ListPortalApplicationRoles_Handler,
+		},
+		{
+			MethodName: "ReplacePortalApplicationRoles",
+			Handler:    _PortalService_ReplacePortalApplicationRoles_Handler,
 		},
 		{
 			MethodName: "GetIdentityOverview",

@@ -466,6 +466,47 @@ func (s *PortalService) ReplacePortalApplicationPolicies(ctx context.Context, re
 	return response.(*forgev1.ReplacePortalApplicationPoliciesResponse), nil
 }
 
+func (s *PortalService) ListPortalApplicationRoles(ctx context.Context, req *forgev1.ListPortalApplicationRolesRequest) (*forgev1.ListPortalApplicationRolesResponse, error) {
+	principal, err := requiredPrincipal(ctx)
+	if err != nil {
+		return nil, err
+	}
+	roles, err := s.portal.ListApplicationRoles(ctx, principal, req.GetApplicationId())
+	if err != nil {
+		return nil, serviceError(err)
+	}
+	return &forgev1.ListPortalApplicationRolesResponse{Roles: portalApplicationRolesProto(roles)}, nil
+}
+
+func (s *PortalService) ReplacePortalApplicationRoles(ctx context.Context, req *forgev1.ReplacePortalApplicationRolesRequest) (*forgev1.ReplacePortalApplicationRolesResponse, error) {
+	principal, err := requiredPrincipal(ctx)
+	if err != nil {
+		return nil, err
+	}
+	response, err := s.idempotent(ctx, principal, "portal.application.roles.replace", req, func() proto.Message { return &forgev1.ReplacePortalApplicationRolesResponse{} }, func() (proto.Message, error) {
+		roles := make([]portaldomain.ApplicationRole, 0, len(req.GetRoles()))
+		for _, item := range req.GetRoles() {
+			if item != nil {
+				roles = append(roles, portaldomain.ApplicationRole{Key: item.GetRoleKey(), Name: item.GetName(), Description: item.GetDescription(), RiskLevel: item.GetRiskLevel(), Status: item.GetStatus()})
+			}
+		}
+		var out []portaldomain.ApplicationRole
+		event := newAuditEvent(ctx, principal, "portal.application.roles.replace", "portal_application", req.GetApplicationId(), map[string]any{"role_count": len(roles)})
+		if err := s.audited(ctx, event, func(txCtx context.Context) error {
+			var replaceErr error
+			out, replaceErr = s.portal.ReplaceApplicationRoles(txCtx, principal, req.GetApplicationId(), roles)
+			return replaceErr
+		}); err != nil {
+			return nil, serviceError(err)
+		}
+		return &forgev1.ReplacePortalApplicationRolesResponse{Roles: portalApplicationRolesProto(out)}, nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return response.(*forgev1.ReplacePortalApplicationRolesResponse), nil
+}
+
 func (s *PortalService) GetIdentityOverview(ctx context.Context, _ *forgev1.GetIdentityOverviewRequest) (*forgev1.GetIdentityOverviewResponse, error) {
 	principal, err := requiredPrincipal(ctx)
 	if err != nil {
@@ -899,6 +940,14 @@ func portalPoliciesProto(items []portaldomain.AccessPolicy) []*forgev1.PortalAcc
 	out := make([]*forgev1.PortalAccessPolicy, 0, len(items))
 	for _, item := range items {
 		out = append(out, &forgev1.PortalAccessPolicy{Id: item.ID, ApplicationId: item.ApplicationID, PolicyType: item.Type, Value: item.Value, CreatedAt: timestamp(item.CreatedAt), UpdatedAt: timestamp(item.UpdatedAt)})
+	}
+	return out
+}
+
+func portalApplicationRolesProto(items []portaldomain.ApplicationRole) []*forgev1.PortalApplicationRole {
+	out := make([]*forgev1.PortalApplicationRole, 0, len(items))
+	for _, item := range items {
+		out = append(out, &forgev1.PortalApplicationRole{Id: item.ID, ApplicationId: item.ApplicationID, RoleKey: item.Key, Name: item.Name, Description: item.Description, RiskLevel: item.RiskLevel, Status: item.Status, ConfigVersion: item.ConfigVersion, CreatedAt: timestamp(item.CreatedAt), UpdatedAt: timestamp(item.UpdatedAt)})
 	}
 	return out
 }

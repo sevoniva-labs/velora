@@ -93,6 +93,14 @@ service PortalService {
     option (google.api.http) = {put: "/api/v1/admin/portal/applications/{application_id}/policies" body: "*"};
     option (openapi.v3.operation) = {security: [{additional_properties: [{name: "SessionCookie" value: {value: []}}, {name: "CsrfToken" value: {value: []}}]}, {additional_properties: [{name: "BearerAuth" value: {value: []}}]}]};
   }
+  rpc ListPortalApplicationRoles(ListPortalApplicationRolesRequest) returns (ListPortalApplicationRolesResponse) {
+    option (google.api.http) = {get: "/api/v1/admin/portal/applications/{application_id}/roles"};
+    option (openapi.v3.operation) = {security: [{additional_properties: [{name: "SessionCookie" value: {value: []}}]}, {additional_properties: [{name: "BearerAuth" value: {value: []}}]}]};
+  }
+  rpc ReplacePortalApplicationRoles(ReplacePortalApplicationRolesRequest) returns (ReplacePortalApplicationRolesResponse) {
+    option (google.api.http) = {put: "/api/v1/admin/portal/applications/{application_id}/roles" body: "*"};
+    option (openapi.v3.operation) = {security: [{additional_properties: [{name: "SessionCookie" value: {value: []}}, {name: "CsrfToken" value: {value: []}}]}, {additional_properties: [{name: "BearerAuth" value: {value: []}}]}]};
+  }
   rpc GetIdentityOverview(GetIdentityOverviewRequest) returns (GetIdentityOverviewResponse) {
     option (google.api.http) = {get: "/api/v1/admin/identity/overview"};
     option (openapi.v3.operation) = {security: [{additional_properties: [{name: "SessionCookie" value: {value: []}}]}, {additional_properties: [{name: "BearerAuth" value: {value: []}}]}]};
@@ -184,6 +192,18 @@ message PortalAccessPolicy {
   google.protobuf.Timestamp created_at = 5;
   google.protobuf.Timestamp updated_at = 6;
 }
+message PortalApplicationRole {
+  string id = 1;
+  string application_id = 2;
+  string role_key = 3;
+  string name = 4;
+  string description = 5;
+  string risk_level = 6;
+  string status = 7;
+  int64 config_version = 8;
+  google.protobuf.Timestamp created_at = 9;
+  google.protobuf.Timestamp updated_at = 10;
+}
 
 message ListPortalApplicationsRequest {
   string keyword = 1;
@@ -266,6 +286,10 @@ message DeletePortalTagRequest { string tag_id = 1; }
 message DeletePortalTagResponse {}
 message ReplacePortalApplicationPoliciesRequest { string application_id = 1; repeated PortalAccessPolicy policies = 2; }
 message ReplacePortalApplicationPoliciesResponse { repeated PortalAccessPolicy policies = 1; }
+message ListPortalApplicationRolesRequest { string application_id = 1; }
+message ListPortalApplicationRolesResponse { repeated PortalApplicationRole roles = 1; }
+message ReplacePortalApplicationRolesRequest { string application_id = 1; repeated PortalApplicationRole roles = 2; }
+message ReplacePortalApplicationRolesResponse { repeated PortalApplicationRole roles = 1; }
 
 message PortalIdentityBinding {
   string id = 1;

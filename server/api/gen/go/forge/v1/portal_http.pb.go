@@ -34,6 +34,7 @@ const OperationPortalServiceGetIdentityOverview = "/forge.v1.PortalService/GetId
 const OperationPortalServiceGetPortalApplication = "/forge.v1.PortalService/GetPortalApplication"
 const OperationPortalServiceLaunchPortalApplication = "/forge.v1.PortalService/LaunchPortalApplication"
 const OperationPortalServiceListAdminPortalApplications = "/forge.v1.PortalService/ListAdminPortalApplications"
+const OperationPortalServiceListPortalApplicationRoles = "/forge.v1.PortalService/ListPortalApplicationRoles"
 const OperationPortalServiceListPortalApplications = "/forge.v1.PortalService/ListPortalApplications"
 const OperationPortalServiceListPortalCategories = "/forge.v1.PortalService/ListPortalCategories"
 const OperationPortalServiceListPortalFavorites = "/forge.v1.PortalService/ListPortalFavorites"
@@ -42,6 +43,7 @@ const OperationPortalServiceListRecentPortalApplications = "/forge.v1.PortalServ
 const OperationPortalServicePublishApplication = "/forge.v1.PortalService/PublishApplication"
 const OperationPortalServiceRemovePortalFavorite = "/forge.v1.PortalService/RemovePortalFavorite"
 const OperationPortalServiceReplacePortalApplicationPolicies = "/forge.v1.PortalService/ReplacePortalApplicationPolicies"
+const OperationPortalServiceReplacePortalApplicationRoles = "/forge.v1.PortalService/ReplacePortalApplicationRoles"
 const OperationPortalServiceSubmitApplicationPublish = "/forge.v1.PortalService/SubmitApplicationPublish"
 const OperationPortalServiceUpdatePortalApplication = "/forge.v1.PortalService/UpdatePortalApplication"
 const OperationPortalServiceUpdatePortalCategory = "/forge.v1.PortalService/UpdatePortalCategory"
@@ -65,6 +67,7 @@ type PortalServiceHTTPServer interface {
 	GetPortalApplication(context.Context, *GetPortalApplicationRequest) (*GetPortalApplicationResponse, error)
 	LaunchPortalApplication(context.Context, *LaunchPortalApplicationRequest) (*LaunchPortalApplicationResponse, error)
 	ListAdminPortalApplications(context.Context, *ListAdminPortalApplicationsRequest) (*ListAdminPortalApplicationsResponse, error)
+	ListPortalApplicationRoles(context.Context, *ListPortalApplicationRolesRequest) (*ListPortalApplicationRolesResponse, error)
 	ListPortalApplications(context.Context, *ListPortalApplicationsRequest) (*ListPortalApplicationsResponse, error)
 	ListPortalCategories(context.Context, *ListPortalCategoriesRequest) (*ListPortalCategoriesResponse, error)
 	ListPortalFavorites(context.Context, *ListPortalFavoritesRequest) (*ListPortalFavoritesResponse, error)
@@ -73,6 +76,7 @@ type PortalServiceHTTPServer interface {
 	PublishApplication(context.Context, *PublishApplicationRequest) (*PublishApplicationResponse, error)
 	RemovePortalFavorite(context.Context, *RemovePortalFavoriteRequest) (*RemovePortalFavoriteResponse, error)
 	ReplacePortalApplicationPolicies(context.Context, *ReplacePortalApplicationPoliciesRequest) (*ReplacePortalApplicationPoliciesResponse, error)
+	ReplacePortalApplicationRoles(context.Context, *ReplacePortalApplicationRolesRequest) (*ReplacePortalApplicationRolesResponse, error)
 	SubmitApplicationPublish(context.Context, *SubmitApplicationPublishRequest) (*SubmitApplicationPublishResponse, error)
 	UpdatePortalApplication(context.Context, *UpdatePortalApplicationRequest) (*UpdatePortalApplicationResponse, error)
 	UpdatePortalCategory(context.Context, *UpdatePortalCategoryRequest) (*UpdatePortalCategoryResponse, error)
@@ -104,6 +108,8 @@ func RegisterPortalServiceHTTPServer(s *http.Server, srv PortalServiceHTTPServer
 	r.PATCH("/api/v1/admin/portal/tags/{tag_id}", _PortalService_UpdatePortalTag0_HTTP_Handler(srv))
 	r.DELETE("/api/v1/admin/portal/tags/{tag_id}", _PortalService_DeletePortalTag0_HTTP_Handler(srv))
 	r.PUT("/api/v1/admin/portal/applications/{application_id}/policies", _PortalService_ReplacePortalApplicationPolicies0_HTTP_Handler(srv))
+	r.GET("/api/v1/admin/portal/applications/{application_id}/roles", _PortalService_ListPortalApplicationRoles0_HTTP_Handler(srv))
+	r.PUT("/api/v1/admin/portal/applications/{application_id}/roles", _PortalService_ReplacePortalApplicationRoles0_HTTP_Handler(srv))
 	r.GET("/api/v1/admin/identity/overview", _PortalService_GetIdentityOverview0_HTTP_Handler(srv))
 	r.GET("/api/v1/admin/identity/console-link", _PortalService_GetIdentityConsoleLink0_HTTP_Handler(srv))
 	r.GET("/api/v1/admin/portal/applications/{application_id}/onboarding", _PortalService_GetApplicationOnboarding0_HTTP_Handler(srv))
@@ -573,6 +579,53 @@ func _PortalService_ReplacePortalApplicationPolicies0_HTTP_Handler(srv PortalSer
 	}
 }
 
+func _PortalService_ListPortalApplicationRoles0_HTTP_Handler(srv PortalServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in ListPortalApplicationRolesRequest
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindVars(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationPortalServiceListPortalApplicationRoles)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.ListPortalApplicationRoles(ctx, req.(*ListPortalApplicationRolesRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*ListPortalApplicationRolesResponse)
+		return ctx.Result(200, reply)
+	}
+}
+
+func _PortalService_ReplacePortalApplicationRoles0_HTTP_Handler(srv PortalServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in ReplacePortalApplicationRolesRequest
+		if err := ctx.Bind(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindVars(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationPortalServiceReplacePortalApplicationRoles)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.ReplacePortalApplicationRoles(ctx, req.(*ReplacePortalApplicationRolesRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*ReplacePortalApplicationRolesResponse)
+		return ctx.Result(200, reply)
+	}
+}
+
 func _PortalService_GetIdentityOverview0_HTTP_Handler(srv PortalServiceHTTPServer) func(ctx http.Context) error {
 	return func(ctx http.Context) error {
 		var in GetIdentityOverviewRequest
@@ -774,6 +827,7 @@ type PortalServiceHTTPClient interface {
 	GetPortalApplication(ctx context.Context, req *GetPortalApplicationRequest, opts ...http.CallOption) (rsp *GetPortalApplicationResponse, err error)
 	LaunchPortalApplication(ctx context.Context, req *LaunchPortalApplicationRequest, opts ...http.CallOption) (rsp *LaunchPortalApplicationResponse, err error)
 	ListAdminPortalApplications(ctx context.Context, req *ListAdminPortalApplicationsRequest, opts ...http.CallOption) (rsp *ListAdminPortalApplicationsResponse, err error)
+	ListPortalApplicationRoles(ctx context.Context, req *ListPortalApplicationRolesRequest, opts ...http.CallOption) (rsp *ListPortalApplicationRolesResponse, err error)
 	ListPortalApplications(ctx context.Context, req *ListPortalApplicationsRequest, opts ...http.CallOption) (rsp *ListPortalApplicationsResponse, err error)
 	ListPortalCategories(ctx context.Context, req *ListPortalCategoriesRequest, opts ...http.CallOption) (rsp *ListPortalCategoriesResponse, err error)
 	ListPortalFavorites(ctx context.Context, req *ListPortalFavoritesRequest, opts ...http.CallOption) (rsp *ListPortalFavoritesResponse, err error)
@@ -782,6 +836,7 @@ type PortalServiceHTTPClient interface {
 	PublishApplication(ctx context.Context, req *PublishApplicationRequest, opts ...http.CallOption) (rsp *PublishApplicationResponse, err error)
 	RemovePortalFavorite(ctx context.Context, req *RemovePortalFavoriteRequest, opts ...http.CallOption) (rsp *RemovePortalFavoriteResponse, err error)
 	ReplacePortalApplicationPolicies(ctx context.Context, req *ReplacePortalApplicationPoliciesRequest, opts ...http.CallOption) (rsp *ReplacePortalApplicationPoliciesResponse, err error)
+	ReplacePortalApplicationRoles(ctx context.Context, req *ReplacePortalApplicationRolesRequest, opts ...http.CallOption) (rsp *ReplacePortalApplicationRolesResponse, err error)
 	SubmitApplicationPublish(ctx context.Context, req *SubmitApplicationPublishRequest, opts ...http.CallOption) (rsp *SubmitApplicationPublishResponse, err error)
 	UpdatePortalApplication(ctx context.Context, req *UpdatePortalApplicationRequest, opts ...http.CallOption) (rsp *UpdatePortalApplicationResponse, err error)
 	UpdatePortalCategory(ctx context.Context, req *UpdatePortalCategoryRequest, opts ...http.CallOption) (rsp *UpdatePortalCategoryResponse, err error)
@@ -993,6 +1048,19 @@ func (c *PortalServiceHTTPClientImpl) ListAdminPortalApplications(ctx context.Co
 	return &out, nil
 }
 
+func (c *PortalServiceHTTPClientImpl) ListPortalApplicationRoles(ctx context.Context, in *ListPortalApplicationRolesRequest, opts ...http.CallOption) (*ListPortalApplicationRolesResponse, error) {
+	var out ListPortalApplicationRolesResponse
+	pattern := "/api/v1/admin/portal/applications/{application_id}/roles"
+	path := binding.EncodeURL(pattern, in, true)
+	opts = append(opts, http.Operation(OperationPortalServiceListPortalApplicationRoles))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "GET", path, nil, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
 func (c *PortalServiceHTTPClientImpl) ListPortalApplications(ctx context.Context, in *ListPortalApplicationsRequest, opts ...http.CallOption) (*ListPortalApplicationsResponse, error) {
 	var out ListPortalApplicationsResponse
 	pattern := "/api/v1/portal/applications"
@@ -1089,6 +1157,19 @@ func (c *PortalServiceHTTPClientImpl) ReplacePortalApplicationPolicies(ctx conte
 	pattern := "/api/v1/admin/portal/applications/{application_id}/policies"
 	path := binding.EncodeURL(pattern, in, false)
 	opts = append(opts, http.Operation(OperationPortalServiceReplacePortalApplicationPolicies))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "PUT", path, in, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+func (c *PortalServiceHTTPClientImpl) ReplacePortalApplicationRoles(ctx context.Context, in *ReplacePortalApplicationRolesRequest, opts ...http.CallOption) (*ReplacePortalApplicationRolesResponse, error) {
+	var out ReplacePortalApplicationRolesResponse
+	pattern := "/api/v1/admin/portal/applications/{application_id}/roles"
+	path := binding.EncodeURL(pattern, in, false)
+	opts = append(opts, http.Operation(OperationPortalServiceReplacePortalApplicationRoles))
 	opts = append(opts, http.PathTemplate(pattern))
 	err := c.cc.Invoke(ctx, "PUT", path, in, &out, opts...)
 	if err != nil {

@@ -52,6 +52,26 @@ type AccessPolicy struct {
 	UpdatedAt     time.Time
 }
 
+const (
+	RoleRiskNormal     = "NORMAL"
+	RoleRiskPrivileged = "PRIVILEGED"
+	RoleRiskCritical   = "CRITICAL"
+)
+
+type ApplicationRole struct {
+	ID             string
+	OrganizationID string
+	ApplicationID  string
+	Key            string
+	Name           string
+	Description    string
+	RiskLevel      string
+	Status         string
+	ConfigVersion  int64
+	CreatedAt      time.Time
+	UpdatedAt      time.Time
+}
+
 type Application struct {
 	ID              string
 	OrganizationID  string

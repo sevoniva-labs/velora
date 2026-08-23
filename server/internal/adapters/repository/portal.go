@@ -410,6 +410,87 @@ func (r *PortalRepo) ReplacePolicies(ctx context.Context, orgID, applicationID s
 	return out, err
 }
 
+func (r *PortalRepo) ListApplicationRoles(ctx context.Context, orgID, applicationID string) ([]portaldomain.ApplicationRole, error) {
+	rows, err := r.db.QueryContext(ctx, r.db.Rebind(`SELECT id,organization_id,application_id,role_key,name,description,risk_level,status,config_version,created_at,updated_at FROM portal_application_roles WHERE organization_id=? AND application_id=? ORDER BY role_key`), orgID, applicationID)
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = rows.Close() }()
+	roles := make([]portaldomain.ApplicationRole, 0)
+	for rows.Next() {
+		var role portaldomain.ApplicationRole
+		if err := rows.Scan(&role.ID, &role.OrganizationID, &role.ApplicationID, &role.Key, &role.Name, &role.Description, &role.RiskLevel, &role.Status, &role.ConfigVersion, &role.CreatedAt, &role.UpdatedAt); err != nil {
+			return nil, err
+		}
+		roles = append(roles, role)
+	}
+	return roles, rows.Err()
+}
+
+func (r *PortalRepo) ReplaceApplicationRoles(ctx context.Context, orgID, applicationID string, roles []portaldomain.ApplicationRole) ([]portaldomain.ApplicationRole, error) {
+	err := r.db.WithinTx(ctx, func(txCtx context.Context) error {
+		var count int
+		if err := r.db.QueryRowContext(txCtx, r.db.Rebind(`SELECT COUNT(*) FROM portal_applications WHERE organization_id=? AND id=?`), orgID, applicationID).Scan(&count); err != nil {
+			return err
+		}
+		if count != 1 {
+			return sql.ErrNoRows
+		}
+		existingRows, err := r.db.QueryContext(txCtx, r.db.Rebind(`SELECT id,role_key,config_version FROM portal_application_roles WHERE organization_id=? AND application_id=?`), orgID, applicationID)
+		if err != nil {
+			return err
+		}
+		type existingRole struct {
+			id      string
+			version int64
+		}
+		existing := make(map[string]existingRole)
+		for existingRows.Next() {
+			var item existingRole
+			var key string
+			if err := existingRows.Scan(&item.id, &key, &item.version); err != nil {
+				_ = existingRows.Close()
+				return err
+			}
+			existing[key] = item
+		}
+		if err := existingRows.Err(); err != nil {
+			_ = existingRows.Close()
+			return err
+		}
+		if err := existingRows.Close(); err != nil {
+			return err
+		}
+		now := time.Now().UTC()
+		seen := make(map[string]struct{}, len(roles))
+		for _, role := range roles {
+			seen[role.Key] = struct{}{}
+			if current, ok := existing[role.Key]; ok {
+				if _, err := r.db.ExecContext(txCtx, r.db.Rebind(`UPDATE portal_application_roles SET name=?,description=?,risk_level=?,status=?,config_version=?,updated_at=? WHERE organization_id=? AND application_id=? AND role_key=?`), role.Name, role.Description, role.RiskLevel, role.Status, current.version+1, now, orgID, applicationID, role.Key); err != nil {
+					return err
+				}
+				continue
+			}
+			if _, err := r.db.ExecContext(txCtx, r.db.Rebind(`INSERT INTO portal_application_roles(id,organization_id,application_id,role_key,name,description,risk_level,status,config_version,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?)`), uuid.NewString(), orgID, applicationID, role.Key, role.Name, role.Description, role.RiskLevel, role.Status, 1, now, now); err != nil {
+				return err
+			}
+		}
+		for key, current := range existing {
+			if _, ok := seen[key]; ok {
+				continue
+			}
+			if _, err := r.db.ExecContext(txCtx, r.db.Rebind(`UPDATE portal_application_roles SET status='DISABLED',config_version=?,updated_at=? WHERE organization_id=? AND application_id=? AND role_key=?`), current.version+1, now, orgID, applicationID, key); err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return r.ListApplicationRoles(ctx, orgID, applicationID)
+}
+
 func (r *PortalRepo) AddFavorite(ctx context.Context, orgID, userID, applicationID string) error {
 	query := `INSERT INTO portal_favorites(organization_id,user_id,application_id,created_at) VALUES(?,?,?,?)`
 	if r.db.Provider == "postgres" {

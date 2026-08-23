@@ -122,7 +122,7 @@ export default function Login() {
       // 先通过一次性 POST 把 Casdoor 的 host-only 会话交给 auth 域名；
       // 没有桥接票据时才回到 Velora 页面，避免把票据放进 URL。
       if (res.bridgeAction && res.bridgeTicket) {
-        submitSessionBridge(res.bridgeAction, res.bridgeTicket)
+        submitSessionBridge(res.bridgeAction, res.bridgeTicket, res.redirect)
       } else {
         window.location.assign(res.redirect || '/')
       }

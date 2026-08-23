@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { beginOIDCLogin, completeOIDCLogin, getAuthCapabilities, getMe } from './api'
+import { beginOIDCLogin, completeOIDCLogin, getAuthCapabilities, getMe, sessionBridgeFallbackURL } from './api'
 
 describe('OIDC web adapter', () => {
   const originalFetch = globalThis.fetch
@@ -37,6 +37,23 @@ describe('OIDC web adapter', () => {
     const [url, init] = vi.mocked(globalThis.fetch).mock.calls[0]
     expect(url).toBe('/api/v1/auth/federated/oidc/casdoor/callback')
     expect(JSON.parse(String((init as RequestInit).body))).toEqual({ code: 'code-1', state: 'state-1' })
+  })
+
+  it('builds a ticket-free authorization fallback on the trusted auth origin', () => {
+    const fallback = new URL(sessionBridgeFallbackURL(
+      'https://auth.example.test/_velora/session/bridge',
+      '/login/oauth/authorize?client_id=spectra&_velora_bridge_nonce=browser-only&state=opaque',
+      'https://home.example.test',
+    ))
+    expect(fallback.origin).toBe('https://auth.example.test')
+    expect(fallback.pathname).toBe('/login/oauth/authorize')
+    expect(fallback.searchParams.get('client_id')).toBe('spectra')
+    expect(fallback.searchParams.get('state')).toBe('opaque')
+    expect(fallback.searchParams.has('_velora_bridge_nonce')).toBe(false)
+  })
+
+  it('rejects a bridge action outside the fixed auth endpoint', () => {
+    expect(() => sessionBridgeFallbackURL('https://evil.example/_velora/session/bridge?next=x', '/', 'https://home.example.test')).toThrow('统一认证跳转地址无效')
   })
 
   it('recognizes scaffold administrator roles for the portal entry', async () => {

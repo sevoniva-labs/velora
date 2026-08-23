@@ -236,9 +236,24 @@ export async function loginWithPassword(username: string, password: string, redi
 	return { redirect: internalRedirect(redirect), bridgeAction: data?.bridgeAction, bridgeTicket: data?.bridgeTicket }
 }
 
+export function sessionBridgeFallbackURL(action: string, returnPath: string, portalOrigin = window.location.origin): string {
+	const bridge = new URL(action)
+	if (bridge.protocol !== 'https:' || bridge.username || bridge.password || bridge.pathname !== '/_velora/session/bridge' || bridge.search || bridge.hash) {
+		throw new Error('统一认证跳转地址无效')
+	}
+	const target = new URL(internalRedirect(returnPath), portalOrigin)
+	target.searchParams.delete('_velora_bridge_nonce')
+	if (target.pathname === '/login/oauth/authorize') {
+		target.protocol = bridge.protocol
+		target.host = bridge.host
+	}
+	return target.toString()
+}
+
 /** Complete the cross-host Casdoor handoff without putting the ticket in a URL. */
-export function submitSessionBridge(action: string, ticket: string): void {
-	if (!/^https:\/\//i.test(action) || !ticket) throw new Error('统一认证跳转地址无效')
+export function submitSessionBridge(action: string, ticket: string, returnPath = '/'): void {
+	if (!ticket) throw new Error('统一认证跳转地址无效')
+	const fallback = sessionBridgeFallbackURL(action, returnPath)
 	const form = document.createElement('form')
 	form.method = 'post'
 	form.action = action
@@ -250,6 +265,11 @@ export function submitSessionBridge(action: string, ticket: string): void {
 	form.appendChild(input)
 	document.body.appendChild(form)
 	form.submit()
+	// Some embedded/extension-controlled browsers finish the cross-host POST
+	// and set both auth cookies but fail to commit the 303 navigation. A clean,
+	// ticket-free continuation makes that state recover automatically. In a
+	// normal browser the document unloads first and this timer never runs.
+	window.setTimeout(() => window.location.replace(fallback), 1500)
 }
 export async function getTurnstileConfig(): Promise<{ enabled: boolean; siteKey: string; action: string }> {
   const data = record(await apiFetch<unknown>('/system/health'))

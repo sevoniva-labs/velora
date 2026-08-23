@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from 'react'
-import { App, Button, Modal, Popconfirm, Space, Statistic, Tag, Typography } from 'antd'
+import { App, Button, Modal, Popconfirm, Select, Space, Statistic, Tag, Typography } from 'antd'
 import { DeleteOutlined, EditOutlined, PlusOutlined } from '@ant-design/icons'
 import { EditableProTable, ModalForm, ProCard, ProFormCheckbox, ProFormSelect, ProFormText, ProTable, type ProColumns } from '@ant-design/pro-components'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { adminListApplicationRoles, adminListUsers, adminReplaceApplicationRoles, type ApplicationRole } from '../../api/api'
-import { listApplicationAccessGrants, listApplicationEffectiveAccess, listDepartments, listPlatformRoles, listUserGroups, previewApplicationAccessGrants, replaceApplicationAccessGrants } from '../../api/admin-platform'
-import type { ApplicationAccessGrant, ApplicationAccessImpact, ApplicationEffectiveAccess } from '../../types'
+import { createApproval, listApprovals, listApplicationAccessGrants, listApplicationEffectiveAccess, listDepartments, listPlatformRoles, listUserGroups, previewApplicationAccessGrants, replaceApplicationAccessGrants } from '../../api/admin-platform'
+import type { ApplicationAccessGrant, ApplicationAccessImpact, ApplicationEffectiveAccess, ApprovalRequest } from '../../types'
+import { useMe } from '../../auth/useMe'
 
 const SUBJECT_LABELS: Record<ApplicationAccessGrant['subjectType'], string> = { EVERYONE: '全体成员', DEPARTMENT: '部门', USER_GROUP: '用户组', PLATFORM_ROLE: '平台角色', USER: '指定人员' }
 const RISK_LABELS = { NORMAL: '普通', PRIVILEGED: '高权限', CRITICAL: '关键权限' }
@@ -15,6 +16,7 @@ interface Props { applicationId: string }
 export default function ApplicationAccess({ applicationId }: Props) {
   const { message } = App.useApp()
   const queryClient = useQueryClient()
+  const me = useMe()
   const [drafts, setDrafts] = useState<ApplicationAccessGrant[]>([])
   const [dirty, setDirty] = useState(false)
   const [editing, setEditing] = useState<ApplicationAccessGrant>()
@@ -24,6 +26,7 @@ export default function ApplicationAccess({ applicationId }: Props) {
   const [preview, setPreview] = useState<ApplicationAccessImpact>()
   const [roleDrafts, setRoleDrafts] = useState<ApplicationRole[]>([])
   const [roleDirty, setRoleDirty] = useState(false)
+  const [approverId, setApproverId] = useState<string>()
   const grants = useQuery({ queryKey: ['admin', 'applications', applicationId, 'access-grants'], queryFn: () => listApplicationAccessGrants(applicationId) })
   const effective = useQuery({ queryKey: ['admin', 'applications', applicationId, 'effective-access'], queryFn: () => listApplicationEffectiveAccess(applicationId) })
   const roles = useQuery({ queryKey: ['admin', 'applications', applicationId, 'roles'], queryFn: () => adminListApplicationRoles(applicationId) })
@@ -31,6 +34,7 @@ export default function ApplicationAccess({ applicationId }: Props) {
   const groups = useQuery({ queryKey: ['admin', 'user-groups'], queryFn: listUserGroups })
   const platformRoles = useQuery({ queryKey: ['admin', 'roles'], queryFn: listPlatformRoles })
   const users = useQuery({ queryKey: ['admin', 'users'], queryFn: adminListUsers })
+  const approvals = useQuery({ queryKey: ['admin', 'approvals'], queryFn: listApprovals })
   useEffect(() => { if (grants.data && !dirty) setDrafts(grants.data) }, [grants.data, dirty])
   useEffect(() => { if (roles.data && !roleDirty) setRoleDrafts(roles.data) }, [roleDirty, roles.data])
 
@@ -44,7 +48,13 @@ export default function ApplicationAccess({ applicationId }: Props) {
   const activeRoles = (roles.data ?? []).filter((item) => item.status === 'ACTIVE')
   const roleMutation = useMutation({ mutationFn: (values: readonly ApplicationRole[]) => adminReplaceApplicationRoles(applicationId, values.map(({ roleKey, name, description, riskLevel, status }) => ({ roleKey, name, description, riskLevel, status }))), onSuccess: async () => { message.success('应用角色已保存'); setRoleDirty(false); await queryClient.invalidateQueries({ queryKey: ['admin', 'applications', applicationId, 'roles'] }) }, onError: (error) => message.error(error instanceof Error ? error.message : '应用角色保存失败') })
   const previewMutation = useMutation({ mutationFn: () => previewApplicationAccessGrants(applicationId, drafts), onSuccess: (data) => setPreview(data.impact), onError: (error) => message.error(error instanceof Error ? error.message : '影响预览失败') })
-  const saveMutation = useMutation({ mutationFn: () => replaceApplicationAccessGrants(applicationId, drafts), onSuccess: async () => { message.success('访问范围已生效'); setPreview(undefined); setDirty(false); await Promise.all([queryClient.invalidateQueries({ queryKey: ['admin', 'applications', applicationId, 'access-grants'] }), queryClient.invalidateQueries({ queryKey: ['admin', 'applications', applicationId, 'effective-access'] }), queryClient.invalidateQueries({ queryKey: ['admin', 'users'] })]) }, onError: (error) => message.error(error instanceof Error ? error.message : '访问范围保存失败') })
+  const refreshAccess = async () => { await Promise.all([queryClient.invalidateQueries({ queryKey: ['admin', 'applications', applicationId, 'access-grants'] }), queryClient.invalidateQueries({ queryKey: ['admin', 'applications', applicationId, 'effective-access'] }), queryClient.invalidateQueries({ queryKey: ['admin', 'users'] }), queryClient.invalidateQueries({ queryKey: ['admin', 'approvals'] })]) }
+  const saveMutation = useMutation({ mutationFn: (input?: { grants: ApplicationAccessGrant[]; approvalId?: string }) => replaceApplicationAccessGrants(applicationId, input?.grants ?? drafts, input?.approvalId), onSuccess: async () => { message.success('访问范围已生效'); setPreview(undefined); setDirty(false); await refreshAccess() }, onError: (error) => message.error(error instanceof Error ? error.message : '访问范围保存失败') })
+  const requestApproval = useMutation({ mutationFn: () => createApproval({ requestType: 'APPLICATION_ACCESS_CHANGE', action: 'portal.application.access_grants.replace', resource: 'portal_application', resourceId: applicationId, summary: '变更应用访问范围', payloadJson: JSON.stringify(accessApprovalPayload(applicationId, drafts)), approverIds: [approverId!] }), onSuccess: async () => { message.success('访问变更已提交审批'); setPreview(undefined); setDirty(false); setApproverId(undefined); await queryClient.invalidateQueries({ queryKey: ['admin', 'approvals'] }) }, onError: (error) => message.error(error instanceof Error ? error.message : '审批提交失败') })
+  const approvedChanges = (approvals.data ?? []).filter((item) => item.action === 'portal.application.access_grants.replace' && item.resourceId === applicationId && item.status === 'APPROVED')
+  const executeApproved = (approval: ApprovalRequest) => {
+    try { saveMutation.mutate({ grants: accessGrantsFromApproval(approval.payloadJson), approvalId: approval.id }) } catch { message.error('审批内容无法解析，请重新提交变更') }
+  }
 
   const saveGrant = (values: ApplicationAccessGrant) => {
     const name = values.subjectType === 'EVERYONE' ? '全体成员' : subjectOptions.find((item) => item.value === values.subjectId)?.label ?? editing?.subjectName ?? ''
@@ -79,6 +89,7 @@ export default function ApplicationAccess({ applicationId }: Props) {
       <EditableProTable<ApplicationRole> rowKey="id" columns={roleColumns} value={roleDrafts} loading={roles.isLoading} recordCreatorProps={{ newRecordType: 'dataSource', record: () => ({ id: crypto.randomUUID(), applicationId, roleKey: '', name: '', description: '', riskLevel: 'NORMAL', status: 'ACTIVE', configVersion: 0 }) }} editable={{ type: 'multiple' }} onChange={(values) => { setRoleDrafts([...values]); setRoleDirty(true) }} controlled={false} />
     </ProCard>
     <ProTable<ApplicationAccessGrant> headerTitle="访问范围" rowKey="id" columns={grantColumns} dataSource={drafts} loading={grants.isLoading} search={false} pagination={false} options={false} toolBarRender={() => [dirty ? <Tag key="dirty" color="warning">待保存</Tag> : null, <Button key="add" icon={<PlusOutlined />} onClick={() => { setEditing(undefined); setSubjectType('DEPARTMENT'); setEffect('ALLOW'); setGrantOpen(true) }}>添加规则</Button>, <Button key="save" type="primary" disabled={!dirty} loading={previewMutation.isPending} onClick={() => previewMutation.mutate()}>预览并保存</Button>].filter(Boolean)} />
+    {approvedChanges.length > 0 && <ProTable<ApprovalRequest> headerTitle="待执行变更" rowKey="id" dataSource={approvedChanges} search={false} pagination={false} options={false} columns={[{ title: '事项', dataIndex: 'summary' }, { title: '操作', valueType: 'option', width: 110, render: (_, row) => <Button type="link" loading={saveMutation.isPending} onClick={() => executeApproved(row)}>执行变更</Button> }]} />}
     <ProTable<ApplicationEffectiveAccess> headerTitle="有效权限" rowKey="userId" columns={effectiveColumns} dataSource={effective.data ?? []} loading={effective.isLoading} search={{ labelWidth: 'auto' }} pagination={{ pageSize: 20 }} />
 
     <ModalForm<ApplicationAccessGrant> key={editing?.id ?? 'new'} title={editing ? '编辑访问规则' : '添加访问规则'} open={grantOpen} onOpenChange={setGrantOpen} width={560} initialValues={editing ?? { subjectType: 'DEPARTMENT', effect: 'ALLOW', roles: [], status: 'ACTIVE', includeDescendants: true }} submitter={{ searchConfig: { submitText: '确定', resetText: '取消' } }} onFinish={async (values) => saveGrant(values)}>
@@ -90,9 +101,20 @@ export default function ApplicationAccess({ applicationId }: Props) {
       <ProFormSelect name="status" label="状态" options={[{ label: '启用', value: 'ACTIVE' }, { label: '停用', value: 'DISABLED' }]} rules={[{ required: true }]} />
       <ProFormText name="reason" label="变更原因" fieldProps={{ maxLength: 200 }} />
     </ModalForm>
-    <Modal title="访问变更" open={Boolean(preview)} onCancel={() => setPreview(undefined)} okText="确认生效" cancelText="返回修改" confirmLoading={saveMutation.isPending} onOk={() => saveMutation.mutate()}>
+    <Modal title="访问变更" open={Boolean(preview)} onCancel={() => { setPreview(undefined); setApproverId(undefined) }} okText={preview && requiresApproval(preview) ? '提交审批' : '确认生效'} cancelText="返回修改" confirmLoading={saveMutation.isPending || requestApproval.isPending} okButtonProps={{ disabled: Boolean(preview && requiresApproval(preview) && !approverId) }} onOk={() => preview && requiresApproval(preview) ? requestApproval.mutate() : saveMutation.mutate(undefined)}>
       <ProCard ghost gutter={12} wrap>{preview && <><ProCard><Statistic title="生效用户" value={preview.effectiveUsers} /></ProCard><ProCard><Statistic title="新增" value={preview.addedUsers} /></ProCard><ProCard><Statistic title="撤销" value={preview.revokedUsers} /></ProCard><ProCard><Statistic title="角色变化" value={preview.roleChangedUsers} /></ProCard></>}</ProCard>
-      {preview?.privilegedUsers ? <Typography.Text type="warning">涉及 {preview.privilegedUsers} 名高权限用户，需要审批并完成多因素认证。</Typography.Text> : null}
+      {preview && requiresApproval(preview) && <Space direction="vertical" style={{ width: '100%', marginTop: 16 }}><Typography.Text type="warning">该变更需要审批。</Typography.Text><Select value={approverId} onChange={setApproverId} placeholder="选择审批人" style={{ width: '100%' }} options={(users.data ?? []).filter((item) => item.status === 'ACTIVE' && item.id !== me.data?.id).map((item) => ({ label: item.displayName || item.loginName, value: item.id }))} /></Space>}
     </Modal>
   </Space>
+}
+
+function requiresApproval(impact: ApplicationAccessImpact): boolean { return impact.privilegedUsers > 0 || impact.provisioningTasks >= 50 }
+
+function accessApprovalPayload(applicationId: string, grants: ApplicationAccessGrant[]) {
+  return { application_id: applicationId, grants: grants.map((item) => ({ id: item.id, application_id: applicationId, subject_type: item.subjectType, subject_id: item.subjectId, include_descendants: item.includeDescendants, effect: item.effect, roles: item.roles, ...(item.validFrom ? { valid_from: item.validFrom } : {}), ...(item.validUntil ? { valid_until: item.validUntil } : {}), status: item.status, reason: item.reason, version: item.version })) }
+}
+
+function accessGrantsFromApproval(payloadJson: string): ApplicationAccessGrant[] {
+  const payload = JSON.parse(payloadJson) as { grants: Array<Record<string, unknown>> }
+  return payload.grants.map((item) => ({ id: String(item.id ?? ''), applicationId: String(item.application_id ?? ''), subjectType: String(item.subject_type) as ApplicationAccessGrant['subjectType'], subjectId: String(item.subject_id ?? ''), subjectName: '', includeDescendants: Boolean(item.include_descendants), effect: String(item.effect) as ApplicationAccessGrant['effect'], roles: Array.isArray(item.roles) ? item.roles.map(String) : [], validFrom: item.valid_from ? String(item.valid_from) : undefined, validUntil: item.valid_until ? String(item.valid_until) : undefined, status: String(item.status || 'ACTIVE') as ApplicationAccessGrant['status'], reason: String(item.reason ?? ''), version: Number(item.version ?? 0) }))
 }

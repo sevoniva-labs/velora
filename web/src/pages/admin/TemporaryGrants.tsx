@@ -1,0 +1,66 @@
+import { useMemo, useState } from 'react'
+import { App, Button, Space, Tag, Typography } from 'antd'
+import { PlusOutlined } from '@ant-design/icons'
+import { ModalForm, PageContainer, ProFormDateTimePicker, ProFormSelect, ProFormTextArea, ProTable, type ProColumns } from '@ant-design/pro-components'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import dayjs, { type Dayjs } from 'dayjs'
+import { adminListUsers } from '../../api/api'
+import { createApproval, createTemporaryRoleGrant, listApprovals, listPlatformRoles, listTemporaryRoleGrants, revokeTemporaryRoleGrant } from '../../api/admin-platform'
+import type { ApprovalRequest, TemporaryRoleGrant } from '../../types'
+import { useMe } from '../../auth/useMe'
+import { usePageTitle } from '../../hooks/usePageTitle'
+import { formatDateTime } from '../../utils/format'
+
+interface RequestForm { userId: string; roleKey: string; reason: string; validUntil: Dayjs; approverId: string }
+interface RevokeForm { reason: string }
+const STATUS_LABELS: Record<string, string> = { SCHEDULED: '待生效', ACTIVE: '生效中', EXPIRED: '已过期', REVOKED: '已撤销' }
+
+export default function TemporaryGrants() {
+  usePageTitle('临时授权')
+  const { message } = App.useApp()
+  const me = useMe()
+  const queryClient = useQueryClient()
+  const [requestOpen, setRequestOpen] = useState(false)
+  const [revoking, setRevoking] = useState<TemporaryRoleGrant>()
+  const users = useQuery({ queryKey: ['admin', 'users'], queryFn: adminListUsers })
+  const roles = useQuery({ queryKey: ['admin', 'roles'], queryFn: listPlatformRoles })
+  const grants = useQuery({ queryKey: ['admin', 'temporary-grants'], queryFn: listTemporaryRoleGrants })
+  const approvals = useQuery({ queryKey: ['admin', 'approvals'], queryFn: listApprovals })
+  const userNames = useMemo(() => new Map((users.data ?? []).map((item) => [item.id, item.displayName || item.loginName])), [users.data])
+  const roleNames = useMemo(() => new Map((roles.data ?? []).map((item) => [item.key, item.name])), [roles.data])
+  const executed = new Set((grants.data ?? []).map((item) => item.approvalId))
+  const approved = (approvals.data ?? []).filter((item) => item.requestType === 'TEMPORARY_ROLE_GRANT' && item.status === 'APPROVED' && !executed.has(item.id))
+  const refresh = async () => { await Promise.all([queryClient.invalidateQueries({ queryKey: ['admin', 'temporary-grants'] }), queryClient.invalidateQueries({ queryKey: ['admin', 'approvals'] })]) }
+  const request = useMutation({ mutationFn: async (values: RequestForm) => { const validFrom = new Date().toISOString(); const validUntil = values.validUntil.toISOString(); const payload = { reason: values.reason, role_key: values.roleKey, user_id: values.userId, valid_from: validFrom, valid_until: validUntil }; return createApproval({ requestType: 'TEMPORARY_ROLE_GRANT', action: 'temporary_role_grant.create', resource: 'user', resourceId: values.userId, summary: `临时授予${userNames.get(values.userId) ?? '用户'}“${roleNames.get(values.roleKey) ?? values.roleKey}”角色`, payloadJson: JSON.stringify(payload), approverIds: [values.approverId] }) }, onSuccess: async () => { message.success('临时授权申请已提交'); setRequestOpen(false); await refresh() }, onError: (error) => message.error(error instanceof Error ? error.message : '申请提交失败') })
+  const execute = useMutation({ mutationFn: (approval: ApprovalRequest) => { const payload = JSON.parse(approval.payloadJson) as { user_id: string; role_key: string; reason: string; valid_from: string; valid_until: string }; return createTemporaryRoleGrant({ userId: payload.user_id, roleKey: payload.role_key, reason: payload.reason, validFrom: payload.valid_from, validUntil: payload.valid_until, approvalId: approval.id }) }, onSuccess: async () => { message.success('临时授权已生效'); await refresh() }, onError: (error) => message.error(error instanceof Error ? error.message : '临时授权执行失败') })
+  const revoke = useMutation({ mutationFn: (values: RevokeForm) => revokeTemporaryRoleGrant(revoking!.id, values.reason), onSuccess: async () => { message.success('临时授权已撤销'); setRevoking(undefined); await refresh() }, onError: (error) => message.error(error instanceof Error ? error.message : '撤销失败') })
+  const columns: ProColumns<TemporaryRoleGrant>[] = [
+    { title: '用户', dataIndex: 'userId', render: (_, row) => userNames.get(row.userId) ?? '未知用户' },
+    { title: '平台角色', dataIndex: 'roleKey', render: (_, row) => roleNames.get(row.roleKey) ?? row.roleKey },
+    { title: '有效期', search: false, render: (_, row) => `${formatDateTime(row.validFrom)} 至 ${formatDateTime(row.validUntil)}` },
+    { title: '原因', dataIndex: 'reason', search: false, ellipsis: true },
+    { title: '状态', dataIndex: 'status', valueType: 'select', valueEnum: Object.fromEntries(Object.entries(STATUS_LABELS).map(([key, text]) => [key, { text }])), render: (_, row) => <Tag color={row.status === 'ACTIVE' ? 'success' : 'default'}>{STATUS_LABELS[row.status] ?? '已结束'}</Tag> },
+    { title: '操作', valueType: 'option', width: 90, render: (_, row) => row.status === 'ACTIVE' || row.status === 'SCHEDULED' ? <Button type="link" danger onClick={() => setRevoking(row)}>撤销</Button> : <Typography.Text type="secondary">—</Typography.Text> },
+  ]
+  const approvedColumns: ProColumns<ApprovalRequest>[] = [
+    { title: '已批准事项', dataIndex: 'summary' },
+    { title: '批准时间', dataIndex: 'createdAt', render: (_, row) => formatDateTime(row.createdAt) },
+    { title: '操作', valueType: 'option', width: 100, render: (_, row) => <Button type="link" loading={execute.isPending} onClick={() => execute.mutate(row)}>执行授权</Button> },
+  ]
+  return <PageContainer title="临时授权">
+    <Space direction="vertical" size={16} style={{ width: '100%' }}>
+      <ProTable<TemporaryRoleGrant> headerTitle="授权记录" rowKey="id" columns={columns} dataSource={grants.data ?? []} loading={grants.isLoading} search={{ labelWidth: 'auto' }} pagination={{ pageSize: 20 }} toolBarRender={() => [<Button key="request" type="primary" icon={<PlusOutlined />} onClick={() => setRequestOpen(true)}>申请临时授权</Button>]} />
+      {approved.length > 0 && <ProTable<ApprovalRequest> headerTitle="待执行" rowKey="id" columns={approvedColumns} dataSource={approved} search={false} pagination={false} options={false} />}
+    </Space>
+    <ModalForm<RequestForm> title="申请临时授权" open={requestOpen} onOpenChange={setRequestOpen} width={600} initialValues={{ validUntil: dayjs().add(8, 'hour') }} submitter={{ searchConfig: { submitText: '提交申请', resetText: '取消' } }} onFinish={async (values) => { await request.mutateAsync(values); return true }}>
+      <ProFormSelect name="userId" label="用户" showSearch fieldProps={{ optionFilterProp: 'label' }} options={(users.data ?? []).filter((item) => item.status === 'ACTIVE').map((item) => ({ label: `${item.displayName || item.loginName}（${item.loginName}）`, value: item.id }))} rules={[{ required: true, message: '请选择用户' }]} />
+      <ProFormSelect name="roleKey" label="平台角色" options={(roles.data ?? []).map((item) => ({ label: item.name, value: item.key }))} rules={[{ required: true, message: '请选择平台角色' }]} />
+      <ProFormDateTimePicker name="validUntil" label="失效时间" rules={[{ required: true, message: '请选择失效时间' }]} fieldProps={{ disabledDate: (date) => date.isBefore(dayjs(), 'day') }} />
+      <ProFormSelect name="approverId" label="审批人" showSearch fieldProps={{ optionFilterProp: 'label' }} options={(users.data ?? []).filter((item) => item.status === 'ACTIVE' && item.id !== me.data?.id).map((item) => ({ label: item.displayName || item.loginName, value: item.id }))} rules={[{ required: true, message: '请选择审批人' }]} />
+      <ProFormTextArea name="reason" label="申请原因" fieldProps={{ maxLength: 500, showCount: true }} rules={[{ required: true, message: '请输入申请原因' }]} />
+    </ModalForm>
+    <ModalForm<RevokeForm> key={revoking?.id ?? 'revoke'} title="撤销临时授权" open={Boolean(revoking)} onOpenChange={(value) => !value && setRevoking(undefined)} submitter={{ searchConfig: { submitText: '确认撤销', resetText: '取消' }, submitButtonProps: { danger: true } }} onFinish={async (values) => { await revoke.mutateAsync(values); return true }}>
+      <ProFormTextArea name="reason" label="撤销原因" rules={[{ required: true, message: '请输入撤销原因' }]} />
+    </ModalForm>
+  </PageContainer>
+}

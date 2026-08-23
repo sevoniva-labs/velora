@@ -45,18 +45,17 @@ const UserCenter = lazyWithReload(() => import('./pages/UserCenter'))
 const AdminDashboard = lazyWithReload(() => import('./pages/admin/Dashboard'))
 const AdminApplications = lazyWithReload(() => import('./pages/admin/Applications'))
 const AdminApplicationManagement = lazyWithReload(() => import('./pages/admin/ApplicationManagement'))
-const AdminCategories = lazyWithReload(() => import('./pages/admin/Categories'))
-const AdminTags = lazyWithReload(() => import('./pages/admin/Tags'))
-const AdminPolicies = lazyWithReload(() => import('./pages/admin/Policies'))
 const AdminAudit = lazyWithReload(() => import('./pages/admin/Audit'))
 const AdminIntegrationTokens = lazyWithReload(() => import('./pages/admin/IntegrationTokens'))
-const AdminIdentityIntegrations = lazyWithReload(() => import('./pages/admin/IdentityIntegrations'))
 const AdminUsers = lazyWithReload(() => import('./pages/admin/Users'))
 const AdminUserDetail = lazyWithReload(() => import('./pages/admin/UserDetail'))
 const AdminOrganization = lazyWithReload(() => import('./pages/admin/Organization'))
 const AdminUserGroups = lazyWithReload(() => import('./pages/admin/UserGroups'))
 const AdminRoles = lazyWithReload(() => import('./pages/admin/Roles'))
 const AdminSessions = lazyWithReload(() => import('./pages/admin/Sessions'))
+const AdminApprovals = lazyWithReload(() => import('./pages/admin/Approvals'))
+const AdminTemporaryGrants = lazyWithReload(() => import('./pages/admin/TemporaryGrants'))
+const AdminAccessReviews = lazyWithReload(() => import('./pages/admin/AccessReviews'))
 
 export const router = createBrowserRouter([
   {
@@ -99,18 +98,21 @@ export const router = createBrowserRouter([
       { index: true, element: <AdminDashboard /> },
       { path: 'applications', element: <AdminApplications /> },
       { path: 'applications/:id', element: <AdminApplicationManagement /> },
-      { path: 'categories', element: <AdminCategories /> },
-      { path: 'tags', element: <AdminTags /> },
-      { path: 'policies', element: <AdminPolicies /> },
+      { path: 'categories', element: <Navigate to="/admin/applications" replace /> },
+      { path: 'tags', element: <Navigate to="/admin/applications" replace /> },
+      { path: 'policies', element: <Navigate to="/admin/applications" replace /> },
       { path: 'audit', element: <AdminAudit /> },
       { path: 'integration-tokens', element: <AdminIntegrationTokens /> },
-      { path: 'identity', element: <AdminIdentityIntegrations /> },
+      { path: 'identity', element: <Navigate to="/admin/applications" replace /> },
       { path: 'users', element: <AdminUsers /> },
       { path: 'users/:id', element: <AdminUserDetail /> },
       { path: 'organization', element: <AdminOrganization /> },
       { path: 'user-groups', element: <AdminUserGroups /> },
       { path: 'roles', element: <AdminRoles /> },
       { path: 'sessions', element: <AdminSessions /> },
+      { path: 'approvals', element: <AdminApprovals /> },
+      { path: 'temporary-grants', element: <AdminTemporaryGrants /> },
+      { path: 'access-reviews', element: <AdminAccessReviews /> },
       { path: '*', element: <NotFound /> },
     ],
   },

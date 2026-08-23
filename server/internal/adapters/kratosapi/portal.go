@@ -567,7 +567,7 @@ func (s *PortalService) ReplacePortalApplicationAccessGrants(ctx context.Context
 	if err != nil {
 		return nil, serviceError(err)
 	}
-	payload, err := json.Marshal(map[string]any{"application_id": req.GetApplicationId(), "grants": grants})
+	payload, err := json.Marshal(map[string]any{"application_id": req.GetApplicationId(), "grants": accessGrantsApprovalPayload(req.GetGrants())})
 	if err != nil {
 		return nil, internalError(err)
 	}
@@ -596,6 +596,28 @@ func (s *PortalService) ReplacePortalApplicationAccessGrants(ctx context.Context
 		return nil, err
 	}
 	return response.(*forgev1.ReplacePortalApplicationAccessGrantsResponse), nil
+}
+
+func accessGrantsApprovalPayload(items []*forgev1.PortalApplicationAccessGrant) []map[string]any {
+	out := make([]map[string]any, 0, len(items))
+	for _, item := range items {
+		if item == nil {
+			continue
+		}
+		grant := map[string]any{
+			"id": item.GetId(), "application_id": item.GetApplicationId(), "subject_type": item.GetSubjectType(),
+			"subject_id": item.GetSubjectId(), "include_descendants": item.GetIncludeDescendants(), "effect": item.GetEffect(),
+			"roles": item.GetRoles(), "status": item.GetStatus(), "reason": item.GetReason(), "version": item.GetVersion(),
+		}
+		if item.GetValidFrom() != nil {
+			grant["valid_from"] = item.GetValidFrom().AsTime().UTC().Format(time.RFC3339Nano)
+		}
+		if item.GetValidUntil() != nil {
+			grant["valid_until"] = item.GetValidUntil().AsTime().UTC().Format(time.RFC3339Nano)
+		}
+		out = append(out, grant)
+	}
+	return out
 }
 
 func (s *PortalService) ListPortalApplicationEffectiveAccess(ctx context.Context, req *forgev1.ListPortalApplicationEffectiveAccessRequest) (*forgev1.ListPortalApplicationEffectiveAccessResponse, error) {

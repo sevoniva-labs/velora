@@ -1,5 +1,5 @@
 import { apiFetch } from './client'
-import type { AdminSession, AdminUser, ApplicationAccessGrant, ApplicationAccessImpact, ApplicationEffectiveAccess, Department, PlatformPermission, PlatformRole, Position, UserAssignment, UserGroup } from '../types'
+import type { AccessReview, AccessReviewItem, AdminSession, AdminUser, ApplicationAccessGrant, ApplicationAccessImpact, ApplicationEffectiveAccess, ApprovalRequest, Department, PlatformPermission, PlatformRole, Position, TemporaryRoleGrant, UserAssignment, UserGroup } from '../types'
 
 export type DepartmentInput = Pick<Department, 'name' | 'parentId' | 'status' | 'sortOrder'> & { departmentKey?: string }
 export type PositionInput = Pick<Position, 'name' | 'description' | 'departmentId' | 'status' | 'sortOrder'> & { positionKey?: string }
@@ -108,4 +108,44 @@ export async function replaceApplicationAccessGrants(applicationId: string, gran
 
 export async function listApplicationEffectiveAccess(applicationId: string): Promise<ApplicationEffectiveAccess[]> {
   return (await apiFetch<{ effectiveAccess?: ApplicationEffectiveAccess[] }>(`/admin/portal/applications/${encodeURIComponent(applicationId)}/effective-access`)).effectiveAccess ?? []
+}
+
+export async function listApprovals(): Promise<ApprovalRequest[]> {
+  return (await apiFetch<{ approvals?: ApprovalRequest[] }>('/approvals')).approvals ?? []
+}
+
+export async function createApproval(input: { requestType: string; action: string; resource: string; resourceId: string; summary: string; payloadJson: string; approverIds: string[]; expiresInSeconds?: number }): Promise<ApprovalRequest> {
+  return (await apiFetch<{ approval: ApprovalRequest }>('/approvals', { method: 'POST', body: { ...input, mode: 'ANY', requiredApprovals: 1, expiresInSeconds: input.expiresInSeconds ?? 86_400 } })).approval
+}
+
+export async function decideApproval(id: string, decision: 'APPROVE' | 'REJECT', comment: string): Promise<ApprovalRequest> {
+  return (await apiFetch<{ approval: ApprovalRequest }>(`/approvals/${encodeURIComponent(id)}/decisions`, { method: 'POST', body: { decision, comment } })).approval
+}
+
+export async function listTemporaryRoleGrants(): Promise<TemporaryRoleGrant[]> {
+  return (await apiFetch<{ grants?: TemporaryRoleGrant[] }>('/admin/temporary-role-grants')).grants ?? []
+}
+
+export async function createTemporaryRoleGrant(input: { userId: string; roleKey: string; reason: string; validFrom: string; validUntil: string; approvalId: string }): Promise<TemporaryRoleGrant> {
+  return (await apiFetch<{ grant: TemporaryRoleGrant }>('/admin/temporary-role-grants', { method: 'POST', body: input })).grant
+}
+
+export function revokeTemporaryRoleGrant(id: string, reason: string): Promise<unknown> {
+  return apiFetch(`/admin/temporary-role-grants/${encodeURIComponent(id)}:revoke`, { method: 'POST', body: { reason } })
+}
+
+export async function listAccessReviews(): Promise<AccessReview[]> {
+  return (await apiFetch<{ reviews?: AccessReview[] }>('/admin/access-reviews')).reviews ?? []
+}
+
+export async function createAccessReview(reviewerId: string, dueAt: string): Promise<AccessReview> {
+  return (await apiFetch<{ review: AccessReview }>('/admin/access-reviews', { method: 'POST', body: { reviewerId, dueAt } })).review
+}
+
+export async function listAccessReviewItems(reviewId: string): Promise<AccessReviewItem[]> {
+  return (await apiFetch<{ items?: AccessReviewItem[] }>(`/admin/access-reviews/${encodeURIComponent(reviewId)}/items`)).items ?? []
+}
+
+export function decideAccessReviewItem(reviewId: string, itemId: string, decision: 'APPROVE' | 'REVOKE', reason: string): Promise<unknown> {
+  return apiFetch(`/admin/access-reviews/${encodeURIComponent(reviewId)}/items/${encodeURIComponent(itemId)}/decisions`, { method: 'POST', body: { decision, reason } })
 }

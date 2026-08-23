@@ -1,176 +1,48 @@
-import { useState } from 'react'
-import { usePageTitle } from '../../hooks/usePageTitle'
-import QueryErrorState from '../../components/QueryErrorState'
-import AdminPageHead from '../../components/AdminPageHead'
-import { App as AntdApp, Alert, Button, Form, Input, Modal, Popconfirm, Select, Table, Tag, Typography } from 'antd'
+import { useMemo, useState } from 'react'
+import { App, Button, Modal, Popconfirm, Tag, Typography } from 'antd'
 import { KeyOutlined, PlusOutlined } from '@ant-design/icons'
+import { ModalForm, PageContainer, ProFormDigit, ProFormSelect, ProFormText, ProTable, type ProColumns } from '@ant-design/pro-components'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { createIntegrationToken, listIntegrationTokens, revokeIntegrationToken, type IntegrationToken } from '../../api/api'
+import { useMe } from '../../auth/useMe'
+import { usePageTitle } from '../../hooks/usePageTitle'
+import { formatDateTime } from '../../utils/format'
 
-const { Text } = Typography
-
-const SCOPE_OPTIONS = [
-  { value: '*', label: '当前账号全部权限（*）' },
-]
+interface CreateForm { name: string; scopes: string[]; expiresInDays: number }
 
 export default function AdminIntegrationTokens() {
-  usePageTitle('集成令牌')
-
-  const { message } = AntdApp.useApp()
+  usePageTitle('服务账号')
+  const { message } = App.useApp()
+  const me = useMe()
   const queryClient = useQueryClient()
-  const [modalOpen, setModalOpen] = useState(false)
-  const [created, setCreated] = useState<{ token: string; message: string } | null>(null)
-  const [form] = Form.useForm<{ name: string; scopes: string[]; expiresInDays?: number }>()
-
-  const { data: tokens, isLoading, isError, refetch } = useQuery({
-    queryKey: ['admin', 'integration-tokens'],
-    queryFn: listIntegrationTokens,
-  })
-
-  const invalidate = () => void queryClient.invalidateQueries({ queryKey: ['admin', 'integration-tokens'] })
-
-  const createMutation = useMutation({
-    mutationFn: (input: { name: string; scopes: string[]; expiresInDays?: number }) => createIntegrationToken(input),
-    onSuccess: (r) => {
-      setCreated({ token: r.token, message: r.message })
-      setModalOpen(false)
-      form.resetFields()
-      invalidate()
-    },
-    onError: (err) => message.error(err instanceof Error ? err.message : '创建失败'),
-  })
-
-  const revokeMutation = useMutation({
-    mutationFn: (id: string | number) => revokeIntegrationToken(id),
-    onSuccess: () => {
-      message.success('令牌已吊销')
-      invalidate()
-    },
-    onError: (err) => message.error(err instanceof Error ? err.message : '吊销失败'),
-  })
-
-  return (
-    <div>
-      <AdminPageHead
-        title="集成令牌"
-        extra={
-          <Button type="primary" icon={<PlusOutlined />} onClick={() => setModalOpen(true)}>
-            新建令牌
-          </Button>
-        }
-      />
-
-      <Alert
-        type="info"
-        showIcon
-        style={{ marginBottom: 16 }}
-        message="Service Account 鉴权"
-        description="供外部系统以 Authorization: Bearer 调用当前已开放的 API，与用户会话解耦。令牌明文仅创建时展示一次，请立即保存；默认有效期 90 天。"
-      />
-
-      {created && (
-        <Alert
-          type="success"
-          showIcon
-          style={{ marginBottom: 16 }}
-          closable
-          onClose={() => setCreated(null)}
-          message="令牌已创建（仅展示一次，请立即复制保存）"
-          description={
-            <div>
-              <Text code copyable>{created.token}</Text>
-              <div style={{ marginTop: 4, color: '#fa8c16' }}>⚠ 关闭或刷新页面后将无法再次查看；遗失需吊销后重建。</div>
-            </div>
-          }
-        />
-      )}
-
-      {isError ? (
-        <QueryErrorState refetch={refetch} />
-      ) : (
-        <Table<IntegrationToken>
-          rowKey="id"
-          loading={isLoading}
-          dataSource={tokens ?? []}
-          pagination={false}
-          locale={{ emptyText: '暂无集成令牌' }}
-          columns={[
-            { title: '名称', dataIndex: 'name', width: 200 },
-            {
-              title: '权限',
-              key: 'scopes',
-              render: (_, t) => <Tag color="blue">{t.scopes?.join(', ') || '-'}</Tag>,
-            },
-            {
-              title: '创建者',
-              dataIndex: 'createdBy',
-              width: 140,
-              render: (v: string) => v || '-',
-            },
-            {
-              title: '过期时间',
-              dataIndex: 'expiresAt',
-              width: 120,
-              render: (v: string | null) => (v ? new Date(v).toLocaleDateString() : '永不过期'),
-            },
-            {
-              title: '最近使用',
-              dataIndex: 'lastUsedAt',
-              width: 120,
-              render: (v: string | null) => (v ? new Date(v).toLocaleString() : '未使用'),
-            },
-            {
-              title: '状态',
-              dataIndex: 'revoked',
-              width: 90,
-              render: (v: boolean) =>
-                v ? <Tag color="red">已吊销</Tag> : <Tag color="green">有效</Tag>,
-            },
-            {
-              title: '操作',
-              key: 'op',
-              width: 100,
-              render: (_, t) =>
-                t.revoked ? null : (
-                  <Popconfirm
-                    title="吊销此令牌？"
-                    description="吊销后使用该令牌的集成调用将立即返回 401。"
-                    okText="吊销"
-                    okButtonProps={{ danger: true }}
-                    onConfirm={() => revokeMutation.mutate(t.id)}
-                  >
-                    <Button type="link" size="small" danger loading={revokeMutation.isPending}>
-                      吊销
-                    </Button>
-                  </Popconfirm>
-                ),
-            },
-          ]}
-        />
-      )}
-
-      <Modal
-        title="新建集成令牌"
-        open={modalOpen}
-        onCancel={() => setModalOpen(false)}
-        onOk={() => void form.validateFields().then((v) => createMutation.mutate(v))}
-        confirmLoading={createMutation.isPending}
-        okText="创建"
-        width={520}
-        destroyOnHidden
-      >
-        <Form form={form} layout="vertical" requiredMark={false} style={{ marginTop: 4 }}>
-          <Form.Item label="令牌名称" name="name" rules={[{ required: true, message: '请输入令牌名称（如：工单系统）' }]}>
-            <Input placeholder="标识归属系统，如：工单系统" prefix={<KeyOutlined />} />
-          </Form.Item>
-          <Form.Item label="权限范围" name="scopes" rules={[{ required: true, message: '至少选择一个权限' }]}>
-            <Select mode="multiple" placeholder="选择权限范围" options={SCOPE_OPTIONS} />
-          </Form.Item>
-          <Form.Item label="有效期（天）" name="expiresInDays" extra="留空使用服务端默认 90 天；生产环境建议设置更短有效期">
-            <Input type="number" min={1} placeholder="留空 = 90 天" />
-          </Form.Item>
-        </Form>
-      </Modal>
-    </div>
-  )
+  const [open, setOpen] = useState(false)
+  const [secret, setSecret] = useState<string>()
+  const tokens = useQuery({ queryKey: ['admin', 'integration-tokens'], queryFn: listIntegrationTokens })
+  const scopeOptions = useMemo(() => {
+    const permissions = (me.data?.permissions ?? []).filter((item) => item !== '*').sort()
+    const options = permissions.map((value) => ({ value, label: value }))
+    return me.data?.roles?.includes('system_admin') ? [{ value: '*', label: '全部权限' }, ...options] : options
+  }, [me.data?.permissions, me.data?.roles])
+  const refresh = () => queryClient.invalidateQueries({ queryKey: ['admin', 'integration-tokens'] })
+  const create = useMutation({ mutationFn: createIntegrationToken, onSuccess: async (result) => { setSecret(result.token); setOpen(false); await refresh() }, onError: (error) => message.error(error instanceof Error ? error.message : '服务账号创建失败') })
+  const revoke = useMutation({ mutationFn: revokeIntegrationToken, onSuccess: async () => { message.success('服务账号已吊销'); await refresh() }, onError: (error) => message.error(error instanceof Error ? error.message : '服务账号吊销失败') })
+  const columns: ProColumns<IntegrationToken>[] = [
+    { title: '名称', dataIndex: 'name' },
+    { title: '权限范围', dataIndex: 'scopes', search: false, render: (_, row) => row.scopes.map((scope) => <Tag key={scope}>{scope === '*' ? '全部权限' : scope}</Tag>) },
+    { title: '过期时间', dataIndex: 'expiresAt', valueType: 'dateTime', search: false, render: (_, row) => row.expiresAt ? formatDateTime(row.expiresAt) : '永不过期' },
+    { title: '最近使用', dataIndex: 'lastUsedAt', valueType: 'dateTime', search: false, render: (_, row) => row.lastUsedAt ? formatDateTime(row.lastUsedAt) : '未使用' },
+    { title: '状态', dataIndex: 'revoked', valueType: 'select', valueEnum: { false: { text: '有效' }, true: { text: '已吊销' } }, render: (_, row) => row.revoked ? <Tag>已吊销</Tag> : <Tag color="success">有效</Tag> },
+    { title: '操作', valueType: 'option', width: 90, render: (_, row) => row.revoked ? null : <Popconfirm title="吊销此服务账号？" okText="吊销" okButtonProps={{ danger: true }} onConfirm={() => revoke.mutate(row.id)}><Button type="link" danger>吊销</Button></Popconfirm> },
+  ]
+  return <PageContainer title="服务账号">
+    <ProTable<IntegrationToken> rowKey="id" columns={columns} dataSource={tokens.data ?? []} loading={tokens.isLoading} search={{ labelWidth: 'auto' }} pagination={false} toolBarRender={() => [<Button key="create" type="primary" icon={<PlusOutlined />} onClick={() => setOpen(true)}>新建服务账号</Button>]} />
+    <ModalForm<CreateForm> title="新建服务账号" open={open} onOpenChange={setOpen} initialValues={{ expiresInDays: 90 }} submitter={{ searchConfig: { submitText: '创建', resetText: '取消' } }} onFinish={async (values) => { await create.mutateAsync(values); return true }}>
+      <ProFormText name="name" label="名称" fieldProps={{ prefix: <KeyOutlined />, maxLength: 100 }} rules={[{ required: true, message: '请输入名称' }]} />
+      <ProFormSelect name="scopes" label="权限范围" mode="multiple" options={scopeOptions} rules={[{ required: true, message: '请选择权限范围' }]} />
+      <ProFormDigit name="expiresInDays" label="有效期（天）" min={1} max={365} rules={[{ required: true, message: '请输入有效期' }]} />
+    </ModalForm>
+    <Modal title="保存密钥" open={Boolean(secret)} onCancel={() => setSecret(undefined)} onOk={() => setSecret(undefined)} cancelButtonProps={{ style: { display: 'none' } }} okText="已保存" maskClosable={false} closable={false}>
+      <Typography.Text code copyable>{secret}</Typography.Text>
+    </Modal>
+  </PageContainer>
 }

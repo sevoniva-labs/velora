@@ -150,6 +150,67 @@ export interface ApplicationEffectiveAccess {
   sourceGrantIds: string[]
 }
 
+export interface ApprovalTask {
+  id: string
+  assigneeId: string
+  status: string
+  decision: string
+  comment: string
+  decidedAt?: string
+}
+
+export interface ApprovalRequest {
+  id: string
+  requestType: string
+  action: string
+  resource: string
+  resourceId: string
+  summary: string
+  applicantId: string
+  status: string
+  expiresAt: string
+  createdAt: string
+  tasks: ApprovalTask[]
+  payloadJson: string
+}
+
+export interface TemporaryRoleGrant {
+  id: string
+  userId: string
+  roleKey: string
+  requestedBy: string
+  approvalId: string
+  reason: string
+  status: string
+  validFrom: string
+  validUntil: string
+  revokedAt?: string
+  revokeReason: string
+}
+
+export interface AccessReview {
+  id: string
+  reviewerId: string
+  reviewerName: string
+  status: string
+  dueAt: string
+  createdBy: string
+  createdAt: string
+  completedAt?: string
+}
+
+export interface AccessReviewItem {
+  id: string
+  reviewId: string
+  userId: string
+  loginName: string
+  roleKey: string
+  decision: string
+  reason: string
+  decidedBy: string
+  decidedAt?: string
+}
+
 export interface Category {
   id: string | number
   code: string

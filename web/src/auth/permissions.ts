@@ -31,6 +31,9 @@ export const SYSTEM_TEMPORARY_GRANT_READ = 'system.temporary_grant.read'
 export const SYSTEM_TEMPORARY_GRANT_MANAGE = 'system.temporary_grant.manage'
 export const SYSTEM_ACCESS_REVIEW_READ = 'system.access_review.read'
 export const SYSTEM_ACCESS_REVIEW_MANAGE = 'system.access_review.manage'
+export const APPROVAL_REQUEST_READ = 'approval.request.read'
+export const APPROVAL_REQUEST_CREATE = 'approval.request.create'
+export const APPROVAL_TASK_DECIDE = 'approval.task.decide'
 
 /** Built-in system_admin has an explicit backend superuser boundary. */
 export function hasPermission(permissions: string[] | undefined, required: string, roles: string[] = []): boolean {
@@ -64,6 +67,8 @@ export const ADMIN_ENTRY_PERMISSIONS = [
   SYSTEM_SESSION_READ,
   SYSTEM_TEMPORARY_GRANT_READ,
   SYSTEM_ACCESS_REVIEW_READ,
+  APPROVAL_REQUEST_READ,
+  APPROVAL_TASK_DECIDE,
 ]
 
 export function canAccessAdmin(permissions: string[] | undefined, roles: string[] = []): boolean {

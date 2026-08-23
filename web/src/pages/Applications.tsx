@@ -10,6 +10,11 @@ import { usePageTitle } from '../hooks/usePageTitle'
 
 const PAGE_SIZE = 24
 
+export function categoryFilterValue(value: string): string | undefined {
+  const categoryId = value.trim()
+  return categoryId || undefined
+}
+
 /** 应用中心：关键词搜索 + 分类筛选 + 标签筛选 + 分页网格。 */
 export default function Applications() {
   usePageTitle('应用中心')
@@ -43,7 +48,7 @@ export default function Applications() {
     queryFn: () =>
       listApplications({
         keyword: keyword || undefined,
-        categoryId: categoryId ? Number(categoryId) : undefined,
+        categoryId: categoryFilterValue(categoryId),
         tagIds: tagId ? [tagId] : undefined,
         page,
         pageSize: PAGE_SIZE,

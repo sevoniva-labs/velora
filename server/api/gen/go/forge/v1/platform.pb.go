@@ -27,6 +27,11 @@ const (
 type ListUsersRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Limit         int32                  `protobuf:"varint,1,opt,name=limit,proto3" json:"limit,omitempty"`
+	Page          int32                  `protobuf:"varint,2,opt,name=page,proto3" json:"page,omitempty"`
+	PageSize      int32                  `protobuf:"varint,3,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
+	Keyword       string                 `protobuf:"bytes,4,opt,name=keyword,proto3" json:"keyword,omitempty"`
+	Status        string                 `protobuf:"bytes,5,opt,name=status,proto3" json:"status,omitempty"`
+	RoleKey       string                 `protobuf:"bytes,6,opt,name=role_key,json=roleKey,proto3" json:"role_key,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -68,9 +73,47 @@ func (x *ListUsersRequest) GetLimit() int32 {
 	return 0
 }
 
+func (x *ListUsersRequest) GetPage() int32 {
+	if x != nil {
+		return x.Page
+	}
+	return 0
+}
+
+func (x *ListUsersRequest) GetPageSize() int32 {
+	if x != nil {
+		return x.PageSize
+	}
+	return 0
+}
+
+func (x *ListUsersRequest) GetKeyword() string {
+	if x != nil {
+		return x.Keyword
+	}
+	return ""
+}
+
+func (x *ListUsersRequest) GetStatus() string {
+	if x != nil {
+		return x.Status
+	}
+	return ""
+}
+
+func (x *ListUsersRequest) GetRoleKey() string {
+	if x != nil {
+		return x.RoleKey
+	}
+	return ""
+}
+
 type ListUsersResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Users         []*User                `protobuf:"bytes,1,rep,name=users,proto3" json:"users,omitempty"`
+	Total         int64                  `protobuf:"varint,2,opt,name=total,proto3" json:"total,omitempty"`
+	Page          int32                  `protobuf:"varint,3,opt,name=page,proto3" json:"page,omitempty"`
+	PageSize      int32                  `protobuf:"varint,4,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -110,6 +153,27 @@ func (x *ListUsersResponse) GetUsers() []*User {
 		return x.Users
 	}
 	return nil
+}
+
+func (x *ListUsersResponse) GetTotal() int64 {
+	if x != nil {
+		return x.Total
+	}
+	return 0
+}
+
+func (x *ListUsersResponse) GetPage() int32 {
+	if x != nil {
+		return x.Page
+	}
+	return 0
+}
+
+func (x *ListUsersResponse) GetPageSize() int32 {
+	if x != nil {
+		return x.PageSize
+	}
+	return 0
 }
 
 type CreateUserRequest struct {
@@ -7172,11 +7236,19 @@ var File_forge_v1_platform_proto protoreflect.FileDescriptor
 
 const file_forge_v1_platform_proto_rawDesc = "" +
 	"\n" +
-	"\x17forge/v1/platform.proto\x12\bforge.v1\x1a\x15forge/v1/common.proto\x1a\x1cgoogle/api/annotations.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1bopenapiv3/annotations.proto\"(\n" +
+	"\x17forge/v1/platform.proto\x12\bforge.v1\x1a\x15forge/v1/common.proto\x1a\x1cgoogle/api/annotations.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1bopenapiv3/annotations.proto\"\xa6\x01\n" +
 	"\x10ListUsersRequest\x12\x14\n" +
-	"\x05limit\x18\x01 \x01(\x05R\x05limit\"9\n" +
+	"\x05limit\x18\x01 \x01(\x05R\x05limit\x12\x12\n" +
+	"\x04page\x18\x02 \x01(\x05R\x04page\x12\x1b\n" +
+	"\tpage_size\x18\x03 \x01(\x05R\bpageSize\x12\x18\n" +
+	"\akeyword\x18\x04 \x01(\tR\akeyword\x12\x16\n" +
+	"\x06status\x18\x05 \x01(\tR\x06status\x12\x19\n" +
+	"\brole_key\x18\x06 \x01(\tR\aroleKey\"\x80\x01\n" +
 	"\x11ListUsersResponse\x12$\n" +
-	"\x05users\x18\x01 \x03(\v2\x0e.forge.v1.UserR\x05users\"\xe3\x01\n" +
+	"\x05users\x18\x01 \x03(\v2\x0e.forge.v1.UserR\x05users\x12\x14\n" +
+	"\x05total\x18\x02 \x01(\x03R\x05total\x12\x12\n" +
+	"\x04page\x18\x03 \x01(\x05R\x04page\x12\x1b\n" +
+	"\tpage_size\x18\x04 \x01(\x05R\bpageSize\"\xe3\x01\n" +
 	"\x11CreateUserRequest\x12\x1d\n" +
 	"\n" +
 	"login_name\x18\x01 \x01(\tR\tloginName\x12!\n" +

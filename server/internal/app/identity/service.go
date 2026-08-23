@@ -897,6 +897,19 @@ func (s *Service) Logout(ctx context.Context, token string) error {
 func (s *Service) ListUsers(ctx context.Context, actor domain.Principal) ([]domain.User, error) {
 	return s.repo.ListUsers(ctx, actor.OrganizationID, actor.UserID, actor.DataScope, 200)
 }
+
+func (s *Service) ListUsersPage(ctx context.Context, actor domain.Principal, page, pageSize int, keyword, status, roleKey string) ([]domain.User, int64, error) {
+	if page < 1 {
+		page = 1
+	}
+	if pageSize < 1 {
+		pageSize = 20
+	}
+	if pageSize > 200 {
+		pageSize = 200
+	}
+	return s.repo.ListUsersPage(ctx, actor.OrganizationID, actor.UserID, actor.DataScope, page, pageSize, keyword, status, roleKey)
+}
 func (s *Service) CreateUser(ctx context.Context, actor domain.Principal, orgID, login, display, raw string, roles []string) (domain.User, error) {
 	if err := authorizeGrantActor(actor, orgID); err != nil {
 		return domain.User{}, err

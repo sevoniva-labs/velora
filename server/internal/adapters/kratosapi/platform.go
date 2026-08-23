@@ -634,16 +634,30 @@ func (s *PlatformService) RevokeSession(ctx context.Context, req *forgev1.Revoke
 	return &forgev1.RevokeSessionResponse{}, nil
 }
 
-func (s *PlatformService) ListUsers(ctx context.Context, _ *forgev1.ListUsersRequest) (*forgev1.ListUsersResponse, error) {
+func (s *PlatformService) ListUsers(ctx context.Context, req *forgev1.ListUsersRequest) (*forgev1.ListUsersResponse, error) {
 	principal, err := requiredPrincipal(ctx)
 	if err != nil {
 		return nil, err
 	}
-	users, err := s.identity.ListUsers(ctx, principal)
+	page := int(req.GetPage())
+	pageSize := int(req.GetPageSize())
+	if pageSize == 0 && req.GetLimit() > 0 {
+		pageSize = int(req.GetLimit())
+	}
+	if page < 1 {
+		page = 1
+	}
+	if pageSize < 1 {
+		pageSize = 20
+	}
+	if pageSize > 200 {
+		pageSize = 200
+	}
+	users, total, err := s.identity.ListUsersPage(ctx, principal, page, pageSize, req.GetKeyword(), req.GetStatus(), req.GetRoleKey())
 	if err != nil {
 		return nil, internalError(err)
 	}
-	reply := &forgev1.ListUsersResponse{Users: make([]*forgev1.User, 0, len(users))}
+	reply := &forgev1.ListUsersResponse{Users: make([]*forgev1.User, 0, len(users)), Total: total, Page: int32(page), PageSize: int32(pageSize)} // #nosec G115 -- page values are bounded above.
 	for _, user := range users {
 		reply.Users = append(reply.Users, userProto(user))
 	}

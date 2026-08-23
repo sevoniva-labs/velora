@@ -440,8 +440,22 @@ export interface CreateAdminUserInput {
 }
 
 export async function adminListUsers(): Promise<AdminUser[]> {
-  const data = await apiFetch<unknown>('/admin/users')
+  const data = await apiFetch<unknown>('/admin/users?limit=200')
   return listFrom(data, 'users', 'items').map(mapAdminUser)
+}
+
+export interface ListAdminUsersParams {
+  page?: number
+  pageSize?: number
+  keyword?: string
+  status?: string
+  roleKey?: string
+}
+
+export async function adminPageUsers(params: ListAdminUsersParams = {}): Promise<Page<AdminUser>> {
+  const data = record(await apiFetch<unknown>(`/admin/users${buildQuery({ page: params.page, page_size: params.pageSize, keyword: params.keyword, status: params.status, role_key: params.roleKey })}`))
+  const items = listFrom(data, 'users', 'items').map(mapAdminUser)
+  return { items, total: Number(data.total ?? items.length), page: Number(data.page ?? params.page ?? 1), pageSize: Number(data.pageSize ?? params.pageSize ?? 20) }
 }
 
 export async function adminCreateUser(input: CreateAdminUserInput): Promise<AdminUser> {

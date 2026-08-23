@@ -401,7 +401,12 @@ func (r *IdentityRepo) UpdatePasswordAndRevokeOtherSessions(ctx context.Context,
 	})
 }
 func (r *IdentityRepo) ListUsers(ctx context.Context, orgID, actorUserID string, scope identity.EffectiveDataScope, limit int) ([]identity.User, error) {
-	query := `SELECT u.id,u.organization_id,u.login_name,u.display_name,u.email,u.identity_source,u.external_subject,u.provisioning_version,u.status,u.must_change_password,u.locked_until,u.password_changed_at,u.created_at,u.updated_at FROM users u WHERE u.organization_id=?`
+	items, _, err := r.ListUsersPage(ctx, orgID, actorUserID, scope, 1, limit, "", "", "")
+	return items, err
+}
+
+func (r *IdentityRepo) ListUsersPage(ctx context.Context, orgID, actorUserID string, scope identity.EffectiveDataScope, page, pageSize int, keyword, status, roleKey string) ([]identity.User, int64, error) {
+	where := []string{`u.organization_id=?`}
 	args := []any{orgID}
 	if !scope.OrganizationWide {
 		conditions := make([]string, 0, 2)
@@ -420,15 +425,49 @@ func (r *IdentityRepo) ListUsers(ctx context.Context, orgID, actorUserID string,
 			args = append(args, now, now)
 		}
 		if len(conditions) == 0 {
-			return []identity.User{}, nil
+			return []identity.User{}, 0, nil
 		}
-		query += ` AND (` + strings.Join(conditions, ` OR `) + `)`
+		where = append(where, `(`+strings.Join(conditions, ` OR `)+`)`)
 	}
-	query += ` ORDER BY u.created_at DESC LIMIT ?`
-	args = append(args, limit)
+	if keyword = strings.TrimSpace(keyword); keyword != "" {
+		where = append(where, `(LOWER(u.login_name) LIKE ? OR LOWER(u.display_name) LIKE ? OR LOWER(u.email) LIKE ?)`)
+		pattern := "%" + strings.ToLower(keyword) + "%"
+		args = append(args, pattern, pattern, pattern)
+	}
+	now := time.Now().UTC()
+	switch strings.ToUpper(strings.TrimSpace(status)) {
+	case "ACTIVE":
+		where = append(where, `u.status='ACTIVE' AND (u.locked_until IS NULL OR u.locked_until<=?)`)
+		args = append(args, now)
+	case "LOCKED":
+		where = append(where, `u.status='ACTIVE' AND u.locked_until>?`)
+		args = append(args, now)
+	case "DISABLED":
+		where = append(where, `u.status='DISABLED'`)
+	}
+	if roleKey = strings.TrimSpace(roleKey); roleKey != "" {
+		where = append(where, `EXISTS (SELECT 1 FROM user_roles ur JOIN roles r ON r.id=ur.role_id WHERE ur.user_id=u.id AND r.organization_id=u.organization_id AND r.role_key=? AND r.status='ACTIVE')`)
+		args = append(args, roleKey)
+	}
+	whereSQL := strings.Join(where, ` AND `)
+	var total int64
+	if err := r.db.QueryRowContext(ctx, r.db.Rebind(`SELECT COUNT(*) FROM users u WHERE `+whereSQL), args...).Scan(&total); err != nil {
+		return nil, 0, err
+	}
+	if page < 1 {
+		page = 1
+	}
+	if pageSize < 1 {
+		pageSize = 20
+	}
+	if pageSize > 200 {
+		pageSize = 200
+	}
+	query := `SELECT u.id,u.organization_id,u.login_name,u.display_name,u.email,u.identity_source,u.external_subject,u.provisioning_version,u.status,u.must_change_password,u.locked_until,u.password_changed_at,u.created_at,u.updated_at FROM users u WHERE ` + whereSQL + ` ORDER BY u.created_at DESC LIMIT ? OFFSET ?`
+	args = append(args, pageSize, (page-1)*pageSize)
 	rows, err := r.db.QueryContext(ctx, r.db.Rebind(query), args...)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 	defer func() { _ = rows.Close() }()
 	var out []identity.User
@@ -436,18 +475,21 @@ func (r *IdentityRepo) ListUsers(ctx context.Context, orgID, actorUserID string,
 		var u identity.User
 		var locked sql.NullTime
 		if err := rows.Scan(&u.ID, &u.OrganizationID, &u.LoginName, &u.DisplayName, &u.Email, &u.IdentitySource, &u.ExternalSubject, &u.ProvisioningVersion, &u.Status, &u.MustChangePassword, &locked, &u.PasswordChangedAt, &u.CreatedAt, &u.UpdatedAt); err != nil {
-			return nil, err
+			return nil, 0, err
 		}
 		if locked.Valid {
 			x := locked.Time
 			u.LockedUntil = &x
+			if u.Status == "ACTIVE" && x.After(now) {
+				u.Status = "LOCKED"
+			}
 		}
 		u.Roles, _ = r.RolesForUser(ctx, u.ID)
 		u.Permissions, _ = r.PermissionsForUser(ctx, u.ID)
 		u.Entitlements, _ = r.ListUserEntitlements(ctx, u.ID)
 		out = append(out, u)
 	}
-	return out, rows.Err()
+	return out, total, rows.Err()
 }
 
 func (r *IdentityRepo) CreateAPIToken(ctx context.Context, userID, name, prefix, tokenHash string, scopes []string, expiresAt *time.Time) (identity.APIToken, error) {

@@ -934,9 +934,17 @@ service PlatformService {
 
 message ListUsersRequest {
   int32 limit = 1;
+  int32 page = 2;
+  int32 page_size = 3;
+  string keyword = 4;
+  string status = 5;
+  string role_key = 6;
 }
 message ListUsersResponse {
   repeated User users = 1;
+  int64 total = 2;
+  int32 page = 3;
+  int32 page_size = 4;
 }
 
 message CreateUserRequest {

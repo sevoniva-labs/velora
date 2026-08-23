@@ -72,8 +72,6 @@ env \
   VELORA_CASDOOR_ORGANIZATION=built-in \
   VELORA_CASDOOR_IDENTITY_MANAGEMENT_ENABLED=true \
   VELORA_CASDOOR_IDENTITY_CLIENT_ID=velora \
-  VELORA_PROVISIONING_SPECTRA_ENABLED=true \
-  VELORA_PROVISIONING_SPECTRA_URL=https://spectra.example.com/api/v1/provisioning/events \
   VELORA_TURNSTILE_SITE_KEY=dummy-site-key \
   VELORA_TURNSTILE_HOSTNAMES=velora.example.com \
   VELORA_OIDC_PROVIDER_ENABLED=false \
@@ -92,7 +90,6 @@ env \
   CASDOOR_OIDC_CLIENT_SECRET_FILE="$tmp_dir/oidc-client.secret" \
   CASDOOR_AUTOMATION_TOKEN_FILE="$tmp_dir/casdoor-automation.token" \
   VELORA_TURNSTILE_SECRET_FILE="$tmp_dir/turnstile.secret" \
-  VELORA_PROVISIONING_SPECTRA_SECRET_FILE="$tmp_dir/provisioning.secret" \
   DEMO_OIDC_CLIENT_SECRET_FILE="$tmp_dir/demo-client.secret" \
   DEMO_OIDC_ISSUER=https://casdoor.example.com \
   DEMO_OIDC_CLIENT_ID=demo \

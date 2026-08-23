@@ -61,9 +61,6 @@ x-app-env: &app-env
   VELORA_CASDOOR_IDENTITY_MANAGEMENT_ENABLED: "${VELORA_CASDOOR_IDENTITY_MANAGEMENT_ENABLED:-true}"
   VELORA_CASDOOR_IDENTITY_CLIENT_ID: "${VELORA_CASDOOR_IDENTITY_CLIENT_ID:?VELORA_CASDOOR_IDENTITY_CLIENT_ID is required}"
   VELORA_CASDOOR_IDENTITY_CLIENT_SECRET_FILE: /run/secrets/casdoor_oidc_client_secret
-  VELORA_PROVISIONING_SPECTRA_ENABLED: "${VELORA_PROVISIONING_SPECTRA_ENABLED:-true}"
-  VELORA_PROVISIONING_SPECTRA_URL: "${VELORA_PROVISIONING_SPECTRA_URL:?VELORA_PROVISIONING_SPECTRA_URL is required}"
-  VELORA_PROVISIONING_SPECTRA_SECRET_FILE: /run/secrets/spectra_provisioning_secret
   VELORA_TURNSTILE_SITE_KEY: "${VELORA_TURNSTILE_SITE_KEY:?VELORA_TURNSTILE_SITE_KEY is required}"
   VELORA_TURNSTILE_SECRET_FILE: /run/secrets/turnstile_secret
   VELORA_TURNSTILE_HOSTNAMES: "${VELORA_TURNSTILE_HOSTNAMES:?VELORA_TURNSTILE_HOSTNAMES is required}"
@@ -221,7 +218,6 @@ services:
       - velora_bootstrap_password
       - casdoor_oidc_client_secret
       - turnstile_secret
-      - spectra_provisioning_secret
     expose:
       - "8080"
     networks:
@@ -271,7 +267,6 @@ services:
       - velora_bootstrap_password
       - casdoor_oidc_client_secret
       - turnstile_secret
-      - spectra_provisioning_secret
     networks:
       - app
       - egress
@@ -462,8 +457,6 @@ secrets:
     file: "${VELORA_TURNSTILE_SECRET_FILE:?VELORA_TURNSTILE_SECRET_FILE is required}"
   demo_oidc_client_secret:
     file: "${DEMO_OIDC_CLIENT_SECRET_FILE:?DEMO_OIDC_CLIENT_SECRET_FILE is required}"
-  spectra_provisioning_secret:
-    file: "${VELORA_PROVISIONING_SPECTRA_SECRET_FILE:?VELORA_PROVISIONING_SPECTRA_SECRET_FILE is required}"
 
 networks:
   edge:

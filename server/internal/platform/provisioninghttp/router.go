@@ -68,12 +68,14 @@ func (r *Router) Publish(ctx context.Context, message messaging.Message) (string
 		r.recordFailure(ctx, message.OrganizationID, applicationCode, "DELIVERY_FAILED")
 		return "", err
 	}
-	_, _ = r.db.ExecContext(ctx, r.db.Rebind(`UPDATE portal_application_provisioning_targets t SET delivery_status='HEALTHY',last_success_at=?,last_error_code='',updated_at=? FROM portal_applications a WHERE t.application_id=a.id AND t.organization_id=a.organization_id AND t.organization_id=? AND a.code=?`), time.Now().UTC(), time.Now().UTC(), message.OrganizationID, applicationCode)
+	now := time.Now().UTC()
+	_, _ = r.db.ExecContext(ctx, r.db.Rebind(`UPDATE portal_application_provisioning_targets SET delivery_status='HEALTHY',last_success_at=?,last_error_code='',updated_at=? WHERE organization_id=? AND application_id=(SELECT id FROM portal_applications WHERE organization_id=? AND code=?)`), now, now, message.OrganizationID, message.OrganizationID, applicationCode)
 	return id, nil
 }
 
 func (r *Router) recordFailure(ctx context.Context, organizationID, applicationCode, code string) {
-	_, _ = r.db.ExecContext(ctx, r.db.Rebind(`UPDATE portal_application_provisioning_targets t SET delivery_status='DEGRADED',last_failure_at=?,last_error_code=?,updated_at=? FROM portal_applications a WHERE t.application_id=a.id AND t.organization_id=a.organization_id AND t.organization_id=? AND a.code=?`), time.Now().UTC(), code, time.Now().UTC(), organizationID, applicationCode)
+	now := time.Now().UTC()
+	_, _ = r.db.ExecContext(ctx, r.db.Rebind(`UPDATE portal_application_provisioning_targets SET delivery_status='DEGRADED',last_failure_at=?,last_error_code=?,updated_at=? WHERE organization_id=? AND application_id=(SELECT id FROM portal_applications WHERE organization_id=? AND code=?)`), now, code, now, organizationID, organizationID, applicationCode)
 }
 
 func applicationCodeFromTopic(topic string) (string, error) {

@@ -32,7 +32,6 @@ type Config struct {
 	Resilience    Resilience    `yaml:"resilience"`
 	Compliance    Compliance    `yaml:"compliance"`
 	Features      Features      `yaml:"features"`
-	Provisioning  Provisioning  `yaml:"provisioning"`
 }
 
 type App struct {
@@ -256,12 +255,6 @@ type Security struct {
 	TrustedProxies      []string `yaml:"trusted_proxies"`
 }
 
-type Provisioning struct {
-	SpectraEnabled bool   `yaml:"spectra_enabled"`
-	SpectraURL     string `yaml:"spectra_url"`
-	SpectraSecret  string `yaml:"-"`
-}
-
 func (s Security) TurnstileConfigured() bool {
 	return strings.TrimSpace(s.TurnstileSiteKey) != "" && strings.TrimSpace(s.TurnstileSecret) != "" && len(s.TurnstileHostnames) > 0
 }
@@ -459,7 +452,6 @@ func ApplyEnvironment(cfg *Config) {
 	cfg.Security.CasdoorAutomationToken = secret("VELORA_CASDOOR_AUTOMATION_TOKEN")
 	cfg.Security.CasdoorIdentityClientSecret = secret("VELORA_CASDOOR_IDENTITY_CLIENT_SECRET")
 	cfg.Security.TurnstileSecret = secret("VELORA_TURNSTILE_SECRET")
-	cfg.Provisioning.SpectraSecret = secret("VELORA_PROVISIONING_SPECTRA_SECRET")
 
 	overrideString(&cfg.App.Name, "VELORA_APP_NAME")
 	overrideString(&cfg.App.Environment, "VELORA_ENV")
@@ -614,8 +606,6 @@ func ApplyEnvironment(cfg *Config) {
 	overrideString(&cfg.Security.OIDCInternalURL, "VELORA_OIDC_INTERNAL_URL")
 	overrideBool(&cfg.Security.OIDCProviderEnabled, "VELORA_OIDC_PROVIDER_ENABLED")
 	overrideBool(&cfg.Security.SecureCookies, "VELORA_SECURE_COOKIES")
-	overrideBool(&cfg.Provisioning.SpectraEnabled, "VELORA_PROVISIONING_SPECTRA_ENABLED")
-	overrideString(&cfg.Provisioning.SpectraURL, "VELORA_PROVISIONING_SPECTRA_URL")
 	overrideString(&cfg.Security.SameSite, "VELORA_SAME_SITE")
 	overrideCSV(&cfg.Security.AllowedOrigins, "VELORA_ALLOWED_ORIGINS")
 	overrideCSV(&cfg.Security.TrustedProxies, "VELORA_TRUSTED_PROXIES")

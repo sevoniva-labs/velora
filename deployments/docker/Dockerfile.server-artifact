@@ -1,0 +1,7 @@
+ARG BASE_IMAGE
+FROM ${BASE_IMAGE}
+COPY --chown=10001:10001 velora /usr/local/bin/velora
+COPY --chown=10001:10001 velora-worker /usr/local/bin/velora-worker
+COPY --chown=10001:10001 velora-connect /usr/local/bin/velora-connect
+COPY --chown=10001:10001 velora-migrate /usr/local/bin/velora-migrate
+COPY --chown=10001:10001 velora-storage-check /usr/local/bin/velora-storage-check

@@ -276,7 +276,7 @@ func New(ctx context.Context, opts Options) (*App, error) {
 	}
 	portalService.ConfigureProvisioningRouter(provisioningRouter)
 	portalService.ConfigureIdentityBoundary(cfg.Security.CasdoorAdminURL, cfg.Security.OIDCIssuer, cfg.Security.OIDCInternalURL, cfg.Security.CasdoorAllowedHosts, cfg.Security.ApplicationOnboardingV2, cfg.Security.CasdoorAdminEntryEnabled)
-	casdoorAutomation, err := casdooradmin.New(casdooradmin.Config{BaseURL: cfg.Security.CasdoorAdminURL, Token: cfg.Security.CasdoorAutomationToken, Enabled: cfg.Security.CasdoorApplicationAutomationEnabled})
+	casdoorAutomation, err := casdooradmin.New(casdooradmin.Config{BaseURL: cfg.Security.CasdoorAutomationURL, Token: cfg.Security.CasdoorAutomationToken, Owner: cfg.Security.CasdoorApplicationOwner, Organization: cfg.Security.CasdoorOrganization, Enabled: cfg.Security.CasdoorApplicationAutomationEnabled})
 	if err != nil {
 		return nil, fmt.Errorf("casdoor application automation: %w", err)
 	}

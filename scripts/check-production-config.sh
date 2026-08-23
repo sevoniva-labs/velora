@@ -91,6 +91,7 @@ env \
   CASDOOR_AUTOMATION_TOKEN_FILE="$tmp_dir/casdoor-automation.token" \
   VELORA_TURNSTILE_SECRET_FILE="$tmp_dir/turnstile.secret" \
   DEMO_OIDC_CLIENT_SECRET_FILE="$tmp_dir/demo-client.secret" \
+  DEMO_PROVISIONING_SECRET_FILE="$tmp_dir/provisioning.secret" \
   DEMO_OIDC_ISSUER=https://casdoor.example.com \
   DEMO_OIDC_CLIENT_ID=demo \
   DEMO_OIDC_REDIRECT_URL=https://demo.example.com/oauth/callback \

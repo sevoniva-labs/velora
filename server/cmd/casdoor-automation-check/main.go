@@ -18,10 +18,12 @@ func main() {
 	baseURL := strings.TrimSpace(os.Getenv("VELORA_CASDOOR_ADMIN_URL"))
 	token := strings.TrimSpace(os.Getenv("VELORA_CASDOOR_AUTOMATION_TOKEN"))
 	ref := strings.TrimSpace(os.Getenv("VELORA_CASDOOR_AUTOMATION_REF"))
-	if baseURL == "" || token == "" || ref == "" {
-		fail("VELORA_CASDOOR_ADMIN_URL, VELORA_CASDOOR_AUTOMATION_TOKEN and VELORA_CASDOOR_AUTOMATION_REF are required")
+	owner := strings.TrimSpace(os.Getenv("VELORA_CASDOOR_APPLICATION_OWNER"))
+	organization := strings.TrimSpace(os.Getenv("VELORA_CASDOOR_ORGANIZATION"))
+	if baseURL == "" || token == "" || ref == "" || owner == "" || organization == "" {
+		fail("Casdoor automation URL, token, owner, organization and ref are required")
 	}
-	client, err := casdooradmin.New(casdooradmin.Config{BaseURL: baseURL, Token: token, Enabled: true})
+	client, err := casdooradmin.New(casdooradmin.Config{BaseURL: baseURL, Token: token, Owner: owner, Organization: organization, Enabled: true})
 	if err != nil {
 		fail(err.Error())
 	}

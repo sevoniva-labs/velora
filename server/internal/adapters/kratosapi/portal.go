@@ -772,7 +772,10 @@ func (s *PortalService) reconcileProviderDrift(ctx context.Context, principal do
 }
 
 func providerConfigurationDrift(found bool, providerApp casdooradmin.Application, binding portaldomain.IdentityBinding) bool {
-	return !found || providerApp.ClientID != binding.PublicClientID || !equalStrings(providerApp.RedirectURIs, binding.RedirectURIs) || !equalStrings(providerApp.Scopes, binding.Scopes) || !providerApp.Enabled
+	// Casdoor versions before the application-scope schema do not expose
+	// Scopes. In that case discovery/token checks remain authoritative; when
+	// scopes are exposed they are included in drift detection.
+	return !found || providerApp.ClientID != binding.PublicClientID || !equalStrings(providerApp.RedirectURIs, binding.RedirectURIs) || (len(providerApp.Scopes) > 0 && !equalStrings(providerApp.Scopes, binding.Scopes)) || !providerApp.Enabled
 }
 
 func equalStrings(left, right []string) bool {

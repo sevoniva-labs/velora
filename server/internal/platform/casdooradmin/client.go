@@ -6,6 +6,8 @@ package casdooradmin
 import (
 	"bytes"
 	"context"
+	"crypto/rand"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -17,12 +19,15 @@ import (
 )
 
 var ErrApprovalRequired = errors.New("maker-checker approval is required")
+var ErrApplicationNotFound = errors.New("casdoor application not found")
 
 type Config struct {
-	BaseURL    string
-	Token      string
-	Enabled    bool
-	HTTPClient *http.Client
+	BaseURL      string
+	Token        string
+	Owner        string
+	Organization string
+	Enabled      bool
+	HTTPClient   *http.Client
 }
 
 type Application struct {
@@ -100,10 +105,12 @@ type ApplicationProvider interface {
 }
 
 type Client struct {
-	baseURL    string
-	token      string
-	enabled    bool
-	httpClient *http.Client
+	baseURL      string
+	token        string
+	owner        string
+	organization string
+	enabled      bool
+	httpClient   *http.Client
 }
 
 var _ ApplicationProvider = (*Client)(nil)
@@ -113,8 +120,8 @@ func New(cfg Config) (*Client, error) {
 	if !cfg.Enabled {
 		return &Client{baseURL: base, enabled: false, httpClient: cfg.HTTPClient}, nil
 	}
-	if base == "" || strings.TrimSpace(cfg.Token) == "" {
-		return nil, errors.New("casdoor automation requires base URL and a secret token")
+	if base == "" || strings.TrimSpace(cfg.Token) == "" || strings.TrimSpace(cfg.Owner) == "" || strings.TrimSpace(cfg.Organization) == "" {
+		return nil, errors.New("casdoor automation requires base URL, owner, organization and a secret token")
 	}
 	u, err := url.Parse(base)
 	if err != nil || u.Host == "" || (u.Scheme != "https" && !isLocalHTTP(u)) {
@@ -124,7 +131,7 @@ func New(cfg Config) (*Client, error) {
 	if client == nil {
 		client = &http.Client{Timeout: 10 * time.Second}
 	}
-	return &Client{baseURL: base, token: strings.TrimSpace(cfg.Token), enabled: true, httpClient: client}, nil
+	return &Client{baseURL: base, token: strings.TrimSpace(cfg.Token), owner: strings.TrimSpace(cfg.Owner), organization: strings.TrimSpace(cfg.Organization), enabled: true, httpClient: client}, nil
 }
 
 func (c *Client) Enabled() bool { return c != nil && c.enabled }
@@ -134,8 +141,9 @@ func (c *Client) GetApplication(ctx context.Context, ref string) (Application, b
 		return Application{}, false, nil
 	}
 	var wire applicationWire
-	status, err := c.do(ctx, http.MethodGet, "/api/get-application?id="+url.QueryEscape(strings.TrimSpace(ref)), nil, &wire)
-	if status == http.StatusNotFound {
+	id := c.applicationID(ref)
+	status, err := c.do(ctx, http.MethodGet, "/api/get-application?id="+url.QueryEscape(id), nil, &wire)
+	if status == http.StatusNotFound || errors.Is(err, ErrApplicationNotFound) {
 		return Application{}, false, nil
 	}
 	if err != nil {
@@ -151,8 +159,8 @@ func (c *Client) UpsertApplication(ctx context.Context, input UpsertInput) (Appl
 	if strings.TrimSpace(input.ApprovalID) == "" {
 		return Application{}, false, ErrApprovalRequired
 	}
-	if strings.TrimSpace(input.Name) == "" || strings.TrimSpace(input.Organization) == "" || len(input.RedirectURIs) == 0 {
-		return Application{}, false, errors.New("application name, organization and redirect URIs are required")
+	if strings.TrimSpace(input.Name) == "" || len(input.RedirectURIs) == 0 {
+		return Application{}, false, errors.New("application name and redirect URIs are required")
 	}
 	existing, found, err := c.GetApplication(ctx, input.Name)
 	if err != nil {
@@ -162,27 +170,36 @@ func (c *Client) UpsertApplication(ctx context.Context, input UpsertInput) (Appl
 	// consistently guarding null. Always send empty arrays for optional
 	// collections so a newly automated OIDC client cannot render a blank page.
 	request := map[string]any{
-		"owner": input.Organization, "name": input.Name, "organization": input.Organization,
+		"owner": c.owner, "name": input.Name, "organization": c.organization,
 		"displayName": input.DisplayName, "clientId": input.ClientID, "redirectUris": input.RedirectURIs,
-		"grantTypes": input.GrantTypes, "scopes": input.Scopes,
+		"grantTypes":          input.GrantTypes,
 		"enableSigninSession": true, "enableAutoSignin": true,
 		"providers": []any{}, "signupItems": []any{}, "signinItems": []any{},
 		"tags": []string{}, "samlAttributes": []any{}, "tokenFields": []string{},
 	}
 	method, path := http.MethodPost, "/api/add-application"
+	generatedSecret := ""
 	if found {
-		method, path = http.MethodPost, "/api/update-application"
-		request["id"] = existing.Name
+		method = http.MethodPost
+		path = "/api/update-application?id=" + url.QueryEscape(c.applicationID(input.Name)) + "&columns=" + url.QueryEscape("displayName,clientId,redirectUris,grantTypes,enableSigninSession,enableAutoSignin")
+	} else {
+		generatedSecret, err = randomSecret(48)
+		if err != nil {
+			return Application{}, false, err
+		}
+		request["clientSecret"] = generatedSecret
 	}
-	var wire applicationWire
-	if _, err := c.do(ctx, method, path, request, &wire); err != nil {
+	if _, err := c.do(ctx, method, path, request, nil); err != nil {
 		return Application{}, false, err
 	}
 	// Only a newly created client may yield a one-time secret. Updates never
 	// re-expose an existing secret, even if Casdoor includes it in the payload.
-	application := wire.application(!found)
-	if application.Name == "" {
-		application = Application{Name: input.Name, Organization: input.Organization, ClientID: input.ClientID, RedirectURIs: input.RedirectURIs, GrantTypes: input.GrantTypes, Scopes: input.Scopes, Enabled: true}
+	application := Application{Name: input.Name, Organization: c.organization, DisplayName: input.DisplayName, ClientID: input.ClientID, RedirectURIs: append([]string(nil), input.RedirectURIs...), GrantTypes: append([]string(nil), input.GrantTypes...), Scopes: append([]string(nil), input.Scopes...), Enabled: true}
+	if application.DisplayName == "" {
+		application.DisplayName = existing.DisplayName
+	}
+	if !found {
+		application.oneTimeClientSecret = generatedSecret
 	}
 	return application, !found, nil
 }
@@ -194,8 +211,25 @@ func (c *Client) DisableApplication(ctx context.Context, ref, approvalID string)
 	if strings.TrimSpace(approvalID) == "" {
 		return ErrApprovalRequired
 	}
-	_, err := c.do(ctx, http.MethodPost, "/api/update-application", map[string]any{"id": ref, "enableSigninSession": false, "enablePassword": false}, &struct{}{})
+	path := "/api/update-application?id=" + url.QueryEscape(c.applicationID(ref)) + "&columns=" + url.QueryEscape("redirectUris,enableSigninSession,enablePassword")
+	_, err := c.do(ctx, http.MethodPost, path, map[string]any{"owner": c.owner, "name": strings.TrimPrefix(c.applicationID(ref), c.owner+"/"), "redirectUris": []string{}, "enableSigninSession": false, "enablePassword": false}, nil)
 	return err
+}
+
+func (c *Client) applicationID(ref string) string {
+	ref = strings.TrimSpace(ref)
+	if strings.Contains(ref, "/") {
+		return ref
+	}
+	return c.owner + "/" + ref
+}
+
+func randomSecret(size int) (string, error) {
+	raw := make([]byte, size)
+	if _, err := rand.Read(raw); err != nil {
+		return "", err
+	}
+	return base64.RawURLEncoding.EncodeToString(raw), nil
 }
 
 func (c *Client) do(ctx context.Context, method, path string, body any, out any) (int, error) {
@@ -229,7 +263,7 @@ func (c *Client) do(ctx context.Context, method, path string, body any, out any)
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		return resp.StatusCode, fmt.Errorf("casdoor API returned HTTP %d", resp.StatusCode)
 	}
-	if len(data) == 0 || out == nil {
+	if len(data) == 0 {
 		return resp.StatusCode, nil
 	}
 	var envelope struct {
@@ -241,7 +275,14 @@ func (c *Client) do(ctx context.Context, method, path string, body any, out any)
 		return resp.StatusCode, errors.New("casdoor API returned invalid JSON")
 	}
 	if envelope.Status != "" && !strings.EqualFold(envelope.Status, "ok") && !strings.EqualFold(envelope.Status, "success") {
+		message := strings.ToLower(strings.TrimSpace(envelope.Message))
+		if strings.Contains(message, "does not exist") || strings.Contains(message, "not found") || strings.Contains(message, "不存在") {
+			return resp.StatusCode, ErrApplicationNotFound
+		}
 		return resp.StatusCode, errors.New("casdoor API rejected the request")
+	}
+	if out == nil {
+		return resp.StatusCode, nil
 	}
 	if len(envelope.Data) == 0 || string(envelope.Data) == "null" {
 		return resp.StatusCode, nil
@@ -253,5 +294,5 @@ func (c *Client) do(ctx context.Context, method, path string, body any, out any)
 }
 
 func isLocalHTTP(u *url.URL) bool {
-	return u.Scheme == "http" && (strings.EqualFold(u.Hostname(), "localhost") || u.Hostname() == "127.0.0.1" || u.Hostname() == "::1")
+	return u.Scheme == "http" && (strings.EqualFold(u.Hostname(), "casdoor") || strings.EqualFold(u.Hostname(), "localhost") || u.Hostname() == "127.0.0.1" || u.Hostname() == "::1")
 }

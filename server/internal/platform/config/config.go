@@ -232,6 +232,8 @@ type Security struct {
 	CasdoorAdminEntryEnabled            bool          `yaml:"casdoor_admin_entry_enabled"`
 	CasdoorApplicationAutomationEnabled bool          `yaml:"casdoor_application_automation_enabled"`
 	CasdoorAutomationToken              string        `yaml:"-"`
+	CasdoorAutomationURL                string        `yaml:"casdoor_automation_url"`
+	CasdoorApplicationOwner             string        `yaml:"casdoor_application_owner"`
 	CasdoorIdentityManagementEnabled    bool          `yaml:"casdoor_identity_management_enabled"`
 	CasdoorIdentityClientID             string        `yaml:"casdoor_identity_client_id"`
 	CasdoorIdentityClientSecret         string        `yaml:"-"`
@@ -595,6 +597,8 @@ func ApplyEnvironment(cfg *Config) {
 	overrideBool(&cfg.Security.ApplicationOnboardingV2, "VELORA_APPLICATION_ONBOARDING_V2")
 	overrideBool(&cfg.Security.CasdoorAdminEntryEnabled, "VELORA_CASDOOR_ADMIN_ENTRY_ENABLED")
 	overrideBool(&cfg.Security.CasdoorApplicationAutomationEnabled, "VELORA_CASDOOR_APPLICATION_AUTOMATION_ENABLED")
+	overrideString(&cfg.Security.CasdoorAutomationURL, "VELORA_CASDOOR_AUTOMATION_URL")
+	overrideString(&cfg.Security.CasdoorApplicationOwner, "VELORA_CASDOOR_APPLICATION_OWNER")
 	overrideBool(&cfg.Security.CasdoorIdentityManagementEnabled, "VELORA_CASDOOR_IDENTITY_MANAGEMENT_ENABLED")
 	overrideString(&cfg.Security.CasdoorIdentityClientID, "VELORA_CASDOOR_IDENTITY_CLIENT_ID")
 	overrideBool(&cfg.Security.CasdoorPasswordLoginEnabled, "VELORA_CASDOOR_PASSWORD_LOGIN_ENABLED")
@@ -1023,6 +1027,16 @@ func (c Config) ValidateProductionAuth() error {
 		adminURL, _ := url.Parse(c.Security.CasdoorAdminURL)
 		if len(c.Security.CasdoorAllowedHosts) == 0 || adminURL == nil || !containsFold(c.Security.CasdoorAllowedHosts, adminURL.Hostname()) {
 			errs = append(errs, "security.casdoor_allowed_hosts must contain the admin URL hostname")
+		}
+	}
+	if c.Security.CasdoorApplicationAutomationEnabled {
+		automationURL, err := url.Parse(strings.TrimSpace(c.Security.CasdoorAutomationURL))
+		internalHTTP := err == nil && automationURL != nil && automationURL.Scheme == "http" && (automationURL.Hostname() == "casdoor" || automationURL.Hostname() == "localhost" || automationURL.Hostname() == "127.0.0.1")
+		if err != nil || automationURL == nil || automationURL.Host == "" || (automationURL.Scheme != "https" && !internalHTTP) {
+			errs = append(errs, "security.casdoor_automation_url must use HTTPS or the internal casdoor hostname")
+		}
+		if strings.TrimSpace(c.Security.CasdoorApplicationOwner) == "" || strings.TrimSpace(c.Security.CasdoorOrganization) == "" || strings.TrimSpace(c.Security.CasdoorAutomationToken) == "" {
+			errs = append(errs, "Casdoor automation requires owner, organization and token")
 		}
 	}
 	if c.Security.OIDCProviderEnabled {

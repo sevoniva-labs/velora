@@ -54,6 +54,8 @@ x-app-env: &app-env
   VELORA_APPLICATION_ONBOARDING_V2: "${VELORA_APPLICATION_ONBOARDING_V2:-true}"
   VELORA_CASDOOR_ADMIN_ENTRY_ENABLED: "${VELORA_CASDOOR_ADMIN_ENTRY_ENABLED:-true}"
   VELORA_CASDOOR_APPLICATION_AUTOMATION_ENABLED: "${VELORA_CASDOOR_APPLICATION_AUTOMATION_ENABLED:-false}"
+  VELORA_CASDOOR_AUTOMATION_URL: "${VELORA_CASDOOR_AUTOMATION_URL:-http://casdoor:8000}"
+  VELORA_CASDOOR_APPLICATION_OWNER: "${VELORA_CASDOOR_APPLICATION_OWNER:-admin}"
   VELORA_CASDOOR_AUTOMATION_TOKEN_FILE: /run/secrets/casdoor_automation_token
   VELORA_CASDOOR_PASSWORD_LOGIN_ENABLED: "${VELORA_CASDOOR_PASSWORD_LOGIN_ENABLED:-true}"
   VELORA_CASDOOR_APPLICATION: "${VELORA_CASDOOR_APPLICATION:?VELORA_CASDOOR_APPLICATION is required}"
@@ -217,6 +219,7 @@ services:
       - velora_crypto_key
       - velora_bootstrap_password
       - casdoor_oidc_client_secret
+      - casdoor_automation_token
       - turnstile_secret
     expose:
       - "8080"
@@ -266,6 +269,7 @@ services:
       - velora_crypto_key
       - velora_bootstrap_password
       - casdoor_oidc_client_secret
+      - casdoor_automation_token
       - turnstile_secret
     networks:
       - app

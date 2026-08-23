@@ -94,7 +94,7 @@ func CanAccess(app Application, ctx AccessContext) bool {
 		return false
 	}
 	if len(app.Policies) == 0 {
-		return true
+		return false
 	}
 	for _, policy := range app.Policies {
 		switch strings.ToUpper(strings.TrimSpace(policy.Type)) {

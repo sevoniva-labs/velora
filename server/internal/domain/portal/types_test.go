@@ -16,7 +16,7 @@ func TestCanAccess(t *testing.T) {
 		ctx      AccessContext
 		wantPass bool
 	}{
-		{name: "no policies are public within organization", app: base, ctx: AccessContext{Principal: principal}, wantPass: true},
+		{name: "no policies fail closed", app: base, ctx: AccessContext{Principal: principal}},
 		{name: "organization is required", app: Application{Status: StatusEnabled}, ctx: AccessContext{Principal: principal}},
 		{name: "organization isolation", app: base, ctx: AccessContext{Principal: identity.Principal{OrganizationID: "org-2"}}},
 		{name: "disabled application denied", app: Application{OrganizationID: "org-1", Status: StatusDisabled}, ctx: AccessContext{Principal: principal}},

@@ -823,7 +823,9 @@ func (r *PortalRepo) RecordIdentityVerification(ctx context.Context, orgID, acto
 		if err != nil {
 			return err
 		}
-		_, err = r.db.ExecContext(txCtx, r.db.Rebind(`UPDATE portal_applications SET lifecycle_status=?,updated_by=?,updated_at=?,config_version=config_version+1 WHERE organization_id=? AND id=?`), lifecycle, actorID, now, orgID, appID)
+		// A successful periodic re-verification must not unpublish an application.
+		// A failed verification still transitions to the fail-closed state.
+		_, err = r.db.ExecContext(txCtx, r.db.Rebind(`UPDATE portal_applications SET lifecycle_status=CASE WHEN lifecycle_status=? AND ? THEN lifecycle_status ELSE ? END,updated_by=?,updated_at=?,config_version=config_version+1 WHERE organization_id=? AND id=?`), portaldomain.LifecyclePublished, passed, lifecycle, actorID, now, orgID, appID)
 		return err
 	})
 	if err != nil {

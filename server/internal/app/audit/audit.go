@@ -41,6 +41,7 @@ type Writer struct {
 }
 
 var ErrIntegrityViolation = errors.New("audit integrity violation")
+var ErrArchiveUnavailable = errors.New("audit WORM archive is unavailable")
 
 func NewWriter(db *database.DB) *Writer { return &Writer{db: db} }
 
@@ -212,7 +213,7 @@ func (w *Writer) PurgeExpired(ctx context.Context, retentionDays int) (int64, er
 		return 0, nil
 	}
 	if w.archive == nil {
-		return 0, errors.New("audit purge requires verified WORM archive adapter")
+		return 0, ErrArchiveUnavailable
 	}
 	cutoff := time.Now().UTC().Add(-time.Duration(retentionDays) * 24 * time.Hour)
 	events, err := w.expiredEvents(ctx, cutoff)

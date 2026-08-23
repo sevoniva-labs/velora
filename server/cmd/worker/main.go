@@ -76,7 +76,9 @@ func run(ctx context.Context) error {
 		if cfg.Compliance.AuditRetentionDays <= 0 {
 			return
 		}
-		if n, err := auditWriter.PurgeExpired(ctx, cfg.Compliance.AuditRetentionDays); err != nil && !errors.Is(err, context.Canceled) {
+		if n, err := auditWriter.PurgeExpired(ctx, cfg.Compliance.AuditRetentionDays); errors.Is(err, audit.ErrArchiveUnavailable) {
+			log.Warn("audit retention purge is disabled until a verified WORM archive is configured", "retention_days", cfg.Compliance.AuditRetentionDays)
+		} else if err != nil && !errors.Is(err, context.Canceled) {
 			log.Error("audit log retention gc", "err", err, "retention_days", cfg.Compliance.AuditRetentionDays)
 		} else if n > 0 {
 			log.Info("audit logs purged", "deleted", n, "retention_days", cfg.Compliance.AuditRetentionDays)

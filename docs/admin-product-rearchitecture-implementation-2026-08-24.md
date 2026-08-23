@@ -57,18 +57,18 @@ server: make contract
 
 - 生产备份服务执行成功，退出码为 0。
 - Server、Worker、Migrate 使用本机构建的 `linux/amd64` 制品；Web 在本机构建后上传。依赖使用 `goproxy.cn`，服务器未执行 Go 或前端编译。
-- Server 与 Migrate 基础制品版本：`ab0f83c`；Server 热修复版本：`ea8478d`；Worker 最终版本：`7505112`；Web 最终版本：`ab0f83c`。
+- Server 与 Migrate 基础制品版本：`ab0f83c`；Server 热修复版本：`ea8478d`；Worker 最终版本：`7505112`；Web 最终版本：`18600b1`。
 - PostgreSQL additive migration 成功，当前 Goose 版本为 `31`；`application_access_grants`、`application_access_grant_roles`、`user_application_entitlement_sources`、应用负责人字段、平台角色生命周期字段和 `user_role_exclusions` 均已存在。
 - 旧策略迁移后有 3 条访问规则、1 条权限来源，现有 2 个应用保留。
 - Server、Worker、Web、PostgreSQL、Redis、Casdoor、Edge 与 Demo 容器健康。
 - `home` 健康、API health、API readiness、OIDC Discovery 与 Demo health 均返回 HTTP 200；readiness 的 database、cache、messaging、search、storage 均为 `UP`。
 - 通过一次性生产验收令牌完成认证管理 API 验收：6 个平台角色、3 个用户、2 个应用均可读取；`carson` 的有效应用权限可解释；Spectra 账号下发重试保持 `HEALTHY`；旧单用户 entitlement 写接口返回 400，确认已退役。验收令牌和会话随后删除，数据库计数均为 0。
 - Server 发布后未发现 error、panic 或 fatal 日志。Worker 在未配置 WORM 归档时明确记录 `WARN` 并禁用清理，不会误报故障，也不会在没有不可变归档时删除审计数据。
-- 发布前镜像保留为 `rollback-pre-ab0f83c`、`rollback-pre-ea8478d` 和 `rollback-pre-7505112`；制品位于 `/opt/velora/prod/releases/ab0f83c` 与 `/opt/velora/prod/releases/7505112`。最终 Worker SHA-256 为 `0cdd6a13ba15249c64c241be0ef001cc8166072feb828cb0ce9ff1e6e60c22d1`。
+- 发布前镜像保留为 `rollback-pre-ab0f83c`、`rollback-pre-ea8478d`、`rollback-pre-7505112` 和 `rollback-pre-18600b1`；制品位于 `/opt/velora/prod/releases/ab0f83c`、`/opt/velora/prod/releases/7505112` 与 `/opt/velora/prod/releases/18600b1`。最终 Worker SHA-256 为 `0cdd6a13ba15249c64c241be0ef001cc8166072feb828cb0ce9ff1e6e60c22d1`，最终 Web 压缩制品 SHA-256 为 `5142ed4af50d3ef47c4367377f9a662b741a5e33ade662b5891e2bf88a187b0a`。
 
 最终自动门禁：Web lint、11 个测试文件共 54 项测试和生产构建通过；Server `go test ./...`、Proto、OpenAPI 与 127 条 HTTP 契约门禁通过，其中 76 条写操作受 CSRF 保护。
 
-浏览器已验证未认证访问 `/admin` 正确回到 Velora 登录页，页面不暴露 Casdoor。由于生产登录启用了 Turnstile，自动化不得绕过验证码；登录后的菜单、应用详情和治理操作仍需人工完成一次验证码后继续目视验收，不得把该项记录为已通过。
+浏览器已验证未认证访问 `/admin` 正确回到 Velora 登录页，页面不暴露 Casdoor。生产曾因前端自设的 12 秒计时把仍在运行的 Turnstile 挑战误判为失败；`18600b1` 已移除该错误计时，生产等待 15 秒后仍正常显示 Cloudflare 验证控件且无控制台错误。自动化不得代替用户完成验证码；登录后的菜单、应用详情和治理操作仍需人工完成一次验证码后继续目视验收，不得把该项记录为已通过。
 
 ## 最终生产核验快照
 

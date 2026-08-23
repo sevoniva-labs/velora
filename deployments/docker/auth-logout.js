@@ -4,9 +4,9 @@
       const csrfPrefix = 'velora_csrf='
       const csrfCookie = document.cookie.split(';').map((item) => item.trim()).find((item) => item.startsWith(csrfPrefix))
       const csrf = csrfCookie ? decodeURIComponent(csrfCookie.slice(csrfPrefix.length)) : ''
-      const headers = { Accept: 'application/json' }
+      const headers = { Accept: 'application/json', 'Content-Type': 'application/json' }
       if (csrf) headers['X-CSRF-Token'] = csrf
-      await fetch('/api/v1/auth/logout', { method: 'POST', credentials: 'include', headers })
+      await fetch('/api/v1/auth/logout', { method: 'POST', credentials: 'include', headers, body: '{}' })
     } else {
       await Promise.allSettled([
         fetch('/api/logout', {

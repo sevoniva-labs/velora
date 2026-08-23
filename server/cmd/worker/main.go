@@ -46,14 +46,9 @@ func run(ctx context.Context) error {
 		return err
 	}
 	defer bus.Close()
-	provisioning, err := provisioninghttp.New(provisioninghttp.Config{Enabled: cfg.Provisioning.SpectraEnabled, URL: cfg.Provisioning.SpectraURL, Secret: cfg.Provisioning.SpectraSecret})
+	provisioning, err := provisioninghttp.NewRouter(db, nil)
 	if err != nil {
 		return err
-	}
-	if bus.Provider() == "disabled" && !provisioning.Enabled() {
-		log.Info("reliable-message worker has no enabled provider")
-		<-ctx.Done()
-		return nil
 	}
 	messages := reliablemsg.New(db)
 	idem := idempotency.New(db)
@@ -89,13 +84,11 @@ func run(ctx context.Context) error {
 		case <-auditGC.C:
 			runAuditRetention()
 		case <-poll.C:
-			if provisioning.Enabled() {
-				n, err := messages.PublishTopicBatch(ctx, "velora.provisioning.spectra", 50, provisioning.Publish)
-				if err != nil && !errors.Is(err, context.Canceled) {
-					log.Error("Spectra provisioning publish", "err", err)
-				} else if n > 0 {
-					log.Info("Spectra provisioning published", "count", n)
-				}
+			n, err := messages.PublishTopicPrefixBatch(ctx, provisioninghttp.ProvisioningTopicPrefix, 50, provisioning.Publish)
+			if err != nil && !errors.Is(err, context.Canceled) {
+				log.Error("application provisioning publish", "err", err)
+			} else if n > 0 {
+				log.Info("application provisioning published", "count", n)
 			}
 			if bus.Provider() != "disabled" {
 				n, err := messages.PublishBatch(ctx, bus, 100)

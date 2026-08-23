@@ -96,7 +96,7 @@ type pending struct {
 	Attempts                                                 int
 }
 
-func (s *Store) pending(ctx context.Context, limit int, topic string) ([]pending, error) {
+func (s *Store) pending(ctx context.Context, limit int, topic, topicPrefix string) ([]pending, error) {
 	if limit <= 0 || limit > 500 {
 		limit = 100
 	}
@@ -105,6 +105,9 @@ func (s *Store) pending(ctx context.Context, limit int, topic string) ([]pending
 	if topic != "" {
 		query += ` AND topic=?`
 		args = append(args, topic)
+	} else if topicPrefix != "" {
+		query += ` AND topic LIKE ?`
+		args = append(args, topicPrefix+"%")
 	}
 	query += ` ORDER BY created_at LIMIT ?`
 	args = append(args, limit)
@@ -160,7 +163,7 @@ func (s *Store) retry(ctx context.Context, p pending, publishErr error) error {
 	return err
 }
 func (s *Store) PublishBatch(ctx context.Context, bus messaging.Bus, limit int) (int, error) {
-	return s.publishBatch(ctx, "", limit, func(ctx context.Context, message messaging.Message) error {
+	return s.publishBatch(ctx, "", "", limit, func(ctx context.Context, message messaging.Message) error {
 		_, err := bus.Publish(ctx, message)
 		return err
 	})
@@ -170,17 +173,31 @@ func (s *Store) PublishTopicBatch(ctx context.Context, topic string, limit int, 
 	if strings.TrimSpace(topic) == "" || publish == nil {
 		return 0, errors.New("topic and publisher are required")
 	}
-	return s.publishBatch(ctx, strings.TrimSpace(topic), limit, func(ctx context.Context, message messaging.Message) error {
+	return s.publishBatch(ctx, strings.TrimSpace(topic), "", limit, func(ctx context.Context, message messaging.Message) error {
 		_, err := publish(ctx, message)
 		return err
 	})
 }
 
-func (s *Store) publishBatch(ctx context.Context, topic string, limit int, publish func(context.Context, messaging.Message) error) (int, error) {
+// PublishTopicPrefixBatch claims only messages whose topics start with prefix.
+// It is used by the generic provisioning router so new applications do not
+// require a worker code branch or a separately configured topic loop.
+func (s *Store) PublishTopicPrefixBatch(ctx context.Context, prefix string, limit int, publish func(context.Context, messaging.Message) (string, error)) (int, error) {
+	prefix = strings.TrimSpace(prefix)
+	if prefix == "" || publish == nil {
+		return 0, errors.New("topic prefix and publisher are required")
+	}
+	return s.publishBatch(ctx, "", prefix, limit, func(ctx context.Context, message messaging.Message) error {
+		_, err := publish(ctx, message)
+		return err
+	})
+}
+
+func (s *Store) publishBatch(ctx context.Context, topic, topicPrefix string, limit int, publish func(context.Context, messaging.Message) error) (int, error) {
 	if err := s.recoverExpiredClaims(ctx); err != nil {
 		return 0, fmt.Errorf("recover expired reliable message claims: %w", err)
 	}
-	items, err := s.pending(ctx, limit, topic)
+	items, err := s.pending(ctx, limit, topic, topicPrefix)
 	if err != nil {
 		return 0, fmt.Errorf("query pending reliable messages: %w", err)
 	}

@@ -51,6 +51,11 @@ const AdminAudit = lazyWithReload(() => import('./pages/admin/Audit'))
 const AdminIntegrationTokens = lazyWithReload(() => import('./pages/admin/IntegrationTokens'))
 const AdminIdentityIntegrations = lazyWithReload(() => import('./pages/admin/IdentityIntegrations'))
 const AdminUsers = lazyWithReload(() => import('./pages/admin/Users'))
+const AdminUserDetail = lazyWithReload(() => import('./pages/admin/UserDetail'))
+const AdminOrganization = lazyWithReload(() => import('./pages/admin/Organization'))
+const AdminUserGroups = lazyWithReload(() => import('./pages/admin/UserGroups'))
+const AdminRoles = lazyWithReload(() => import('./pages/admin/Roles'))
+const AdminSessions = lazyWithReload(() => import('./pages/admin/Sessions'))
 
 export const router = createBrowserRouter([
   {
@@ -99,6 +104,11 @@ export const router = createBrowserRouter([
       { path: 'integration-tokens', element: <AdminIntegrationTokens /> },
       { path: 'identity', element: <AdminIdentityIntegrations /> },
       { path: 'users', element: <AdminUsers /> },
+      { path: 'users/:id', element: <AdminUserDetail /> },
+      { path: 'organization', element: <AdminOrganization /> },
+      { path: 'user-groups', element: <AdminUserGroups /> },
+      { path: 'roles', element: <AdminRoles /> },
+      { path: 'sessions', element: <AdminSessions /> },
       { path: '*', element: <NotFound /> },
     ],
   },

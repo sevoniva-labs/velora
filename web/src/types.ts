@@ -42,6 +42,79 @@ export interface AdminUser {
   createdAt: string
 }
 
+export interface Department {
+  id: string
+  organizationId: string
+  parentId: string
+  departmentKey: string
+  name: string
+  status: 'ACTIVE' | 'DISABLED'
+  sortOrder: number
+  createdAt: string
+  updatedAt: string
+}
+
+export interface Position {
+  id: string
+  organizationId: string
+  departmentId: string
+  positionKey: string
+  name: string
+  description: string
+  status: 'ACTIVE' | 'DISABLED'
+  sortOrder: number
+}
+
+export interface UserGroup {
+  id: string
+  organizationId: string
+  groupKey: string
+  name: string
+  description: string
+  status: 'ACTIVE' | 'DISABLED'
+  roles: string[]
+  memberIds: string[]
+  memberCount: number
+}
+
+export interface PlatformRole {
+  key: string
+  name: string
+  description: string
+  dataScope: string
+  permissions: string[]
+  dataScopeDepartmentIds: string[]
+}
+
+export interface PlatformPermission {
+  key: string
+  name: string
+  description: string
+  resource: string
+  action: string
+}
+
+export interface AdminSession {
+  id: string
+  userId: string
+  loginName: string
+  clientIp: string
+  userAgent: string
+  createdAt: string
+  expiresAt: string
+  lastSeenAt: string
+  current: boolean
+}
+
+export interface UserAssignment {
+  id?: string
+  departmentId: string
+  positionId?: string
+  primary: boolean
+  validFrom?: string
+  validUntil?: string
+}
+
 export interface Category {
   id: string | number
   code: string

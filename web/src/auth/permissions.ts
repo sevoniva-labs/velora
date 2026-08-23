@@ -17,6 +17,20 @@ export const SYSTEM_USER_READ = 'system.user.read'
 export const SYSTEM_USER_CREATE = 'system.user.create'
 export const SYSTEM_USER_UPDATE = 'system.user.update'
 export const SYSTEM_USER_ROLE_MANAGE = 'system.user.role.manage'
+export const SYSTEM_DEPARTMENT_READ = 'system.department.read'
+export const SYSTEM_DEPARTMENT_MANAGE = 'system.department.manage'
+export const SYSTEM_POSITION_READ = 'system.position.read'
+export const SYSTEM_POSITION_MANAGE = 'system.position.manage'
+export const SYSTEM_USER_GROUP_READ = 'system.user_group.read'
+export const SYSTEM_USER_GROUP_MANAGE = 'system.user_group.manage'
+export const SYSTEM_ROLE_READ = 'system.role.read'
+export const SYSTEM_ROLE_MANAGE = 'system.role.manage'
+export const SYSTEM_SESSION_READ = 'system.session.read'
+export const SYSTEM_SESSION_REVOKE = 'system.session.revoke'
+export const SYSTEM_TEMPORARY_GRANT_READ = 'system.temporary_grant.read'
+export const SYSTEM_TEMPORARY_GRANT_MANAGE = 'system.temporary_grant.manage'
+export const SYSTEM_ACCESS_REVIEW_READ = 'system.access_review.read'
+export const SYSTEM_ACCESS_REVIEW_MANAGE = 'system.access_review.manage'
 
 /** Built-in system_admin has an explicit backend superuser boundary. */
 export function hasPermission(permissions: string[] | undefined, required: string, roles: string[] = []): boolean {
@@ -43,6 +57,13 @@ export const ADMIN_ENTRY_PERMISSIONS = [
   AUDIT_READ,
   API_TOKEN_MANAGE,
   SYSTEM_USER_READ,
+  SYSTEM_DEPARTMENT_READ,
+  SYSTEM_POSITION_READ,
+  SYSTEM_USER_GROUP_READ,
+  SYSTEM_ROLE_READ,
+  SYSTEM_SESSION_READ,
+  SYSTEM_TEMPORARY_GRANT_READ,
+  SYSTEM_ACCESS_REVIEW_READ,
 ]
 
 export function canAccessAdmin(permissions: string[] | undefined, roles: string[] = []): boolean {

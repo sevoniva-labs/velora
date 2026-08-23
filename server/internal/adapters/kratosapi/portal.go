@@ -982,7 +982,7 @@ func (s *PortalService) UpsertApplicationIdentityBinding(ctx context.Context, re
 		// fails. A later retry is safe because the Casdoor provider upsert is
 		// idempotent and the local binding is already auditable and recoverable.
 		if automationEnabled {
-			application, _, automationErr := s.casdoorAutomation.UpsertApplication(ctx, casdooradmin.UpsertInput{Name: req.GetProviderApplicationRef(), Organization: principal.OrganizationID, DisplayName: req.GetProviderApplicationRef(), ClientID: req.GetPublicClientId(), RedirectURIs: req.GetRedirectUris(), GrantTypes: []string{"authorization_code"}, Scopes: automationScopes, ApprovalID: approvalID})
+			application, _, automationErr := s.casdoorAutomation.UpsertApplication(ctx, casdooradmin.UpsertInput{Name: req.GetProviderApplicationRef(), Organization: principal.OrganizationID, DisplayName: req.GetProviderApplicationRef(), ClientID: req.GetPublicClientId(), RedirectURIs: req.GetRedirectUris(), GrantTypes: []string{"authorization_code"}, Scopes: automationScopes, ApprovalID: approvalID, RotateSecret: strings.TrimSpace(req.GetCredentialDeliveryMode()) != ""})
 			if automationErr != nil {
 				next := time.Now().UTC().Add(time.Minute)
 				_ = s.portal.CompleteOnboardingOperation(ctx, onboardingOperation.ID, portaldomain.OperationFailed, "PROVIDER_UPSERT_FAILED", `{"provider":"casdoor"}`, &next)

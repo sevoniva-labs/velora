@@ -92,6 +92,7 @@ type UpsertInput struct {
 	GrantTypes   []string
 	Scopes       []string
 	ApprovalID   string
+	RotateSecret bool
 }
 
 // ApplicationProvider is the narrow boundary Velora uses for external
@@ -185,26 +186,31 @@ func (c *Client) UpsertApplication(ctx context.Context, input UpsertInput) (Appl
 	}
 	method, path := http.MethodPost, "/api/add-application"
 	generatedSecret := ""
-	if found {
-		method = http.MethodPost
-		path = "/api/update-application?id=" + url.QueryEscape(c.applicationID(input.Name)) + "&columns=" + url.QueryEscape("displayName,clientId,redirectUris,grantTypes,enableSigninSession,enableAutoSignin")
-	} else {
+	if !found || input.RotateSecret {
 		generatedSecret, err = randomSecret(48)
 		if err != nil {
 			return Application{}, false, err
 		}
 		request["clientSecret"] = generatedSecret
 	}
+	if found {
+		method = http.MethodPost
+		columns := "displayName,clientId,redirectUris,grantTypes,enableSigninSession,enableAutoSignin"
+		if input.RotateSecret {
+			columns += ",clientSecret"
+		}
+		path = "/api/update-application?id=" + url.QueryEscape(c.applicationID(input.Name)) + "&columns=" + url.QueryEscape(columns)
+	}
 	if _, err := c.do(ctx, method, path, request, nil); err != nil {
 		return Application{}, false, err
 	}
-	// Only a newly created client may yield a one-time secret. Updates never
-	// re-expose an existing secret, even if Casdoor includes it in the payload.
+	// Only a newly generated secret is returned. Existing secrets are never
+	// read from or re-exposed by Casdoor responses.
 	application := Application{Name: input.Name, Organization: c.organization, DisplayName: input.DisplayName, ClientID: input.ClientID, RedirectURIs: append([]string(nil), input.RedirectURIs...), GrantTypes: append([]string(nil), input.GrantTypes...), Scopes: append([]string(nil), input.Scopes...), Enabled: true}
 	if application.DisplayName == "" {
 		application.DisplayName = existing.DisplayName
 	}
-	if !found {
+	if generatedSecret != "" {
 		application.oneTimeClientSecret = generatedSecret
 	}
 	return application, !found, nil

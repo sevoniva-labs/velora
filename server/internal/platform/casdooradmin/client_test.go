@@ -137,3 +137,30 @@ func TestUpdateUsesOwnerQualifiedIDAndColumnPatch(t *testing.T) {
 		t.Fatalf("update = %#v, created=%v requests=%d err=%v", application, created, requests, err)
 	}
 }
+
+func TestUpdateRotatesSecretOnlyWhenExplicitlyRequested(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		if r.URL.Path == "/api/get-application" {
+			_, _ = io.WriteString(w, `{"status":"ok","data":{"owner":"admin","name":"demo","organization":"built-in","clientId":"old","redirectUris":["https://old.example/callback"],"enableSigninSession":true}}`)
+			return
+		}
+		if !strings.Contains(r.URL.Query().Get("columns"), "clientSecret") {
+			t.Fatal("clientSecret was not included in the explicit rotation patch")
+		}
+		var request map[string]any
+		if err := json.NewDecoder(r.Body).Decode(&request); err != nil || request["clientSecret"] == "" {
+			t.Fatalf("rotated client secret is missing: %#v, %v", request, err)
+		}
+		_, _ = io.WriteString(w, `{"status":"ok","data":true}`)
+	}))
+	defer server.Close()
+	client, err := New(Config{BaseURL: server.URL, Token: "token", Owner: "admin", Organization: "built-in", Enabled: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	application, created, err := client.UpsertApplication(context.Background(), UpsertInput{Name: "demo", ClientID: "new", RedirectURIs: []string{"https://new.example/callback"}, ApprovalID: "approval-1", RotateSecret: true})
+	if err != nil || created || len(application.TakeOneTimeClientSecret()) < 32 {
+		t.Fatalf("rotating update = %#v, created=%v err=%v", application, created, err)
+	}
+}

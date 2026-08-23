@@ -341,7 +341,6 @@ function applicationBody(input: AdminApplicationInput, includeCode: boolean): An
 export async function adminListApplications(params: ListApplicationsParams = {}): Promise<Page<Application>> { const all = await fetchPortalApplications(params, true); const page = params.page ?? 1; const pageSize = params.pageSize ?? 20; return pageOf(all.slice((page - 1) * pageSize, page * pageSize), page, pageSize, all.length) }
 export async function adminCreateApplication(input: AdminApplicationInput): Promise<Application> { const data = await apiFetch<unknown>('/admin/portal/applications', { method: 'POST', body: applicationBody(input, true) }); return mapApplication(record(data).application ?? data) }
 export async function adminUpdateApplication(id: string | number, input: AdminApplicationInput): Promise<Application> { const data = await apiFetch<unknown>(`/admin/portal/applications/${encodeURIComponent(String(id))}`, { method: 'PATCH', body: applicationBody(input, false) }); return mapApplication(record(data).application ?? data) }
-export function adminDeleteApplication(id: string | number): Promise<void> { return apiFetch(`/admin/portal/applications/${encodeURIComponent(String(id))}`, { method: 'DELETE' }).then(() => undefined) }
 
 export interface ApplicationRole {
   id: string

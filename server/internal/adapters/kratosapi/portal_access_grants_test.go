@@ -24,6 +24,18 @@ func TestLegacyPortalPolicyMutationIsRetired(t *testing.T) {
 	}
 }
 
+func TestApplicationHardDeleteIsRetired(t *testing.T) {
+	service := &PortalService{}
+	ctx := authn.WithPrincipal(context.Background(), identitydomain.Principal{Type: "USER", UserID: "user-1", OrganizationID: "org-1"})
+	_, err := service.DeletePortalApplication(ctx, &forgev1.DeletePortalApplicationRequest{ApplicationId: "app-1"})
+	if err == nil {
+		t.Fatal("application hard delete was accepted")
+	}
+	if reason := kratoserrors.FromError(err).Reason; reason != "APPLICATION_DELETE_DISABLED" {
+		t.Fatalf("unexpected error reason %q", reason)
+	}
+}
+
 func TestAccessGrantsApprovalPayloadIsStableAndMinimal(t *testing.T) {
 	validUntil := time.Date(2026, 8, 25, 8, 30, 0, 0, time.UTC)
 	payload := accessGrantsApprovalPayload([]*forgev1.PortalApplicationAccessGrant{{

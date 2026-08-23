@@ -387,23 +387,10 @@ func (s *PortalService) UpdatePortalApplication(ctx context.Context, req *forgev
 }
 
 func (s *PortalService) DeletePortalApplication(ctx context.Context, req *forgev1.DeletePortalApplicationRequest) (*forgev1.DeletePortalApplicationResponse, error) {
-	principal, err := requiredPrincipal(ctx)
-	if err != nil {
+	if _, err := requiredPrincipal(ctx); err != nil {
 		return nil, err
 	}
-	response, err := s.idempotent(ctx, principal, "portal.application.delete", req, func() proto.Message { return &forgev1.DeletePortalApplicationResponse{} }, func() (proto.Message, error) {
-		event := newAuditEvent(ctx, principal, "portal.application.delete", "portal_application", req.GetApplicationId(), nil)
-		if err := s.audited(ctx, event, func(txCtx context.Context) error {
-			return s.portal.DeleteApplication(txCtx, principal, req.GetApplicationId())
-		}); err != nil {
-			return nil, serviceError(err)
-		}
-		return &forgev1.DeletePortalApplicationResponse{}, nil
-	})
-	if err != nil {
-		return nil, err
-	}
-	return response.(*forgev1.DeletePortalApplicationResponse), nil
+	return nil, kratoserrors.BadRequest("APPLICATION_DELETE_DISABLED", "application deletion is disabled; stop the application and retain its audit history")
 }
 
 func (s *PortalService) CreatePortalCategory(ctx context.Context, req *forgev1.CreatePortalCategoryRequest) (*forgev1.CreatePortalCategoryResponse, error) {

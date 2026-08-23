@@ -92,7 +92,7 @@ function mapApplication(value: unknown): Application {
   return {
     id: asId(item.id), code: String(item.code ?? ''), name: String(item.name ?? ''), description: String(item.description ?? ''), icon: String(item.icon ?? ''),
     categoryId, category: categoryId ? { id: categoryId, code: '', name: categoryName } : undefined,
-    ssoType: (launchType || 'URL') as Application['ssoType'], owner: String(item.owner ?? item.createdBy ?? ''), department: String(item.department ?? ''),
+    ssoType: (launchType || 'URL') as Application['ssoType'], owner: String(item.owner ?? ''), department: String(item.department ?? ''),
     status: (String(item.status ?? 'ENABLED').toUpperCase() || 'ENABLED') as Application['status'], sort: Number(item.sortOrder ?? item.sort ?? 0),
     isFeatured: Boolean(item.featured ?? item.isFeatured), healthCheckEnabled: false, healthStatus: 'UNKNOWN',
     tags: listFrom(item.tags).map(mapTag), policies: listFrom(item.policies).map(mapPolicy), isFavorite: Boolean(item.favorite ?? item.isFavorite),

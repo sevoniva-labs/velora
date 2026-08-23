@@ -140,7 +140,7 @@ export default function AdminPolicies() {
               dataSource={rows}
               pagination={false}
               size="small"
-              locale={{ emptyText: '暂无规则，所有登录用户可见' }}
+              locale={{ emptyText: '暂无访问范围，默认不允许任何用户访问' }}
               columns={[
                 {
                   title: '策略类型',

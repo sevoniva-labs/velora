@@ -3,13 +3,12 @@ import { usePageTitle } from '../../hooks/usePageTitle'
 import QueryErrorState from '../../components/QueryErrorState'
 import AdminPageHead from '../../components/AdminPageHead'
 import { isSafeHttpUrl } from '../../utils/format'
-import { App as AntdApp, Button, Form, Input, InputNumber, Modal, Popconfirm, Select, Space, Switch, Table, Tag } from 'antd'
+import { App as AntdApp, Button, Form, Input, InputNumber, Modal, Select, Space, Switch, Table, Tag } from 'antd'
 import { PlusOutlined } from '@ant-design/icons'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import {
   adminCreateApplication,
-  adminDeleteApplication,
   adminListApplications,
   adminUpdateApplication,
   listCategories,
@@ -18,7 +17,7 @@ import {
   type AdminApplicationInput,
 } from '../../api/api'
 import type { Application } from '../../types'
-import { APP_STATUS_LABEL, SSO_TYPE_COLOR, SSO_TYPE_LABEL } from '../../labels'
+import { APP_LIFECYCLE_COLOR, APP_LIFECYCLE_LABEL, APP_STATUS_LABEL, SSO_TYPE_COLOR, SSO_TYPE_LABEL, enumLabel } from '../../labels'
 import { AppIcon } from '../../components/AppCard'
 
 // 只开放已经有完整生命周期闭环的类型。OIDC 可以创建为待配置草稿，
@@ -91,15 +90,6 @@ export default function AdminApplications() {
     onError: (err) => message.error(err instanceof Error ? err.message : '保存失败'),
   })
 
-  const deleteMutation = useMutation({
-    mutationFn: (id: string | number) => adminDeleteApplication(id),
-    onSuccess: () => {
-      message.success('应用已删除')
-      invalidate()
-    },
-    onError: (err) => message.error(err instanceof Error ? err.message : '删除失败'),
-  })
-
   const openCreate = () => {
     setEditing(null)
     form.resetFields()
@@ -120,14 +110,11 @@ export default function AdminApplications() {
       code: app.code,
       name: app.name,
       description: app.description,
-      keywords: app.keywords,
       icon: app.icon,
       categoryId: app.categoryId,
       homeUrl: app.homeUrl,
       launchUrl: app.launchUrl,
       ssoType: app.ssoType,
-      owner: app.owner,
-      department: app.department,
       status: app.status,
       sort: app.sort,
       isFeatured: app.isFeatured,
@@ -225,7 +212,17 @@ export default function AdminApplications() {
             ),
           },
           {
-            title: '状态',
+            title: '接入状态',
+            dataIndex: 'lifecycleStatus',
+            width: 110,
+            render: (value: string | undefined) => (
+              <Tag color={APP_LIFECYCLE_COLOR[value ?? ''] ?? 'default'}>
+                {enumLabel(APP_LIFECYCLE_LABEL, value, '草稿')}
+              </Tag>
+            ),
+          },
+          {
+            title: '运行状态',
             dataIndex: 'status',
             width: 90,
             render: (v: Application['status']) => (
@@ -248,7 +245,7 @@ export default function AdminApplications() {
           {
             title: '操作',
             key: 'actions',
-            width: 260,
+            width: 180,
             render: (_, app) => (
               <Space>
                 <Button type="link" size="small" onClick={() => navigate(`/admin/identity?application=${encodeURIComponent(String(app.id))}`)}>
@@ -257,17 +254,6 @@ export default function AdminApplications() {
                 <Button type="link" size="small" onClick={() => openEdit(app)}>
                   编辑
                 </Button>
-                <Popconfirm
-                  title="删除应用"
-                  description={`确定删除「${app.name}」？其策略、收藏与访问记录将一并删除。`}
-                  okText="删除"
-                  okButtonProps={{ danger: true }}
-                  onConfirm={() => deleteMutation.mutate(app.id)}
-                >
-                  <Button type="link" size="small" danger>
-                    删除
-                  </Button>
-                </Popconfirm>
               </Space>
             ),
           },
@@ -307,10 +293,6 @@ export default function AdminApplications() {
 
           <Form.Item label="描述" name="description">
             <Input.TextArea rows={2} placeholder="应用用途说明" />
-          </Form.Item>
-
-          <Form.Item label="关键词" name="keywords">
-            <Input placeholder="搜索用，多个用逗号分隔" />
           </Form.Item>
 
           <div className="velora-form-grid">
@@ -363,15 +345,6 @@ export default function AdminApplications() {
               <Select options={SSO_OPTIONS.map((v) => ({ value: v, label: SSO_TYPE_LABEL[v as Application['ssoType']] }))} />
             </Form.Item>
             {watchSsoType === 'OIDC' ? <Tag color="warning">OIDC 应用创建后请到“身份与单点登录”完成绑定和验证</Tag> : null}
-          </div>
-
-          <div className="velora-form-grid">
-            <Form.Item label="负责人" name="owner">
-              <Input />
-            </Form.Item>
-            <Form.Item label="所属部门" name="department">
-              <Input />
-            </Form.Item>
           </div>
 
           <div className="velora-form-grid">

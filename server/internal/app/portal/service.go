@@ -268,6 +268,10 @@ func (s *Service) requirePublishPrerequisites(ctx context.Context, principal dom
 	if err != nil || target.DeliveryStatus != "HEALTHY" {
 		return portaldomain.ErrPublishNotReady
 	}
+	checks, err := s.repo.ListOnboardingChecks(ctx, principal.OrganizationID, app.ID, app.ConfigVersion)
+	if err != nil || !portaldomain.OnboardingChecksPassed(checks) {
+		return portaldomain.ErrPublishNotReady
+	}
 	return nil
 }
 
@@ -582,6 +586,24 @@ func (s *Service) ProvisioningCredentialForHandoff(ctx context.Context, principa
 		return portaldomain.Application{}, portaldomain.ProvisioningTarget{}, "", errors.New("provisioning credential is unavailable")
 	}
 	return app, target, strings.TrimSpace(string(plain)), nil
+}
+
+func (s *Service) RecordOnboardingChecks(ctx context.Context, principal domain.Principal, appID string, configVersion int64, checks []portaldomain.OnboardingCheck) ([]portaldomain.OnboardingCheck, error) {
+	app, err := s.repo.GetApplication(ctx, principal.OrganizationID, principal.UserID, strings.TrimSpace(appID), true)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, ErrNotFound
+	}
+	if err != nil {
+		return nil, err
+	}
+	if configVersion != app.ConfigVersion {
+		return nil, portaldomain.ErrOptimisticConflict
+	}
+	return s.repo.RecordOnboardingChecks(ctx, principal.OrganizationID, app.ID, principal.UserID, requestID(ctx), configVersion, checks)
+}
+
+func (s *Service) ListOnboardingChecks(ctx context.Context, principal domain.Principal, appID string, configVersion int64) ([]portaldomain.OnboardingCheck, error) {
+	return s.repo.ListOnboardingChecks(ctx, principal.OrganizationID, strings.TrimSpace(appID), configVersion)
 }
 
 func (s *Service) UpsertProvisioningTarget(ctx context.Context, principal domain.Principal, appID, endpoint string, rotate bool, expectedVersion int64) (portaldomain.ProvisioningTarget, string, error) {

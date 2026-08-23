@@ -548,6 +548,40 @@ func (r *PortalRepo) UpsertProvisioningTarget(ctx context.Context, target portal
 	return r.GetProvisioningTarget(ctx, target.OrganizationID, target.ApplicationID)
 }
 
+func (r *PortalRepo) RecordOnboardingChecks(ctx context.Context, organizationID, applicationID, verifiedBy, requestID string, configVersion int64, checks []portaldomain.OnboardingCheck) ([]portaldomain.OnboardingCheck, error) {
+	now := time.Now().UTC()
+	for i := range checks {
+		checks[i].ID = uuid.NewString()
+		checks[i].OrganizationID = organizationID
+		checks[i].ApplicationID = applicationID
+		checks[i].ConfigVersion = configVersion
+		checks[i].VerifiedBy = verifiedBy
+		checks[i].RequestID = requestID
+		checks[i].OccurredAt = now
+		if _, err := r.db.ExecContext(ctx, r.db.Rebind(`INSERT INTO portal_application_onboarding_checks(id,organization_id,application_id,config_version,check_type,result,error_code,evidence_json,request_id,verified_by,occurred_at) VALUES(?,?,?,?,?,?,?,?,?,?,?)`), checks[i].ID, organizationID, applicationID, configVersion, checks[i].CheckType, checks[i].Result, checks[i].ErrorCode, checks[i].EvidenceJSON, requestID, verifiedBy, now); err != nil {
+			return nil, err
+		}
+	}
+	return checks, nil
+}
+
+func (r *PortalRepo) ListOnboardingChecks(ctx context.Context, organizationID, applicationID string, configVersion int64) ([]portaldomain.OnboardingCheck, error) {
+	rows, err := r.db.QueryContext(ctx, r.db.Rebind(`SELECT id,organization_id,application_id,config_version,check_type,result,error_code,evidence_json,request_id,verified_by,occurred_at FROM portal_application_onboarding_checks WHERE organization_id=? AND application_id=? AND config_version=? ORDER BY occurred_at DESC,id DESC LIMIT 100`), organizationID, applicationID, configVersion)
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = rows.Close() }()
+	items := make([]portaldomain.OnboardingCheck, 0)
+	for rows.Next() {
+		var item portaldomain.OnboardingCheck
+		if err := rows.Scan(&item.ID, &item.OrganizationID, &item.ApplicationID, &item.ConfigVersion, &item.CheckType, &item.Result, &item.ErrorCode, &item.EvidenceJSON, &item.RequestID, &item.VerifiedBy, &item.OccurredAt); err != nil {
+			return nil, err
+		}
+		items = append(items, item)
+	}
+	return items, rows.Err()
+}
+
 func (r *PortalRepo) AddFavorite(ctx context.Context, orgID, userID, applicationID string) error {
 	query := `INSERT INTO portal_favorites(organization_id,user_id,application_id,created_at) VALUES(?,?,?,?)`
 	if r.db.Provider == "postgres" {

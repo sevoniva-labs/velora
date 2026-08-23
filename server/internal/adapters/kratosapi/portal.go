@@ -13,6 +13,7 @@ import (
 
 	kratoserrors "github.com/go-kratos/kratos/v2/errors"
 	"github.com/go-kratos/kratos/v2/transport"
+	"github.com/google/uuid"
 	forgev1 "github.com/sevoniva-labs/velora/server/api/gen/go/forge/v1"
 	"github.com/sevoniva-labs/velora/server/internal/adapters/repository"
 	approvalapp "github.com/sevoniva-labs/velora/server/internal/app/approval"
@@ -26,6 +27,8 @@ import (
 	"github.com/sevoniva-labs/velora/server/internal/platform/database"
 	"github.com/sevoniva-labs/velora/server/internal/platform/httpserver"
 	"github.com/sevoniva-labs/velora/server/internal/platform/idempotency"
+	"github.com/sevoniva-labs/velora/server/internal/platform/messaging"
+	"github.com/sevoniva-labs/velora/server/internal/platform/provisioninghttp"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -44,6 +47,7 @@ type PortalService struct {
 	approval                  *approvalapp.Service
 	idem                      *idempotency.Store
 	handoff                   *credentialhandoff.Store
+	provisioningRouter        *provisioninghttp.Router
 }
 
 func setNoStore(ctx context.Context) {
@@ -80,6 +84,10 @@ func (s *PortalService) ConfigureIdempotency(store *idempotency.Store) {
 
 func (s *PortalService) ConfigureCredentialHandoff(store *credentialhandoff.Store) {
 	s.handoff = store
+}
+
+func (s *PortalService) ConfigureProvisioningRouter(router *provisioninghttp.Router) {
+	s.provisioningRouter = router
 }
 
 func (s *PortalService) audited(ctx context.Context, event *audit.Event, operation func(context.Context) error) error {
@@ -665,8 +673,12 @@ func (s *PortalService) GetApplicationOnboarding(ctx context.Context, req *forge
 	if targetErr != nil && !errors.Is(targetErr, appportal.ErrNotFound) {
 		return nil, serviceError(targetErr)
 	}
-	status, nextAction, blockers, canPublish := onboardingState(app, binding, target)
-	response := &forgev1.GetApplicationOnboardingResponse{Application: portalApplicationProto(app), Binding: identityBindingProto(binding), Verifications: verificationsProto(verifications), CanPublish: canPublish, OnboardingStatus: status, NextAction: nextAction, Blockers: blockers, Roles: portalApplicationRolesProto(roles)}
+	checks, err := s.portal.ListOnboardingChecks(ctx, principal, app.ID, app.ConfigVersion)
+	if err != nil {
+		return nil, serviceError(err)
+	}
+	status, nextAction, blockers, canPublish := onboardingState(app, binding, target, checks)
+	response := &forgev1.GetApplicationOnboardingResponse{Application: portalApplicationProto(app), Binding: identityBindingProto(binding), Verifications: verificationsProto(verifications), CanPublish: canPublish, OnboardingStatus: status, NextAction: nextAction, Blockers: blockers, Roles: portalApplicationRolesProto(roles), OnboardingChecks: onboardingChecksProto(checks)}
 	if target.ID != "" {
 		response.ProvisioningTarget = provisioningTargetProto(target)
 	}
@@ -757,7 +769,7 @@ func credentialApprovalResponse(item approvaldomain.Request, providerRef, client
 	return &forgev1.PrepareApplicationCredentialApprovalResponse{ApprovalStatus: item.Status, ApproverName: approverName, NextAction: next, ProviderApplicationRef: providerRef, PublicClientId: clientID, Issuer: issuer, Scopes: scopes}
 }
 
-func onboardingState(app portaldomain.Application, binding portaldomain.IdentityBinding, target portaldomain.ProvisioningTarget) (string, string, []string, bool) {
+func onboardingState(app portaldomain.Application, binding portaldomain.IdentityBinding, target portaldomain.ProvisioningTarget, checks []portaldomain.OnboardingCheck) (string, string, []string, bool) {
 	if app.LifecycleStatus == portaldomain.LifecyclePublished && app.Status == portaldomain.StatusEnabled {
 		return "PUBLISHED", "应用已发布；持续关注登录和账号同步健康状态。", nil, true
 	}
@@ -788,6 +800,9 @@ func onboardingState(app portaldomain.Application, binding portaldomain.Identity
 	}
 	if target.DeliveryStatus != "HEALTHY" {
 		return "ACTION_REQUIRED", "完成账号同步 challenge 或测试投递。", []string{"账号同步链路尚未验证"}, false
+	}
+	if !portaldomain.OnboardingChecksPassed(checks) {
+		return "ACTION_REQUIRED", "运行当前配置版本的全部自动检查。", []string{"发布门禁检查尚未全部通过"}, false
 	}
 	return "VERIFIED", "提交并发布应用。", nil, true
 }
@@ -933,6 +948,81 @@ func (s *PortalService) VerifyApplicationIdentity(ctx context.Context, req *forg
 		return nil, err
 	}
 	return response.(*forgev1.VerifyApplicationIdentityResponse), nil
+}
+
+func (s *PortalService) RunApplicationOnboardingChecks(ctx context.Context, req *forgev1.RunApplicationOnboardingChecksRequest) (*forgev1.RunApplicationOnboardingChecksResponse, error) {
+	if err := s.identityOnboardingRequired(); err != nil {
+		return nil, err
+	}
+	principal, err := requiredPrincipal(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if s.provisioningRouter == nil {
+		return nil, kratoserrors.ServiceUnavailable("PROVISIONING_CHECK_UNAVAILABLE", "provisioning check service is unavailable")
+	}
+	app, binding, _, err := s.portal.GetApplicationOnboarding(ctx, principal, req.GetApplicationId())
+	if err != nil {
+		return nil, serviceError(err)
+	}
+	if req.GetExpectedConfigVersion() != app.ConfigVersion {
+		return nil, serviceError(portaldomain.ErrOptimisticConflict)
+	}
+	checks := make([]portaldomain.OnboardingCheck, 0, 5)
+	add := func(checkType string, passed bool, code string, evidence map[string]any) {
+		result := "PASSED"
+		if !passed {
+			result = "FAILED"
+		}
+		raw, _ := json.Marshal(evidence)
+		checks = append(checks, portaldomain.OnboardingCheck{CheckType: checkType, Result: result, ErrorCode: code, EvidenceJSON: string(raw)})
+	}
+	add("access_policy", len(app.Policies) > 0, valueIf(len(app.Policies) == 0, "ACCESS_POLICY_REQUIRED"), map[string]any{"policy_count": len(app.Policies)})
+	identityPassed := false
+	if binding.ID != "" {
+		_, updatedApp, _, passed, verifyErr := s.portal.VerifyApplicationIdentity(ctx, principal, app.ID, binding.ConfigVersion)
+		identityPassed = verifyErr == nil && passed
+		if verifyErr == nil {
+			app = updatedApp
+		}
+		add("oidc_discovery", identityPassed, valueIf(!identityPassed, "OIDC_VERIFICATION_FAILED"), map[string]any{"issuer": binding.Issuer})
+	} else {
+		add("oidc_discovery", false, "IDENTITY_BINDING_REQUIRED", map[string]any{})
+	}
+	challengeID := uuid.NewString()
+	topic := provisioninghttp.ProvisioningTopicPrefix + app.Code
+	body := func(eventID string, version int64) []byte {
+		raw, _ := json.Marshal(map[string]any{"schema_version": "1.0", "event_id": eventID, "event_type": "integration.challenge", "aggregate_version": version, "occurred_at": time.Now().UTC().Format(time.RFC3339Nano), "source": "velora", "challenge": map[string]any{"application_code": app.Code, "challenge_id": challengeID}})
+		return raw
+	}
+	eventID := uuid.NewString()
+	appliedBody := body(eventID, 2)
+	_, appliedStatus, appliedErr := s.provisioningRouter.PublishWithStatus(ctx, messaging.Message{ID: eventID, OrganizationID: principal.OrganizationID, Topic: topic, Type: "integration.challenge", Body: appliedBody})
+	add("provisioning_challenge", appliedErr == nil && appliedStatus == "APPLIED", valueIf(appliedErr != nil || appliedStatus != "APPLIED", "PROVISIONING_CHALLENGE_FAILED"), map[string]any{"status": appliedStatus})
+	_, duplicateStatus, duplicateErr := s.provisioningRouter.PublishWithStatus(ctx, messaging.Message{ID: eventID, OrganizationID: principal.OrganizationID, Topic: topic, Type: "integration.challenge", Body: appliedBody})
+	add("provisioning_duplicate", duplicateErr == nil && duplicateStatus == "DUPLICATE", valueIf(duplicateErr != nil || duplicateStatus != "DUPLICATE", "PROVISIONING_DUPLICATE_FAILED"), map[string]any{"status": duplicateStatus})
+	staleID := uuid.NewString()
+	_, staleStatus, staleErr := s.provisioningRouter.PublishWithStatus(ctx, messaging.Message{ID: staleID, OrganizationID: principal.OrganizationID, Topic: topic, Type: "integration.challenge", Body: body(staleID, 1)})
+	add("provisioning_stale", staleErr == nil && staleStatus == "STALE", valueIf(staleErr != nil || staleStatus != "STALE", "PROVISIONING_STALE_FAILED"), map[string]any{"status": staleStatus})
+	recorded, err := s.portal.RecordOnboardingChecks(ctx, principal, app.ID, app.ConfigVersion, checks)
+	if err != nil {
+		return nil, serviceError(err)
+	}
+	passed := true
+	for _, check := range recorded {
+		if check.Result != "PASSED" {
+			passed = false
+			break
+		}
+	}
+	return &forgev1.RunApplicationOnboardingChecksResponse{Checks: onboardingChecksProto(recorded), Passed: passed}, nil
+}
+
+func valueIf(condition bool, value string) string {
+	if condition {
+		return value
+	}
+	return ""
 }
 
 func (s *PortalService) SubmitApplicationPublish(ctx context.Context, req *forgev1.SubmitApplicationPublishRequest) (*forgev1.SubmitApplicationPublishResponse, error) {
@@ -1194,6 +1284,14 @@ func portalApplicationRolesProto(items []portaldomain.ApplicationRole) []*forgev
 
 func provisioningTargetProto(item portaldomain.ProvisioningTarget) *forgev1.PortalApplicationProvisioningTarget {
 	return &forgev1.PortalApplicationProvisioningTarget{Id: item.ID, ApplicationId: item.ApplicationID, EndpointUrl: item.EndpointURL, SigningAlgorithm: item.SigningAlgorithm, SecretFingerprint: item.SecretFingerprint, ActiveKeyVersion: item.ActiveKeyVersion, PreviousKeyVersion: valueOrZero(item.PreviousKeyVersion), PreviousValidUntil: optionalTimestamp(item.PreviousValidUntil), DeliveryStatus: item.DeliveryStatus, LastSuccessAt: optionalTimestamp(item.LastSuccessAt), LastFailureAt: optionalTimestamp(item.LastFailureAt), LastErrorCode: item.LastErrorCode, ConfigVersion: item.ConfigVersion, CreatedAt: timestamp(item.CreatedAt), UpdatedAt: timestamp(item.UpdatedAt)}
+}
+
+func onboardingChecksProto(items []portaldomain.OnboardingCheck) []*forgev1.PortalApplicationOnboardingCheck {
+	out := make([]*forgev1.PortalApplicationOnboardingCheck, 0, len(items))
+	for _, item := range items {
+		out = append(out, &forgev1.PortalApplicationOnboardingCheck{Id: item.ID, ApplicationId: item.ApplicationID, ConfigVersion: item.ConfigVersion, CheckType: item.CheckType, Result: item.Result, ErrorCode: item.ErrorCode, EvidenceJson: item.EvidenceJSON, RequestId: item.RequestID, VerifiedBy: item.VerifiedBy, OccurredAt: timestamp(item.OccurredAt)})
+	}
+	return out
 }
 
 func valueOrZero(value *int64) int64 {

@@ -78,6 +78,7 @@ CSRF_REQUIRED = {
     ("post", "/api/v1/admin/portal/applications/{application_id}/credential-approval"),
     ("put", "/api/v1/admin/portal/applications/{application_id}/identity-binding"),
     ("post", "/api/v1/admin/portal/applications/{application_id}/verify"),
+    ("post", "/api/v1/admin/portal/applications/{application_id}/onboarding-checks"),
     ("post", "/api/v1/admin/portal/applications/{application_id}/submit-publish"),
     ("post", "/api/v1/admin/portal/applications/{application_id}/publish"),
     ("post", "/api/v1/admin/portal/applications/{application_id}/disable"),

@@ -105,6 +105,7 @@ var codeMap = map[string]string{
 	"ENROLLMENT_TOKEN_INVALID":          "200032",
 	"APPROVER_UNAVAILABLE":              "300014",
 	"ENROLLMENT_CREDENTIAL_UNAVAILABLE": "300015",
+	"PROVISIONING_CHECK_UNAVAILABLE":    "400014",
 }
 
 func NumericCode(symbol string) string {

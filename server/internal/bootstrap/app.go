@@ -43,6 +43,7 @@ import (
 	"github.com/sevoniva-labs/velora/server/internal/platform/messaging"
 	"github.com/sevoniva-labs/velora/server/internal/platform/metrics"
 	"github.com/sevoniva-labs/velora/server/internal/platform/observability"
+	"github.com/sevoniva-labs/velora/server/internal/platform/provisioninghttp"
 	"github.com/sevoniva-labs/velora/server/internal/platform/ratelimit"
 	"github.com/sevoniva-labs/velora/server/internal/platform/remoteconfig"
 	"github.com/sevoniva-labs/velora/server/internal/platform/search"
@@ -268,6 +269,11 @@ func New(ctx context.Context, opts Options) (*App, error) {
 		}
 		portalService.ConfigureCredentialHandoff(handoffStore)
 	}
+	provisioningRouter, err := provisioninghttp.NewRouter(db, provisioningCipher, nil)
+	if err != nil {
+		return nil, fmt.Errorf("provisioning checks: %w", err)
+	}
+	portalService.ConfigureProvisioningRouter(provisioningRouter)
 	portalService.ConfigureIdentityBoundary(cfg.Security.CasdoorAdminURL, cfg.Security.OIDCIssuer, cfg.Security.OIDCInternalURL, cfg.Security.CasdoorAllowedHosts, cfg.Security.ApplicationOnboardingV2, cfg.Security.CasdoorAdminEntryEnabled)
 	casdoorAutomation, err := casdooradmin.New(casdooradmin.Config{BaseURL: cfg.Security.CasdoorAdminURL, Token: cfg.Security.CasdoorAutomationToken, Enabled: cfg.Security.CasdoorApplicationAutomationEnabled})
 	if err != nil {

@@ -38,9 +38,14 @@ func NewRouter(db *database.DB, cipher *appcrypto.EnvelopeCipher, client *http.C
 }
 
 func (r *Router) Publish(ctx context.Context, message messaging.Message) (string, error) {
+	id, _, err := r.PublishWithStatus(ctx, message)
+	return id, err
+}
+
+func (r *Router) PublishWithStatus(ctx context.Context, message messaging.Message) (string, string, error) {
 	applicationCode, err := applicationCodeFromTopic(message.Topic)
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 	var endpoint, secretRef string
 	err = r.db.QueryRowContext(ctx, r.db.Rebind(`SELECT t.endpoint_url,t.secret_ref
@@ -48,29 +53,29 @@ func (r *Router) Publish(ctx context.Context, message messaging.Message) (string
 		JOIN portal_applications a ON a.id=t.application_id AND a.organization_id=t.organization_id
 		WHERE t.organization_id=? AND a.code=? AND t.delivery_status<>'DISABLED'`), message.OrganizationID, applicationCode).Scan(&endpoint, &secretRef)
 	if errors.Is(err, sql.ErrNoRows) {
-		return "", ErrTargetNotConfigured
+		return "", "", ErrTargetNotConfigured
 	}
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 	secret, err := readSecretReference(secretRef, r.cipher, []byte("velora:provisioning:"+message.OrganizationID+":"+applicationCode))
 	if err != nil {
 		r.recordFailure(ctx, message.OrganizationID, applicationCode, "SECRET_UNAVAILABLE")
-		return "", fmt.Errorf("load provisioning signing key: %w", err)
+		return "", "", fmt.Errorf("load provisioning signing key: %w", err)
 	}
 	dispatcher, err := New(Config{Enabled: true, URL: endpoint, Secret: secret, HTTPClient: r.client})
 	if err != nil {
 		r.recordFailure(ctx, message.OrganizationID, applicationCode, "TARGET_CONFIGURATION_INVALID")
-		return "", err
+		return "", "", err
 	}
-	id, err := dispatcher.Publish(ctx, message)
+	id, status, err := dispatcher.PublishWithStatus(ctx, message)
 	if err != nil {
 		r.recordFailure(ctx, message.OrganizationID, applicationCode, "DELIVERY_FAILED")
-		return "", err
+		return "", status, err
 	}
 	now := time.Now().UTC()
 	_, _ = r.db.ExecContext(ctx, r.db.Rebind(`UPDATE portal_application_provisioning_targets SET delivery_status='HEALTHY',last_success_at=?,last_error_code='',updated_at=? WHERE organization_id=? AND application_id=(SELECT id FROM portal_applications WHERE organization_id=? AND code=?)`), now, now, message.OrganizationID, message.OrganizationID, applicationCode)
-	return id, nil
+	return id, status, nil
 }
 
 func (r *Router) recordFailure(ctx context.Context, organizationID, applicationCode, code string) {

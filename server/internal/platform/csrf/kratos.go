@@ -64,6 +64,7 @@ var protectedOperations = map[string]struct{}{
 	forgev1.OperationPortalServiceUpsertApplicationIdentityBinding:          {},
 	forgev1.OperationPortalServicePrepareApplicationCredentialApproval:      {},
 	forgev1.OperationPortalServiceVerifyApplicationIdentity:                 {},
+	forgev1.OperationPortalServiceRunApplicationOnboardingChecks:            {},
 	forgev1.OperationPortalServiceSubmitApplicationPublish:                  {},
 	forgev1.OperationPortalServicePublishApplication:                        {},
 	forgev1.OperationPortalServiceDisableApplication:                        {},

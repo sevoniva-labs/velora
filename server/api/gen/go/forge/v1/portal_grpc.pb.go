@@ -51,6 +51,7 @@ const (
 	PortalService_PrepareApplicationCredentialApproval_FullMethodName      = "/forge.v1.PortalService/PrepareApplicationCredentialApproval"
 	PortalService_ConsumeApplicationEnrollment_FullMethodName              = "/forge.v1.PortalService/ConsumeApplicationEnrollment"
 	PortalService_VerifyApplicationIdentity_FullMethodName                 = "/forge.v1.PortalService/VerifyApplicationIdentity"
+	PortalService_RunApplicationOnboardingChecks_FullMethodName            = "/forge.v1.PortalService/RunApplicationOnboardingChecks"
 	PortalService_SubmitApplicationPublish_FullMethodName                  = "/forge.v1.PortalService/SubmitApplicationPublish"
 	PortalService_PublishApplication_FullMethodName                        = "/forge.v1.PortalService/PublishApplication"
 	PortalService_DisableApplication_FullMethodName                        = "/forge.v1.PortalService/DisableApplication"
@@ -92,6 +93,7 @@ type PortalServiceClient interface {
 	PrepareApplicationCredentialApproval(ctx context.Context, in *PrepareApplicationCredentialApprovalRequest, opts ...grpc.CallOption) (*PrepareApplicationCredentialApprovalResponse, error)
 	ConsumeApplicationEnrollment(ctx context.Context, in *ConsumeApplicationEnrollmentRequest, opts ...grpc.CallOption) (*ConsumeApplicationEnrollmentResponse, error)
 	VerifyApplicationIdentity(ctx context.Context, in *VerifyApplicationIdentityRequest, opts ...grpc.CallOption) (*VerifyApplicationIdentityResponse, error)
+	RunApplicationOnboardingChecks(ctx context.Context, in *RunApplicationOnboardingChecksRequest, opts ...grpc.CallOption) (*RunApplicationOnboardingChecksResponse, error)
 	SubmitApplicationPublish(ctx context.Context, in *SubmitApplicationPublishRequest, opts ...grpc.CallOption) (*SubmitApplicationPublishResponse, error)
 	PublishApplication(ctx context.Context, in *PublishApplicationRequest, opts ...grpc.CallOption) (*PublishApplicationResponse, error)
 	DisableApplication(ctx context.Context, in *DisableApplicationRequest, opts ...grpc.CallOption) (*DisableApplicationResponse, error)
@@ -425,6 +427,16 @@ func (c *portalServiceClient) VerifyApplicationIdentity(ctx context.Context, in 
 	return out, nil
 }
 
+func (c *portalServiceClient) RunApplicationOnboardingChecks(ctx context.Context, in *RunApplicationOnboardingChecksRequest, opts ...grpc.CallOption) (*RunApplicationOnboardingChecksResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(RunApplicationOnboardingChecksResponse)
+	err := c.cc.Invoke(ctx, PortalService_RunApplicationOnboardingChecks_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *portalServiceClient) SubmitApplicationPublish(ctx context.Context, in *SubmitApplicationPublishRequest, opts ...grpc.CallOption) (*SubmitApplicationPublishResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(SubmitApplicationPublishResponse)
@@ -491,6 +503,7 @@ type PortalServiceServer interface {
 	PrepareApplicationCredentialApproval(context.Context, *PrepareApplicationCredentialApprovalRequest) (*PrepareApplicationCredentialApprovalResponse, error)
 	ConsumeApplicationEnrollment(context.Context, *ConsumeApplicationEnrollmentRequest) (*ConsumeApplicationEnrollmentResponse, error)
 	VerifyApplicationIdentity(context.Context, *VerifyApplicationIdentityRequest) (*VerifyApplicationIdentityResponse, error)
+	RunApplicationOnboardingChecks(context.Context, *RunApplicationOnboardingChecksRequest) (*RunApplicationOnboardingChecksResponse, error)
 	SubmitApplicationPublish(context.Context, *SubmitApplicationPublishRequest) (*SubmitApplicationPublishResponse, error)
 	PublishApplication(context.Context, *PublishApplicationRequest) (*PublishApplicationResponse, error)
 	DisableApplication(context.Context, *DisableApplicationRequest) (*DisableApplicationResponse, error)
@@ -599,6 +612,9 @@ func (UnimplementedPortalServiceServer) ConsumeApplicationEnrollment(context.Con
 }
 func (UnimplementedPortalServiceServer) VerifyApplicationIdentity(context.Context, *VerifyApplicationIdentityRequest) (*VerifyApplicationIdentityResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method VerifyApplicationIdentity not implemented")
+}
+func (UnimplementedPortalServiceServer) RunApplicationOnboardingChecks(context.Context, *RunApplicationOnboardingChecksRequest) (*RunApplicationOnboardingChecksResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method RunApplicationOnboardingChecks not implemented")
 }
 func (UnimplementedPortalServiceServer) SubmitApplicationPublish(context.Context, *SubmitApplicationPublishRequest) (*SubmitApplicationPublishResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method SubmitApplicationPublish not implemented")
@@ -1206,6 +1222,24 @@ func _PortalService_VerifyApplicationIdentity_Handler(srv interface{}, ctx conte
 	return interceptor(ctx, in, info, handler)
 }
 
+func _PortalService_RunApplicationOnboardingChecks_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RunApplicationOnboardingChecksRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PortalServiceServer).RunApplicationOnboardingChecks(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: PortalService_RunApplicationOnboardingChecks_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PortalServiceServer).RunApplicationOnboardingChecks(ctx, req.(*RunApplicationOnboardingChecksRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _PortalService_SubmitApplicationPublish_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(SubmitApplicationPublishRequest)
 	if err := dec(in); err != nil {
@@ -1394,6 +1428,10 @@ var PortalService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "VerifyApplicationIdentity",
 			Handler:    _PortalService_VerifyApplicationIdentity_Handler,
+		},
+		{
+			MethodName: "RunApplicationOnboardingChecks",
+			Handler:    _PortalService_RunApplicationOnboardingChecks_Handler,
 		},
 		{
 			MethodName: "SubmitApplicationPublish",

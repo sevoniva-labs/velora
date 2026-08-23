@@ -136,6 +136,10 @@ service PortalService {
     option (google.api.http) = {post: "/api/v1/admin/portal/applications/{application_id}/verify" body: "*"};
     option (openapi.v3.operation) = {security: [{additional_properties: [{name: "SessionCookie" value: {value: []}}, {name: "CsrfToken" value: {value: []}}]}, {additional_properties: [{name: "BearerAuth" value: {value: []}}]}]};
   }
+  rpc RunApplicationOnboardingChecks(RunApplicationOnboardingChecksRequest) returns (RunApplicationOnboardingChecksResponse) {
+    option (google.api.http) = {post: "/api/v1/admin/portal/applications/{application_id}/onboarding-checks" body: "*"};
+    option (openapi.v3.operation) = {security: [{additional_properties: [{name: "SessionCookie" value: {value: []}}, {name: "CsrfToken" value: {value: []}}]}]};
+  }
   rpc SubmitApplicationPublish(SubmitApplicationPublishRequest) returns (SubmitApplicationPublishResponse) {
     option (google.api.http) = {post: "/api/v1/admin/portal/applications/{application_id}/submit-publish" body: "*"};
     option (openapi.v3.operation) = {security: [{additional_properties: [{name: "SessionCookie" value: {value: []}}, {name: "CsrfToken" value: {value: []}}]}, {additional_properties: [{name: "BearerAuth" value: {value: []}}]}]};
@@ -236,6 +240,7 @@ message PortalApplicationProvisioningTarget {
   google.protobuf.Timestamp created_at = 14;
   google.protobuf.Timestamp updated_at = 15;
 }
+message PortalApplicationOnboardingCheck { string id = 1; string application_id = 2; int64 config_version = 3; string check_type = 4; string result = 5; string error_code = 6; string evidence_json = 7; string request_id = 8; string verified_by = 9; google.protobuf.Timestamp occurred_at = 10; }
 
 message ListPortalApplicationsRequest {
   string keyword = 1;
@@ -383,6 +388,7 @@ message GetApplicationOnboardingResponse {
   repeated string blockers = 7;
   repeated PortalApplicationRole roles = 8;
   PortalApplicationProvisioningTarget provisioning_target = 9;
+  repeated PortalApplicationOnboardingCheck onboarding_checks = 10;
 }
 message UpsertApplicationIdentityBindingRequest {
   string application_id = 1;
@@ -421,6 +427,8 @@ message PrepareApplicationCredentialApprovalRequest { string application_id = 1;
 message PrepareApplicationCredentialApprovalResponse { string approval_status = 1; string approver_name = 2; string next_action = 3; string provider_application_ref = 4; string public_client_id = 5; string issuer = 6; repeated string scopes = 7; }
 message VerifyApplicationIdentityRequest { string application_id = 1; int64 expected_config_version = 2; }
 message VerifyApplicationIdentityResponse { PortalIdentityBinding binding = 1; PortalApplication application = 2; repeated PortalApplicationVerification verifications = 3; bool passed = 4; }
+message RunApplicationOnboardingChecksRequest { string application_id = 1; int64 expected_config_version = 2; }
+message RunApplicationOnboardingChecksResponse { repeated PortalApplicationOnboardingCheck checks = 1; bool passed = 2; }
 message SubmitApplicationPublishRequest { string application_id = 1; int64 expected_config_version = 2; }
 message SubmitApplicationPublishResponse { PortalApplication application = 1; }
 message PublishApplicationRequest { string application_id = 1; int64 expected_config_version = 2; }

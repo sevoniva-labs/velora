@@ -859,6 +859,33 @@ paths:
             security:
                 - SessionCookie: []
                 - BearerAuth: []
+    /api/v1/admin/portal/applications/{applicationId}/onboarding-checks:
+        post:
+            tags:
+                - PortalService
+            operationId: PortalService_RunApplicationOnboardingChecks
+            parameters:
+                - name: applicationId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/forge.v1.RunApplicationOnboardingChecksRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/forge.v1.RunApplicationOnboardingChecksResponse'
+            security:
+                - SessionCookie: []
+                  CsrfToken: []
     /api/v1/admin/portal/applications/{applicationId}/policies:
         put:
             tags:
@@ -3457,6 +3484,10 @@ components:
                         $ref: '#/components/schemas/forge.v1.PortalApplicationRole'
                 provisioningTarget:
                     $ref: '#/components/schemas/forge.v1.PortalApplicationProvisioningTarget'
+                onboardingChecks:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/forge.v1.PortalApplicationOnboardingCheck'
         forge.v1.GetApprovalResponse:
             type: object
             properties:
@@ -3970,6 +4001,30 @@ components:
                     format: date-time
                 publishedBy:
                     type: string
+        forge.v1.PortalApplicationOnboardingCheck:
+            type: object
+            properties:
+                id:
+                    type: string
+                applicationId:
+                    type: string
+                configVersion:
+                    type: string
+                checkType:
+                    type: string
+                result:
+                    type: string
+                errorCode:
+                    type: string
+                evidenceJson:
+                    type: string
+                requestId:
+                    type: string
+                verifiedBy:
+                    type: string
+                occurredAt:
+                    type: string
+                    format: date-time
         forge.v1.PortalApplicationProvisioningTarget:
             type: object
             properties:
@@ -4374,6 +4429,22 @@ components:
             properties:
                 change:
                     $ref: '#/components/schemas/forge.v1.ConfigChange'
+        forge.v1.RunApplicationOnboardingChecksRequest:
+            type: object
+            properties:
+                applicationId:
+                    type: string
+                expectedConfigVersion:
+                    type: string
+        forge.v1.RunApplicationOnboardingChecksResponse:
+            type: object
+            properties:
+                checks:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/forge.v1.PortalApplicationOnboardingCheck'
+                passed:
+                    type: boolean
         forge.v1.SecurityPolicy:
             type: object
             properties:

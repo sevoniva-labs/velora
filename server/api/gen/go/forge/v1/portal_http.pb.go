@@ -47,6 +47,7 @@ const OperationPortalServicePublishApplication = "/forge.v1.PortalService/Publis
 const OperationPortalServiceRemovePortalFavorite = "/forge.v1.PortalService/RemovePortalFavorite"
 const OperationPortalServiceReplacePortalApplicationPolicies = "/forge.v1.PortalService/ReplacePortalApplicationPolicies"
 const OperationPortalServiceReplacePortalApplicationRoles = "/forge.v1.PortalService/ReplacePortalApplicationRoles"
+const OperationPortalServiceRunApplicationOnboardingChecks = "/forge.v1.PortalService/RunApplicationOnboardingChecks"
 const OperationPortalServiceSubmitApplicationPublish = "/forge.v1.PortalService/SubmitApplicationPublish"
 const OperationPortalServiceUpdatePortalApplication = "/forge.v1.PortalService/UpdatePortalApplication"
 const OperationPortalServiceUpdatePortalCategory = "/forge.v1.PortalService/UpdatePortalCategory"
@@ -84,6 +85,7 @@ type PortalServiceHTTPServer interface {
 	RemovePortalFavorite(context.Context, *RemovePortalFavoriteRequest) (*RemovePortalFavoriteResponse, error)
 	ReplacePortalApplicationPolicies(context.Context, *ReplacePortalApplicationPoliciesRequest) (*ReplacePortalApplicationPoliciesResponse, error)
 	ReplacePortalApplicationRoles(context.Context, *ReplacePortalApplicationRolesRequest) (*ReplacePortalApplicationRolesResponse, error)
+	RunApplicationOnboardingChecks(context.Context, *RunApplicationOnboardingChecksRequest) (*RunApplicationOnboardingChecksResponse, error)
 	SubmitApplicationPublish(context.Context, *SubmitApplicationPublishRequest) (*SubmitApplicationPublishResponse, error)
 	UpdatePortalApplication(context.Context, *UpdatePortalApplicationRequest) (*UpdatePortalApplicationResponse, error)
 	UpdatePortalCategory(context.Context, *UpdatePortalCategoryRequest) (*UpdatePortalCategoryResponse, error)
@@ -127,6 +129,7 @@ func RegisterPortalServiceHTTPServer(s *http.Server, srv PortalServiceHTTPServer
 	r.POST("/api/v1/admin/portal/applications/{application_id}/credential-approval", _PortalService_PrepareApplicationCredentialApproval0_HTTP_Handler(srv))
 	r.POST("/api/v1/application-enrollments:consume", _PortalService_ConsumeApplicationEnrollment0_HTTP_Handler(srv))
 	r.POST("/api/v1/admin/portal/applications/{application_id}/verify", _PortalService_VerifyApplicationIdentity0_HTTP_Handler(srv))
+	r.POST("/api/v1/admin/portal/applications/{application_id}/onboarding-checks", _PortalService_RunApplicationOnboardingChecks0_HTTP_Handler(srv))
 	r.POST("/api/v1/admin/portal/applications/{application_id}/submit-publish", _PortalService_SubmitApplicationPublish0_HTTP_Handler(srv))
 	r.POST("/api/v1/admin/portal/applications/{application_id}/publish", _PortalService_PublishApplication0_HTTP_Handler(srv))
 	r.POST("/api/v1/admin/portal/applications/{application_id}/disable", _PortalService_DisableApplication0_HTTP_Handler(srv))
@@ -842,6 +845,31 @@ func _PortalService_VerifyApplicationIdentity0_HTTP_Handler(srv PortalServiceHTT
 	}
 }
 
+func _PortalService_RunApplicationOnboardingChecks0_HTTP_Handler(srv PortalServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in RunApplicationOnboardingChecksRequest
+		if err := ctx.Bind(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindVars(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationPortalServiceRunApplicationOnboardingChecks)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.RunApplicationOnboardingChecks(ctx, req.(*RunApplicationOnboardingChecksRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*RunApplicationOnboardingChecksResponse)
+		return ctx.Result(200, reply)
+	}
+}
+
 func _PortalService_SubmitApplicationPublish0_HTTP_Handler(srv PortalServiceHTTPServer) func(ctx http.Context) error {
 	return func(ctx http.Context) error {
 		var in SubmitApplicationPublishRequest
@@ -946,6 +974,7 @@ type PortalServiceHTTPClient interface {
 	RemovePortalFavorite(ctx context.Context, req *RemovePortalFavoriteRequest, opts ...http.CallOption) (rsp *RemovePortalFavoriteResponse, err error)
 	ReplacePortalApplicationPolicies(ctx context.Context, req *ReplacePortalApplicationPoliciesRequest, opts ...http.CallOption) (rsp *ReplacePortalApplicationPoliciesResponse, err error)
 	ReplacePortalApplicationRoles(ctx context.Context, req *ReplacePortalApplicationRolesRequest, opts ...http.CallOption) (rsp *ReplacePortalApplicationRolesResponse, err error)
+	RunApplicationOnboardingChecks(ctx context.Context, req *RunApplicationOnboardingChecksRequest, opts ...http.CallOption) (rsp *RunApplicationOnboardingChecksResponse, err error)
 	SubmitApplicationPublish(ctx context.Context, req *SubmitApplicationPublishRequest, opts ...http.CallOption) (rsp *SubmitApplicationPublishResponse, err error)
 	UpdatePortalApplication(ctx context.Context, req *UpdatePortalApplicationRequest, opts ...http.CallOption) (rsp *UpdatePortalApplicationResponse, err error)
 	UpdatePortalCategory(ctx context.Context, req *UpdatePortalCategoryRequest, opts ...http.CallOption) (rsp *UpdatePortalCategoryResponse, err error)
@@ -1321,6 +1350,19 @@ func (c *PortalServiceHTTPClientImpl) ReplacePortalApplicationRoles(ctx context.
 	opts = append(opts, http.Operation(OperationPortalServiceReplacePortalApplicationRoles))
 	opts = append(opts, http.PathTemplate(pattern))
 	err := c.cc.Invoke(ctx, "PUT", path, in, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+func (c *PortalServiceHTTPClientImpl) RunApplicationOnboardingChecks(ctx context.Context, in *RunApplicationOnboardingChecksRequest, opts ...http.CallOption) (*RunApplicationOnboardingChecksResponse, error) {
+	var out RunApplicationOnboardingChecksResponse
+	pattern := "/api/v1/admin/portal/applications/{application_id}/onboarding-checks"
+	path := binding.EncodeURL(pattern, in, false)
+	opts = append(opts, http.Operation(OperationPortalServiceRunApplicationOnboardingChecks))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "POST", path, in, &out, opts...)
 	if err != nil {
 		return nil, err
 	}

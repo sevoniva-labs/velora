@@ -92,6 +92,35 @@ type ProvisioningTarget struct {
 	UpdatedAt          time.Time
 }
 
+type OnboardingCheck struct {
+	ID             string
+	OrganizationID string
+	ApplicationID  string
+	ConfigVersion  int64
+	CheckType      string
+	Result         string
+	ErrorCode      string
+	EvidenceJSON   string
+	RequestID      string
+	VerifiedBy     string
+	OccurredAt     time.Time
+}
+
+func OnboardingChecksPassed(items []OnboardingCheck) bool {
+	required := map[string]bool{"access_policy": false, "oidc_discovery": false, "provisioning_challenge": false, "provisioning_duplicate": false, "provisioning_stale": false}
+	for _, item := range items {
+		if _, ok := required[item.CheckType]; ok && item.Result == "PASSED" {
+			required[item.CheckType] = true
+		}
+	}
+	for _, passed := range required {
+		if !passed {
+			return false
+		}
+	}
+	return true
+}
+
 type Application struct {
 	ID              string
 	OrganizationID  string

@@ -164,6 +164,7 @@ func PortalRules() map[string][]string {
 		forgev1.OperationPortalServiceUpsertApplicationIdentityBinding:          {"iam.integration.manage"},
 		forgev1.OperationPortalServicePrepareApplicationCredentialApproval:      {"iam.integration.manage"},
 		forgev1.OperationPortalServiceVerifyApplicationIdentity:                 {"iam.integration.verify"},
+		forgev1.OperationPortalServiceRunApplicationOnboardingChecks:            {"iam.integration.verify"},
 		forgev1.OperationPortalServiceSubmitApplicationPublish:                  {"portal.application.publish"},
 		forgev1.OperationPortalServicePublishApplication:                        {"portal.application.publish"},
 		forgev1.OperationPortalServiceDisableApplication:                        {"portal.application.publish"},

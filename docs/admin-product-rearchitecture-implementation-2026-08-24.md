@@ -1,6 +1,6 @@
 # Velora 管理后台重构实施与回滚说明
 
-状态：代码、迁移和生产制品已部署；等待登录后的浏览器验收。
+状态：Phase 0–4 代码、迁移、自动门禁、生产部署和认证管理 API 验收已完成；仅剩登录后浏览器目视验收。
 
 ## 交付范围
 
@@ -15,7 +15,7 @@
 
 ## 数据变更
 
-PostgreSQL 迁移 `00028` 新增应用访问规则、规则角色和有效权限来源；`00029` 新增应用负责人和所属部门引用。迁移均为 additive，不删除旧策略或旧 entitlement。生产当前仅对 PostgreSQL 给出验收结论。
+PostgreSQL 迁移 `00028` 新增应用访问规则、规则角色和有效权限来源；`00029` 新增应用负责人和所属部门引用；`00030` 补齐平台角色说明、启停状态和唯一约束；`00031` 新增用户角色排除记录，使访问复核能够真正撤销用户组继承角色。迁移均为 additive，不删除旧策略或旧 entitlement。生产当前仅对 PostgreSQL 给出验收结论。
 
 升级前必须备份 Velora 与 Casdoor 数据库，并记录旧 Server、Worker、Web 镜像 ID。迁移后旧表保留，可供旧版本读取；不得在事故窗口删除新表或回写历史迁移。
 
@@ -57,14 +57,25 @@ server: make contract
 
 - 生产备份服务执行成功，退出码为 0。
 - Server、Worker、Migrate 使用本机构建的 `linux/amd64` 制品；Web 在本机构建后上传。依赖使用 `goproxy.cn`，服务器未执行 Go 或前端编译。
-- Server/Worker 制品版本：`4290280`；Web 最终版本：`c62b809`。
-- PostgreSQL additive migration 成功；`application_access_grants`、`application_access_grant_roles`、`user_application_entitlement_sources` 及应用负责人字段均已存在。
+- Server 与 Migrate 基础制品版本：`ab0f83c`；Server 热修复版本：`ea8478d`；Worker 最终版本：`7505112`；Web 最终版本：`ab0f83c`。
+- PostgreSQL additive migration 成功，当前 Goose 版本为 `31`；`application_access_grants`、`application_access_grant_roles`、`user_application_entitlement_sources`、应用负责人字段、平台角色生命周期字段和 `user_role_exclusions` 均已存在。
 - 旧策略迁移后有 3 条访问规则、1 条权限来源，现有 2 个应用保留。
 - Server、Worker、Web、PostgreSQL、Redis、Casdoor、Edge 与 Demo 容器健康。
 - `home` 健康、API health、API readiness、OIDC Discovery 与 Demo health 均返回 HTTP 200；readiness 的 database、cache、messaging、search、storage 均为 `UP`。
-- 新管理 API 在未认证状态统一返回 401，无 5xx；Server 发布后未发现 error、panic 或 fatal 日志。
-- 发布前镜像保留为 `rollback-pre-4290280` 与 `rollback-pre-c62b809` 标签；制品和校验文件位于 `/opt/velora/prod/releases/4290280`、`/opt/velora/prod/releases/c62b809`。
+- 通过一次性生产验收令牌完成认证管理 API 验收：6 个平台角色、3 个用户、2 个应用均可读取；`carson` 的有效应用权限可解释；Spectra 账号下发重试保持 `HEALTHY`；旧单用户 entitlement 写接口返回 400，确认已退役。验收令牌和会话随后删除，数据库计数均为 0。
+- Server 发布后未发现 error、panic 或 fatal 日志。Worker 在未配置 WORM 归档时明确记录 `WARN` 并禁用清理，不会误报故障，也不会在没有不可变归档时删除审计数据。
+- 发布前镜像保留为 `rollback-pre-ab0f83c`、`rollback-pre-ea8478d` 和 `rollback-pre-7505112`；制品位于 `/opt/velora/prod/releases/ab0f83c` 与 `/opt/velora/prod/releases/7505112`。最终 Worker SHA-256 为 `0cdd6a13ba15249c64c241be0ef001cc8166072feb828cb0ce9ff1e6e60c22d1`。
 
-最终自动门禁：Web lint、54 项测试和生产构建通过；Server `go test ./...`、Proto、OpenAPI 与 122 条 HTTP 契约门禁通过。
+最终自动门禁：Web lint、11 个测试文件共 54 项测试和生产构建通过；Server `go test ./...`、Proto、OpenAPI 与 127 条 HTTP 契约门禁通过，其中 76 条写操作受 CSRF 保护。
 
-浏览器已验证未认证访问 `/admin` 正确回到 Velora 登录页，页面不暴露 Casdoor。登录后的菜单、应用详情和治理操作仍需由人工完成一次 Turnstile 后继续验收；不得把该项记录为已通过。
+浏览器已验证未认证访问 `/admin` 正确回到 Velora 登录页，页面不暴露 Casdoor。由于生产登录启用了 Turnstile，自动化不得绕过验证码；登录后的菜单、应用详情和治理操作仍需人工完成一次验证码后继续目视验收，不得把该项记录为已通过。
+
+## 最终生产核验快照
+
+核验时间：2026-08-24（Asia/Shanghai）。
+
+- 公网 `/api/v1/system/health` 与 `/api/v1/system/ready` 均返回成功，database、cache、messaging、search、storage 全部为 `UP`。
+- Server、Web、Worker、OIDC Demo、Redis、Casdoor、Edge、PostgreSQL 全部健康；最新 Worker 日志仅包含预期的 WORM 未配置警告。
+- 数据库迁移版本为 31；平台角色 6 个；生产验收临时令牌 0 个、临时会话 0 个；`admin.must_change_password=true` 已恢复。
+- `user_role_exclusions` 当前为 0 条是正常生产数据状态；迁移、外键和访问复核撤权代码路径已通过自动测试。
+- WORM 归档适配器属于已明确预留能力；在正式配置不可变归档前，审计清理保持关闭。这不是数据保留门禁失败，也不得手工开启清理。

@@ -15,9 +15,9 @@
 
 1. 提供应用生产地址和一个精确的 HTTPS Callback 地址。
 2. 在 Velora 创建应用，启动地址填写应用自己的 OIDC 登录端点。
-3. 为应用创建 Casdoor Client，只启用 Authorization Code，Scopes 使用 `openid profile email`。
-4. 应用后端配置 `https://auth.sevoniva.com`、Client ID、Secret 文件和 Callback，并实现 PKCE、State、Nonce、ID Token 验签。
-5. 在 Velora 绑定 Client、执行真实验证、配置可见范围并发布。
+3. 在应用详情配置应用角色、访问范围、登录回调和账号同步地址；Velora 自动创建并管理 Casdoor Client。
+4. 应用后端通过单次 Enrollment 领取 Client ID、Secret 文件和同步密钥，并实现 PKCE、State、Nonce、ID Token 验签。
+5. 在 Velora 执行真实验证并发布，全程不打开 Casdoor。
 
 最小运行配置：
 
@@ -34,9 +34,9 @@ OIDC_REDIRECT_URL=https://<应用域名>/<callback>
 
 - Velora 是应用目录、接入流程、访问范围、发布和审计平台。
 - Velora 也是账号生命周期与应用授权控制面；管理员只在 Velora 开通、停用账号和分配应用角色。
-- Casdoor 是认证事实来源，负责密码、MFA、SSO Session、Client 和 Token，并由 Velora 通过受控 M2M API 写入账号状态。
+- Casdoor 是认证执行引擎，负责密码、MFA、SSO Session、Client 和 Token，并由 Velora 通过受控 M2M API 编排。
 - 目标应用是 OIDC Relying Party，必须自行校验 Token 并实施业务权限。
-- Velora 的门户访问策略只控制“谁能看到和启动应用”，不能替代目标应用内部授权。
+- Velora 的有效应用权限统一驱动门户可见、启动授权和账号角色下发，但不能替代目标应用内部业务鉴权。
 
 ## 2. 标准生产参数
 
@@ -71,19 +71,14 @@ https://home.sevoniva.com/casdoor
 
 ## 4. 管理员接入流程
 
-1. 在 Velora 管理后台选择“接入应用”。
-2. 填写基础信息并选择 `OIDC`。
-3. 创建或绑定 Casdoor Client。
-4. Client 必须启用：
-   - `authorization_code`
-   - `openid profile email`
-   - Signin Session
-5. 复制一次性 Client Secret 到应用 Secret Manager。
-6. 在 Velora 选择访问范围。
-7. 执行配置验证。
-8. 应用团队部署配置后执行真实登录验收。
-9. 检查预计影响用户、验证证据和回滚点。
-10. 发布应用。
+1. 在 `管理后台 → 应用中心 → 应用` 新建应用并选择“统一登录”。
+2. 进入应用详情，在“应用信息”确认负责人和所属部门。
+3. 在“角色与访问”维护应用角色，按部门、用户组、平台角色或人员配置访问范围并预览影响。
+4. 在“登录配置”填写精确 HTTPS Callback；Velora 自动管理 Authorization Code、PKCE 与 `openid profile email`。
+5. 在“账号同步”填写 HTTPS Endpoint，通过单次 Enrollment 将密钥写入应用 Secret Manager。
+6. 在“验证与发布”运行检查，完成真实登录、无权限、停用与恢复验收后发布。
+
+高权限或大范围访问变更自动进入审批；审批人在“权限治理 → 审批”处理，申请人回到应用详情执行已批准变更。所有标准流程均不要求输入原始 ID 或打开 Casdoor。
 
 ## 5. 应用配置
 

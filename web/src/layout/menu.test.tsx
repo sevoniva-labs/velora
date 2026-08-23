@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { PORTAL_MANAGE, SYSTEM_USER_READ } from '../auth/permissions'
+import { APPROVAL_REQUEST_READ, PORTAL_MANAGE, SYSTEM_ACCESS_REVIEW_READ, SYSTEM_CONFIG_READ, SYSTEM_TEMPORARY_GRANT_READ, SYSTEM_USER_READ } from '../auth/permissions'
 import { visibleNavigation } from './AdminLayout'
 import { adminActiveKey, adminNavItems } from './menu'
 
@@ -17,10 +17,23 @@ describe('admin navigation', () => {
     expect(labels).not.toContain('Casdoor')
     expect(labels).not.toContain('OIDC')
     expect(labels).not.toContain('身份接入')
+    expect(labels).not.toContain('访问策略')
+    expect(labels).not.toContain('分类管理')
+    expect(labels).not.toContain('标签管理')
+  })
+
+  it('exposes governance and configuration through product tasks', () => {
+    const navigation = visibleNavigation(adminNavItems, [APPROVAL_REQUEST_READ, SYSTEM_TEMPORARY_GRANT_READ, SYSTEM_ACCESS_REVIEW_READ, SYSTEM_CONFIG_READ], [])
+    expect(JSON.stringify(navigation)).toContain('审批')
+    expect(JSON.stringify(navigation)).toContain('临时授权')
+    expect(JSON.stringify(navigation)).toContain('访问复核')
+    expect(JSON.stringify(navigation)).toContain('配置发布')
   })
 
   it('selects the correct navigation item for nested routes', () => {
     expect(adminActiveKey('/admin/applications/app-1')).toBe('admin-apps')
     expect(adminActiveKey('/admin/users/user-1')).toBe('admin-users')
+    expect(adminActiveKey('/admin/access-reviews')).toBe('admin-access-reviews')
+    expect(adminActiveKey('/admin/config-changes')).toBe('admin-config-changes')
   })
 })

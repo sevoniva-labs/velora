@@ -11,14 +11,16 @@ Velora 不自建 OIDC Provider，不修改 Casdoor，不向下游发送密码、
 
 ## 2. 管理员流程
 
-入口：`管理后台 → 应用管理 → 新建应用/接入配置`。
+入口：`管理后台 → 应用中心 → 应用 → 新建应用`。
 
 1. 填写名称、不可变编码、负责人、分类和生产地址。
 2. OIDC 应用填写精确 HTTPS Callback；Issuer、Scopes、Client ID、PKCE 和 Provider Ref 由 Velora 生成。
-3. 填写账号同步 HTTPS Endpoint、角色目录和访问范围。无策略默认拒绝；全员必须显式选择 `EVERYONE`。
-4. 点击“申请审批并生成接入配置”。Velora 自动选择独立安全审批人并创建待办，不输入审批 ID。
-5. 审批通过后再次点击，Velora 自动编排 Casdoor，返回五分钟、单次消费的 Enrollment Token。
-6. 在应用服务器用 `velora-connect` 领取并部署，运行全部自动检查后试运行、发布。
+3. 在应用详情的“角色与访问”中维护应用角色，再按部门、用户组、平台角色或人员配置访问范围。无规则默认拒绝；全员访问必须显式选择“全体成员”。
+4. 保存前核对新增、撤销、角色变化、高权限用户和账号同步任务数。高风险或大范围变更会自动进入审批；管理员只选择审批人，不输入审批编号。
+5. 在“登录配置”和“账号同步”完成回调地址与 HTTPS Endpoint 配置。Velora 自动编排 Casdoor，审批通过后提供五分钟、单次消费的 Enrollment Token。
+6. 在应用服务器用 `velora-connect` 领取并部署；回到“验证与发布”运行检查、试运行并发布。
+
+日常管理不再使用独立的“访问策略”“身份与单点登录”“分类管理”或“标签管理”菜单。一个应用的资料、登录、角色、访问、账号同步、发布和变更记录全部在应用详情完成。
 
 状态以服务端 `status / next_action / blockers` 为准：`DRAFT → APPROVAL_PENDING → CREDENTIALS_ISSUED → WAITING_FOR_DEPLOYMENT → VERIFIED → PILOT → PUBLISHED`；异常为 `ACTION_REQUIRED / DEGRADED / SUSPENDED`。
 

@@ -15,6 +15,9 @@ func (r *IdentityRepo) CreateTemporaryRoleGrant(ctx context.Context, grant ident
 	if err != nil {
 		return identity.TemporaryRoleGrant{}, err
 	}
+	if _, err := r.db.ExecContext(ctx, r.db.Rebind(`DELETE FROM user_role_exclusions WHERE organization_id=? AND user_id=? AND role_id=?`), grant.OrganizationID, grant.UserID, roleID); err != nil {
+		return identity.TemporaryRoleGrant{}, err
+	}
 	grant.ID = uuid.NewString()
 	grant.CreatedAt = time.Now().UTC()
 	_, err = r.db.ExecContext(ctx, r.db.Rebind(`INSERT INTO temporary_role_grants(id,organization_id,user_id,role_id,requested_by,approval_id,reason,valid_from,valid_until,created_at) VALUES(?,?,?,?,?,?,?,?,?,?)`),

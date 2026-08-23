@@ -71,7 +71,13 @@ func (s *PlatformService) DecideAccessReviewItem(ctx context.Context, req *forge
 	}
 	event := newAuditEvent(ctx, principal, "access_review.item.decide", "access_review_item", req.GetItemId(), map[string]any{"review_id": req.GetReviewId(), "decision": req.GetDecision()})
 	err = s.audited(ctx, event, func(txCtx context.Context) error {
-		return s.identity.DecideAccessReviewItem(txCtx, principal, req.GetReviewId(), req.GetItemId(), req.GetDecision(), req.GetReason())
+		if err := s.identity.DecideAccessReviewItem(txCtx, principal, req.GetReviewId(), req.GetItemId(), req.GetDecision(), req.GetReason()); err != nil {
+			return err
+		}
+		if req.GetDecision() == domain.AccessReviewRevoke {
+			return s.recomputeApplicationAccess(txCtx, principal)
+		}
+		return nil
 	})
 	if err != nil {
 		return nil, serviceError(err)

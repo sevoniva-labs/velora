@@ -203,17 +203,17 @@ func (r *IdentityRepo) GrantRole(ctx context.Context, userID, roleKey string) er
 }
 func (r *IdentityRepo) RolesForUser(ctx context.Context, userID string) ([]string, error) {
 	rows, err := r.db.QueryContext(ctx, r.db.Rebind(`SELECT role_key FROM (
-		SELECT r.role_key AS role_key FROM roles r JOIN user_roles ur ON ur.role_id=r.id WHERE ur.user_id=? AND r.status='ACTIVE'
+		SELECT r.role_key AS role_key FROM roles r JOIN user_roles ur ON ur.role_id=r.id WHERE ur.user_id=? AND r.status='ACTIVE' AND NOT EXISTS (SELECT 1 FROM user_role_exclusions x WHERE x.user_id=? AND x.role_id=r.id)
 		UNION
 		SELECT r.role_key AS role_key FROM roles r
 		JOIN user_group_roles ugr ON ugr.role_id=r.id
 		JOIN user_groups ug ON ug.id=ugr.group_id AND ug.status='ACTIVE'
 		JOIN user_group_members ugm ON ugm.group_id=ug.id
-		WHERE ugm.user_id=? AND r.status='ACTIVE'
+		WHERE ugm.user_id=? AND r.status='ACTIVE' AND NOT EXISTS (SELECT 1 FROM user_role_exclusions x WHERE x.user_id=? AND x.role_id=r.id)
 		UNION
 		SELECT r.role_key AS role_key FROM roles r JOIN temporary_role_grants trg ON trg.role_id=r.id
-		WHERE trg.user_id=? AND trg.revoked_at IS NULL AND trg.valid_from<=? AND trg.valid_until>? AND r.status='ACTIVE'
-	) effective_roles ORDER BY role_key`), userID, userID, userID, time.Now().UTC(), time.Now().UTC())
+		WHERE trg.user_id=? AND trg.revoked_at IS NULL AND trg.valid_from<=? AND trg.valid_until>? AND r.status='ACTIVE' AND NOT EXISTS (SELECT 1 FROM user_role_exclusions x WHERE x.user_id=? AND x.role_id=r.id)
+	) effective_roles ORDER BY role_key`), userID, userID, userID, userID, userID, time.Now().UTC(), time.Now().UTC(), userID)
 	if err != nil {
 		return nil, err
 	}
@@ -242,7 +242,8 @@ func (r *IdentityRepo) PermissionsForUser(ctx context.Context, userID string) ([
 			UNION
 			SELECT role_id FROM temporary_role_grants WHERE user_id=? AND revoked_at IS NULL AND valid_from<=? AND valid_until>?
 		) effective_roles ON effective_roles.role_id=rp.role_id
-		ORDER BY p.permission_key`), userID, userID, userID, time.Now().UTC(), time.Now().UTC())
+		WHERE NOT EXISTS (SELECT 1 FROM user_role_exclusions x WHERE x.user_id=? AND x.role_id=rp.role_id)
+		ORDER BY p.permission_key`), userID, userID, userID, time.Now().UTC(), time.Now().UTC(), userID)
 	if err != nil {
 		return nil, err
 	}
@@ -922,7 +923,7 @@ func (r *IdentityRepo) DataScopeForUser(ctx context.Context, orgID, userID strin
 			UNION
 			SELECT role_id FROM temporary_role_grants WHERE user_id=? AND revoked_at IS NULL AND valid_from<=? AND valid_until>?
 		) effective_roles ON effective_roles.role_id=r.id
-		WHERE r.organization_id=? AND r.status='ACTIVE'`), userID, userID, userID, time.Now().UTC(), time.Now().UTC(), orgID)
+		WHERE r.organization_id=? AND r.status='ACTIVE' AND NOT EXISTS (SELECT 1 FROM user_role_exclusions x WHERE x.user_id=? AND x.role_id=r.id)`), userID, userID, userID, time.Now().UTC(), time.Now().UTC(), orgID, userID)
 	if err != nil {
 		return identity.EffectiveDataScope{}, err
 	}
@@ -1384,6 +1385,9 @@ func (r *IdentityRepo) ReplaceUserRoles(ctx context.Context, orgID, userID strin
 			if _, err := tx.ExecContext(ctx, r.db.Rebind(`INSERT INTO user_roles(user_id,role_id) VALUES(?,?)`), userID, roleID); err != nil {
 				return err
 			}
+			if _, err := tx.ExecContext(ctx, r.db.Rebind(`DELETE FROM user_role_exclusions WHERE organization_id=? AND user_id=? AND role_id=?`), orgID, userID, roleID); err != nil {
+				return err
+			}
 		}
 		return nil
 	})
@@ -1686,12 +1690,12 @@ func (r *IdentityRepo) GroupRolesForUser(ctx context.Context, userID string) ([]
 
 func (r *IdentityRepo) RolesForUserExcludingGroup(ctx context.Context, userID, excludedGroupID string) ([]string, error) {
 	rows, err := r.db.QueryContext(ctx, r.db.Rebind(`SELECT role_key FROM (
-		SELECT r.role_key AS role_key FROM roles r JOIN user_roles ur ON ur.role_id=r.id WHERE ur.user_id=? AND r.status='ACTIVE'
+		SELECT r.role_key AS role_key FROM roles r JOIN user_roles ur ON ur.role_id=r.id WHERE ur.user_id=? AND r.status='ACTIVE' AND NOT EXISTS (SELECT 1 FROM user_role_exclusions x WHERE x.user_id=? AND x.role_id=r.id)
 		UNION
-		SELECT r.role_key AS role_key FROM roles r JOIN user_group_roles ugr ON ugr.role_id=r.id JOIN user_groups ug ON ug.id=ugr.group_id AND ug.status='ACTIVE' JOIN user_group_members ugm ON ugm.group_id=ug.id WHERE ugm.user_id=? AND ug.id<>? AND r.status='ACTIVE'
+		SELECT r.role_key AS role_key FROM roles r JOIN user_group_roles ugr ON ugr.role_id=r.id JOIN user_groups ug ON ug.id=ugr.group_id AND ug.status='ACTIVE' JOIN user_group_members ugm ON ugm.group_id=ug.id WHERE ugm.user_id=? AND ug.id<>? AND r.status='ACTIVE' AND NOT EXISTS (SELECT 1 FROM user_role_exclusions x WHERE x.user_id=? AND x.role_id=r.id)
 		UNION
-		SELECT r.role_key AS role_key FROM roles r JOIN temporary_role_grants trg ON trg.role_id=r.id WHERE trg.user_id=? AND trg.revoked_at IS NULL AND trg.valid_from<=? AND trg.valid_until>? AND r.status='ACTIVE'
-	) effective_roles ORDER BY role_key`), userID, userID, excludedGroupID, userID, time.Now().UTC(), time.Now().UTC())
+		SELECT r.role_key AS role_key FROM roles r JOIN temporary_role_grants trg ON trg.role_id=r.id WHERE trg.user_id=? AND trg.revoked_at IS NULL AND trg.valid_from<=? AND trg.valid_until>? AND r.status='ACTIVE' AND NOT EXISTS (SELECT 1 FROM user_role_exclusions x WHERE x.user_id=? AND x.role_id=r.id)
+	) effective_roles ORDER BY role_key`), userID, userID, userID, excludedGroupID, userID, userID, time.Now().UTC(), time.Now().UTC(), userID)
 	if err != nil {
 		return nil, err
 	}

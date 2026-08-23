@@ -15,7 +15,7 @@ export default function ApplicationHistory({ applicationId }: Props) {
     { title: '时间', dataIndex: 'createdAt', render: (_, row) => formatDateTime(row.createdAt), width: 180 },
     { title: '操作', dataIndex: 'action', render: (_, row) => <Tag>{auditActionLabel(row.action)}</Tag> },
     { title: '操作人', dataIndex: 'operator' },
-    { title: '请求编号', dataIndex: 'requestId', copyable: true, ellipsis: true },
+    { title: '来源 IP', dataIndex: 'ip', render: (_, row) => row.ip || '—' },
   ]
   return <ProTable<AuditLog> rowKey="id" columns={columns} dataSource={items} loading={logs.isLoading} search={{ labelWidth: 'auto' }} pagination={{ pageSize: 20 }} />
 }

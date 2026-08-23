@@ -18,11 +18,11 @@ func (r *IdentityRepo) CreateAccessReview(ctx context.Context, review domain.Acc
 		}
 		now := time.Now().UTC()
 		rows, err := tx.QueryContext(ctx, r.db.Rebind(`SELECT user_id,login_name,role_key FROM (
-			SELECT u.id AS user_id,u.login_name,r.role_key AS role_key FROM users u JOIN user_roles ur ON ur.user_id=u.id JOIN roles r ON r.id=ur.role_id WHERE u.organization_id=? AND u.status='ACTIVE'
+			SELECT u.id AS user_id,u.login_name,r.role_key AS role_key FROM users u JOIN user_roles ur ON ur.user_id=u.id JOIN roles r ON r.id=ur.role_id WHERE u.organization_id=? AND u.status='ACTIVE' AND r.status='ACTIVE' AND NOT EXISTS (SELECT 1 FROM user_role_exclusions x WHERE x.user_id=u.id AND x.role_id=r.id)
 			UNION
-			SELECT u.id AS user_id,u.login_name,r.role_key AS role_key FROM users u JOIN user_group_members ugm ON ugm.user_id=u.id JOIN user_groups ug ON ug.id=ugm.group_id AND ug.status='ACTIVE' JOIN user_group_roles ugr ON ugr.group_id=ug.id JOIN roles r ON r.id=ugr.role_id WHERE u.organization_id=? AND u.status='ACTIVE'
+			SELECT u.id AS user_id,u.login_name,r.role_key AS role_key FROM users u JOIN user_group_members ugm ON ugm.user_id=u.id JOIN user_groups ug ON ug.id=ugm.group_id AND ug.status='ACTIVE' JOIN user_group_roles ugr ON ugr.group_id=ug.id JOIN roles r ON r.id=ugr.role_id WHERE u.organization_id=? AND u.status='ACTIVE' AND r.status='ACTIVE' AND NOT EXISTS (SELECT 1 FROM user_role_exclusions x WHERE x.user_id=u.id AND x.role_id=r.id)
 			UNION
-			SELECT u.id AS user_id,u.login_name,r.role_key AS role_key FROM users u JOIN temporary_role_grants trg ON trg.user_id=u.id AND trg.revoked_at IS NULL AND trg.valid_from<=? AND trg.valid_until>? JOIN roles r ON r.id=trg.role_id WHERE u.organization_id=? AND u.status='ACTIVE'
+			SELECT u.id AS user_id,u.login_name,r.role_key AS role_key FROM users u JOIN temporary_role_grants trg ON trg.user_id=u.id AND trg.revoked_at IS NULL AND trg.valid_from<=? AND trg.valid_until>? JOIN roles r ON r.id=trg.role_id WHERE u.organization_id=? AND u.status='ACTIVE' AND r.status='ACTIVE' AND NOT EXISTS (SELECT 1 FROM user_role_exclusions x WHERE x.user_id=u.id AND x.role_id=r.id)
 		) entitlement_snapshot ORDER BY login_name,role_key`), review.OrganizationID, review.OrganizationID, now, now, review.OrganizationID)
 		if err != nil {
 			return err
@@ -125,6 +125,26 @@ func (r *IdentityRepo) DecideAccessReviewItem(ctx context.Context, organizationI
 		}
 		if count == 0 {
 			return sql.ErrNoRows
+		}
+		if decision == domain.AccessReviewRevoke {
+			var userID, roleID string
+			if err := tx.QueryRowContext(ctx, r.db.Rebind(`SELECT ari.user_id,r.id FROM access_review_items ari JOIN roles r ON r.organization_id=ari.organization_id AND r.role_key=ari.role_key WHERE ari.organization_id=? AND ari.review_id=? AND ari.id=?`), organizationID, reviewID, itemID).Scan(&userID, &roleID); err != nil {
+				return err
+			}
+			if _, err := tx.ExecContext(ctx, r.db.Rebind(`DELETE FROM user_roles WHERE user_id=? AND role_id=?`), userID, roleID); err != nil {
+				return err
+			}
+			if _, err := tx.ExecContext(ctx, r.db.Rebind(`UPDATE temporary_role_grants SET revoked_at=?,revoked_by=?,revoke_reason=? WHERE organization_id=? AND user_id=? AND role_id=? AND revoked_at IS NULL`), time.Now().UTC(), reviewerID, reason, organizationID, userID, roleID); err != nil {
+				return err
+			}
+			if r.db.Provider == "postgres" {
+				_, err = tx.ExecContext(ctx, r.db.Rebind(`INSERT INTO user_role_exclusions(organization_id,user_id,role_id,review_item_id,reason,created_by,created_at) VALUES(?,?,?,?,?,?,?) ON CONFLICT(user_id,role_id) DO UPDATE SET review_item_id=excluded.review_item_id,reason=excluded.reason,created_by=excluded.created_by,created_at=excluded.created_at`), organizationID, userID, roleID, itemID, reason, reviewerID, time.Now().UTC())
+			} else {
+				_, err = tx.ExecContext(ctx, `INSERT INTO user_role_exclusions(organization_id,user_id,role_id,review_item_id,reason,created_by,created_at) VALUES(?,?,?,?,?,?,?) ON DUPLICATE KEY UPDATE review_item_id=VALUES(review_item_id),reason=VALUES(reason),created_by=VALUES(created_by),created_at=VALUES(created_at)`, organizationID, userID, roleID, itemID, reason, reviewerID, time.Now().UTC())
+			}
+			if err != nil {
+				return err
+			}
 		}
 		var pending int
 		if err := tx.QueryRowContext(ctx, r.db.Rebind(`SELECT COUNT(*) FROM access_review_items WHERE organization_id=? AND review_id=? AND decision='PENDING'`), organizationID, reviewID).Scan(&pending); err != nil {

@@ -345,12 +345,12 @@ func (r *PortalRepo) accessProfiles(ctx context.Context, orgID string) ([]access
 	for i := range profiles {
 		now := time.Now().UTC()
 		profiles[i].Roles, err = r.stringColumn(ctx, `SELECT role_key FROM (
-			SELECT r.role_key FROM roles r JOIN user_roles ur ON ur.role_id=r.id WHERE r.organization_id=? AND ur.user_id=? AND r.status='ACTIVE'
+			SELECT r.role_key FROM roles r JOIN user_roles ur ON ur.role_id=r.id WHERE r.organization_id=? AND ur.user_id=? AND r.status='ACTIVE' AND NOT EXISTS (SELECT 1 FROM user_role_exclusions x WHERE x.user_id=? AND x.role_id=r.id)
 			UNION
-			SELECT r.role_key FROM roles r JOIN user_group_roles ugr ON ugr.role_id=r.id JOIN user_groups ug ON ug.id=ugr.group_id AND ug.organization_id=r.organization_id AND ug.status='ACTIVE' JOIN user_group_members ugm ON ugm.group_id=ug.id WHERE r.organization_id=? AND ugm.user_id=? AND r.status='ACTIVE'
+			SELECT r.role_key FROM roles r JOIN user_group_roles ugr ON ugr.role_id=r.id JOIN user_groups ug ON ug.id=ugr.group_id AND ug.organization_id=r.organization_id AND ug.status='ACTIVE' JOIN user_group_members ugm ON ugm.group_id=ug.id WHERE r.organization_id=? AND ugm.user_id=? AND r.status='ACTIVE' AND NOT EXISTS (SELECT 1 FROM user_role_exclusions x WHERE x.user_id=? AND x.role_id=r.id)
 			UNION
-			SELECT r.role_key FROM roles r JOIN temporary_role_grants trg ON trg.role_id=r.id WHERE trg.organization_id=? AND trg.user_id=? AND trg.revoked_at IS NULL AND trg.valid_from<=? AND trg.valid_until>? AND r.status='ACTIVE'
-		) effective_roles ORDER BY role_key`, orgID, profiles[i].UserID, orgID, profiles[i].UserID, orgID, profiles[i].UserID, now, now)
+			SELECT r.role_key FROM roles r JOIN temporary_role_grants trg ON trg.role_id=r.id WHERE trg.organization_id=? AND trg.user_id=? AND trg.revoked_at IS NULL AND trg.valid_from<=? AND trg.valid_until>? AND r.status='ACTIVE' AND NOT EXISTS (SELECT 1 FROM user_role_exclusions x WHERE x.user_id=? AND x.role_id=r.id)
+		) effective_roles ORDER BY role_key`, orgID, profiles[i].UserID, profiles[i].UserID, orgID, profiles[i].UserID, profiles[i].UserID, orgID, profiles[i].UserID, now, now, profiles[i].UserID)
 		if err != nil {
 			return nil, nil, err
 		}

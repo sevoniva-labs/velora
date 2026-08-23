@@ -456,19 +456,6 @@ export async function adminUpdateUserStatus(userId: string, status: 'ACTIVE' | '
   return mapAdminUser(record(data).user ?? data)
 }
 
-export async function adminUpdateUserEntitlement(
-  userId: string,
-  applicationCode: string,
-  status: 'ACTIVE' | 'DISABLED',
-  roles: string[],
-): Promise<AdminUser> {
-  const data = await apiFetch<unknown>(`/admin/users/${encodeURIComponent(userId)}/entitlements/${encodeURIComponent(applicationCode)}`, {
-    method: 'PUT',
-    body: { status, roles },
-  })
-  return mapAdminUser(record(data).user ?? data)
-}
-
 // Wave 1 没有门户设置表。设置页使用浏览器本地存储作为明确的临时适配，避免继续访问旧 /portal/settings。
 const defaultSettings = [{ key: 'portal_name', value: 'Velora' }, { key: 'portal_welcome', value: '企业应用门户' }, { key: 'portal_footer', value: '' }, { key: 'announcement', value: '' }, { key: 'ui_scale', value: '1' }, { key: 'new_badge_days', value: '7' }]
 // Wave 1 后端没有共享门户设置服务；固定只读默认值，避免把 localStorage 误当成生产配置。

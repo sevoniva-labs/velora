@@ -666,6 +666,7 @@ service PlatformService {
     };
   }
   rpc UpdateUserEntitlement(UpdateUserEntitlementRequest) returns (UpdateUserEntitlementResponse) {
+    option deprecated = true;
     option (google.api.http) = {put: "/api/v1/admin/users/{user_id}/entitlements/{application_code}" body: "*"};
     option (openapi.v3.operation) = {security: [{additional_properties: [{name: "SessionCookie" value: {value: []}}, {name: "CsrfToken" value: {value: []}}]}, {additional_properties: [{name: "BearerAuth" value: {value: []}}]}]};
   }

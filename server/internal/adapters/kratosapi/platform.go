@@ -571,21 +571,10 @@ func (s *PlatformService) UpdateUserStatus(ctx context.Context, req *forgev1.Upd
 }
 
 func (s *PlatformService) UpdateUserEntitlement(ctx context.Context, req *forgev1.UpdateUserEntitlementRequest) (*forgev1.UpdateUserEntitlementResponse, error) {
-	principal, err := requiredPrincipal(ctx)
-	if err != nil {
+	if _, err := requiredPrincipal(ctx); err != nil {
 		return nil, err
 	}
-	event := newAuditEvent(ctx, principal, "user.entitlement.update", "user", req.GetUserId(), map[string]any{"application_code": req.GetApplicationCode(), "status": req.GetStatus(), "roles": req.GetRoles()})
-	var updated domain.User
-	err = s.audited(ctx, event, func(txCtx context.Context) error {
-		var updateErr error
-		updated, updateErr = s.identity.UpdateUserEntitlement(txCtx, principal, req.GetUserId(), req.GetApplicationCode(), req.GetStatus(), req.GetRoles())
-		return updateErr
-	})
-	if err != nil {
-		return nil, serviceError(err)
-	}
-	return &forgev1.UpdateUserEntitlementResponse{User: userProto(updated)}, nil
+	return nil, kratoserrors.BadRequest("INVALID_ARGUMENT", "application access must be managed through access rules")
 }
 
 func (s *PlatformService) UnlockUser(ctx context.Context, req *forgev1.UnlockUserRequest) (*forgev1.UnlockUserResponse, error) {

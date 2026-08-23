@@ -7687,7 +7687,7 @@ const file_forge_v1_platform_proto_rawDesc = "" +
 	"\aitem_id\x18\x02 \x01(\tR\x06itemId\x12\x1a\n" +
 	"\bdecision\x18\x03 \x01(\tR\bdecision\x12\x16\n" +
 	"\x06reason\x18\x04 \x01(\tR\x06reason\" \n" +
-	"\x1eDecideAccessReviewItemResponse2\xa0[\n" +
+	"\x1eDecideAccessReviewItemResponse2\xa3[\n" +
 	"\x0fPlatformService\x12\x8b\x01\n" +
 	"\tListUsers\x12\x1a.forge.v1.ListUsersRequest\x1a\x1b.forge.v1.ListUsersResponse\"E\xbaG'Z\x13\n" +
 	"\x11\n" +
@@ -7954,15 +7954,15 @@ const file_forge_v1_platform_proto_rawDesc = "" +
 	"\tCsrfToken\x12\x00Z\x10\n" +
 	"\x0e\n" +
 	"\n" +
-	"BearerAuth\x12\x00\x82\xd3\xe4\x93\x02):\x01*2$/api/v1/admin/users/{user_id}/status\x12\xec\x01\n" +
-	"\x15UpdateUserEntitlement\x12&.forge.v1.UpdateUserEntitlementRequest\x1a'.forge.v1.UpdateUserEntitlementResponse\"\x81\x01\xbaG6Z\"\n" +
+	"BearerAuth\x12\x00\x82\xd3\xe4\x93\x02):\x01*2$/api/v1/admin/users/{user_id}/status\x12\xef\x01\n" +
+	"\x15UpdateUserEntitlement\x12&.forge.v1.UpdateUserEntitlementRequest\x1a'.forge.v1.UpdateUserEntitlementResponse\"\x84\x01\xbaG6Z\"\n" +
 	"\x11\n" +
 	"\rSessionCookie\x12\x00\n" +
 	"\r\n" +
 	"\tCsrfToken\x12\x00Z\x10\n" +
 	"\x0e\n" +
 	"\n" +
-	"BearerAuth\x12\x00\x82\xd3\xe4\x93\x02B:\x01*\x1a=/api/v1/admin/users/{user_id}/entitlements/{application_code}\x12\xb1\x01\n" +
+	"BearerAuth\x12\x00\x82\xd3\xe4\x93\x02B:\x01*\x1a=/api/v1/admin/users/{user_id}/entitlements/{application_code}\x88\x02\x01\x12\xb1\x01\n" +
 	"\n" +
 	"UnlockUser\x12\x1b.forge.v1.UnlockUserRequest\x1a\x1c.forge.v1.UnlockUserResponse\"h\xbaG6Z\"\n" +
 	"\x11\n" +

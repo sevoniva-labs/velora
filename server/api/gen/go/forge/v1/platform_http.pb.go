@@ -133,6 +133,7 @@ type PlatformServiceHTTPServer interface {
 	UpdateRoleDataScope(context.Context, *UpdateRoleDataScopeRequest) (*UpdateRoleDataScopeResponse, error)
 	UpdateRolePermissions(context.Context, *UpdateRolePermissionsRequest) (*UpdateRolePermissionsResponse, error)
 	UpdateSecurityPolicy(context.Context, *UpdateSecurityPolicyRequest) (*UpdateSecurityPolicyResponse, error)
+	// Deprecated: Do not use.
 	UpdateUserEntitlement(context.Context, *UpdateUserEntitlementRequest) (*UpdateUserEntitlementResponse, error)
 	UpdateUserGroup(context.Context, *UpdateUserGroupRequest) (*UpdateUserGroupResponse, error)
 	UpdateUserGroupMembers(context.Context, *UpdateUserGroupMembersRequest) (*UpdateUserGroupMembersResponse, error)
@@ -1595,6 +1596,7 @@ type PlatformServiceHTTPClient interface {
 	UpdateRoleDataScope(ctx context.Context, req *UpdateRoleDataScopeRequest, opts ...http.CallOption) (rsp *UpdateRoleDataScopeResponse, err error)
 	UpdateRolePermissions(ctx context.Context, req *UpdateRolePermissionsRequest, opts ...http.CallOption) (rsp *UpdateRolePermissionsResponse, err error)
 	UpdateSecurityPolicy(ctx context.Context, req *UpdateSecurityPolicyRequest, opts ...http.CallOption) (rsp *UpdateSecurityPolicyResponse, err error)
+	// Deprecated: Do not use.
 	UpdateUserEntitlement(ctx context.Context, req *UpdateUserEntitlementRequest, opts ...http.CallOption) (rsp *UpdateUserEntitlementResponse, err error)
 	UpdateUserGroup(ctx context.Context, req *UpdateUserGroupRequest, opts ...http.CallOption) (rsp *UpdateUserGroupResponse, err error)
 	UpdateUserGroupMembers(ctx context.Context, req *UpdateUserGroupMembersRequest, opts ...http.CallOption) (rsp *UpdateUserGroupMembersResponse, err error)
@@ -2289,6 +2291,7 @@ func (c *PlatformServiceHTTPClientImpl) UpdateSecurityPolicy(ctx context.Context
 	return &out, nil
 }
 
+// Deprecated: Do not use.
 func (c *PlatformServiceHTTPClientImpl) UpdateUserEntitlement(ctx context.Context, in *UpdateUserEntitlementRequest, opts ...http.CallOption) (*UpdateUserEntitlementResponse, error) {
 	var out UpdateUserEntitlementResponse
 	pattern := "/api/v1/admin/users/{user_id}/entitlements/{application_code}"

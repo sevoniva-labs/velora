@@ -121,6 +121,7 @@ type PlatformServiceClient interface {
 	UpdateRolePermissions(ctx context.Context, in *UpdateRolePermissionsRequest, opts ...grpc.CallOption) (*UpdateRolePermissionsResponse, error)
 	UpdateUserRoles(ctx context.Context, in *UpdateUserRolesRequest, opts ...grpc.CallOption) (*UpdateUserRolesResponse, error)
 	UpdateUserStatus(ctx context.Context, in *UpdateUserStatusRequest, opts ...grpc.CallOption) (*UpdateUserStatusResponse, error)
+	// Deprecated: Do not use.
 	UpdateUserEntitlement(ctx context.Context, in *UpdateUserEntitlementRequest, opts ...grpc.CallOption) (*UpdateUserEntitlementResponse, error)
 	UnlockUser(ctx context.Context, in *UnlockUserRequest, opts ...grpc.CallOption) (*UnlockUserResponse, error)
 	ResetUserPassword(ctx context.Context, in *ResetUserPasswordRequest, opts ...grpc.CallOption) (*ResetUserPasswordResponse, error)
@@ -515,6 +516,7 @@ func (c *platformServiceClient) UpdateUserStatus(ctx context.Context, in *Update
 	return out, nil
 }
 
+// Deprecated: Do not use.
 func (c *platformServiceClient) UpdateUserEntitlement(ctx context.Context, in *UpdateUserEntitlementRequest, opts ...grpc.CallOption) (*UpdateUserEntitlementResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(UpdateUserEntitlementResponse)
@@ -795,6 +797,7 @@ type PlatformServiceServer interface {
 	UpdateRolePermissions(context.Context, *UpdateRolePermissionsRequest) (*UpdateRolePermissionsResponse, error)
 	UpdateUserRoles(context.Context, *UpdateUserRolesRequest) (*UpdateUserRolesResponse, error)
 	UpdateUserStatus(context.Context, *UpdateUserStatusRequest) (*UpdateUserStatusResponse, error)
+	// Deprecated: Do not use.
 	UpdateUserEntitlement(context.Context, *UpdateUserEntitlementRequest) (*UpdateUserEntitlementResponse, error)
 	UnlockUser(context.Context, *UnlockUserRequest) (*UnlockUserResponse, error)
 	ResetUserPassword(context.Context, *ResetUserPasswordRequest) (*ResetUserPasswordResponse, error)

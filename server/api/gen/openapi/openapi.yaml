@@ -755,6 +755,33 @@ paths:
                 - SessionCookie: []
                   CsrfToken: []
                 - BearerAuth: []
+    /api/v1/admin/portal/applications/{applicationId}/credential-approval:
+        post:
+            tags:
+                - PortalService
+            operationId: PortalService_PrepareApplicationCredentialApproval
+            parameters:
+                - name: applicationId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/forge.v1.PrepareApplicationCredentialApprovalRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/forge.v1.PrepareApplicationCredentialApprovalResponse'
+            security:
+                - SessionCookie: []
+                  CsrfToken: []
     /api/v1/admin/portal/applications/{applicationId}/disable:
         post:
             tags:
@@ -1873,6 +1900,24 @@ paths:
             security:
                 - SessionCookie: []
                   CsrfToken: []
+    /api/v1/application-enrollments:consume:
+        post:
+            tags:
+                - PortalService
+            operationId: PortalService_ConsumeApplicationEnrollment
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/forge.v1.ConsumeApplicationEnrollmentRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/forge.v1.ConsumeApplicationEnrollmentResponse'
     /api/v1/approvals:
         get:
             tags:
@@ -2897,6 +2942,38 @@ components:
                     type: array
                     items:
                         type: string
+        forge.v1.ConsumeApplicationEnrollmentRequest:
+            type: object
+            properties:
+                enrollmentToken:
+                    type: string
+        forge.v1.ConsumeApplicationEnrollmentResponse:
+            type: object
+            properties:
+                applicationCode:
+                    type: string
+                issuer:
+                    type: string
+                clientId:
+                    type: string
+                clientSecret:
+                    type: string
+                redirectUris:
+                    type: array
+                    items:
+                        type: string
+                scopes:
+                    type: array
+                    items:
+                        type: string
+                provisioningEndpoint:
+                    type: string
+                provisioningSecret:
+                    type: string
+                provisioningKeyVersion:
+                    type: string
+                provisioningFingerprint:
+                    type: string
         forge.v1.CreateAccessReviewRequest:
             type: object
             properties:
@@ -4093,6 +4170,34 @@ components:
                 updatedAt:
                     type: string
                     format: date-time
+        forge.v1.PrepareApplicationCredentialApprovalRequest:
+            type: object
+            properties:
+                applicationId:
+                    type: string
+                redirectUris:
+                    type: array
+                    items:
+                        type: string
+        forge.v1.PrepareApplicationCredentialApprovalResponse:
+            type: object
+            properties:
+                approvalStatus:
+                    type: string
+                approverName:
+                    type: string
+                nextAction:
+                    type: string
+                providerApplicationRef:
+                    type: string
+                publicClientId:
+                    type: string
+                issuer:
+                    type: string
+                scopes:
+                    type: array
+                    items:
+                        type: string
         forge.v1.PublishApplicationRequest:
             type: object
             properties:
@@ -4732,6 +4837,8 @@ components:
                     type: array
                     items:
                         type: string
+                credentialDeliveryMode:
+                    type: string
         forge.v1.UpsertApplicationIdentityBindingResponse:
             type: object
             properties:
@@ -4741,6 +4848,11 @@ components:
                     $ref: '#/components/schemas/forge.v1.PortalApplication'
                 oneTimeClientSecret:
                     type: string
+                enrollmentToken:
+                    type: string
+                enrollmentExpiresAt:
+                    type: string
+                    format: date-time
         forge.v1.UpsertDataFieldPolicyRequest:
             type: object
             properties:
@@ -4763,6 +4875,8 @@ components:
                 rotateSecret:
                     type: boolean
                 expectedConfigVersion:
+                    type: string
+                credentialDeliveryMode:
                     type: string
         forge.v1.UpsertPortalApplicationProvisioningTargetResponse:
             type: object

@@ -2,8 +2,10 @@ package kratosapi
 
 import (
 	"context"
+	"crypto/sha256"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/url"
 	"strings"
@@ -16,9 +18,11 @@ import (
 	approvalapp "github.com/sevoniva-labs/velora/server/internal/app/approval"
 	"github.com/sevoniva-labs/velora/server/internal/app/audit"
 	appportal "github.com/sevoniva-labs/velora/server/internal/app/portal"
+	approvaldomain "github.com/sevoniva-labs/velora/server/internal/domain/approval"
 	domain "github.com/sevoniva-labs/velora/server/internal/domain/identity"
 	portaldomain "github.com/sevoniva-labs/velora/server/internal/domain/portal"
 	"github.com/sevoniva-labs/velora/server/internal/platform/casdooradmin"
+	"github.com/sevoniva-labs/velora/server/internal/platform/credentialhandoff"
 	"github.com/sevoniva-labs/velora/server/internal/platform/database"
 	"github.com/sevoniva-labs/velora/server/internal/platform/httpserver"
 	"github.com/sevoniva-labs/velora/server/internal/platform/idempotency"
@@ -39,6 +43,7 @@ type PortalService struct {
 	casdoorAutomation         casdooradmin.ApplicationProvider
 	approval                  *approvalapp.Service
 	idem                      *idempotency.Store
+	handoff                   *credentialhandoff.Store
 }
 
 func setNoStore(ctx context.Context) {
@@ -71,6 +76,10 @@ func (s *PortalService) ConfigureApproval(service *approvalapp.Service) {
 
 func (s *PortalService) ConfigureIdempotency(store *idempotency.Store) {
 	s.idem = store
+}
+
+func (s *PortalService) ConfigureCredentialHandoff(store *credentialhandoff.Store) {
+	s.handoff = store
 }
 
 func (s *PortalService) audited(ctx context.Context, event *audit.Event, operation func(context.Context) error) error {
@@ -552,6 +561,9 @@ func (s *PortalService) UpsertPortalApplicationProvisioningTarget(ctx context.Co
 		return nil, err
 	}
 	reply := response.(*forgev1.UpsertPortalApplicationProvisioningTargetResponse)
+	if strings.EqualFold(strings.TrimSpace(req.GetCredentialDeliveryMode()), "CLI") {
+		reply.OneTimeProvisioningSecret = ""
+	}
 	if reply.GetOneTimeProvisioningSecret() != "" {
 		setNoStore(ctx)
 	}
@@ -661,6 +673,90 @@ func (s *PortalService) GetApplicationOnboarding(ctx context.Context, req *forge
 	return response, nil
 }
 
+func (s *PortalService) PrepareApplicationCredentialApproval(ctx context.Context, req *forgev1.PrepareApplicationCredentialApprovalRequest) (*forgev1.PrepareApplicationCredentialApprovalResponse, error) {
+	if err := s.identityOnboardingRequired(); err != nil {
+		return nil, err
+	}
+	principal, err := requiredPrincipal(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if s.approval == nil || s.casdoorAutomation == nil || !s.casdoorAutomation.Enabled() {
+		return nil, kratoserrors.ServiceUnavailable("CREDENTIAL_AUTOMATION_UNAVAILABLE", "credential automation is unavailable")
+	}
+	app, _, _, err := s.portal.GetApplicationOnboarding(ctx, principal, req.GetApplicationId())
+	if err != nil {
+		return nil, serviceError(err)
+	}
+	providerRef, clientID := generatedOIDCIdentifiers(principal.OrganizationID, app.Code)
+	scopes := []string{"openid", "profile", "email"}
+	payload := credentialApprovalPayload(providerRef, clientID, s.identityIssuer, req.GetRedirectUris(), scopes)
+	if err := (portaldomain.IdentityBindingInput{ProviderKey: portaldomain.IdentityProviderCasdoor, Protocol: portaldomain.ProtocolOIDC, ProviderApplicationRef: providerRef, PublicClientID: clientID, Issuer: s.identityIssuer, RedirectURIs: req.GetRedirectUris(), Scopes: scopes}).Validate(); err != nil {
+		return nil, serviceError(err)
+	}
+	encoded, _ := json.Marshal(payload)
+	if existing, found := s.findCredentialApproval(ctx, principal, app.ID, string(encoded)); found {
+		return credentialApprovalResponse(existing, providerRef, clientID, s.identityIssuer, scopes, s.approverName(ctx, principal.OrganizationID, existing)), nil
+	}
+	var approverID string
+	err = s.db.QueryRowContext(ctx, s.db.Rebind(`SELECT u.id FROM users u JOIN user_roles ur ON ur.user_id=u.id JOIN roles r ON r.id=ur.role_id AND r.organization_id=u.organization_id WHERE u.organization_id=? AND u.id<>? AND u.status='ACTIVE' AND r.role_key IN ('system_admin','security_admin') ORDER BY CASE WHEN r.role_key='security_admin' THEN 0 ELSE 1 END,u.created_at LIMIT 1`), principal.OrganizationID, principal.UserID).Scan(&approverID)
+	if err != nil {
+		return nil, kratoserrors.Conflict("APPROVER_UNAVAILABLE", "no independent security approver is available")
+	}
+	var created approvaldomain.Request
+	event := newAuditEvent(ctx, principal, "portal.application.credential_approval.create", "portal_application", app.ID, map[string]any{"approver_id": approverID})
+	if err := s.audited(ctx, event, func(txCtx context.Context) error {
+		var createErr error
+		created, createErr = s.approval.Create(txCtx, principal, approvalapp.CreateInput{RequestType: "CASDOOR_APPLICATION", Action: "UPSERT", Resource: "portal_application", ResourceID: app.ID, Summary: "签发 " + app.Name + " 的统一登录与账号同步凭据", PayloadJSON: string(encoded), Mode: approvaldomain.ModeAny, RequiredApprovals: 1, ApproverIDs: []string{approverID}, ExpiresIn: 24 * time.Hour})
+		return createErr
+	}); err != nil {
+		return nil, approvalServiceError(err)
+	}
+	return credentialApprovalResponse(created, providerRef, clientID, s.identityIssuer, scopes, s.approverName(ctx, principal.OrganizationID, created)), nil
+}
+
+func generatedOIDCIdentifiers(organizationID, applicationCode string) (string, string) {
+	ref := "velora-" + strings.ToLower(strings.TrimSpace(applicationCode))
+	digest := sha256.Sum256([]byte(organizationID + ":" + applicationCode))
+	return ref, "vlr_" + fmt.Sprintf("%x", digest[:12])
+}
+
+func credentialApprovalPayload(providerRef, clientID, issuer string, redirects, scopes []string) map[string]any {
+	return map[string]any{"provider": portaldomain.IdentityProviderCasdoor, "protocol": portaldomain.ProtocolOIDC, "provider_application_ref": providerRef, "public_client_id": clientID, "issuer": issuer, "redirect_uris": redirects, "scopes": scopes}
+}
+
+func (s *PortalService) findCredentialApproval(ctx context.Context, principal domain.Principal, applicationID, payloadJSON string) (approvaldomain.Request, bool) {
+	items, err := s.approval.List(ctx, principal)
+	if err != nil {
+		return approvaldomain.Request{}, false
+	}
+	for _, item := range items {
+		if item.RequestType == "CASDOOR_APPLICATION" && item.Action == "UPSERT" && item.ResourceID == applicationID && item.PayloadJSON == payloadJSON && (item.Status == approvaldomain.StatusPending || item.Status == approvaldomain.StatusApproved) {
+			return item, true
+		}
+	}
+	return approvaldomain.Request{}, false
+}
+
+func (s *PortalService) approverName(ctx context.Context, organizationID string, item approvaldomain.Request) string {
+	if len(item.Tasks) == 0 {
+		return "安全审批人"
+	}
+	var name string
+	if err := s.db.QueryRowContext(ctx, s.db.Rebind(`SELECT display_name FROM users WHERE organization_id=? AND id=?`), organizationID, item.Tasks[0].AssigneeID).Scan(&name); err != nil || strings.TrimSpace(name) == "" {
+		return "安全审批人"
+	}
+	return name
+}
+
+func credentialApprovalResponse(item approvaldomain.Request, providerRef, clientID, issuer string, scopes []string, approverName string) *forgev1.PrepareApplicationCredentialApprovalResponse {
+	next := "等待 " + approverName + " 审批，批准后在本页继续生成接入配置。"
+	if item.Status == approvaldomain.StatusApproved {
+		next = "审批已通过，可以生成接入配置。"
+	}
+	return &forgev1.PrepareApplicationCredentialApprovalResponse{ApprovalStatus: item.Status, ApproverName: approverName, NextAction: next, ProviderApplicationRef: providerRef, PublicClientId: clientID, Issuer: issuer, Scopes: scopes}
+}
+
 func onboardingState(app portaldomain.Application, binding portaldomain.IdentityBinding, target portaldomain.ProvisioningTarget) (string, string, []string, bool) {
 	if app.LifecycleStatus == portaldomain.LifecyclePublished && app.Status == portaldomain.StatusEnabled {
 		return "PUBLISHED", "应用已发布；持续关注登录和账号同步健康状态。", nil, true
@@ -708,18 +804,16 @@ func (s *PortalService) UpsertApplicationIdentityBinding(ctx context.Context, re
 		return nil, kratoserrors.Forbidden("PERMISSION_DENIED", "identity integration management permission is required")
 	}
 	automationEnabled := s.casdoorAutomation != nil && s.casdoorAutomation.Enabled() && strings.EqualFold(req.GetProviderKey(), portaldomain.IdentityProviderCasdoor) && strings.EqualFold(req.GetProtocol(), portaldomain.ProtocolOIDC)
-	if automationEnabled && strings.TrimSpace(req.GetApprovalId()) == "" {
-		return nil, serviceError(casdooradmin.ErrApprovalRequired)
-	}
 	response, err := s.idempotentWith(ctx, principal, "iam.integration.update", req, func() proto.Message { return &forgev1.UpsertApplicationIdentityBindingResponse{} }, func() (proto.Message, error) {
 		var automationScopes []string
+		approvalID := strings.TrimSpace(req.GetApprovalId())
 		if automationEnabled {
 			var scopeErr error
 			automationScopes, scopeErr = portaldomain.NormalizeOIDCScopes(req.GetScopes())
 			if scopeErr != nil {
 				return nil, serviceError(scopeErr)
 			}
-			if err := s.authorizeCasdoorAutomation(ctx, principal, req.GetApprovalId(), "UPSERT", req.GetApplicationId(), map[string]any{
+			payload := map[string]any{
 				"provider":                 portaldomain.IdentityProviderCasdoor,
 				"protocol":                 req.GetProtocol(),
 				"provider_application_ref": req.GetProviderApplicationRef(),
@@ -727,13 +821,22 @@ func (s *PortalService) UpsertApplicationIdentityBinding(ctx context.Context, re
 				"issuer":                   req.GetIssuer(),
 				"redirect_uris":            req.GetRedirectUris(),
 				"scopes":                   automationScopes,
-			}); err != nil {
+			}
+			if approvalID == "" {
+				encoded, _ := json.Marshal(payload)
+				if item, found := s.findCredentialApproval(ctx, principal, req.GetApplicationId(), string(encoded)); found && item.Status == approvaldomain.StatusApproved {
+					approvalID = item.ID
+				}
+			}
+			if err := s.authorizeCasdoorAutomation(ctx, principal, approvalID, "UPSERT", req.GetApplicationId(), payload); err != nil {
 				return nil, serviceError(err)
 			}
 		}
 		var binding portaldomain.IdentityBinding
 		var app portaldomain.Application
 		var oneTimeClientSecret string
+		var enrollmentToken string
+		var enrollmentExpiresAt time.Time
 		event := newAuditEvent(ctx, principal, "iam.integration.update", "portal_application", req.GetApplicationId(), map[string]any{"protocol": req.GetProtocol(), "provider": portaldomain.IdentityProviderCasdoor})
 		if err := s.audited(ctx, event, func(txCtx context.Context) error {
 			var operationErr error
@@ -746,26 +849,61 @@ func (s *PortalService) UpsertApplicationIdentityBinding(ctx context.Context, re
 		// fails. A later retry is safe because the Casdoor provider upsert is
 		// idempotent and the local binding is already auditable and recoverable.
 		if automationEnabled {
-			application, _, automationErr := s.casdoorAutomation.UpsertApplication(ctx, casdooradmin.UpsertInput{Name: req.GetProviderApplicationRef(), Organization: principal.OrganizationID, DisplayName: req.GetProviderApplicationRef(), ClientID: req.GetPublicClientId(), RedirectURIs: req.GetRedirectUris(), GrantTypes: []string{"authorization_code"}, Scopes: automationScopes, ApprovalID: req.GetApprovalId()})
+			application, _, automationErr := s.casdoorAutomation.UpsertApplication(ctx, casdooradmin.UpsertInput{Name: req.GetProviderApplicationRef(), Organization: principal.OrganizationID, DisplayName: req.GetProviderApplicationRef(), ClientID: req.GetPublicClientId(), RedirectURIs: req.GetRedirectUris(), GrantTypes: []string{"authorization_code"}, Scopes: automationScopes, ApprovalID: approvalID})
 			if automationErr != nil {
 				return nil, serviceError(automationErr)
 			}
 			oneTimeClientSecret = application.TakeOneTimeClientSecret()
 		}
-		return &forgev1.UpsertApplicationIdentityBindingResponse{Binding: identityBindingProto(binding), Application: portalApplicationProto(app), OneTimeClientSecret: oneTimeClientSecret}, nil
+		if strings.EqualFold(strings.TrimSpace(req.GetCredentialDeliveryMode()), "CLI") {
+			if oneTimeClientSecret == "" || s.handoff == nil {
+				return nil, kratoserrors.Conflict("ENROLLMENT_CREDENTIAL_UNAVAILABLE", "new credentials must be generated before CLI enrollment can be issued")
+			}
+			application, target, provisioningSecret, handoffErr := s.portal.ProvisioningCredentialForHandoff(ctx, principal, req.GetApplicationId())
+			if handoffErr != nil {
+				return nil, serviceError(handoffErr)
+			}
+			enrollmentToken, enrollmentExpiresAt, handoffErr = s.handoff.Issue(ctx, credentialhandoff.Bundle{ApplicationCode: application.Code, Issuer: binding.Issuer, ClientID: binding.PublicClientID, ClientSecret: oneTimeClientSecret, RedirectURIs: binding.RedirectURIs, Scopes: binding.Scopes, ProvisioningEndpoint: target.EndpointURL, ProvisioningSecret: provisioningSecret, ProvisioningKeyVersion: target.ActiveKeyVersion, ProvisioningFingerprint: target.SecretFingerprint})
+			if handoffErr != nil {
+				return nil, internalError(handoffErr)
+			}
+			oneTimeClientSecret = ""
+		}
+		return &forgev1.UpsertApplicationIdentityBindingResponse{Binding: identityBindingProto(binding), Application: portalApplicationProto(app), OneTimeClientSecret: oneTimeClientSecret, EnrollmentToken: enrollmentToken, EnrollmentExpiresAt: optionalTimestamp(optionalTime(enrollmentExpiresAt))}, nil
 	}, func(message proto.Message) proto.Message {
 		cached := proto.Clone(message).(*forgev1.UpsertApplicationIdentityBindingResponse)
 		cached.OneTimeClientSecret = ""
+		cached.EnrollmentToken = ""
+		cached.EnrollmentExpiresAt = nil
 		return cached
 	})
 	if err != nil {
 		return nil, err
 	}
 	reply := response.(*forgev1.UpsertApplicationIdentityBindingResponse)
-	if reply.GetOneTimeClientSecret() != "" {
+	if reply.GetOneTimeClientSecret() != "" || reply.GetEnrollmentToken() != "" {
 		setNoStore(ctx)
 	}
 	return reply, nil
+}
+
+func optionalTime(value time.Time) *time.Time {
+	if value.IsZero() {
+		return nil
+	}
+	return &value
+}
+
+func (s *PortalService) ConsumeApplicationEnrollment(ctx context.Context, req *forgev1.ConsumeApplicationEnrollmentRequest) (*forgev1.ConsumeApplicationEnrollmentResponse, error) {
+	if s.handoff == nil {
+		return nil, kratoserrors.ServiceUnavailable("ENROLLMENT_UNAVAILABLE", "credential enrollment is unavailable")
+	}
+	bundle, err := s.handoff.Consume(ctx, req.GetEnrollmentToken())
+	if err != nil {
+		return nil, kratoserrors.Unauthorized("ENROLLMENT_TOKEN_INVALID", "enrollment token is invalid or expired")
+	}
+	setNoStore(ctx)
+	return &forgev1.ConsumeApplicationEnrollmentResponse{ApplicationCode: bundle.ApplicationCode, Issuer: bundle.Issuer, ClientId: bundle.ClientID, ClientSecret: bundle.ClientSecret, RedirectUris: bundle.RedirectURIs, Scopes: bundle.Scopes, ProvisioningEndpoint: bundle.ProvisioningEndpoint, ProvisioningSecret: bundle.ProvisioningSecret, ProvisioningKeyVersion: bundle.ProvisioningKeyVersion, ProvisioningFingerprint: bundle.ProvisioningFingerprint}, nil
 }
 
 func (s *PortalService) VerifyApplicationIdentity(ctx context.Context, req *forgev1.VerifyApplicationIdentityRequest) (*forgev1.VerifyApplicationIdentityResponse, error) {

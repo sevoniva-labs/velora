@@ -125,6 +125,13 @@ service PortalService {
     option (google.api.http) = {put: "/api/v1/admin/portal/applications/{application_id}/identity-binding" body: "*"};
     option (openapi.v3.operation) = {security: [{additional_properties: [{name: "SessionCookie" value: {value: []}}, {name: "CsrfToken" value: {value: []}}]}, {additional_properties: [{name: "BearerAuth" value: {value: []}}]}]};
   }
+  rpc PrepareApplicationCredentialApproval(PrepareApplicationCredentialApprovalRequest) returns (PrepareApplicationCredentialApprovalResponse) {
+    option (google.api.http) = {post: "/api/v1/admin/portal/applications/{application_id}/credential-approval" body: "*"};
+    option (openapi.v3.operation) = {security: [{additional_properties: [{name: "SessionCookie" value: {value: []}}, {name: "CsrfToken" value: {value: []}}]}]};
+  }
+  rpc ConsumeApplicationEnrollment(ConsumeApplicationEnrollmentRequest) returns (ConsumeApplicationEnrollmentResponse) {
+    option (google.api.http) = {post: "/api/v1/application-enrollments:consume" body: "*"};
+  }
   rpc VerifyApplicationIdentity(VerifyApplicationIdentityRequest) returns (VerifyApplicationIdentityResponse) {
     option (google.api.http) = {post: "/api/v1/admin/portal/applications/{application_id}/verify" body: "*"};
     option (openapi.v3.operation) = {security: [{additional_properties: [{name: "SessionCookie" value: {value: []}}, {name: "CsrfToken" value: {value: []}}]}, {additional_properties: [{name: "BearerAuth" value: {value: []}}]}]};
@@ -317,7 +324,7 @@ message ReplacePortalApplicationRolesRequest { string application_id = 1; repeat
 message ReplacePortalApplicationRolesResponse { repeated PortalApplicationRole roles = 1; }
 message GetPortalApplicationProvisioningTargetRequest { string application_id = 1; }
 message GetPortalApplicationProvisioningTargetResponse { PortalApplicationProvisioningTarget target = 1; }
-message UpsertPortalApplicationProvisioningTargetRequest { string application_id = 1; string endpoint_url = 2; bool rotate_secret = 3; int64 expected_config_version = 4; }
+message UpsertPortalApplicationProvisioningTargetRequest { string application_id = 1; string endpoint_url = 2; bool rotate_secret = 3; int64 expected_config_version = 4; string credential_delivery_mode = 5; }
 message UpsertPortalApplicationProvisioningTargetResponse { PortalApplicationProvisioningTarget target = 1; string one_time_provisioning_secret = 2; }
 
 message PortalIdentityBinding {
@@ -388,8 +395,30 @@ message UpsertApplicationIdentityBindingRequest {
   int64 expected_config_version = 8;
   string approval_id = 9;
   repeated string scopes = 10;
+  string credential_delivery_mode = 11;
 }
-message UpsertApplicationIdentityBindingResponse { PortalIdentityBinding binding = 1; PortalApplication application = 2; string one_time_client_secret = 3; }
+message UpsertApplicationIdentityBindingResponse {
+  PortalIdentityBinding binding = 1;
+  PortalApplication application = 2;
+  string one_time_client_secret = 3;
+  string enrollment_token = 4;
+  google.protobuf.Timestamp enrollment_expires_at = 5;
+}
+message ConsumeApplicationEnrollmentRequest { string enrollment_token = 1; }
+message ConsumeApplicationEnrollmentResponse {
+  string application_code = 1;
+  string issuer = 2;
+  string client_id = 3;
+  string client_secret = 4;
+  repeated string redirect_uris = 5;
+  repeated string scopes = 6;
+  string provisioning_endpoint = 7;
+  string provisioning_secret = 8;
+  int64 provisioning_key_version = 9;
+  string provisioning_fingerprint = 10;
+}
+message PrepareApplicationCredentialApprovalRequest { string application_id = 1; repeated string redirect_uris = 2; }
+message PrepareApplicationCredentialApprovalResponse { string approval_status = 1; string approver_name = 2; string next_action = 3; string provider_application_ref = 4; string public_client_id = 5; string issuer = 6; repeated string scopes = 7; }
 message VerifyApplicationIdentityRequest { string application_id = 1; int64 expected_config_version = 2; }
 message VerifyApplicationIdentityResponse { PortalIdentityBinding binding = 1; PortalApplication application = 2; repeated PortalApplicationVerification verifications = 3; bool passed = 4; }
 message SubmitApplicationPublishRequest { string application_id = 1; int64 expected_config_version = 2; }

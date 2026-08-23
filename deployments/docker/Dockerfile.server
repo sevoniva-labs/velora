@@ -13,6 +13,7 @@ RUN go mod download
 COPY server/ .
 RUN CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags="-s -w" -o /out/velora ./cmd/server \
     && CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags="-s -w" -o /out/velora-worker ./cmd/worker \
+    && CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags="-s -w" -o /out/velora-connect ./cmd/velora-connect \
     && CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags="-s -w" -o /out/velora-migrate ./cmd/migrate \
     && CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags="-s -w" -o /out/velora-storage-check ./cmd/storage-check
 
@@ -25,6 +26,7 @@ USER velora
 WORKDIR /app
 COPY --from=builder /out/velora /usr/local/bin/velora
 COPY --from=builder /out/velora-worker /usr/local/bin/velora-worker
+COPY --from=builder /out/velora-connect /usr/local/bin/velora-connect
 COPY --from=builder /out/velora-migrate /usr/local/bin/velora-migrate
 COPY --from=builder /out/velora-storage-check /usr/local/bin/velora-storage-check
 EXPOSE 8080

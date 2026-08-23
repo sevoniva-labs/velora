@@ -48,6 +48,8 @@ const (
 	PortalService_GetIdentityConsoleLink_FullMethodName                    = "/forge.v1.PortalService/GetIdentityConsoleLink"
 	PortalService_GetApplicationOnboarding_FullMethodName                  = "/forge.v1.PortalService/GetApplicationOnboarding"
 	PortalService_UpsertApplicationIdentityBinding_FullMethodName          = "/forge.v1.PortalService/UpsertApplicationIdentityBinding"
+	PortalService_PrepareApplicationCredentialApproval_FullMethodName      = "/forge.v1.PortalService/PrepareApplicationCredentialApproval"
+	PortalService_ConsumeApplicationEnrollment_FullMethodName              = "/forge.v1.PortalService/ConsumeApplicationEnrollment"
 	PortalService_VerifyApplicationIdentity_FullMethodName                 = "/forge.v1.PortalService/VerifyApplicationIdentity"
 	PortalService_SubmitApplicationPublish_FullMethodName                  = "/forge.v1.PortalService/SubmitApplicationPublish"
 	PortalService_PublishApplication_FullMethodName                        = "/forge.v1.PortalService/PublishApplication"
@@ -87,6 +89,8 @@ type PortalServiceClient interface {
 	GetIdentityConsoleLink(ctx context.Context, in *GetIdentityConsoleLinkRequest, opts ...grpc.CallOption) (*GetIdentityConsoleLinkResponse, error)
 	GetApplicationOnboarding(ctx context.Context, in *GetApplicationOnboardingRequest, opts ...grpc.CallOption) (*GetApplicationOnboardingResponse, error)
 	UpsertApplicationIdentityBinding(ctx context.Context, in *UpsertApplicationIdentityBindingRequest, opts ...grpc.CallOption) (*UpsertApplicationIdentityBindingResponse, error)
+	PrepareApplicationCredentialApproval(ctx context.Context, in *PrepareApplicationCredentialApprovalRequest, opts ...grpc.CallOption) (*PrepareApplicationCredentialApprovalResponse, error)
+	ConsumeApplicationEnrollment(ctx context.Context, in *ConsumeApplicationEnrollmentRequest, opts ...grpc.CallOption) (*ConsumeApplicationEnrollmentResponse, error)
 	VerifyApplicationIdentity(ctx context.Context, in *VerifyApplicationIdentityRequest, opts ...grpc.CallOption) (*VerifyApplicationIdentityResponse, error)
 	SubmitApplicationPublish(ctx context.Context, in *SubmitApplicationPublishRequest, opts ...grpc.CallOption) (*SubmitApplicationPublishResponse, error)
 	PublishApplication(ctx context.Context, in *PublishApplicationRequest, opts ...grpc.CallOption) (*PublishApplicationResponse, error)
@@ -391,6 +395,26 @@ func (c *portalServiceClient) UpsertApplicationIdentityBinding(ctx context.Conte
 	return out, nil
 }
 
+func (c *portalServiceClient) PrepareApplicationCredentialApproval(ctx context.Context, in *PrepareApplicationCredentialApprovalRequest, opts ...grpc.CallOption) (*PrepareApplicationCredentialApprovalResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(PrepareApplicationCredentialApprovalResponse)
+	err := c.cc.Invoke(ctx, PortalService_PrepareApplicationCredentialApproval_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *portalServiceClient) ConsumeApplicationEnrollment(ctx context.Context, in *ConsumeApplicationEnrollmentRequest, opts ...grpc.CallOption) (*ConsumeApplicationEnrollmentResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ConsumeApplicationEnrollmentResponse)
+	err := c.cc.Invoke(ctx, PortalService_ConsumeApplicationEnrollment_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *portalServiceClient) VerifyApplicationIdentity(ctx context.Context, in *VerifyApplicationIdentityRequest, opts ...grpc.CallOption) (*VerifyApplicationIdentityResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(VerifyApplicationIdentityResponse)
@@ -464,6 +488,8 @@ type PortalServiceServer interface {
 	GetIdentityConsoleLink(context.Context, *GetIdentityConsoleLinkRequest) (*GetIdentityConsoleLinkResponse, error)
 	GetApplicationOnboarding(context.Context, *GetApplicationOnboardingRequest) (*GetApplicationOnboardingResponse, error)
 	UpsertApplicationIdentityBinding(context.Context, *UpsertApplicationIdentityBindingRequest) (*UpsertApplicationIdentityBindingResponse, error)
+	PrepareApplicationCredentialApproval(context.Context, *PrepareApplicationCredentialApprovalRequest) (*PrepareApplicationCredentialApprovalResponse, error)
+	ConsumeApplicationEnrollment(context.Context, *ConsumeApplicationEnrollmentRequest) (*ConsumeApplicationEnrollmentResponse, error)
 	VerifyApplicationIdentity(context.Context, *VerifyApplicationIdentityRequest) (*VerifyApplicationIdentityResponse, error)
 	SubmitApplicationPublish(context.Context, *SubmitApplicationPublishRequest) (*SubmitApplicationPublishResponse, error)
 	PublishApplication(context.Context, *PublishApplicationRequest) (*PublishApplicationResponse, error)
@@ -564,6 +590,12 @@ func (UnimplementedPortalServiceServer) GetApplicationOnboarding(context.Context
 }
 func (UnimplementedPortalServiceServer) UpsertApplicationIdentityBinding(context.Context, *UpsertApplicationIdentityBindingRequest) (*UpsertApplicationIdentityBindingResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method UpsertApplicationIdentityBinding not implemented")
+}
+func (UnimplementedPortalServiceServer) PrepareApplicationCredentialApproval(context.Context, *PrepareApplicationCredentialApprovalRequest) (*PrepareApplicationCredentialApprovalResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method PrepareApplicationCredentialApproval not implemented")
+}
+func (UnimplementedPortalServiceServer) ConsumeApplicationEnrollment(context.Context, *ConsumeApplicationEnrollmentRequest) (*ConsumeApplicationEnrollmentResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ConsumeApplicationEnrollment not implemented")
 }
 func (UnimplementedPortalServiceServer) VerifyApplicationIdentity(context.Context, *VerifyApplicationIdentityRequest) (*VerifyApplicationIdentityResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method VerifyApplicationIdentity not implemented")
@@ -1120,6 +1152,42 @@ func _PortalService_UpsertApplicationIdentityBinding_Handler(srv interface{}, ct
 	return interceptor(ctx, in, info, handler)
 }
 
+func _PortalService_PrepareApplicationCredentialApproval_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(PrepareApplicationCredentialApprovalRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PortalServiceServer).PrepareApplicationCredentialApproval(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: PortalService_PrepareApplicationCredentialApproval_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PortalServiceServer).PrepareApplicationCredentialApproval(ctx, req.(*PrepareApplicationCredentialApprovalRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _PortalService_ConsumeApplicationEnrollment_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ConsumeApplicationEnrollmentRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PortalServiceServer).ConsumeApplicationEnrollment(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: PortalService_ConsumeApplicationEnrollment_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PortalServiceServer).ConsumeApplicationEnrollment(ctx, req.(*ConsumeApplicationEnrollmentRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _PortalService_VerifyApplicationIdentity_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(VerifyApplicationIdentityRequest)
 	if err := dec(in); err != nil {
@@ -1314,6 +1382,14 @@ var PortalService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "UpsertApplicationIdentityBinding",
 			Handler:    _PortalService_UpsertApplicationIdentityBinding_Handler,
+		},
+		{
+			MethodName: "PrepareApplicationCredentialApproval",
+			Handler:    _PortalService_PrepareApplicationCredentialApproval_Handler,
+		},
+		{
+			MethodName: "ConsumeApplicationEnrollment",
+			Handler:    _PortalService_ConsumeApplicationEnrollment_Handler,
 		},
 		{
 			MethodName: "VerifyApplicationIdentity",

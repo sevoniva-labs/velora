@@ -16,6 +16,7 @@ PUBLIC = {
     ("post", "/api/v1/auth/federated/oidc/{provider}/callback"),
     ("get", "/api/v1/auth/federated/oidc/{provider}/callback"),
     ("post", "/api/v1/auth/federated/ldap/{provider}"),
+    ("post", "/api/v1/application-enrollments:consume"),
 }
 CSRF_REQUIRED = {
     ("post", "/api/v1/auth/logout"),
@@ -72,6 +73,9 @@ CSRF_REQUIRED = {
     ("patch", "/api/v1/admin/portal/tags/{tag_id}"),
     ("delete", "/api/v1/admin/portal/tags/{tag_id}"),
     ("put", "/api/v1/admin/portal/applications/{application_id}/policies"),
+    ("put", "/api/v1/admin/portal/applications/{application_id}/roles"),
+    ("put", "/api/v1/admin/portal/applications/{application_id}/provisioning-target"),
+    ("post", "/api/v1/admin/portal/applications/{application_id}/credential-approval"),
     ("put", "/api/v1/admin/portal/applications/{application_id}/identity-binding"),
     ("post", "/api/v1/admin/portal/applications/{application_id}/verify"),
     ("post", "/api/v1/admin/portal/applications/{application_id}/submit-publish"),

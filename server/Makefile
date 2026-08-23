@@ -145,6 +145,7 @@ build: web-build
 	mkdir -p bin
 	CGO_ENABLED=0 go build -trimpath -ldflags "-s -w -X main.version=$${VERSION:-dev}" -o bin/velora ./cmd/server
 	CGO_ENABLED=0 go build -trimpath -ldflags "-s -w -X main.version=$${VERSION:-dev}" -o bin/velora-worker ./cmd/worker
+	CGO_ENABLED=0 go build -trimpath -ldflags "-s -w" -o bin/velora-connect ./cmd/velora-connect
 	CGO_ENABLED=0 go build -trimpath -ldflags "-s -w -X main.version=$${VERSION:-dev}" -o bin/velora-migrate ./cmd/migrate
 	CGO_ENABLED=0 go build -trimpath -ldflags "-s -w -X main.version=$${VERSION:-dev}" -o bin/velora-example-settlement ./cmd/example-settlement-service
 	CGO_ENABLED=0 go build -trimpath -ldflags "-s -w -X main.version=$${VERSION:-dev}" -o bin/velora-storage-check ./cmd/storage-check

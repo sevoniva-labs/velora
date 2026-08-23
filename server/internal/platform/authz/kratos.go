@@ -22,6 +22,11 @@ func Server(rules map[string][]string) middleware.Middleware {
 			if !ok {
 				return nil, kratoserrors.Forbidden("PERMISSION_DENIED", "transport context is required")
 			}
+			// The enrollment token is the single-use bearer credential for this
+			// exact operation. It cannot authorize any other Portal API.
+			if tr.Operation() == forgev1.OperationPortalServiceConsumeApplicationEnrollment {
+				return next(ctx, req)
+			}
 			principal, authenticated := authn.Principal(ctx)
 			if authenticated && principal.MustChangePassword && !allowedBeforePasswordChange(tr.Operation()) {
 				return nil, kratoserrors.Forbidden("PASSWORD_CHANGE_REQUIRED", "password change is required")
@@ -157,6 +162,7 @@ func PortalRules() map[string][]string {
 		forgev1.OperationPortalServiceGetIdentityConsoleLink:                    {"iam.console.open"},
 		forgev1.OperationPortalServiceGetApplicationOnboarding:                  {"iam.integration.read"},
 		forgev1.OperationPortalServiceUpsertApplicationIdentityBinding:          {"iam.integration.manage"},
+		forgev1.OperationPortalServicePrepareApplicationCredentialApproval:      {"iam.integration.manage"},
 		forgev1.OperationPortalServiceVerifyApplicationIdentity:                 {"iam.integration.verify"},
 		forgev1.OperationPortalServiceSubmitApplicationPublish:                  {"portal.application.publish"},
 		forgev1.OperationPortalServicePublishApplication:                        {"portal.application.publish"},

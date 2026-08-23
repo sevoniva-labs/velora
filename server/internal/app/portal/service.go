@@ -555,6 +555,35 @@ func (s *Service) GetProvisioningTarget(ctx context.Context, principal domain.Pr
 	return item, err
 }
 
+func (s *Service) ProvisioningCredentialForHandoff(ctx context.Context, principal domain.Principal, appID string) (portaldomain.Application, portaldomain.ProvisioningTarget, string, error) {
+	if s.provisioningCipher == nil {
+		return portaldomain.Application{}, portaldomain.ProvisioningTarget{}, "", errors.New("provisioning secret encryption is unavailable")
+	}
+	app, err := s.repo.GetApplication(ctx, principal.OrganizationID, principal.UserID, strings.TrimSpace(appID), true)
+	if errors.Is(err, sql.ErrNoRows) {
+		return portaldomain.Application{}, portaldomain.ProvisioningTarget{}, "", ErrNotFound
+	}
+	if err != nil {
+		return portaldomain.Application{}, portaldomain.ProvisioningTarget{}, "", err
+	}
+	target, err := s.repo.GetProvisioningTarget(ctx, principal.OrganizationID, app.ID)
+	if errors.Is(err, sql.ErrNoRows) {
+		return portaldomain.Application{}, portaldomain.ProvisioningTarget{}, "", ErrNotFound
+	}
+	if err != nil {
+		return portaldomain.Application{}, portaldomain.ProvisioningTarget{}, "", err
+	}
+	if !strings.HasPrefix(target.SecretRef, "enc:") {
+		return portaldomain.Application{}, portaldomain.ProvisioningTarget{}, "", errors.New("legacy provisioning secret must be rotated before enrollment")
+	}
+	aad := []byte("velora:provisioning:" + principal.OrganizationID + ":" + app.Code)
+	plain, err := s.provisioningCipher.Decrypt(strings.TrimPrefix(target.SecretRef, "enc:"), aad)
+	if err != nil || len(strings.TrimSpace(string(plain))) < 32 {
+		return portaldomain.Application{}, portaldomain.ProvisioningTarget{}, "", errors.New("provisioning credential is unavailable")
+	}
+	return app, target, strings.TrimSpace(string(plain)), nil
+}
+
 func (s *Service) UpsertProvisioningTarget(ctx context.Context, principal domain.Principal, appID, endpoint string, rotate bool, expectedVersion int64) (portaldomain.ProvisioningTarget, string, error) {
 	if s.provisioningCipher == nil {
 		return portaldomain.ProvisioningTarget{}, "", errors.New("provisioning secret encryption is unavailable")

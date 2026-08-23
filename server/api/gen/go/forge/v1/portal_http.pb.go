@@ -21,6 +21,7 @@ const _ = http.SupportPackageIsVersion1
 
 const OperationPortalServiceAddPortalFavorite = "/forge.v1.PortalService/AddPortalFavorite"
 const OperationPortalServiceAuthorizePortalApplication = "/forge.v1.PortalService/AuthorizePortalApplication"
+const OperationPortalServiceConsumeApplicationEnrollment = "/forge.v1.PortalService/ConsumeApplicationEnrollment"
 const OperationPortalServiceCreatePortalApplication = "/forge.v1.PortalService/CreatePortalApplication"
 const OperationPortalServiceCreatePortalCategory = "/forge.v1.PortalService/CreatePortalCategory"
 const OperationPortalServiceCreatePortalTag = "/forge.v1.PortalService/CreatePortalTag"
@@ -41,6 +42,7 @@ const OperationPortalServiceListPortalCategories = "/forge.v1.PortalService/List
 const OperationPortalServiceListPortalFavorites = "/forge.v1.PortalService/ListPortalFavorites"
 const OperationPortalServiceListPortalTags = "/forge.v1.PortalService/ListPortalTags"
 const OperationPortalServiceListRecentPortalApplications = "/forge.v1.PortalService/ListRecentPortalApplications"
+const OperationPortalServicePrepareApplicationCredentialApproval = "/forge.v1.PortalService/PrepareApplicationCredentialApproval"
 const OperationPortalServicePublishApplication = "/forge.v1.PortalService/PublishApplication"
 const OperationPortalServiceRemovePortalFavorite = "/forge.v1.PortalService/RemovePortalFavorite"
 const OperationPortalServiceReplacePortalApplicationPolicies = "/forge.v1.PortalService/ReplacePortalApplicationPolicies"
@@ -56,6 +58,7 @@ const OperationPortalServiceVerifyApplicationIdentity = "/forge.v1.PortalService
 type PortalServiceHTTPServer interface {
 	AddPortalFavorite(context.Context, *AddPortalFavoriteRequest) (*AddPortalFavoriteResponse, error)
 	AuthorizePortalApplication(context.Context, *AuthorizePortalApplicationRequest) (*AuthorizePortalApplicationResponse, error)
+	ConsumeApplicationEnrollment(context.Context, *ConsumeApplicationEnrollmentRequest) (*ConsumeApplicationEnrollmentResponse, error)
 	CreatePortalApplication(context.Context, *CreatePortalApplicationRequest) (*CreatePortalApplicationResponse, error)
 	CreatePortalCategory(context.Context, *CreatePortalCategoryRequest) (*CreatePortalCategoryResponse, error)
 	CreatePortalTag(context.Context, *CreatePortalTagRequest) (*CreatePortalTagResponse, error)
@@ -76,6 +79,7 @@ type PortalServiceHTTPServer interface {
 	ListPortalFavorites(context.Context, *ListPortalFavoritesRequest) (*ListPortalFavoritesResponse, error)
 	ListPortalTags(context.Context, *ListPortalTagsRequest) (*ListPortalTagsResponse, error)
 	ListRecentPortalApplications(context.Context, *ListRecentPortalApplicationsRequest) (*ListRecentPortalApplicationsResponse, error)
+	PrepareApplicationCredentialApproval(context.Context, *PrepareApplicationCredentialApprovalRequest) (*PrepareApplicationCredentialApprovalResponse, error)
 	PublishApplication(context.Context, *PublishApplicationRequest) (*PublishApplicationResponse, error)
 	RemovePortalFavorite(context.Context, *RemovePortalFavoriteRequest) (*RemovePortalFavoriteResponse, error)
 	ReplacePortalApplicationPolicies(context.Context, *ReplacePortalApplicationPoliciesRequest) (*ReplacePortalApplicationPoliciesResponse, error)
@@ -120,6 +124,8 @@ func RegisterPortalServiceHTTPServer(s *http.Server, srv PortalServiceHTTPServer
 	r.GET("/api/v1/admin/identity/console-link", _PortalService_GetIdentityConsoleLink0_HTTP_Handler(srv))
 	r.GET("/api/v1/admin/portal/applications/{application_id}/onboarding", _PortalService_GetApplicationOnboarding0_HTTP_Handler(srv))
 	r.PUT("/api/v1/admin/portal/applications/{application_id}/identity-binding", _PortalService_UpsertApplicationIdentityBinding0_HTTP_Handler(srv))
+	r.POST("/api/v1/admin/portal/applications/{application_id}/credential-approval", _PortalService_PrepareApplicationCredentialApproval0_HTTP_Handler(srv))
+	r.POST("/api/v1/application-enrollments:consume", _PortalService_ConsumeApplicationEnrollment0_HTTP_Handler(srv))
 	r.POST("/api/v1/admin/portal/applications/{application_id}/verify", _PortalService_VerifyApplicationIdentity0_HTTP_Handler(srv))
 	r.POST("/api/v1/admin/portal/applications/{application_id}/submit-publish", _PortalService_SubmitApplicationPublish0_HTTP_Handler(srv))
 	r.POST("/api/v1/admin/portal/applications/{application_id}/publish", _PortalService_PublishApplication0_HTTP_Handler(srv))
@@ -764,6 +770,53 @@ func _PortalService_UpsertApplicationIdentityBinding0_HTTP_Handler(srv PortalSer
 	}
 }
 
+func _PortalService_PrepareApplicationCredentialApproval0_HTTP_Handler(srv PortalServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in PrepareApplicationCredentialApprovalRequest
+		if err := ctx.Bind(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindVars(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationPortalServicePrepareApplicationCredentialApproval)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.PrepareApplicationCredentialApproval(ctx, req.(*PrepareApplicationCredentialApprovalRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*PrepareApplicationCredentialApprovalResponse)
+		return ctx.Result(200, reply)
+	}
+}
+
+func _PortalService_ConsumeApplicationEnrollment0_HTTP_Handler(srv PortalServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in ConsumeApplicationEnrollmentRequest
+		if err := ctx.Bind(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationPortalServiceConsumeApplicationEnrollment)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.ConsumeApplicationEnrollment(ctx, req.(*ConsumeApplicationEnrollmentRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*ConsumeApplicationEnrollmentResponse)
+		return ctx.Result(200, reply)
+	}
+}
+
 func _PortalService_VerifyApplicationIdentity0_HTTP_Handler(srv PortalServiceHTTPServer) func(ctx http.Context) error {
 	return func(ctx http.Context) error {
 		var in VerifyApplicationIdentityRequest
@@ -867,6 +920,7 @@ func _PortalService_DisableApplication0_HTTP_Handler(srv PortalServiceHTTPServer
 type PortalServiceHTTPClient interface {
 	AddPortalFavorite(ctx context.Context, req *AddPortalFavoriteRequest, opts ...http.CallOption) (rsp *AddPortalFavoriteResponse, err error)
 	AuthorizePortalApplication(ctx context.Context, req *AuthorizePortalApplicationRequest, opts ...http.CallOption) (rsp *AuthorizePortalApplicationResponse, err error)
+	ConsumeApplicationEnrollment(ctx context.Context, req *ConsumeApplicationEnrollmentRequest, opts ...http.CallOption) (rsp *ConsumeApplicationEnrollmentResponse, err error)
 	CreatePortalApplication(ctx context.Context, req *CreatePortalApplicationRequest, opts ...http.CallOption) (rsp *CreatePortalApplicationResponse, err error)
 	CreatePortalCategory(ctx context.Context, req *CreatePortalCategoryRequest, opts ...http.CallOption) (rsp *CreatePortalCategoryResponse, err error)
 	CreatePortalTag(ctx context.Context, req *CreatePortalTagRequest, opts ...http.CallOption) (rsp *CreatePortalTagResponse, err error)
@@ -887,6 +941,7 @@ type PortalServiceHTTPClient interface {
 	ListPortalFavorites(ctx context.Context, req *ListPortalFavoritesRequest, opts ...http.CallOption) (rsp *ListPortalFavoritesResponse, err error)
 	ListPortalTags(ctx context.Context, req *ListPortalTagsRequest, opts ...http.CallOption) (rsp *ListPortalTagsResponse, err error)
 	ListRecentPortalApplications(ctx context.Context, req *ListRecentPortalApplicationsRequest, opts ...http.CallOption) (rsp *ListRecentPortalApplicationsResponse, err error)
+	PrepareApplicationCredentialApproval(ctx context.Context, req *PrepareApplicationCredentialApprovalRequest, opts ...http.CallOption) (rsp *PrepareApplicationCredentialApprovalResponse, err error)
 	PublishApplication(ctx context.Context, req *PublishApplicationRequest, opts ...http.CallOption) (rsp *PublishApplicationResponse, err error)
 	RemovePortalFavorite(ctx context.Context, req *RemovePortalFavoriteRequest, opts ...http.CallOption) (rsp *RemovePortalFavoriteResponse, err error)
 	ReplacePortalApplicationPolicies(ctx context.Context, req *ReplacePortalApplicationPoliciesRequest, opts ...http.CallOption) (rsp *ReplacePortalApplicationPoliciesResponse, err error)
@@ -928,6 +983,19 @@ func (c *PortalServiceHTTPClientImpl) AuthorizePortalApplication(ctx context.Con
 	opts = append(opts, http.Operation(OperationPortalServiceAuthorizePortalApplication))
 	opts = append(opts, http.PathTemplate(pattern))
 	err := c.cc.Invoke(ctx, "GET", path, nil, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+func (c *PortalServiceHTTPClientImpl) ConsumeApplicationEnrollment(ctx context.Context, in *ConsumeApplicationEnrollmentRequest, opts ...http.CallOption) (*ConsumeApplicationEnrollmentResponse, error) {
+	var out ConsumeApplicationEnrollmentResponse
+	pattern := "/api/v1/application-enrollments:consume"
+	path := binding.EncodeURL(pattern, in, false)
+	opts = append(opts, http.Operation(OperationPortalServiceConsumeApplicationEnrollment))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "POST", path, in, &out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -1188,6 +1256,19 @@ func (c *PortalServiceHTTPClientImpl) ListRecentPortalApplications(ctx context.C
 	opts = append(opts, http.Operation(OperationPortalServiceListRecentPortalApplications))
 	opts = append(opts, http.PathTemplate(pattern))
 	err := c.cc.Invoke(ctx, "GET", path, nil, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+func (c *PortalServiceHTTPClientImpl) PrepareApplicationCredentialApproval(ctx context.Context, in *PrepareApplicationCredentialApprovalRequest, opts ...http.CallOption) (*PrepareApplicationCredentialApprovalResponse, error) {
+	var out PrepareApplicationCredentialApprovalResponse
+	pattern := "/api/v1/admin/portal/applications/{application_id}/credential-approval"
+	path := binding.EncodeURL(pattern, in, false)
+	opts = append(opts, http.Operation(OperationPortalServicePrepareApplicationCredentialApproval))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "POST", path, in, &out, opts...)
 	if err != nil {
 		return nil, err
 	}

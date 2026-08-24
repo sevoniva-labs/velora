@@ -1,4 +1,5 @@
 import { expect, test, type Page, type Route } from '@playwright/test'
+import AxeBuilder from '@axe-core/playwright'
 
 type Session = 'anonymous' | 'member' | 'admin'
 const ok = (data: unknown) => ({ code: '000000', message: 'success', data, request_id: 'e2e' })
@@ -69,4 +70,19 @@ test('窄屏后台无水平溢出且导航可打开', async ({ page }, testInfo)
   expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth + 1)).toBeFalsy()
   await page.getByRole('button', { name: '打开导航' }).click()
   await expect(page.getByText('组织与人员', { exact: true }).last()).toBeVisible()
+})
+
+test('登录页和管理工作台无严重无障碍缺陷', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop-chromium', '桌面无障碍基线')
+  await mockVelora(page, 'anonymous')
+  await page.goto('/login')
+  const login = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze()
+  expect(login.violations.filter((item) => ['serious', 'critical'].includes(item.impact ?? ''))).toEqual([])
+
+  await page.unroute('**/api/v1/**')
+  await mockVelora(page, 'admin')
+  await page.goto('/admin')
+  await expect(page.getByText('工作台', { exact: true }).last()).toBeVisible()
+  const admin = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze()
+  expect(admin.violations.filter((item) => ['serious', 'critical'].includes(item.impact ?? ''))).toEqual([])
 })

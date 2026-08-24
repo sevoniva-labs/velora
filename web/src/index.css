@@ -1399,6 +1399,7 @@ button {
 /* 侧栏菜单选中态：圆角 + 品牌蓝（.ant-menu 提级压过 antd 运行时样式） */
 .velora-side-menu.ant-menu .ant-menu-item {
   border-radius: 9px;
+  color: #5f6673;
 }
 .velora-side-menu.ant-menu .ant-menu-item:hover {
   background: rgba(22, 119, 255, 0.06);
@@ -1952,7 +1953,6 @@ button {
   font-size: 12px;
   line-height: 1.9;
   text-align: center;
-  opacity: 0.9;
 }
 
 @media (prefers-reduced-motion: reduce) {

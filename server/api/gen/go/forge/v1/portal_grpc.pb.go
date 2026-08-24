@@ -55,6 +55,9 @@ const (
 	PortalService_UpsertApplicationIdentityBinding_FullMethodName          = "/forge.v1.PortalService/UpsertApplicationIdentityBinding"
 	PortalService_PrepareApplicationCredentialApproval_FullMethodName      = "/forge.v1.PortalService/PrepareApplicationCredentialApproval"
 	PortalService_ConsumeApplicationEnrollment_FullMethodName              = "/forge.v1.PortalService/ConsumeApplicationEnrollment"
+	PortalService_GetApplicationDirectoryOrganization_FullMethodName       = "/forge.v1.PortalService/GetApplicationDirectoryOrganization"
+	PortalService_ListApplicationDirectoryDepartments_FullMethodName       = "/forge.v1.PortalService/ListApplicationDirectoryDepartments"
+	PortalService_ListApplicationDirectoryUsers_FullMethodName             = "/forge.v1.PortalService/ListApplicationDirectoryUsers"
 	PortalService_VerifyApplicationIdentity_FullMethodName                 = "/forge.v1.PortalService/VerifyApplicationIdentity"
 	PortalService_RunApplicationOnboardingChecks_FullMethodName            = "/forge.v1.PortalService/RunApplicationOnboardingChecks"
 	PortalService_SubmitApplicationPublish_FullMethodName                  = "/forge.v1.PortalService/SubmitApplicationPublish"
@@ -102,6 +105,9 @@ type PortalServiceClient interface {
 	UpsertApplicationIdentityBinding(ctx context.Context, in *UpsertApplicationIdentityBindingRequest, opts ...grpc.CallOption) (*UpsertApplicationIdentityBindingResponse, error)
 	PrepareApplicationCredentialApproval(ctx context.Context, in *PrepareApplicationCredentialApprovalRequest, opts ...grpc.CallOption) (*PrepareApplicationCredentialApprovalResponse, error)
 	ConsumeApplicationEnrollment(ctx context.Context, in *ConsumeApplicationEnrollmentRequest, opts ...grpc.CallOption) (*ConsumeApplicationEnrollmentResponse, error)
+	GetApplicationDirectoryOrganization(ctx context.Context, in *GetApplicationDirectoryOrganizationRequest, opts ...grpc.CallOption) (*GetApplicationDirectoryOrganizationResponse, error)
+	ListApplicationDirectoryDepartments(ctx context.Context, in *ListApplicationDirectoryDepartmentsRequest, opts ...grpc.CallOption) (*ListApplicationDirectoryDepartmentsResponse, error)
+	ListApplicationDirectoryUsers(ctx context.Context, in *ListApplicationDirectoryUsersRequest, opts ...grpc.CallOption) (*ListApplicationDirectoryUsersResponse, error)
 	VerifyApplicationIdentity(ctx context.Context, in *VerifyApplicationIdentityRequest, opts ...grpc.CallOption) (*VerifyApplicationIdentityResponse, error)
 	RunApplicationOnboardingChecks(ctx context.Context, in *RunApplicationOnboardingChecksRequest, opts ...grpc.CallOption) (*RunApplicationOnboardingChecksResponse, error)
 	SubmitApplicationPublish(ctx context.Context, in *SubmitApplicationPublishRequest, opts ...grpc.CallOption) (*SubmitApplicationPublishResponse, error)
@@ -477,6 +483,36 @@ func (c *portalServiceClient) ConsumeApplicationEnrollment(ctx context.Context, 
 	return out, nil
 }
 
+func (c *portalServiceClient) GetApplicationDirectoryOrganization(ctx context.Context, in *GetApplicationDirectoryOrganizationRequest, opts ...grpc.CallOption) (*GetApplicationDirectoryOrganizationResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetApplicationDirectoryOrganizationResponse)
+	err := c.cc.Invoke(ctx, PortalService_GetApplicationDirectoryOrganization_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *portalServiceClient) ListApplicationDirectoryDepartments(ctx context.Context, in *ListApplicationDirectoryDepartmentsRequest, opts ...grpc.CallOption) (*ListApplicationDirectoryDepartmentsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListApplicationDirectoryDepartmentsResponse)
+	err := c.cc.Invoke(ctx, PortalService_ListApplicationDirectoryDepartments_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *portalServiceClient) ListApplicationDirectoryUsers(ctx context.Context, in *ListApplicationDirectoryUsersRequest, opts ...grpc.CallOption) (*ListApplicationDirectoryUsersResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListApplicationDirectoryUsersResponse)
+	err := c.cc.Invoke(ctx, PortalService_ListApplicationDirectoryUsers_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *portalServiceClient) VerifyApplicationIdentity(ctx context.Context, in *VerifyApplicationIdentityRequest, opts ...grpc.CallOption) (*VerifyApplicationIdentityResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(VerifyApplicationIdentityResponse)
@@ -567,6 +603,9 @@ type PortalServiceServer interface {
 	UpsertApplicationIdentityBinding(context.Context, *UpsertApplicationIdentityBindingRequest) (*UpsertApplicationIdentityBindingResponse, error)
 	PrepareApplicationCredentialApproval(context.Context, *PrepareApplicationCredentialApprovalRequest) (*PrepareApplicationCredentialApprovalResponse, error)
 	ConsumeApplicationEnrollment(context.Context, *ConsumeApplicationEnrollmentRequest) (*ConsumeApplicationEnrollmentResponse, error)
+	GetApplicationDirectoryOrganization(context.Context, *GetApplicationDirectoryOrganizationRequest) (*GetApplicationDirectoryOrganizationResponse, error)
+	ListApplicationDirectoryDepartments(context.Context, *ListApplicationDirectoryDepartmentsRequest) (*ListApplicationDirectoryDepartmentsResponse, error)
+	ListApplicationDirectoryUsers(context.Context, *ListApplicationDirectoryUsersRequest) (*ListApplicationDirectoryUsersResponse, error)
 	VerifyApplicationIdentity(context.Context, *VerifyApplicationIdentityRequest) (*VerifyApplicationIdentityResponse, error)
 	RunApplicationOnboardingChecks(context.Context, *RunApplicationOnboardingChecksRequest) (*RunApplicationOnboardingChecksResponse, error)
 	SubmitApplicationPublish(context.Context, *SubmitApplicationPublishRequest) (*SubmitApplicationPublishResponse, error)
@@ -689,6 +728,15 @@ func (UnimplementedPortalServiceServer) PrepareApplicationCredentialApproval(con
 }
 func (UnimplementedPortalServiceServer) ConsumeApplicationEnrollment(context.Context, *ConsumeApplicationEnrollmentRequest) (*ConsumeApplicationEnrollmentResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ConsumeApplicationEnrollment not implemented")
+}
+func (UnimplementedPortalServiceServer) GetApplicationDirectoryOrganization(context.Context, *GetApplicationDirectoryOrganizationRequest) (*GetApplicationDirectoryOrganizationResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetApplicationDirectoryOrganization not implemented")
+}
+func (UnimplementedPortalServiceServer) ListApplicationDirectoryDepartments(context.Context, *ListApplicationDirectoryDepartmentsRequest) (*ListApplicationDirectoryDepartmentsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListApplicationDirectoryDepartments not implemented")
+}
+func (UnimplementedPortalServiceServer) ListApplicationDirectoryUsers(context.Context, *ListApplicationDirectoryUsersRequest) (*ListApplicationDirectoryUsersResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListApplicationDirectoryUsers not implemented")
 }
 func (UnimplementedPortalServiceServer) VerifyApplicationIdentity(context.Context, *VerifyApplicationIdentityRequest) (*VerifyApplicationIdentityResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method VerifyApplicationIdentity not implemented")
@@ -1374,6 +1422,60 @@ func _PortalService_ConsumeApplicationEnrollment_Handler(srv interface{}, ctx co
 	return interceptor(ctx, in, info, handler)
 }
 
+func _PortalService_GetApplicationDirectoryOrganization_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetApplicationDirectoryOrganizationRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PortalServiceServer).GetApplicationDirectoryOrganization(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: PortalService_GetApplicationDirectoryOrganization_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PortalServiceServer).GetApplicationDirectoryOrganization(ctx, req.(*GetApplicationDirectoryOrganizationRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _PortalService_ListApplicationDirectoryDepartments_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListApplicationDirectoryDepartmentsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PortalServiceServer).ListApplicationDirectoryDepartments(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: PortalService_ListApplicationDirectoryDepartments_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PortalServiceServer).ListApplicationDirectoryDepartments(ctx, req.(*ListApplicationDirectoryDepartmentsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _PortalService_ListApplicationDirectoryUsers_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListApplicationDirectoryUsersRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PortalServiceServer).ListApplicationDirectoryUsers(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: PortalService_ListApplicationDirectoryUsers_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PortalServiceServer).ListApplicationDirectoryUsers(ctx, req.(*ListApplicationDirectoryUsersRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _PortalService_VerifyApplicationIdentity_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(VerifyApplicationIdentityRequest)
 	if err := dec(in); err != nil {
@@ -1614,6 +1716,18 @@ var PortalService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ConsumeApplicationEnrollment",
 			Handler:    _PortalService_ConsumeApplicationEnrollment_Handler,
+		},
+		{
+			MethodName: "GetApplicationDirectoryOrganization",
+			Handler:    _PortalService_GetApplicationDirectoryOrganization_Handler,
+		},
+		{
+			MethodName: "ListApplicationDirectoryDepartments",
+			Handler:    _PortalService_ListApplicationDirectoryDepartments_Handler,
+		},
+		{
+			MethodName: "ListApplicationDirectoryUsers",
+			Handler:    _PortalService_ListApplicationDirectoryUsers_Handler,
 		},
 		{
 			MethodName: "VerifyApplicationIdentity",

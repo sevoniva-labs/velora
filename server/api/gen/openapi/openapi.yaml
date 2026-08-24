@@ -2635,6 +2635,80 @@ paths:
                                 $ref: '#/components/schemas/forge.v1.GetSettlementResponse'
             security:
                 - BearerAuth: []
+    /api/v1/integrations/applications/{applicationId}/directory/departments:
+        get:
+            tags:
+                - PortalService
+            operationId: PortalService_ListApplicationDirectoryDepartments
+            parameters:
+                - name: applicationId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/forge.v1.ListApplicationDirectoryDepartmentsResponse'
+            security:
+                - BearerAuth: []
+    /api/v1/integrations/applications/{applicationId}/directory/organization:
+        get:
+            tags:
+                - PortalService
+            operationId: PortalService_GetApplicationDirectoryOrganization
+            parameters:
+                - name: applicationId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/forge.v1.GetApplicationDirectoryOrganizationResponse'
+            security:
+                - BearerAuth: []
+    /api/v1/integrations/applications/{applicationId}/directory/users:
+        get:
+            tags:
+                - PortalService
+            operationId: PortalService_ListApplicationDirectoryUsers
+            parameters:
+                - name: applicationId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+                - name: pageSize
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+                - name: pageToken
+                  in: query
+                  schema:
+                    type: string
+                - name: updatedAfter
+                  in: query
+                  schema:
+                    type: string
+                    format: date-time
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/forge.v1.ListApplicationDirectoryUsersResponse'
+            security:
+                - BearerAuth: []
     /api/v1/me:
         get:
             tags:
@@ -3067,6 +3141,62 @@ components:
                     format: date-time
                 prefix:
                     type: string
+        forge.v1.ApplicationDirectoryDepartment:
+            type: object
+            properties:
+                id:
+                    type: string
+                parentId:
+                    type: string
+                key:
+                    type: string
+                name:
+                    type: string
+                status:
+                    type: string
+                sortOrder:
+                    type: string
+                updatedAt:
+                    type: string
+                    format: date-time
+        forge.v1.ApplicationDirectoryOrganization:
+            type: object
+            properties:
+                id:
+                    type: string
+                key:
+                    type: string
+                name:
+                    type: string
+                status:
+                    type: string
+                updatedAt:
+                    type: string
+                    format: date-time
+        forge.v1.ApplicationDirectoryUser:
+            type: object
+            properties:
+                subject:
+                    type: string
+                loginName:
+                    type: string
+                displayName:
+                    type: string
+                email:
+                    type: string
+                departmentId:
+                    type: string
+                status:
+                    type: string
+                roles:
+                    type: array
+                    items:
+                        type: string
+                version:
+                    type: string
+                updatedAt:
+                    type: string
+                    format: date-time
         forge.v1.ApplicationEntitlement:
             type: object
             properties:
@@ -3344,6 +3474,12 @@ components:
                 provisioningKeyVersion:
                     type: string
                 provisioningFingerprint:
+                    type: string
+                applicationId:
+                    type: string
+                directoryToken:
+                    type: string
+                directoryBasePath:
                     type: string
         forge.v1.CopyRoleRequest:
             type: object
@@ -3852,6 +3988,11 @@ components:
                 lastAuthenticatedAt:
                     type: string
                     format: date-time
+        forge.v1.GetApplicationDirectoryOrganizationResponse:
+            type: object
+            properties:
+                organization:
+                    $ref: '#/components/schemas/forge.v1.ApplicationDirectoryOrganization'
         forge.v1.GetApplicationOnboardingResponse:
             type: object
             properties:
@@ -4060,6 +4201,28 @@ components:
                     type: array
                     items:
                         $ref: '#/components/schemas/forge.v1.ApiToken'
+        forge.v1.ListApplicationDirectoryDepartmentsResponse:
+            type: object
+            properties:
+                departments:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/forge.v1.ApplicationDirectoryDepartment'
+                snapshotAt:
+                    type: string
+                    format: date-time
+        forge.v1.ListApplicationDirectoryUsersResponse:
+            type: object
+            properties:
+                users:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/forge.v1.ApplicationDirectoryUser'
+                nextPageToken:
+                    type: string
+                snapshotAt:
+                    type: string
+                    format: date-time
         forge.v1.ListApprovalsResponse:
             type: object
             properties:

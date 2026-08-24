@@ -26,6 +26,7 @@ var (
 )
 
 type Bundle struct {
+	ApplicationID           string   `json:"application_id"`
 	ApplicationCode         string   `json:"application_code"`
 	Issuer                  string   `json:"issuer"`
 	ClientID                string   `json:"client_id"`
@@ -36,6 +37,8 @@ type Bundle struct {
 	ProvisioningSecret      string   `json:"provisioning_secret"`
 	ProvisioningKeyVersion  int64    `json:"provisioning_key_version"`
 	ProvisioningFingerprint string   `json:"provisioning_fingerprint"`
+	DirectoryToken          string   `json:"directory_token"`
+	DirectoryBasePath       string   `json:"directory_base_path"`
 	IssuedAt                string   `json:"issued_at"`
 }
 
@@ -53,7 +56,7 @@ func New(c cache.Cache, cipher *appcrypto.EnvelopeCipher) (*Store, error) {
 }
 
 func (s *Store) Issue(ctx context.Context, bundle Bundle) (string, time.Time, error) {
-	if s == nil || s.cache == nil || s.cipher == nil || strings.TrimSpace(bundle.ApplicationCode) == "" || strings.TrimSpace(bundle.ClientSecret) == "" || strings.TrimSpace(bundle.ProvisioningSecret) == "" {
+	if s == nil || s.cache == nil || s.cipher == nil || strings.TrimSpace(bundle.ApplicationID) == "" || strings.TrimSpace(bundle.ApplicationCode) == "" || strings.TrimSpace(bundle.ClientSecret) == "" || strings.TrimSpace(bundle.ProvisioningSecret) == "" || strings.TrimSpace(bundle.DirectoryToken) == "" {
 		return "", time.Time{}, ErrUnavailable
 	}
 	bundle.IssuedAt = time.Now().UTC().Format(time.RFC3339Nano)
@@ -101,7 +104,7 @@ func (s *Store) Consume(ctx context.Context, token string) (Bundle, error) {
 		return Bundle{}, ErrInvalidToken
 	}
 	var bundle Bundle
-	if err := json.Unmarshal(raw, &bundle); err != nil || bundle.ApplicationCode == "" || bundle.ClientSecret == "" || bundle.ProvisioningSecret == "" {
+	if err := json.Unmarshal(raw, &bundle); err != nil || bundle.ApplicationID == "" || bundle.ApplicationCode == "" || bundle.ClientSecret == "" || bundle.ProvisioningSecret == "" || bundle.DirectoryToken == "" {
 		return Bundle{}, ErrInvalidToken
 	}
 	return bundle, nil

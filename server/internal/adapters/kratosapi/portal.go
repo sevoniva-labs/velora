@@ -1099,7 +1099,8 @@ func (s *PortalService) UpsertApplicationIdentityBinding(ctx context.Context, re
 			if handoffErr != nil {
 				return nil, serviceError(handoffErr)
 			}
-			enrollmentToken, enrollmentExpiresAt, handoffErr = s.handoff.Issue(ctx, credentialhandoff.Bundle{ApplicationCode: application.Code, Issuer: binding.Issuer, ClientID: binding.PublicClientID, ClientSecret: oneTimeClientSecret, RedirectURIs: binding.RedirectURIs, Scopes: binding.Scopes, ProvisioningEndpoint: target.EndpointURL, ProvisioningSecret: provisioningSecret, ProvisioningKeyVersion: target.ActiveKeyVersion, ProvisioningFingerprint: target.SecretFingerprint})
+			directoryBasePath := "/api/v1/integrations/applications/" + application.ID + "/directory"
+			enrollmentToken, enrollmentExpiresAt, handoffErr = s.handoff.Issue(ctx, credentialhandoff.Bundle{ApplicationID: application.ID, ApplicationCode: application.Code, Issuer: binding.Issuer, ClientID: binding.PublicClientID, ClientSecret: oneTimeClientSecret, RedirectURIs: binding.RedirectURIs, Scopes: binding.Scopes, ProvisioningEndpoint: target.EndpointURL, ProvisioningSecret: provisioningSecret, ProvisioningKeyVersion: target.ActiveKeyVersion, ProvisioningFingerprint: target.SecretFingerprint, DirectoryToken: appportal.DeriveDirectoryToken(provisioningSecret, application.ID), DirectoryBasePath: directoryBasePath})
 			if handoffErr != nil {
 				if onboardingOperation.ID != "" {
 					next := time.Now().UTC().Add(time.Minute)
@@ -1148,7 +1149,79 @@ func (s *PortalService) ConsumeApplicationEnrollment(ctx context.Context, req *f
 		return nil, kratoserrors.Unauthorized("ENROLLMENT_TOKEN_INVALID", "enrollment token is invalid or expired")
 	}
 	setNoStore(ctx)
-	return &forgev1.ConsumeApplicationEnrollmentResponse{ApplicationCode: bundle.ApplicationCode, Issuer: bundle.Issuer, ClientId: bundle.ClientID, ClientSecret: bundle.ClientSecret, RedirectUris: bundle.RedirectURIs, Scopes: bundle.Scopes, ProvisioningEndpoint: bundle.ProvisioningEndpoint, ProvisioningSecret: bundle.ProvisioningSecret, ProvisioningKeyVersion: bundle.ProvisioningKeyVersion, ProvisioningFingerprint: bundle.ProvisioningFingerprint}, nil
+	return &forgev1.ConsumeApplicationEnrollmentResponse{ApplicationCode: bundle.ApplicationCode, Issuer: bundle.Issuer, ClientId: bundle.ClientID, ClientSecret: bundle.ClientSecret, RedirectUris: bundle.RedirectURIs, Scopes: bundle.Scopes, ProvisioningEndpoint: bundle.ProvisioningEndpoint, ProvisioningSecret: bundle.ProvisioningSecret, ProvisioningKeyVersion: bundle.ProvisioningKeyVersion, ProvisioningFingerprint: bundle.ProvisioningFingerprint, ApplicationId: bundle.ApplicationID, DirectoryToken: bundle.DirectoryToken, DirectoryBasePath: bundle.DirectoryBasePath}, nil
+}
+
+func (s *PortalService) directoryAccess(ctx context.Context, applicationID string) (appportal.DirectoryAccess, error) {
+	tr, ok := transport.FromServerContext(ctx)
+	if !ok {
+		return appportal.DirectoryAccess{}, kratoserrors.Unauthorized("DIRECTORY_UNAUTHENTICATED", "directory credential is required")
+	}
+	parts := strings.Fields(strings.TrimSpace(tr.RequestHeader().Get("Authorization")))
+	if len(parts) != 2 || !strings.EqualFold(parts[0], "Bearer") {
+		return appportal.DirectoryAccess{}, kratoserrors.Unauthorized("DIRECTORY_UNAUTHENTICATED", "directory credential is required")
+	}
+	access, err := s.portal.AuthenticateDirectoryCredential(ctx, applicationID, parts[1])
+	if err != nil {
+		if !errors.Is(err, appportal.ErrAccessDenied) {
+			return appportal.DirectoryAccess{}, serviceError(err)
+		}
+		return appportal.DirectoryAccess{}, kratoserrors.Unauthorized("DIRECTORY_UNAUTHENTICATED", "directory credential is invalid")
+	}
+	setNoStore(ctx)
+	return access, nil
+}
+
+func (s *PortalService) GetApplicationDirectoryOrganization(ctx context.Context, req *forgev1.GetApplicationDirectoryOrganizationRequest) (*forgev1.GetApplicationDirectoryOrganizationResponse, error) {
+	access, err := s.directoryAccess(ctx, req.GetApplicationId())
+	if err != nil {
+		return nil, err
+	}
+	item, err := s.portal.DirectoryOrganization(ctx, access)
+	if err != nil {
+		return nil, serviceError(err)
+	}
+	return &forgev1.GetApplicationDirectoryOrganizationResponse{Organization: &forgev1.ApplicationDirectoryOrganization{Id: item.ID, Key: item.Key, Name: item.Name, Status: item.Status, UpdatedAt: timestamp(item.UpdatedAt)}}, nil
+}
+
+func (s *PortalService) ListApplicationDirectoryDepartments(ctx context.Context, req *forgev1.ListApplicationDirectoryDepartmentsRequest) (*forgev1.ListApplicationDirectoryDepartmentsResponse, error) {
+	access, err := s.directoryAccess(ctx, req.GetApplicationId())
+	if err != nil {
+		return nil, err
+	}
+	items, err := s.portal.DirectoryDepartments(ctx, access)
+	if err != nil {
+		return nil, serviceError(err)
+	}
+	reply := &forgev1.ListApplicationDirectoryDepartmentsResponse{Departments: make([]*forgev1.ApplicationDirectoryDepartment, 0, len(items)), SnapshotAt: timestamp(time.Now().UTC())}
+	for _, item := range items {
+		reply.Departments = append(reply.Departments, &forgev1.ApplicationDirectoryDepartment{Id: item.ID, ParentId: item.ParentID, Key: item.Key, Name: item.Name, Status: item.Status, SortOrder: item.SortOrder, UpdatedAt: timestamp(item.UpdatedAt)})
+	}
+	return reply, nil
+}
+
+func (s *PortalService) ListApplicationDirectoryUsers(ctx context.Context, req *forgev1.ListApplicationDirectoryUsersRequest) (*forgev1.ListApplicationDirectoryUsersResponse, error) {
+	access, err := s.directoryAccess(ctx, req.GetApplicationId())
+	if err != nil {
+		return nil, err
+	}
+	var updatedAfter *time.Time
+	if req.GetUpdatedAfter() != nil {
+		value := req.GetUpdatedAfter().AsTime()
+		updatedAfter = &value
+	}
+	page, err := s.portal.DirectoryUsers(ctx, access, int(req.GetPageSize()), req.GetPageToken(), updatedAfter)
+	if errors.Is(err, appportal.ErrInvalid) {
+		return nil, kratoserrors.BadRequest("DIRECTORY_PAGE_TOKEN_INVALID", "directory page token is invalid")
+	}
+	if err != nil {
+		return nil, serviceError(err)
+	}
+	reply := &forgev1.ListApplicationDirectoryUsersResponse{Users: make([]*forgev1.ApplicationDirectoryUser, 0, len(page.Users)), NextPageToken: page.NextPageToken, SnapshotAt: timestamp(page.SnapshotAt)}
+	for _, item := range page.Users {
+		reply.Users = append(reply.Users, &forgev1.ApplicationDirectoryUser{Subject: item.Subject, LoginName: item.LoginName, DisplayName: item.DisplayName, Email: item.Email, DepartmentId: item.DepartmentID, Status: item.Status, Roles: item.Roles, Version: item.Version, UpdatedAt: timestamp(item.UpdatedAt)})
+	}
+	return reply, nil
 }
 
 func (s *PortalService) VerifyApplicationIdentity(ctx context.Context, req *forgev1.VerifyApplicationIdentityRequest) (*forgev1.VerifyApplicationIdentityResponse, error) {

@@ -5546,6 +5546,9 @@ type ConsumeApplicationEnrollmentResponse struct {
 	ProvisioningSecret      string                 `protobuf:"bytes,8,opt,name=provisioning_secret,json=provisioningSecret,proto3" json:"provisioning_secret,omitempty"`
 	ProvisioningKeyVersion  int64                  `protobuf:"varint,9,opt,name=provisioning_key_version,json=provisioningKeyVersion,proto3" json:"provisioning_key_version,omitempty"`
 	ProvisioningFingerprint string                 `protobuf:"bytes,10,opt,name=provisioning_fingerprint,json=provisioningFingerprint,proto3" json:"provisioning_fingerprint,omitempty"`
+	ApplicationId           string                 `protobuf:"bytes,11,opt,name=application_id,json=applicationId,proto3" json:"application_id,omitempty"`
+	DirectoryToken          string                 `protobuf:"bytes,12,opt,name=directory_token,json=directoryToken,proto3" json:"directory_token,omitempty"`
+	DirectoryBasePath       string                 `protobuf:"bytes,13,opt,name=directory_base_path,json=directoryBasePath,proto3" json:"directory_base_path,omitempty"`
 	unknownFields           protoimpl.UnknownFields
 	sizeCache               protoimpl.SizeCache
 }
@@ -5650,6 +5653,615 @@ func (x *ConsumeApplicationEnrollmentResponse) GetProvisioningFingerprint() stri
 	return ""
 }
 
+func (x *ConsumeApplicationEnrollmentResponse) GetApplicationId() string {
+	if x != nil {
+		return x.ApplicationId
+	}
+	return ""
+}
+
+func (x *ConsumeApplicationEnrollmentResponse) GetDirectoryToken() string {
+	if x != nil {
+		return x.DirectoryToken
+	}
+	return ""
+}
+
+func (x *ConsumeApplicationEnrollmentResponse) GetDirectoryBasePath() string {
+	if x != nil {
+		return x.DirectoryBasePath
+	}
+	return ""
+}
+
+type GetApplicationDirectoryOrganizationRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	ApplicationId string                 `protobuf:"bytes,1,opt,name=application_id,json=applicationId,proto3" json:"application_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetApplicationDirectoryOrganizationRequest) Reset() {
+	*x = GetApplicationDirectoryOrganizationRequest{}
+	mi := &file_forge_v1_portal_proto_msgTypes[84]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetApplicationDirectoryOrganizationRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetApplicationDirectoryOrganizationRequest) ProtoMessage() {}
+
+func (x *GetApplicationDirectoryOrganizationRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_forge_v1_portal_proto_msgTypes[84]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetApplicationDirectoryOrganizationRequest.ProtoReflect.Descriptor instead.
+func (*GetApplicationDirectoryOrganizationRequest) Descriptor() ([]byte, []int) {
+	return file_forge_v1_portal_proto_rawDescGZIP(), []int{84}
+}
+
+func (x *GetApplicationDirectoryOrganizationRequest) GetApplicationId() string {
+	if x != nil {
+		return x.ApplicationId
+	}
+	return ""
+}
+
+type GetApplicationDirectoryOrganizationResponse struct {
+	state         protoimpl.MessageState            `protogen:"open.v1"`
+	Organization  *ApplicationDirectoryOrganization `protobuf:"bytes,1,opt,name=organization,proto3" json:"organization,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetApplicationDirectoryOrganizationResponse) Reset() {
+	*x = GetApplicationDirectoryOrganizationResponse{}
+	mi := &file_forge_v1_portal_proto_msgTypes[85]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetApplicationDirectoryOrganizationResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetApplicationDirectoryOrganizationResponse) ProtoMessage() {}
+
+func (x *GetApplicationDirectoryOrganizationResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_forge_v1_portal_proto_msgTypes[85]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetApplicationDirectoryOrganizationResponse.ProtoReflect.Descriptor instead.
+func (*GetApplicationDirectoryOrganizationResponse) Descriptor() ([]byte, []int) {
+	return file_forge_v1_portal_proto_rawDescGZIP(), []int{85}
+}
+
+func (x *GetApplicationDirectoryOrganizationResponse) GetOrganization() *ApplicationDirectoryOrganization {
+	if x != nil {
+		return x.Organization
+	}
+	return nil
+}
+
+type ListApplicationDirectoryDepartmentsRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	ApplicationId string                 `protobuf:"bytes,1,opt,name=application_id,json=applicationId,proto3" json:"application_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListApplicationDirectoryDepartmentsRequest) Reset() {
+	*x = ListApplicationDirectoryDepartmentsRequest{}
+	mi := &file_forge_v1_portal_proto_msgTypes[86]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListApplicationDirectoryDepartmentsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListApplicationDirectoryDepartmentsRequest) ProtoMessage() {}
+
+func (x *ListApplicationDirectoryDepartmentsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_forge_v1_portal_proto_msgTypes[86]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListApplicationDirectoryDepartmentsRequest.ProtoReflect.Descriptor instead.
+func (*ListApplicationDirectoryDepartmentsRequest) Descriptor() ([]byte, []int) {
+	return file_forge_v1_portal_proto_rawDescGZIP(), []int{86}
+}
+
+func (x *ListApplicationDirectoryDepartmentsRequest) GetApplicationId() string {
+	if x != nil {
+		return x.ApplicationId
+	}
+	return ""
+}
+
+type ListApplicationDirectoryDepartmentsResponse struct {
+	state         protoimpl.MessageState            `protogen:"open.v1"`
+	Departments   []*ApplicationDirectoryDepartment `protobuf:"bytes,1,rep,name=departments,proto3" json:"departments,omitempty"`
+	SnapshotAt    *timestamppb.Timestamp            `protobuf:"bytes,2,opt,name=snapshot_at,json=snapshotAt,proto3" json:"snapshot_at,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListApplicationDirectoryDepartmentsResponse) Reset() {
+	*x = ListApplicationDirectoryDepartmentsResponse{}
+	mi := &file_forge_v1_portal_proto_msgTypes[87]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListApplicationDirectoryDepartmentsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListApplicationDirectoryDepartmentsResponse) ProtoMessage() {}
+
+func (x *ListApplicationDirectoryDepartmentsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_forge_v1_portal_proto_msgTypes[87]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListApplicationDirectoryDepartmentsResponse.ProtoReflect.Descriptor instead.
+func (*ListApplicationDirectoryDepartmentsResponse) Descriptor() ([]byte, []int) {
+	return file_forge_v1_portal_proto_rawDescGZIP(), []int{87}
+}
+
+func (x *ListApplicationDirectoryDepartmentsResponse) GetDepartments() []*ApplicationDirectoryDepartment {
+	if x != nil {
+		return x.Departments
+	}
+	return nil
+}
+
+func (x *ListApplicationDirectoryDepartmentsResponse) GetSnapshotAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.SnapshotAt
+	}
+	return nil
+}
+
+type ListApplicationDirectoryUsersRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	ApplicationId string                 `protobuf:"bytes,1,opt,name=application_id,json=applicationId,proto3" json:"application_id,omitempty"`
+	PageSize      int32                  `protobuf:"varint,2,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
+	PageToken     string                 `protobuf:"bytes,3,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
+	UpdatedAfter  *timestamppb.Timestamp `protobuf:"bytes,4,opt,name=updated_after,json=updatedAfter,proto3" json:"updated_after,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListApplicationDirectoryUsersRequest) Reset() {
+	*x = ListApplicationDirectoryUsersRequest{}
+	mi := &file_forge_v1_portal_proto_msgTypes[88]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListApplicationDirectoryUsersRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListApplicationDirectoryUsersRequest) ProtoMessage() {}
+
+func (x *ListApplicationDirectoryUsersRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_forge_v1_portal_proto_msgTypes[88]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListApplicationDirectoryUsersRequest.ProtoReflect.Descriptor instead.
+func (*ListApplicationDirectoryUsersRequest) Descriptor() ([]byte, []int) {
+	return file_forge_v1_portal_proto_rawDescGZIP(), []int{88}
+}
+
+func (x *ListApplicationDirectoryUsersRequest) GetApplicationId() string {
+	if x != nil {
+		return x.ApplicationId
+	}
+	return ""
+}
+
+func (x *ListApplicationDirectoryUsersRequest) GetPageSize() int32 {
+	if x != nil {
+		return x.PageSize
+	}
+	return 0
+}
+
+func (x *ListApplicationDirectoryUsersRequest) GetPageToken() string {
+	if x != nil {
+		return x.PageToken
+	}
+	return ""
+}
+
+func (x *ListApplicationDirectoryUsersRequest) GetUpdatedAfter() *timestamppb.Timestamp {
+	if x != nil {
+		return x.UpdatedAfter
+	}
+	return nil
+}
+
+type ListApplicationDirectoryUsersResponse struct {
+	state         protoimpl.MessageState      `protogen:"open.v1"`
+	Users         []*ApplicationDirectoryUser `protobuf:"bytes,1,rep,name=users,proto3" json:"users,omitempty"`
+	NextPageToken string                      `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
+	SnapshotAt    *timestamppb.Timestamp      `protobuf:"bytes,3,opt,name=snapshot_at,json=snapshotAt,proto3" json:"snapshot_at,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListApplicationDirectoryUsersResponse) Reset() {
+	*x = ListApplicationDirectoryUsersResponse{}
+	mi := &file_forge_v1_portal_proto_msgTypes[89]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListApplicationDirectoryUsersResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListApplicationDirectoryUsersResponse) ProtoMessage() {}
+
+func (x *ListApplicationDirectoryUsersResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_forge_v1_portal_proto_msgTypes[89]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListApplicationDirectoryUsersResponse.ProtoReflect.Descriptor instead.
+func (*ListApplicationDirectoryUsersResponse) Descriptor() ([]byte, []int) {
+	return file_forge_v1_portal_proto_rawDescGZIP(), []int{89}
+}
+
+func (x *ListApplicationDirectoryUsersResponse) GetUsers() []*ApplicationDirectoryUser {
+	if x != nil {
+		return x.Users
+	}
+	return nil
+}
+
+func (x *ListApplicationDirectoryUsersResponse) GetNextPageToken() string {
+	if x != nil {
+		return x.NextPageToken
+	}
+	return ""
+}
+
+func (x *ListApplicationDirectoryUsersResponse) GetSnapshotAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.SnapshotAt
+	}
+	return nil
+}
+
+type ApplicationDirectoryOrganization struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Key           string                 `protobuf:"bytes,2,opt,name=key,proto3" json:"key,omitempty"`
+	Name          string                 `protobuf:"bytes,3,opt,name=name,proto3" json:"name,omitempty"`
+	Status        string                 `protobuf:"bytes,4,opt,name=status,proto3" json:"status,omitempty"`
+	UpdatedAt     *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ApplicationDirectoryOrganization) Reset() {
+	*x = ApplicationDirectoryOrganization{}
+	mi := &file_forge_v1_portal_proto_msgTypes[90]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ApplicationDirectoryOrganization) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ApplicationDirectoryOrganization) ProtoMessage() {}
+
+func (x *ApplicationDirectoryOrganization) ProtoReflect() protoreflect.Message {
+	mi := &file_forge_v1_portal_proto_msgTypes[90]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ApplicationDirectoryOrganization.ProtoReflect.Descriptor instead.
+func (*ApplicationDirectoryOrganization) Descriptor() ([]byte, []int) {
+	return file_forge_v1_portal_proto_rawDescGZIP(), []int{90}
+}
+
+func (x *ApplicationDirectoryOrganization) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *ApplicationDirectoryOrganization) GetKey() string {
+	if x != nil {
+		return x.Key
+	}
+	return ""
+}
+
+func (x *ApplicationDirectoryOrganization) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *ApplicationDirectoryOrganization) GetStatus() string {
+	if x != nil {
+		return x.Status
+	}
+	return ""
+}
+
+func (x *ApplicationDirectoryOrganization) GetUpdatedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.UpdatedAt
+	}
+	return nil
+}
+
+type ApplicationDirectoryDepartment struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	ParentId      string                 `protobuf:"bytes,2,opt,name=parent_id,json=parentId,proto3" json:"parent_id,omitempty"`
+	Key           string                 `protobuf:"bytes,3,opt,name=key,proto3" json:"key,omitempty"`
+	Name          string                 `protobuf:"bytes,4,opt,name=name,proto3" json:"name,omitempty"`
+	Status        string                 `protobuf:"bytes,5,opt,name=status,proto3" json:"status,omitempty"`
+	SortOrder     int64                  `protobuf:"varint,6,opt,name=sort_order,json=sortOrder,proto3" json:"sort_order,omitempty"`
+	UpdatedAt     *timestamppb.Timestamp `protobuf:"bytes,7,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ApplicationDirectoryDepartment) Reset() {
+	*x = ApplicationDirectoryDepartment{}
+	mi := &file_forge_v1_portal_proto_msgTypes[91]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ApplicationDirectoryDepartment) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ApplicationDirectoryDepartment) ProtoMessage() {}
+
+func (x *ApplicationDirectoryDepartment) ProtoReflect() protoreflect.Message {
+	mi := &file_forge_v1_portal_proto_msgTypes[91]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ApplicationDirectoryDepartment.ProtoReflect.Descriptor instead.
+func (*ApplicationDirectoryDepartment) Descriptor() ([]byte, []int) {
+	return file_forge_v1_portal_proto_rawDescGZIP(), []int{91}
+}
+
+func (x *ApplicationDirectoryDepartment) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *ApplicationDirectoryDepartment) GetParentId() string {
+	if x != nil {
+		return x.ParentId
+	}
+	return ""
+}
+
+func (x *ApplicationDirectoryDepartment) GetKey() string {
+	if x != nil {
+		return x.Key
+	}
+	return ""
+}
+
+func (x *ApplicationDirectoryDepartment) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *ApplicationDirectoryDepartment) GetStatus() string {
+	if x != nil {
+		return x.Status
+	}
+	return ""
+}
+
+func (x *ApplicationDirectoryDepartment) GetSortOrder() int64 {
+	if x != nil {
+		return x.SortOrder
+	}
+	return 0
+}
+
+func (x *ApplicationDirectoryDepartment) GetUpdatedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.UpdatedAt
+	}
+	return nil
+}
+
+type ApplicationDirectoryUser struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Subject       string                 `protobuf:"bytes,1,opt,name=subject,proto3" json:"subject,omitempty"`
+	LoginName     string                 `protobuf:"bytes,2,opt,name=login_name,json=loginName,proto3" json:"login_name,omitempty"`
+	DisplayName   string                 `protobuf:"bytes,3,opt,name=display_name,json=displayName,proto3" json:"display_name,omitempty"`
+	Email         string                 `protobuf:"bytes,4,opt,name=email,proto3" json:"email,omitempty"`
+	DepartmentId  string                 `protobuf:"bytes,5,opt,name=department_id,json=departmentId,proto3" json:"department_id,omitempty"`
+	Status        string                 `protobuf:"bytes,6,opt,name=status,proto3" json:"status,omitempty"`
+	Roles         []string               `protobuf:"bytes,7,rep,name=roles,proto3" json:"roles,omitempty"`
+	Version       int64                  `protobuf:"varint,8,opt,name=version,proto3" json:"version,omitempty"`
+	UpdatedAt     *timestamppb.Timestamp `protobuf:"bytes,9,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ApplicationDirectoryUser) Reset() {
+	*x = ApplicationDirectoryUser{}
+	mi := &file_forge_v1_portal_proto_msgTypes[92]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ApplicationDirectoryUser) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ApplicationDirectoryUser) ProtoMessage() {}
+
+func (x *ApplicationDirectoryUser) ProtoReflect() protoreflect.Message {
+	mi := &file_forge_v1_portal_proto_msgTypes[92]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ApplicationDirectoryUser.ProtoReflect.Descriptor instead.
+func (*ApplicationDirectoryUser) Descriptor() ([]byte, []int) {
+	return file_forge_v1_portal_proto_rawDescGZIP(), []int{92}
+}
+
+func (x *ApplicationDirectoryUser) GetSubject() string {
+	if x != nil {
+		return x.Subject
+	}
+	return ""
+}
+
+func (x *ApplicationDirectoryUser) GetLoginName() string {
+	if x != nil {
+		return x.LoginName
+	}
+	return ""
+}
+
+func (x *ApplicationDirectoryUser) GetDisplayName() string {
+	if x != nil {
+		return x.DisplayName
+	}
+	return ""
+}
+
+func (x *ApplicationDirectoryUser) GetEmail() string {
+	if x != nil {
+		return x.Email
+	}
+	return ""
+}
+
+func (x *ApplicationDirectoryUser) GetDepartmentId() string {
+	if x != nil {
+		return x.DepartmentId
+	}
+	return ""
+}
+
+func (x *ApplicationDirectoryUser) GetStatus() string {
+	if x != nil {
+		return x.Status
+	}
+	return ""
+}
+
+func (x *ApplicationDirectoryUser) GetRoles() []string {
+	if x != nil {
+		return x.Roles
+	}
+	return nil
+}
+
+func (x *ApplicationDirectoryUser) GetVersion() int64 {
+	if x != nil {
+		return x.Version
+	}
+	return 0
+}
+
+func (x *ApplicationDirectoryUser) GetUpdatedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.UpdatedAt
+	}
+	return nil
+}
+
 type PrepareApplicationCredentialApprovalRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	ApplicationId string                 `protobuf:"bytes,1,opt,name=application_id,json=applicationId,proto3" json:"application_id,omitempty"`
@@ -5660,7 +6272,7 @@ type PrepareApplicationCredentialApprovalRequest struct {
 
 func (x *PrepareApplicationCredentialApprovalRequest) Reset() {
 	*x = PrepareApplicationCredentialApprovalRequest{}
-	mi := &file_forge_v1_portal_proto_msgTypes[84]
+	mi := &file_forge_v1_portal_proto_msgTypes[93]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5672,7 +6284,7 @@ func (x *PrepareApplicationCredentialApprovalRequest) String() string {
 func (*PrepareApplicationCredentialApprovalRequest) ProtoMessage() {}
 
 func (x *PrepareApplicationCredentialApprovalRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_forge_v1_portal_proto_msgTypes[84]
+	mi := &file_forge_v1_portal_proto_msgTypes[93]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5685,7 +6297,7 @@ func (x *PrepareApplicationCredentialApprovalRequest) ProtoReflect() protoreflec
 
 // Deprecated: Use PrepareApplicationCredentialApprovalRequest.ProtoReflect.Descriptor instead.
 func (*PrepareApplicationCredentialApprovalRequest) Descriptor() ([]byte, []int) {
-	return file_forge_v1_portal_proto_rawDescGZIP(), []int{84}
+	return file_forge_v1_portal_proto_rawDescGZIP(), []int{93}
 }
 
 func (x *PrepareApplicationCredentialApprovalRequest) GetApplicationId() string {
@@ -5717,7 +6329,7 @@ type PrepareApplicationCredentialApprovalResponse struct {
 
 func (x *PrepareApplicationCredentialApprovalResponse) Reset() {
 	*x = PrepareApplicationCredentialApprovalResponse{}
-	mi := &file_forge_v1_portal_proto_msgTypes[85]
+	mi := &file_forge_v1_portal_proto_msgTypes[94]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5729,7 +6341,7 @@ func (x *PrepareApplicationCredentialApprovalResponse) String() string {
 func (*PrepareApplicationCredentialApprovalResponse) ProtoMessage() {}
 
 func (x *PrepareApplicationCredentialApprovalResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_forge_v1_portal_proto_msgTypes[85]
+	mi := &file_forge_v1_portal_proto_msgTypes[94]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5742,7 +6354,7 @@ func (x *PrepareApplicationCredentialApprovalResponse) ProtoReflect() protorefle
 
 // Deprecated: Use PrepareApplicationCredentialApprovalResponse.ProtoReflect.Descriptor instead.
 func (*PrepareApplicationCredentialApprovalResponse) Descriptor() ([]byte, []int) {
-	return file_forge_v1_portal_proto_rawDescGZIP(), []int{85}
+	return file_forge_v1_portal_proto_rawDescGZIP(), []int{94}
 }
 
 func (x *PrepareApplicationCredentialApprovalResponse) GetApprovalStatus() string {
@@ -5804,7 +6416,7 @@ type VerifyApplicationIdentityRequest struct {
 
 func (x *VerifyApplicationIdentityRequest) Reset() {
 	*x = VerifyApplicationIdentityRequest{}
-	mi := &file_forge_v1_portal_proto_msgTypes[86]
+	mi := &file_forge_v1_portal_proto_msgTypes[95]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5816,7 +6428,7 @@ func (x *VerifyApplicationIdentityRequest) String() string {
 func (*VerifyApplicationIdentityRequest) ProtoMessage() {}
 
 func (x *VerifyApplicationIdentityRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_forge_v1_portal_proto_msgTypes[86]
+	mi := &file_forge_v1_portal_proto_msgTypes[95]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5829,7 +6441,7 @@ func (x *VerifyApplicationIdentityRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use VerifyApplicationIdentityRequest.ProtoReflect.Descriptor instead.
 func (*VerifyApplicationIdentityRequest) Descriptor() ([]byte, []int) {
-	return file_forge_v1_portal_proto_rawDescGZIP(), []int{86}
+	return file_forge_v1_portal_proto_rawDescGZIP(), []int{95}
 }
 
 func (x *VerifyApplicationIdentityRequest) GetApplicationId() string {
@@ -5858,7 +6470,7 @@ type VerifyApplicationIdentityResponse struct {
 
 func (x *VerifyApplicationIdentityResponse) Reset() {
 	*x = VerifyApplicationIdentityResponse{}
-	mi := &file_forge_v1_portal_proto_msgTypes[87]
+	mi := &file_forge_v1_portal_proto_msgTypes[96]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5870,7 +6482,7 @@ func (x *VerifyApplicationIdentityResponse) String() string {
 func (*VerifyApplicationIdentityResponse) ProtoMessage() {}
 
 func (x *VerifyApplicationIdentityResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_forge_v1_portal_proto_msgTypes[87]
+	mi := &file_forge_v1_portal_proto_msgTypes[96]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5883,7 +6495,7 @@ func (x *VerifyApplicationIdentityResponse) ProtoReflect() protoreflect.Message 
 
 // Deprecated: Use VerifyApplicationIdentityResponse.ProtoReflect.Descriptor instead.
 func (*VerifyApplicationIdentityResponse) Descriptor() ([]byte, []int) {
-	return file_forge_v1_portal_proto_rawDescGZIP(), []int{87}
+	return file_forge_v1_portal_proto_rawDescGZIP(), []int{96}
 }
 
 func (x *VerifyApplicationIdentityResponse) GetBinding() *PortalIdentityBinding {
@@ -5924,7 +6536,7 @@ type RunApplicationOnboardingChecksRequest struct {
 
 func (x *RunApplicationOnboardingChecksRequest) Reset() {
 	*x = RunApplicationOnboardingChecksRequest{}
-	mi := &file_forge_v1_portal_proto_msgTypes[88]
+	mi := &file_forge_v1_portal_proto_msgTypes[97]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5936,7 +6548,7 @@ func (x *RunApplicationOnboardingChecksRequest) String() string {
 func (*RunApplicationOnboardingChecksRequest) ProtoMessage() {}
 
 func (x *RunApplicationOnboardingChecksRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_forge_v1_portal_proto_msgTypes[88]
+	mi := &file_forge_v1_portal_proto_msgTypes[97]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5949,7 +6561,7 @@ func (x *RunApplicationOnboardingChecksRequest) ProtoReflect() protoreflect.Mess
 
 // Deprecated: Use RunApplicationOnboardingChecksRequest.ProtoReflect.Descriptor instead.
 func (*RunApplicationOnboardingChecksRequest) Descriptor() ([]byte, []int) {
-	return file_forge_v1_portal_proto_rawDescGZIP(), []int{88}
+	return file_forge_v1_portal_proto_rawDescGZIP(), []int{97}
 }
 
 func (x *RunApplicationOnboardingChecksRequest) GetApplicationId() string {
@@ -5976,7 +6588,7 @@ type RunApplicationOnboardingChecksResponse struct {
 
 func (x *RunApplicationOnboardingChecksResponse) Reset() {
 	*x = RunApplicationOnboardingChecksResponse{}
-	mi := &file_forge_v1_portal_proto_msgTypes[89]
+	mi := &file_forge_v1_portal_proto_msgTypes[98]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5988,7 +6600,7 @@ func (x *RunApplicationOnboardingChecksResponse) String() string {
 func (*RunApplicationOnboardingChecksResponse) ProtoMessage() {}
 
 func (x *RunApplicationOnboardingChecksResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_forge_v1_portal_proto_msgTypes[89]
+	mi := &file_forge_v1_portal_proto_msgTypes[98]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6001,7 +6613,7 @@ func (x *RunApplicationOnboardingChecksResponse) ProtoReflect() protoreflect.Mes
 
 // Deprecated: Use RunApplicationOnboardingChecksResponse.ProtoReflect.Descriptor instead.
 func (*RunApplicationOnboardingChecksResponse) Descriptor() ([]byte, []int) {
-	return file_forge_v1_portal_proto_rawDescGZIP(), []int{89}
+	return file_forge_v1_portal_proto_rawDescGZIP(), []int{98}
 }
 
 func (x *RunApplicationOnboardingChecksResponse) GetChecks() []*PortalApplicationOnboardingCheck {
@@ -6028,7 +6640,7 @@ type SubmitApplicationPublishRequest struct {
 
 func (x *SubmitApplicationPublishRequest) Reset() {
 	*x = SubmitApplicationPublishRequest{}
-	mi := &file_forge_v1_portal_proto_msgTypes[90]
+	mi := &file_forge_v1_portal_proto_msgTypes[99]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6040,7 +6652,7 @@ func (x *SubmitApplicationPublishRequest) String() string {
 func (*SubmitApplicationPublishRequest) ProtoMessage() {}
 
 func (x *SubmitApplicationPublishRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_forge_v1_portal_proto_msgTypes[90]
+	mi := &file_forge_v1_portal_proto_msgTypes[99]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6053,7 +6665,7 @@ func (x *SubmitApplicationPublishRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SubmitApplicationPublishRequest.ProtoReflect.Descriptor instead.
 func (*SubmitApplicationPublishRequest) Descriptor() ([]byte, []int) {
-	return file_forge_v1_portal_proto_rawDescGZIP(), []int{90}
+	return file_forge_v1_portal_proto_rawDescGZIP(), []int{99}
 }
 
 func (x *SubmitApplicationPublishRequest) GetApplicationId() string {
@@ -6079,7 +6691,7 @@ type SubmitApplicationPublishResponse struct {
 
 func (x *SubmitApplicationPublishResponse) Reset() {
 	*x = SubmitApplicationPublishResponse{}
-	mi := &file_forge_v1_portal_proto_msgTypes[91]
+	mi := &file_forge_v1_portal_proto_msgTypes[100]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6091,7 +6703,7 @@ func (x *SubmitApplicationPublishResponse) String() string {
 func (*SubmitApplicationPublishResponse) ProtoMessage() {}
 
 func (x *SubmitApplicationPublishResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_forge_v1_portal_proto_msgTypes[91]
+	mi := &file_forge_v1_portal_proto_msgTypes[100]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6104,7 +6716,7 @@ func (x *SubmitApplicationPublishResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SubmitApplicationPublishResponse.ProtoReflect.Descriptor instead.
 func (*SubmitApplicationPublishResponse) Descriptor() ([]byte, []int) {
-	return file_forge_v1_portal_proto_rawDescGZIP(), []int{91}
+	return file_forge_v1_portal_proto_rawDescGZIP(), []int{100}
 }
 
 func (x *SubmitApplicationPublishResponse) GetApplication() *PortalApplication {
@@ -6124,7 +6736,7 @@ type PublishApplicationRequest struct {
 
 func (x *PublishApplicationRequest) Reset() {
 	*x = PublishApplicationRequest{}
-	mi := &file_forge_v1_portal_proto_msgTypes[92]
+	mi := &file_forge_v1_portal_proto_msgTypes[101]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6136,7 +6748,7 @@ func (x *PublishApplicationRequest) String() string {
 func (*PublishApplicationRequest) ProtoMessage() {}
 
 func (x *PublishApplicationRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_forge_v1_portal_proto_msgTypes[92]
+	mi := &file_forge_v1_portal_proto_msgTypes[101]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6149,7 +6761,7 @@ func (x *PublishApplicationRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PublishApplicationRequest.ProtoReflect.Descriptor instead.
 func (*PublishApplicationRequest) Descriptor() ([]byte, []int) {
-	return file_forge_v1_portal_proto_rawDescGZIP(), []int{92}
+	return file_forge_v1_portal_proto_rawDescGZIP(), []int{101}
 }
 
 func (x *PublishApplicationRequest) GetApplicationId() string {
@@ -6175,7 +6787,7 @@ type PublishApplicationResponse struct {
 
 func (x *PublishApplicationResponse) Reset() {
 	*x = PublishApplicationResponse{}
-	mi := &file_forge_v1_portal_proto_msgTypes[93]
+	mi := &file_forge_v1_portal_proto_msgTypes[102]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6187,7 +6799,7 @@ func (x *PublishApplicationResponse) String() string {
 func (*PublishApplicationResponse) ProtoMessage() {}
 
 func (x *PublishApplicationResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_forge_v1_portal_proto_msgTypes[93]
+	mi := &file_forge_v1_portal_proto_msgTypes[102]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6200,7 +6812,7 @@ func (x *PublishApplicationResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PublishApplicationResponse.ProtoReflect.Descriptor instead.
 func (*PublishApplicationResponse) Descriptor() ([]byte, []int) {
-	return file_forge_v1_portal_proto_rawDescGZIP(), []int{93}
+	return file_forge_v1_portal_proto_rawDescGZIP(), []int{102}
 }
 
 func (x *PublishApplicationResponse) GetApplication() *PortalApplication {
@@ -6221,7 +6833,7 @@ type DisableApplicationRequest struct {
 
 func (x *DisableApplicationRequest) Reset() {
 	*x = DisableApplicationRequest{}
-	mi := &file_forge_v1_portal_proto_msgTypes[94]
+	mi := &file_forge_v1_portal_proto_msgTypes[103]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6233,7 +6845,7 @@ func (x *DisableApplicationRequest) String() string {
 func (*DisableApplicationRequest) ProtoMessage() {}
 
 func (x *DisableApplicationRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_forge_v1_portal_proto_msgTypes[94]
+	mi := &file_forge_v1_portal_proto_msgTypes[103]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6246,7 +6858,7 @@ func (x *DisableApplicationRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DisableApplicationRequest.ProtoReflect.Descriptor instead.
 func (*DisableApplicationRequest) Descriptor() ([]byte, []int) {
-	return file_forge_v1_portal_proto_rawDescGZIP(), []int{94}
+	return file_forge_v1_portal_proto_rawDescGZIP(), []int{103}
 }
 
 func (x *DisableApplicationRequest) GetApplicationId() string {
@@ -6279,7 +6891,7 @@ type DisableApplicationResponse struct {
 
 func (x *DisableApplicationResponse) Reset() {
 	*x = DisableApplicationResponse{}
-	mi := &file_forge_v1_portal_proto_msgTypes[95]
+	mi := &file_forge_v1_portal_proto_msgTypes[104]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6291,7 +6903,7 @@ func (x *DisableApplicationResponse) String() string {
 func (*DisableApplicationResponse) ProtoMessage() {}
 
 func (x *DisableApplicationResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_forge_v1_portal_proto_msgTypes[95]
+	mi := &file_forge_v1_portal_proto_msgTypes[104]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6304,7 +6916,7 @@ func (x *DisableApplicationResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DisableApplicationResponse.ProtoReflect.Descriptor instead.
 func (*DisableApplicationResponse) Descriptor() ([]byte, []int) {
-	return file_forge_v1_portal_proto_rawDescGZIP(), []int{95}
+	return file_forge_v1_portal_proto_rawDescGZIP(), []int{104}
 }
 
 func (x *DisableApplicationResponse) GetApplication() *PortalApplication {
@@ -6796,7 +7408,7 @@ const file_forge_v1_portal_proto_rawDesc = "" +
 	"\x10enrollment_token\x18\x04 \x01(\tR\x0fenrollmentToken\x12N\n" +
 	"\x15enrollment_expires_at\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampR\x13enrollmentExpiresAt\"P\n" +
 	"#ConsumeApplicationEnrollmentRequest\x12)\n" +
-	"\x10enrollment_token\x18\x01 \x01(\tR\x0fenrollmentToken\"\xc3\x03\n" +
+	"\x10enrollment_token\x18\x01 \x01(\tR\x0fenrollmentToken\"\xc3\x04\n" +
 	"$ConsumeApplicationEnrollmentResponse\x12)\n" +
 	"\x10application_code\x18\x01 \x01(\tR\x0fapplicationCode\x12\x16\n" +
 	"\x06issuer\x18\x02 \x01(\tR\x06issuer\x12\x1b\n" +
@@ -6808,7 +7420,60 @@ const file_forge_v1_portal_proto_rawDesc = "" +
 	"\x13provisioning_secret\x18\b \x01(\tR\x12provisioningSecret\x128\n" +
 	"\x18provisioning_key_version\x18\t \x01(\x03R\x16provisioningKeyVersion\x129\n" +
 	"\x18provisioning_fingerprint\x18\n" +
-	" \x01(\tR\x17provisioningFingerprint\"y\n" +
+	" \x01(\tR\x17provisioningFingerprint\x12%\n" +
+	"\x0eapplication_id\x18\v \x01(\tR\rapplicationId\x12'\n" +
+	"\x0fdirectory_token\x18\f \x01(\tR\x0edirectoryToken\x12.\n" +
+	"\x13directory_base_path\x18\r \x01(\tR\x11directoryBasePath\"S\n" +
+	"*GetApplicationDirectoryOrganizationRequest\x12%\n" +
+	"\x0eapplication_id\x18\x01 \x01(\tR\rapplicationId\"}\n" +
+	"+GetApplicationDirectoryOrganizationResponse\x12N\n" +
+	"\forganization\x18\x01 \x01(\v2*.forge.v1.ApplicationDirectoryOrganizationR\forganization\"S\n" +
+	"*ListApplicationDirectoryDepartmentsRequest\x12%\n" +
+	"\x0eapplication_id\x18\x01 \x01(\tR\rapplicationId\"\xb6\x01\n" +
+	"+ListApplicationDirectoryDepartmentsResponse\x12J\n" +
+	"\vdepartments\x18\x01 \x03(\v2(.forge.v1.ApplicationDirectoryDepartmentR\vdepartments\x12;\n" +
+	"\vsnapshot_at\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\n" +
+	"snapshotAt\"\xca\x01\n" +
+	"$ListApplicationDirectoryUsersRequest\x12%\n" +
+	"\x0eapplication_id\x18\x01 \x01(\tR\rapplicationId\x12\x1b\n" +
+	"\tpage_size\x18\x02 \x01(\x05R\bpageSize\x12\x1d\n" +
+	"\n" +
+	"page_token\x18\x03 \x01(\tR\tpageToken\x12?\n" +
+	"\rupdated_after\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampR\fupdatedAfter\"\xc6\x01\n" +
+	"%ListApplicationDirectoryUsersResponse\x128\n" +
+	"\x05users\x18\x01 \x03(\v2\".forge.v1.ApplicationDirectoryUserR\x05users\x12&\n" +
+	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\x12;\n" +
+	"\vsnapshot_at\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\n" +
+	"snapshotAt\"\xab\x01\n" +
+	" ApplicationDirectoryOrganization\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x10\n" +
+	"\x03key\x18\x02 \x01(\tR\x03key\x12\x12\n" +
+	"\x04name\x18\x03 \x01(\tR\x04name\x12\x16\n" +
+	"\x06status\x18\x04 \x01(\tR\x06status\x129\n" +
+	"\n" +
+	"updated_at\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\"\xe5\x01\n" +
+	"\x1eApplicationDirectoryDepartment\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1b\n" +
+	"\tparent_id\x18\x02 \x01(\tR\bparentId\x12\x10\n" +
+	"\x03key\x18\x03 \x01(\tR\x03key\x12\x12\n" +
+	"\x04name\x18\x04 \x01(\tR\x04name\x12\x16\n" +
+	"\x06status\x18\x05 \x01(\tR\x06status\x12\x1d\n" +
+	"\n" +
+	"sort_order\x18\x06 \x01(\x03R\tsortOrder\x129\n" +
+	"\n" +
+	"updated_at\x18\a \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\"\xb4\x02\n" +
+	"\x18ApplicationDirectoryUser\x12\x18\n" +
+	"\asubject\x18\x01 \x01(\tR\asubject\x12\x1d\n" +
+	"\n" +
+	"login_name\x18\x02 \x01(\tR\tloginName\x12!\n" +
+	"\fdisplay_name\x18\x03 \x01(\tR\vdisplayName\x12\x14\n" +
+	"\x05email\x18\x04 \x01(\tR\x05email\x12#\n" +
+	"\rdepartment_id\x18\x05 \x01(\tR\fdepartmentId\x12\x16\n" +
+	"\x06status\x18\x06 \x01(\tR\x06status\x12\x14\n" +
+	"\x05roles\x18\a \x03(\tR\x05roles\x12\x18\n" +
+	"\aversion\x18\b \x01(\x03R\aversion\x129\n" +
+	"\n" +
+	"updated_at\x18\t \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\"y\n" +
 	"+PrepareApplicationCredentialApprovalRequest\x12%\n" +
 	"\x0eapplication_id\x18\x01 \x01(\tR\rapplicationId\x12#\n" +
 	"\rredirect_uris\x18\x02 \x03(\tR\fredirectUris\"\xb1\x02\n" +
@@ -6851,7 +7516,7 @@ const file_forge_v1_portal_proto_rawDesc = "" +
 	"\vapproval_id\x18\x03 \x01(\tR\n" +
 	"approvalId\"[\n" +
 	"\x1aDisableApplicationResponse\x12=\n" +
-	"\vapplication\x18\x01 \x01(\v2\x1b.forge.v1.PortalApplicationR\vapplication2\x8dI\n" +
+	"\vapplication\x18\x01 \x01(\v2\x1b.forge.v1.PortalApplicationR\vapplication2\xeaN\n" +
 	"\rPortalService\x12\xd0\x01\n" +
 	"\x1aAuthorizePortalApplication\x12+.forge.v1.AuthorizePortalApplicationRequest\x1a,.forge.v1.AuthorizePortalApplicationResponse\"W\xbaG'Z\x13\n" +
 	"\x11\n" +
@@ -7100,7 +7765,19 @@ const file_forge_v1_portal_proto_rawDesc = "" +
 	"\rSessionCookie\x12\x00\n" +
 	"\r\n" +
 	"\tCsrfToken\x12\x00\x82\xd3\xe4\x93\x02K:\x01*\"F/api/v1/admin/portal/applications/{application_id}/credential-approval\x12\xb1\x01\n" +
-	"\x1cConsumeApplicationEnrollment\x12-.forge.v1.ConsumeApplicationEnrollmentRequest\x1a..forge.v1.ConsumeApplicationEnrollmentResponse\"2\x82\xd3\xe4\x93\x02,:\x01*\"'/api/v1/application-enrollments:consume\x12\xf3\x01\n" +
+	"\x1cConsumeApplicationEnrollment\x12-.forge.v1.ConsumeApplicationEnrollmentRequest\x1a..forge.v1.ConsumeApplicationEnrollmentResponse\"2\x82\xd3\xe4\x93\x02,:\x01*\"'/api/v1/application-enrollments:consume\x12\xfa\x01\n" +
+	"#GetApplicationDirectoryOrganization\x124.forge.v1.GetApplicationDirectoryOrganizationRequest\x1a5.forge.v1.GetApplicationDirectoryOrganizationResponse\"f\xbaG\x12Z\x10\n" +
+	"\x0e\n" +
+	"\n" +
+	"BearerAuth\x12\x00\x82\xd3\xe4\x93\x02K\x12I/api/v1/integrations/applications/{application_id}/directory/organization\x12\xf9\x01\n" +
+	"#ListApplicationDirectoryDepartments\x124.forge.v1.ListApplicationDirectoryDepartmentsRequest\x1a5.forge.v1.ListApplicationDirectoryDepartmentsResponse\"e\xbaG\x12Z\x10\n" +
+	"\x0e\n" +
+	"\n" +
+	"BearerAuth\x12\x00\x82\xd3\xe4\x93\x02J\x12H/api/v1/integrations/applications/{application_id}/directory/departments\x12\xe1\x01\n" +
+	"\x1dListApplicationDirectoryUsers\x12..forge.v1.ListApplicationDirectoryUsersRequest\x1a/.forge.v1.ListApplicationDirectoryUsersResponse\"_\xbaG\x12Z\x10\n" +
+	"\x0e\n" +
+	"\n" +
+	"BearerAuth\x12\x00\x82\xd3\xe4\x93\x02D\x12B/api/v1/integrations/applications/{application_id}/directory/users\x12\xf3\x01\n" +
 	"\x19VerifyApplicationIdentity\x12*.forge.v1.VerifyApplicationIdentityRequest\x1a+.forge.v1.VerifyApplicationIdentityResponse\"}\xbaG6Z\"\n" +
 	"\x11\n" +
 	"\rSessionCookie\x12\x00\n" +
@@ -7151,7 +7828,7 @@ func file_forge_v1_portal_proto_rawDescGZIP() []byte {
 	return file_forge_v1_portal_proto_rawDescData
 }
 
-var file_forge_v1_portal_proto_msgTypes = make([]protoimpl.MessageInfo, 96)
+var file_forge_v1_portal_proto_msgTypes = make([]protoimpl.MessageInfo, 105)
 var file_forge_v1_portal_proto_goTypes = []any{
 	(*PortalApplication)(nil),                                 // 0: forge.v1.PortalApplication
 	(*PortalCategory)(nil),                                    // 1: forge.v1.PortalCategory
@@ -7237,45 +7914,54 @@ var file_forge_v1_portal_proto_goTypes = []any{
 	(*UpsertApplicationIdentityBindingResponse)(nil),          // 81: forge.v1.UpsertApplicationIdentityBindingResponse
 	(*ConsumeApplicationEnrollmentRequest)(nil),               // 82: forge.v1.ConsumeApplicationEnrollmentRequest
 	(*ConsumeApplicationEnrollmentResponse)(nil),              // 83: forge.v1.ConsumeApplicationEnrollmentResponse
-	(*PrepareApplicationCredentialApprovalRequest)(nil),       // 84: forge.v1.PrepareApplicationCredentialApprovalRequest
-	(*PrepareApplicationCredentialApprovalResponse)(nil),      // 85: forge.v1.PrepareApplicationCredentialApprovalResponse
-	(*VerifyApplicationIdentityRequest)(nil),                  // 86: forge.v1.VerifyApplicationIdentityRequest
-	(*VerifyApplicationIdentityResponse)(nil),                 // 87: forge.v1.VerifyApplicationIdentityResponse
-	(*RunApplicationOnboardingChecksRequest)(nil),             // 88: forge.v1.RunApplicationOnboardingChecksRequest
-	(*RunApplicationOnboardingChecksResponse)(nil),            // 89: forge.v1.RunApplicationOnboardingChecksResponse
-	(*SubmitApplicationPublishRequest)(nil),                   // 90: forge.v1.SubmitApplicationPublishRequest
-	(*SubmitApplicationPublishResponse)(nil),                  // 91: forge.v1.SubmitApplicationPublishResponse
-	(*PublishApplicationRequest)(nil),                         // 92: forge.v1.PublishApplicationRequest
-	(*PublishApplicationResponse)(nil),                        // 93: forge.v1.PublishApplicationResponse
-	(*DisableApplicationRequest)(nil),                         // 94: forge.v1.DisableApplicationRequest
-	(*DisableApplicationResponse)(nil),                        // 95: forge.v1.DisableApplicationResponse
-	(*timestamppb.Timestamp)(nil),                             // 96: google.protobuf.Timestamp
+	(*GetApplicationDirectoryOrganizationRequest)(nil),        // 84: forge.v1.GetApplicationDirectoryOrganizationRequest
+	(*GetApplicationDirectoryOrganizationResponse)(nil),       // 85: forge.v1.GetApplicationDirectoryOrganizationResponse
+	(*ListApplicationDirectoryDepartmentsRequest)(nil),        // 86: forge.v1.ListApplicationDirectoryDepartmentsRequest
+	(*ListApplicationDirectoryDepartmentsResponse)(nil),       // 87: forge.v1.ListApplicationDirectoryDepartmentsResponse
+	(*ListApplicationDirectoryUsersRequest)(nil),              // 88: forge.v1.ListApplicationDirectoryUsersRequest
+	(*ListApplicationDirectoryUsersResponse)(nil),             // 89: forge.v1.ListApplicationDirectoryUsersResponse
+	(*ApplicationDirectoryOrganization)(nil),                  // 90: forge.v1.ApplicationDirectoryOrganization
+	(*ApplicationDirectoryDepartment)(nil),                    // 91: forge.v1.ApplicationDirectoryDepartment
+	(*ApplicationDirectoryUser)(nil),                          // 92: forge.v1.ApplicationDirectoryUser
+	(*PrepareApplicationCredentialApprovalRequest)(nil),       // 93: forge.v1.PrepareApplicationCredentialApprovalRequest
+	(*PrepareApplicationCredentialApprovalResponse)(nil),      // 94: forge.v1.PrepareApplicationCredentialApprovalResponse
+	(*VerifyApplicationIdentityRequest)(nil),                  // 95: forge.v1.VerifyApplicationIdentityRequest
+	(*VerifyApplicationIdentityResponse)(nil),                 // 96: forge.v1.VerifyApplicationIdentityResponse
+	(*RunApplicationOnboardingChecksRequest)(nil),             // 97: forge.v1.RunApplicationOnboardingChecksRequest
+	(*RunApplicationOnboardingChecksResponse)(nil),            // 98: forge.v1.RunApplicationOnboardingChecksResponse
+	(*SubmitApplicationPublishRequest)(nil),                   // 99: forge.v1.SubmitApplicationPublishRequest
+	(*SubmitApplicationPublishResponse)(nil),                  // 100: forge.v1.SubmitApplicationPublishResponse
+	(*PublishApplicationRequest)(nil),                         // 101: forge.v1.PublishApplicationRequest
+	(*PublishApplicationResponse)(nil),                        // 102: forge.v1.PublishApplicationResponse
+	(*DisableApplicationRequest)(nil),                         // 103: forge.v1.DisableApplicationRequest
+	(*DisableApplicationResponse)(nil),                        // 104: forge.v1.DisableApplicationResponse
+	(*timestamppb.Timestamp)(nil),                             // 105: google.protobuf.Timestamp
 }
 var file_forge_v1_portal_proto_depIdxs = []int32{
 	2,   // 0: forge.v1.PortalApplication.tags:type_name -> forge.v1.PortalTag
 	3,   // 1: forge.v1.PortalApplication.policies:type_name -> forge.v1.PortalAccessPolicy
-	96,  // 2: forge.v1.PortalApplication.created_at:type_name -> google.protobuf.Timestamp
-	96,  // 3: forge.v1.PortalApplication.updated_at:type_name -> google.protobuf.Timestamp
-	96,  // 4: forge.v1.PortalApplication.published_at:type_name -> google.protobuf.Timestamp
-	96,  // 5: forge.v1.PortalCategory.created_at:type_name -> google.protobuf.Timestamp
-	96,  // 6: forge.v1.PortalCategory.updated_at:type_name -> google.protobuf.Timestamp
-	96,  // 7: forge.v1.PortalTag.created_at:type_name -> google.protobuf.Timestamp
-	96,  // 8: forge.v1.PortalTag.updated_at:type_name -> google.protobuf.Timestamp
-	96,  // 9: forge.v1.PortalAccessPolicy.created_at:type_name -> google.protobuf.Timestamp
-	96,  // 10: forge.v1.PortalAccessPolicy.updated_at:type_name -> google.protobuf.Timestamp
-	96,  // 11: forge.v1.PortalApplicationAccessGrant.valid_from:type_name -> google.protobuf.Timestamp
-	96,  // 12: forge.v1.PortalApplicationAccessGrant.valid_until:type_name -> google.protobuf.Timestamp
-	96,  // 13: forge.v1.PortalApplicationAccessGrant.created_at:type_name -> google.protobuf.Timestamp
-	96,  // 14: forge.v1.PortalApplicationAccessGrant.updated_at:type_name -> google.protobuf.Timestamp
-	96,  // 15: forge.v1.PortalApplicationRole.created_at:type_name -> google.protobuf.Timestamp
-	96,  // 16: forge.v1.PortalApplicationRole.updated_at:type_name -> google.protobuf.Timestamp
-	96,  // 17: forge.v1.PortalApplicationProvisioningTarget.previous_valid_until:type_name -> google.protobuf.Timestamp
-	96,  // 18: forge.v1.PortalApplicationProvisioningTarget.last_success_at:type_name -> google.protobuf.Timestamp
-	96,  // 19: forge.v1.PortalApplicationProvisioningTarget.last_failure_at:type_name -> google.protobuf.Timestamp
-	96,  // 20: forge.v1.PortalApplicationProvisioningTarget.created_at:type_name -> google.protobuf.Timestamp
-	96,  // 21: forge.v1.PortalApplicationProvisioningTarget.updated_at:type_name -> google.protobuf.Timestamp
+	105, // 2: forge.v1.PortalApplication.created_at:type_name -> google.protobuf.Timestamp
+	105, // 3: forge.v1.PortalApplication.updated_at:type_name -> google.protobuf.Timestamp
+	105, // 4: forge.v1.PortalApplication.published_at:type_name -> google.protobuf.Timestamp
+	105, // 5: forge.v1.PortalCategory.created_at:type_name -> google.protobuf.Timestamp
+	105, // 6: forge.v1.PortalCategory.updated_at:type_name -> google.protobuf.Timestamp
+	105, // 7: forge.v1.PortalTag.created_at:type_name -> google.protobuf.Timestamp
+	105, // 8: forge.v1.PortalTag.updated_at:type_name -> google.protobuf.Timestamp
+	105, // 9: forge.v1.PortalAccessPolicy.created_at:type_name -> google.protobuf.Timestamp
+	105, // 10: forge.v1.PortalAccessPolicy.updated_at:type_name -> google.protobuf.Timestamp
+	105, // 11: forge.v1.PortalApplicationAccessGrant.valid_from:type_name -> google.protobuf.Timestamp
+	105, // 12: forge.v1.PortalApplicationAccessGrant.valid_until:type_name -> google.protobuf.Timestamp
+	105, // 13: forge.v1.PortalApplicationAccessGrant.created_at:type_name -> google.protobuf.Timestamp
+	105, // 14: forge.v1.PortalApplicationAccessGrant.updated_at:type_name -> google.protobuf.Timestamp
+	105, // 15: forge.v1.PortalApplicationRole.created_at:type_name -> google.protobuf.Timestamp
+	105, // 16: forge.v1.PortalApplicationRole.updated_at:type_name -> google.protobuf.Timestamp
+	105, // 17: forge.v1.PortalApplicationProvisioningTarget.previous_valid_until:type_name -> google.protobuf.Timestamp
+	105, // 18: forge.v1.PortalApplicationProvisioningTarget.last_success_at:type_name -> google.protobuf.Timestamp
+	105, // 19: forge.v1.PortalApplicationProvisioningTarget.last_failure_at:type_name -> google.protobuf.Timestamp
+	105, // 20: forge.v1.PortalApplicationProvisioningTarget.created_at:type_name -> google.protobuf.Timestamp
+	105, // 21: forge.v1.PortalApplicationProvisioningTarget.updated_at:type_name -> google.protobuf.Timestamp
 	8,   // 22: forge.v1.RetryPortalApplicationProvisioningResponse.target:type_name -> forge.v1.PortalApplicationProvisioningTarget
-	96,  // 23: forge.v1.PortalApplicationOnboardingCheck.occurred_at:type_name -> google.protobuf.Timestamp
+	105, // 23: forge.v1.PortalApplicationOnboardingCheck.occurred_at:type_name -> google.protobuf.Timestamp
 	0,   // 24: forge.v1.ListPortalApplicationsResponse.applications:type_name -> forge.v1.PortalApplication
 	0,   // 25: forge.v1.GetPortalApplicationResponse.application:type_name -> forge.v1.PortalApplication
 	0,   // 26: forge.v1.LaunchPortalApplicationResponse.application:type_name -> forge.v1.PortalApplication
@@ -7306,11 +7992,11 @@ var file_forge_v1_portal_proto_depIdxs = []int32{
 	7,   // 51: forge.v1.ReplacePortalApplicationRolesResponse.roles:type_name -> forge.v1.PortalApplicationRole
 	8,   // 52: forge.v1.GetPortalApplicationProvisioningTargetResponse.target:type_name -> forge.v1.PortalApplicationProvisioningTarget
 	8,   // 53: forge.v1.UpsertPortalApplicationProvisioningTargetResponse.target:type_name -> forge.v1.PortalApplicationProvisioningTarget
-	96,  // 54: forge.v1.PortalIdentityBinding.verified_at:type_name -> google.protobuf.Timestamp
-	96,  // 55: forge.v1.PortalIdentityBinding.created_at:type_name -> google.protobuf.Timestamp
-	96,  // 56: forge.v1.PortalIdentityBinding.updated_at:type_name -> google.protobuf.Timestamp
+	105, // 54: forge.v1.PortalIdentityBinding.verified_at:type_name -> google.protobuf.Timestamp
+	105, // 55: forge.v1.PortalIdentityBinding.created_at:type_name -> google.protobuf.Timestamp
+	105, // 56: forge.v1.PortalIdentityBinding.updated_at:type_name -> google.protobuf.Timestamp
 	71,  // 57: forge.v1.PortalIdentityBinding.environments:type_name -> forge.v1.PortalApplicationEnvironment
-	96,  // 58: forge.v1.PortalApplicationVerification.occurred_at:type_name -> google.protobuf.Timestamp
+	105, // 58: forge.v1.PortalApplicationVerification.occurred_at:type_name -> google.protobuf.Timestamp
 	0,   // 59: forge.v1.GetApplicationOnboardingResponse.application:type_name -> forge.v1.PortalApplication
 	70,  // 60: forge.v1.GetApplicationOnboardingResponse.binding:type_name -> forge.v1.PortalIdentityBinding
 	72,  // 61: forge.v1.GetApplicationOnboardingResponse.verifications:type_name -> forge.v1.PortalApplicationVerification
@@ -7318,107 +8004,122 @@ var file_forge_v1_portal_proto_depIdxs = []int32{
 	8,   // 63: forge.v1.GetApplicationOnboardingResponse.provisioning_target:type_name -> forge.v1.PortalApplicationProvisioningTarget
 	11,  // 64: forge.v1.GetApplicationOnboardingResponse.onboarding_checks:type_name -> forge.v1.PortalApplicationOnboardingCheck
 	79,  // 65: forge.v1.GetApplicationOnboardingResponse.latest_operation:type_name -> forge.v1.PortalApplicationOnboardingOperation
-	96,  // 66: forge.v1.PortalApplicationOnboardingOperation.next_retry_at:type_name -> google.protobuf.Timestamp
-	96,  // 67: forge.v1.PortalApplicationOnboardingOperation.updated_at:type_name -> google.protobuf.Timestamp
-	96,  // 68: forge.v1.PortalApplicationOnboardingOperation.completed_at:type_name -> google.protobuf.Timestamp
+	105, // 66: forge.v1.PortalApplicationOnboardingOperation.next_retry_at:type_name -> google.protobuf.Timestamp
+	105, // 67: forge.v1.PortalApplicationOnboardingOperation.updated_at:type_name -> google.protobuf.Timestamp
+	105, // 68: forge.v1.PortalApplicationOnboardingOperation.completed_at:type_name -> google.protobuf.Timestamp
 	71,  // 69: forge.v1.UpsertApplicationIdentityBindingRequest.environments:type_name -> forge.v1.PortalApplicationEnvironment
 	70,  // 70: forge.v1.UpsertApplicationIdentityBindingResponse.binding:type_name -> forge.v1.PortalIdentityBinding
 	0,   // 71: forge.v1.UpsertApplicationIdentityBindingResponse.application:type_name -> forge.v1.PortalApplication
-	96,  // 72: forge.v1.UpsertApplicationIdentityBindingResponse.enrollment_expires_at:type_name -> google.protobuf.Timestamp
-	70,  // 73: forge.v1.VerifyApplicationIdentityResponse.binding:type_name -> forge.v1.PortalIdentityBinding
-	0,   // 74: forge.v1.VerifyApplicationIdentityResponse.application:type_name -> forge.v1.PortalApplication
-	72,  // 75: forge.v1.VerifyApplicationIdentityResponse.verifications:type_name -> forge.v1.PortalApplicationVerification
-	11,  // 76: forge.v1.RunApplicationOnboardingChecksResponse.checks:type_name -> forge.v1.PortalApplicationOnboardingCheck
-	0,   // 77: forge.v1.SubmitApplicationPublishResponse.application:type_name -> forge.v1.PortalApplication
-	0,   // 78: forge.v1.PublishApplicationResponse.application:type_name -> forge.v1.PortalApplication
-	0,   // 79: forge.v1.DisableApplicationResponse.application:type_name -> forge.v1.PortalApplication
-	13,  // 80: forge.v1.PortalService.AuthorizePortalApplication:input_type -> forge.v1.AuthorizePortalApplicationRequest
-	12,  // 81: forge.v1.PortalService.ListPortalApplications:input_type -> forge.v1.ListPortalApplicationsRequest
-	16,  // 82: forge.v1.PortalService.GetPortalApplication:input_type -> forge.v1.GetPortalApplicationRequest
-	18,  // 83: forge.v1.PortalService.LaunchPortalApplication:input_type -> forge.v1.LaunchPortalApplicationRequest
-	20,  // 84: forge.v1.PortalService.ListPortalFavorites:input_type -> forge.v1.ListPortalFavoritesRequest
-	22,  // 85: forge.v1.PortalService.AddPortalFavorite:input_type -> forge.v1.AddPortalFavoriteRequest
-	24,  // 86: forge.v1.PortalService.RemovePortalFavorite:input_type -> forge.v1.RemovePortalFavoriteRequest
-	26,  // 87: forge.v1.PortalService.ListRecentPortalApplications:input_type -> forge.v1.ListRecentPortalApplicationsRequest
-	28,  // 88: forge.v1.PortalService.ListPortalCategories:input_type -> forge.v1.ListPortalCategoriesRequest
-	30,  // 89: forge.v1.PortalService.ListPortalTags:input_type -> forge.v1.ListPortalTagsRequest
-	32,  // 90: forge.v1.PortalService.ListAdminPortalApplications:input_type -> forge.v1.ListAdminPortalApplicationsRequest
-	34,  // 91: forge.v1.PortalService.CreatePortalApplication:input_type -> forge.v1.CreatePortalApplicationRequest
-	36,  // 92: forge.v1.PortalService.UpdatePortalApplication:input_type -> forge.v1.UpdatePortalApplicationRequest
-	38,  // 93: forge.v1.PortalService.DeletePortalApplication:input_type -> forge.v1.DeletePortalApplicationRequest
-	40,  // 94: forge.v1.PortalService.CreatePortalCategory:input_type -> forge.v1.CreatePortalCategoryRequest
-	42,  // 95: forge.v1.PortalService.UpdatePortalCategory:input_type -> forge.v1.UpdatePortalCategoryRequest
-	44,  // 96: forge.v1.PortalService.DeletePortalCategory:input_type -> forge.v1.DeletePortalCategoryRequest
-	46,  // 97: forge.v1.PortalService.CreatePortalTag:input_type -> forge.v1.CreatePortalTagRequest
-	48,  // 98: forge.v1.PortalService.UpdatePortalTag:input_type -> forge.v1.UpdatePortalTagRequest
-	50,  // 99: forge.v1.PortalService.DeletePortalTag:input_type -> forge.v1.DeletePortalTagRequest
-	52,  // 100: forge.v1.PortalService.ReplacePortalApplicationPolicies:input_type -> forge.v1.ReplacePortalApplicationPoliciesRequest
-	54,  // 101: forge.v1.PortalService.ListPortalApplicationAccessGrants:input_type -> forge.v1.ListPortalApplicationAccessGrantsRequest
-	56,  // 102: forge.v1.PortalService.PreviewPortalApplicationAccessGrants:input_type -> forge.v1.PreviewPortalApplicationAccessGrantsRequest
-	58,  // 103: forge.v1.PortalService.ReplacePortalApplicationAccessGrants:input_type -> forge.v1.ReplacePortalApplicationAccessGrantsRequest
-	60,  // 104: forge.v1.PortalService.ListPortalApplicationEffectiveAccess:input_type -> forge.v1.ListPortalApplicationEffectiveAccessRequest
-	62,  // 105: forge.v1.PortalService.ListPortalApplicationRoles:input_type -> forge.v1.ListPortalApplicationRolesRequest
-	64,  // 106: forge.v1.PortalService.ReplacePortalApplicationRoles:input_type -> forge.v1.ReplacePortalApplicationRolesRequest
-	66,  // 107: forge.v1.PortalService.GetPortalApplicationProvisioningTarget:input_type -> forge.v1.GetPortalApplicationProvisioningTargetRequest
-	68,  // 108: forge.v1.PortalService.UpsertPortalApplicationProvisioningTarget:input_type -> forge.v1.UpsertPortalApplicationProvisioningTargetRequest
-	9,   // 109: forge.v1.PortalService.RetryPortalApplicationProvisioning:input_type -> forge.v1.RetryPortalApplicationProvisioningRequest
-	73,  // 110: forge.v1.PortalService.GetIdentityOverview:input_type -> forge.v1.GetIdentityOverviewRequest
-	75,  // 111: forge.v1.PortalService.GetIdentityConsoleLink:input_type -> forge.v1.GetIdentityConsoleLinkRequest
-	77,  // 112: forge.v1.PortalService.GetApplicationOnboarding:input_type -> forge.v1.GetApplicationOnboardingRequest
-	80,  // 113: forge.v1.PortalService.UpsertApplicationIdentityBinding:input_type -> forge.v1.UpsertApplicationIdentityBindingRequest
-	84,  // 114: forge.v1.PortalService.PrepareApplicationCredentialApproval:input_type -> forge.v1.PrepareApplicationCredentialApprovalRequest
-	82,  // 115: forge.v1.PortalService.ConsumeApplicationEnrollment:input_type -> forge.v1.ConsumeApplicationEnrollmentRequest
-	86,  // 116: forge.v1.PortalService.VerifyApplicationIdentity:input_type -> forge.v1.VerifyApplicationIdentityRequest
-	88,  // 117: forge.v1.PortalService.RunApplicationOnboardingChecks:input_type -> forge.v1.RunApplicationOnboardingChecksRequest
-	90,  // 118: forge.v1.PortalService.SubmitApplicationPublish:input_type -> forge.v1.SubmitApplicationPublishRequest
-	92,  // 119: forge.v1.PortalService.PublishApplication:input_type -> forge.v1.PublishApplicationRequest
-	94,  // 120: forge.v1.PortalService.DisableApplication:input_type -> forge.v1.DisableApplicationRequest
-	14,  // 121: forge.v1.PortalService.AuthorizePortalApplication:output_type -> forge.v1.AuthorizePortalApplicationResponse
-	15,  // 122: forge.v1.PortalService.ListPortalApplications:output_type -> forge.v1.ListPortalApplicationsResponse
-	17,  // 123: forge.v1.PortalService.GetPortalApplication:output_type -> forge.v1.GetPortalApplicationResponse
-	19,  // 124: forge.v1.PortalService.LaunchPortalApplication:output_type -> forge.v1.LaunchPortalApplicationResponse
-	21,  // 125: forge.v1.PortalService.ListPortalFavorites:output_type -> forge.v1.ListPortalFavoritesResponse
-	23,  // 126: forge.v1.PortalService.AddPortalFavorite:output_type -> forge.v1.AddPortalFavoriteResponse
-	25,  // 127: forge.v1.PortalService.RemovePortalFavorite:output_type -> forge.v1.RemovePortalFavoriteResponse
-	27,  // 128: forge.v1.PortalService.ListRecentPortalApplications:output_type -> forge.v1.ListRecentPortalApplicationsResponse
-	29,  // 129: forge.v1.PortalService.ListPortalCategories:output_type -> forge.v1.ListPortalCategoriesResponse
-	31,  // 130: forge.v1.PortalService.ListPortalTags:output_type -> forge.v1.ListPortalTagsResponse
-	33,  // 131: forge.v1.PortalService.ListAdminPortalApplications:output_type -> forge.v1.ListAdminPortalApplicationsResponse
-	35,  // 132: forge.v1.PortalService.CreatePortalApplication:output_type -> forge.v1.CreatePortalApplicationResponse
-	37,  // 133: forge.v1.PortalService.UpdatePortalApplication:output_type -> forge.v1.UpdatePortalApplicationResponse
-	39,  // 134: forge.v1.PortalService.DeletePortalApplication:output_type -> forge.v1.DeletePortalApplicationResponse
-	41,  // 135: forge.v1.PortalService.CreatePortalCategory:output_type -> forge.v1.CreatePortalCategoryResponse
-	43,  // 136: forge.v1.PortalService.UpdatePortalCategory:output_type -> forge.v1.UpdatePortalCategoryResponse
-	45,  // 137: forge.v1.PortalService.DeletePortalCategory:output_type -> forge.v1.DeletePortalCategoryResponse
-	47,  // 138: forge.v1.PortalService.CreatePortalTag:output_type -> forge.v1.CreatePortalTagResponse
-	49,  // 139: forge.v1.PortalService.UpdatePortalTag:output_type -> forge.v1.UpdatePortalTagResponse
-	51,  // 140: forge.v1.PortalService.DeletePortalTag:output_type -> forge.v1.DeletePortalTagResponse
-	53,  // 141: forge.v1.PortalService.ReplacePortalApplicationPolicies:output_type -> forge.v1.ReplacePortalApplicationPoliciesResponse
-	55,  // 142: forge.v1.PortalService.ListPortalApplicationAccessGrants:output_type -> forge.v1.ListPortalApplicationAccessGrantsResponse
-	57,  // 143: forge.v1.PortalService.PreviewPortalApplicationAccessGrants:output_type -> forge.v1.PreviewPortalApplicationAccessGrantsResponse
-	59,  // 144: forge.v1.PortalService.ReplacePortalApplicationAccessGrants:output_type -> forge.v1.ReplacePortalApplicationAccessGrantsResponse
-	61,  // 145: forge.v1.PortalService.ListPortalApplicationEffectiveAccess:output_type -> forge.v1.ListPortalApplicationEffectiveAccessResponse
-	63,  // 146: forge.v1.PortalService.ListPortalApplicationRoles:output_type -> forge.v1.ListPortalApplicationRolesResponse
-	65,  // 147: forge.v1.PortalService.ReplacePortalApplicationRoles:output_type -> forge.v1.ReplacePortalApplicationRolesResponse
-	67,  // 148: forge.v1.PortalService.GetPortalApplicationProvisioningTarget:output_type -> forge.v1.GetPortalApplicationProvisioningTargetResponse
-	69,  // 149: forge.v1.PortalService.UpsertPortalApplicationProvisioningTarget:output_type -> forge.v1.UpsertPortalApplicationProvisioningTargetResponse
-	10,  // 150: forge.v1.PortalService.RetryPortalApplicationProvisioning:output_type -> forge.v1.RetryPortalApplicationProvisioningResponse
-	74,  // 151: forge.v1.PortalService.GetIdentityOverview:output_type -> forge.v1.GetIdentityOverviewResponse
-	76,  // 152: forge.v1.PortalService.GetIdentityConsoleLink:output_type -> forge.v1.GetIdentityConsoleLinkResponse
-	78,  // 153: forge.v1.PortalService.GetApplicationOnboarding:output_type -> forge.v1.GetApplicationOnboardingResponse
-	81,  // 154: forge.v1.PortalService.UpsertApplicationIdentityBinding:output_type -> forge.v1.UpsertApplicationIdentityBindingResponse
-	85,  // 155: forge.v1.PortalService.PrepareApplicationCredentialApproval:output_type -> forge.v1.PrepareApplicationCredentialApprovalResponse
-	83,  // 156: forge.v1.PortalService.ConsumeApplicationEnrollment:output_type -> forge.v1.ConsumeApplicationEnrollmentResponse
-	87,  // 157: forge.v1.PortalService.VerifyApplicationIdentity:output_type -> forge.v1.VerifyApplicationIdentityResponse
-	89,  // 158: forge.v1.PortalService.RunApplicationOnboardingChecks:output_type -> forge.v1.RunApplicationOnboardingChecksResponse
-	91,  // 159: forge.v1.PortalService.SubmitApplicationPublish:output_type -> forge.v1.SubmitApplicationPublishResponse
-	93,  // 160: forge.v1.PortalService.PublishApplication:output_type -> forge.v1.PublishApplicationResponse
-	95,  // 161: forge.v1.PortalService.DisableApplication:output_type -> forge.v1.DisableApplicationResponse
-	121, // [121:162] is the sub-list for method output_type
-	80,  // [80:121] is the sub-list for method input_type
-	80,  // [80:80] is the sub-list for extension type_name
-	80,  // [80:80] is the sub-list for extension extendee
-	0,   // [0:80] is the sub-list for field type_name
+	105, // 72: forge.v1.UpsertApplicationIdentityBindingResponse.enrollment_expires_at:type_name -> google.protobuf.Timestamp
+	90,  // 73: forge.v1.GetApplicationDirectoryOrganizationResponse.organization:type_name -> forge.v1.ApplicationDirectoryOrganization
+	91,  // 74: forge.v1.ListApplicationDirectoryDepartmentsResponse.departments:type_name -> forge.v1.ApplicationDirectoryDepartment
+	105, // 75: forge.v1.ListApplicationDirectoryDepartmentsResponse.snapshot_at:type_name -> google.protobuf.Timestamp
+	105, // 76: forge.v1.ListApplicationDirectoryUsersRequest.updated_after:type_name -> google.protobuf.Timestamp
+	92,  // 77: forge.v1.ListApplicationDirectoryUsersResponse.users:type_name -> forge.v1.ApplicationDirectoryUser
+	105, // 78: forge.v1.ListApplicationDirectoryUsersResponse.snapshot_at:type_name -> google.protobuf.Timestamp
+	105, // 79: forge.v1.ApplicationDirectoryOrganization.updated_at:type_name -> google.protobuf.Timestamp
+	105, // 80: forge.v1.ApplicationDirectoryDepartment.updated_at:type_name -> google.protobuf.Timestamp
+	105, // 81: forge.v1.ApplicationDirectoryUser.updated_at:type_name -> google.protobuf.Timestamp
+	70,  // 82: forge.v1.VerifyApplicationIdentityResponse.binding:type_name -> forge.v1.PortalIdentityBinding
+	0,   // 83: forge.v1.VerifyApplicationIdentityResponse.application:type_name -> forge.v1.PortalApplication
+	72,  // 84: forge.v1.VerifyApplicationIdentityResponse.verifications:type_name -> forge.v1.PortalApplicationVerification
+	11,  // 85: forge.v1.RunApplicationOnboardingChecksResponse.checks:type_name -> forge.v1.PortalApplicationOnboardingCheck
+	0,   // 86: forge.v1.SubmitApplicationPublishResponse.application:type_name -> forge.v1.PortalApplication
+	0,   // 87: forge.v1.PublishApplicationResponse.application:type_name -> forge.v1.PortalApplication
+	0,   // 88: forge.v1.DisableApplicationResponse.application:type_name -> forge.v1.PortalApplication
+	13,  // 89: forge.v1.PortalService.AuthorizePortalApplication:input_type -> forge.v1.AuthorizePortalApplicationRequest
+	12,  // 90: forge.v1.PortalService.ListPortalApplications:input_type -> forge.v1.ListPortalApplicationsRequest
+	16,  // 91: forge.v1.PortalService.GetPortalApplication:input_type -> forge.v1.GetPortalApplicationRequest
+	18,  // 92: forge.v1.PortalService.LaunchPortalApplication:input_type -> forge.v1.LaunchPortalApplicationRequest
+	20,  // 93: forge.v1.PortalService.ListPortalFavorites:input_type -> forge.v1.ListPortalFavoritesRequest
+	22,  // 94: forge.v1.PortalService.AddPortalFavorite:input_type -> forge.v1.AddPortalFavoriteRequest
+	24,  // 95: forge.v1.PortalService.RemovePortalFavorite:input_type -> forge.v1.RemovePortalFavoriteRequest
+	26,  // 96: forge.v1.PortalService.ListRecentPortalApplications:input_type -> forge.v1.ListRecentPortalApplicationsRequest
+	28,  // 97: forge.v1.PortalService.ListPortalCategories:input_type -> forge.v1.ListPortalCategoriesRequest
+	30,  // 98: forge.v1.PortalService.ListPortalTags:input_type -> forge.v1.ListPortalTagsRequest
+	32,  // 99: forge.v1.PortalService.ListAdminPortalApplications:input_type -> forge.v1.ListAdminPortalApplicationsRequest
+	34,  // 100: forge.v1.PortalService.CreatePortalApplication:input_type -> forge.v1.CreatePortalApplicationRequest
+	36,  // 101: forge.v1.PortalService.UpdatePortalApplication:input_type -> forge.v1.UpdatePortalApplicationRequest
+	38,  // 102: forge.v1.PortalService.DeletePortalApplication:input_type -> forge.v1.DeletePortalApplicationRequest
+	40,  // 103: forge.v1.PortalService.CreatePortalCategory:input_type -> forge.v1.CreatePortalCategoryRequest
+	42,  // 104: forge.v1.PortalService.UpdatePortalCategory:input_type -> forge.v1.UpdatePortalCategoryRequest
+	44,  // 105: forge.v1.PortalService.DeletePortalCategory:input_type -> forge.v1.DeletePortalCategoryRequest
+	46,  // 106: forge.v1.PortalService.CreatePortalTag:input_type -> forge.v1.CreatePortalTagRequest
+	48,  // 107: forge.v1.PortalService.UpdatePortalTag:input_type -> forge.v1.UpdatePortalTagRequest
+	50,  // 108: forge.v1.PortalService.DeletePortalTag:input_type -> forge.v1.DeletePortalTagRequest
+	52,  // 109: forge.v1.PortalService.ReplacePortalApplicationPolicies:input_type -> forge.v1.ReplacePortalApplicationPoliciesRequest
+	54,  // 110: forge.v1.PortalService.ListPortalApplicationAccessGrants:input_type -> forge.v1.ListPortalApplicationAccessGrantsRequest
+	56,  // 111: forge.v1.PortalService.PreviewPortalApplicationAccessGrants:input_type -> forge.v1.PreviewPortalApplicationAccessGrantsRequest
+	58,  // 112: forge.v1.PortalService.ReplacePortalApplicationAccessGrants:input_type -> forge.v1.ReplacePortalApplicationAccessGrantsRequest
+	60,  // 113: forge.v1.PortalService.ListPortalApplicationEffectiveAccess:input_type -> forge.v1.ListPortalApplicationEffectiveAccessRequest
+	62,  // 114: forge.v1.PortalService.ListPortalApplicationRoles:input_type -> forge.v1.ListPortalApplicationRolesRequest
+	64,  // 115: forge.v1.PortalService.ReplacePortalApplicationRoles:input_type -> forge.v1.ReplacePortalApplicationRolesRequest
+	66,  // 116: forge.v1.PortalService.GetPortalApplicationProvisioningTarget:input_type -> forge.v1.GetPortalApplicationProvisioningTargetRequest
+	68,  // 117: forge.v1.PortalService.UpsertPortalApplicationProvisioningTarget:input_type -> forge.v1.UpsertPortalApplicationProvisioningTargetRequest
+	9,   // 118: forge.v1.PortalService.RetryPortalApplicationProvisioning:input_type -> forge.v1.RetryPortalApplicationProvisioningRequest
+	73,  // 119: forge.v1.PortalService.GetIdentityOverview:input_type -> forge.v1.GetIdentityOverviewRequest
+	75,  // 120: forge.v1.PortalService.GetIdentityConsoleLink:input_type -> forge.v1.GetIdentityConsoleLinkRequest
+	77,  // 121: forge.v1.PortalService.GetApplicationOnboarding:input_type -> forge.v1.GetApplicationOnboardingRequest
+	80,  // 122: forge.v1.PortalService.UpsertApplicationIdentityBinding:input_type -> forge.v1.UpsertApplicationIdentityBindingRequest
+	93,  // 123: forge.v1.PortalService.PrepareApplicationCredentialApproval:input_type -> forge.v1.PrepareApplicationCredentialApprovalRequest
+	82,  // 124: forge.v1.PortalService.ConsumeApplicationEnrollment:input_type -> forge.v1.ConsumeApplicationEnrollmentRequest
+	84,  // 125: forge.v1.PortalService.GetApplicationDirectoryOrganization:input_type -> forge.v1.GetApplicationDirectoryOrganizationRequest
+	86,  // 126: forge.v1.PortalService.ListApplicationDirectoryDepartments:input_type -> forge.v1.ListApplicationDirectoryDepartmentsRequest
+	88,  // 127: forge.v1.PortalService.ListApplicationDirectoryUsers:input_type -> forge.v1.ListApplicationDirectoryUsersRequest
+	95,  // 128: forge.v1.PortalService.VerifyApplicationIdentity:input_type -> forge.v1.VerifyApplicationIdentityRequest
+	97,  // 129: forge.v1.PortalService.RunApplicationOnboardingChecks:input_type -> forge.v1.RunApplicationOnboardingChecksRequest
+	99,  // 130: forge.v1.PortalService.SubmitApplicationPublish:input_type -> forge.v1.SubmitApplicationPublishRequest
+	101, // 131: forge.v1.PortalService.PublishApplication:input_type -> forge.v1.PublishApplicationRequest
+	103, // 132: forge.v1.PortalService.DisableApplication:input_type -> forge.v1.DisableApplicationRequest
+	14,  // 133: forge.v1.PortalService.AuthorizePortalApplication:output_type -> forge.v1.AuthorizePortalApplicationResponse
+	15,  // 134: forge.v1.PortalService.ListPortalApplications:output_type -> forge.v1.ListPortalApplicationsResponse
+	17,  // 135: forge.v1.PortalService.GetPortalApplication:output_type -> forge.v1.GetPortalApplicationResponse
+	19,  // 136: forge.v1.PortalService.LaunchPortalApplication:output_type -> forge.v1.LaunchPortalApplicationResponse
+	21,  // 137: forge.v1.PortalService.ListPortalFavorites:output_type -> forge.v1.ListPortalFavoritesResponse
+	23,  // 138: forge.v1.PortalService.AddPortalFavorite:output_type -> forge.v1.AddPortalFavoriteResponse
+	25,  // 139: forge.v1.PortalService.RemovePortalFavorite:output_type -> forge.v1.RemovePortalFavoriteResponse
+	27,  // 140: forge.v1.PortalService.ListRecentPortalApplications:output_type -> forge.v1.ListRecentPortalApplicationsResponse
+	29,  // 141: forge.v1.PortalService.ListPortalCategories:output_type -> forge.v1.ListPortalCategoriesResponse
+	31,  // 142: forge.v1.PortalService.ListPortalTags:output_type -> forge.v1.ListPortalTagsResponse
+	33,  // 143: forge.v1.PortalService.ListAdminPortalApplications:output_type -> forge.v1.ListAdminPortalApplicationsResponse
+	35,  // 144: forge.v1.PortalService.CreatePortalApplication:output_type -> forge.v1.CreatePortalApplicationResponse
+	37,  // 145: forge.v1.PortalService.UpdatePortalApplication:output_type -> forge.v1.UpdatePortalApplicationResponse
+	39,  // 146: forge.v1.PortalService.DeletePortalApplication:output_type -> forge.v1.DeletePortalApplicationResponse
+	41,  // 147: forge.v1.PortalService.CreatePortalCategory:output_type -> forge.v1.CreatePortalCategoryResponse
+	43,  // 148: forge.v1.PortalService.UpdatePortalCategory:output_type -> forge.v1.UpdatePortalCategoryResponse
+	45,  // 149: forge.v1.PortalService.DeletePortalCategory:output_type -> forge.v1.DeletePortalCategoryResponse
+	47,  // 150: forge.v1.PortalService.CreatePortalTag:output_type -> forge.v1.CreatePortalTagResponse
+	49,  // 151: forge.v1.PortalService.UpdatePortalTag:output_type -> forge.v1.UpdatePortalTagResponse
+	51,  // 152: forge.v1.PortalService.DeletePortalTag:output_type -> forge.v1.DeletePortalTagResponse
+	53,  // 153: forge.v1.PortalService.ReplacePortalApplicationPolicies:output_type -> forge.v1.ReplacePortalApplicationPoliciesResponse
+	55,  // 154: forge.v1.PortalService.ListPortalApplicationAccessGrants:output_type -> forge.v1.ListPortalApplicationAccessGrantsResponse
+	57,  // 155: forge.v1.PortalService.PreviewPortalApplicationAccessGrants:output_type -> forge.v1.PreviewPortalApplicationAccessGrantsResponse
+	59,  // 156: forge.v1.PortalService.ReplacePortalApplicationAccessGrants:output_type -> forge.v1.ReplacePortalApplicationAccessGrantsResponse
+	61,  // 157: forge.v1.PortalService.ListPortalApplicationEffectiveAccess:output_type -> forge.v1.ListPortalApplicationEffectiveAccessResponse
+	63,  // 158: forge.v1.PortalService.ListPortalApplicationRoles:output_type -> forge.v1.ListPortalApplicationRolesResponse
+	65,  // 159: forge.v1.PortalService.ReplacePortalApplicationRoles:output_type -> forge.v1.ReplacePortalApplicationRolesResponse
+	67,  // 160: forge.v1.PortalService.GetPortalApplicationProvisioningTarget:output_type -> forge.v1.GetPortalApplicationProvisioningTargetResponse
+	69,  // 161: forge.v1.PortalService.UpsertPortalApplicationProvisioningTarget:output_type -> forge.v1.UpsertPortalApplicationProvisioningTargetResponse
+	10,  // 162: forge.v1.PortalService.RetryPortalApplicationProvisioning:output_type -> forge.v1.RetryPortalApplicationProvisioningResponse
+	74,  // 163: forge.v1.PortalService.GetIdentityOverview:output_type -> forge.v1.GetIdentityOverviewResponse
+	76,  // 164: forge.v1.PortalService.GetIdentityConsoleLink:output_type -> forge.v1.GetIdentityConsoleLinkResponse
+	78,  // 165: forge.v1.PortalService.GetApplicationOnboarding:output_type -> forge.v1.GetApplicationOnboardingResponse
+	81,  // 166: forge.v1.PortalService.UpsertApplicationIdentityBinding:output_type -> forge.v1.UpsertApplicationIdentityBindingResponse
+	94,  // 167: forge.v1.PortalService.PrepareApplicationCredentialApproval:output_type -> forge.v1.PrepareApplicationCredentialApprovalResponse
+	83,  // 168: forge.v1.PortalService.ConsumeApplicationEnrollment:output_type -> forge.v1.ConsumeApplicationEnrollmentResponse
+	85,  // 169: forge.v1.PortalService.GetApplicationDirectoryOrganization:output_type -> forge.v1.GetApplicationDirectoryOrganizationResponse
+	87,  // 170: forge.v1.PortalService.ListApplicationDirectoryDepartments:output_type -> forge.v1.ListApplicationDirectoryDepartmentsResponse
+	89,  // 171: forge.v1.PortalService.ListApplicationDirectoryUsers:output_type -> forge.v1.ListApplicationDirectoryUsersResponse
+	96,  // 172: forge.v1.PortalService.VerifyApplicationIdentity:output_type -> forge.v1.VerifyApplicationIdentityResponse
+	98,  // 173: forge.v1.PortalService.RunApplicationOnboardingChecks:output_type -> forge.v1.RunApplicationOnboardingChecksResponse
+	100, // 174: forge.v1.PortalService.SubmitApplicationPublish:output_type -> forge.v1.SubmitApplicationPublishResponse
+	102, // 175: forge.v1.PortalService.PublishApplication:output_type -> forge.v1.PublishApplicationResponse
+	104, // 176: forge.v1.PortalService.DisableApplication:output_type -> forge.v1.DisableApplicationResponse
+	133, // [133:177] is the sub-list for method output_type
+	89,  // [89:133] is the sub-list for method input_type
+	89,  // [89:89] is the sub-list for extension type_name
+	89,  // [89:89] is the sub-list for extension extendee
+	0,   // [0:89] is the sub-list for field type_name
 }
 
 func init() { file_forge_v1_portal_proto_init() }
@@ -7432,7 +8133,7 @@ func file_forge_v1_portal_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_forge_v1_portal_proto_rawDesc), len(file_forge_v1_portal_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   96,
+			NumMessages:   105,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

@@ -178,7 +178,7 @@ func TestAuthorizationRulesCoverEveryGovernedRPC(t *testing.T) {
 	for _, service := range services {
 		for _, method := range service.methods {
 			operation := "/" + service.name + "/" + method
-			if operation == forgev1.OperationPortalServiceConsumeApplicationEnrollment {
+			if operation == forgev1.OperationPortalServiceConsumeApplicationEnrollment || operation == forgev1.OperationPortalServiceGetApplicationDirectoryOrganization || operation == forgev1.OperationPortalServiceListApplicationDirectoryDepartments || operation == forgev1.OperationPortalServiceListApplicationDirectoryUsers {
 				continue
 			}
 			if _, ok := rules[operation]; !ok {

@@ -28,7 +28,7 @@ func TestHandoffIsSingleUseAndDoesNotStorePlainTokenOrSecret(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	bundle := Bundle{ApplicationCode: "order-center", ClientSecret: strings.Repeat("c", 32), ProvisioningSecret: strings.Repeat("p", 32)}
+	bundle := Bundle{ApplicationID: "app-1", ApplicationCode: "order-center", ClientSecret: strings.Repeat("c", 32), ProvisioningSecret: strings.Repeat("p", 32), DirectoryToken: "vd_" + strings.Repeat("d", 43)}
 	token, _, err := store.Issue(context.Background(), bundle)
 	if err != nil {
 		t.Fatal(err)

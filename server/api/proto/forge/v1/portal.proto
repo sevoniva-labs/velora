@@ -152,6 +152,18 @@ service PortalService {
   rpc ConsumeApplicationEnrollment(ConsumeApplicationEnrollmentRequest) returns (ConsumeApplicationEnrollmentResponse) {
     option (google.api.http) = {post: "/api/v1/application-enrollments:consume" body: "*"};
   }
+  rpc GetApplicationDirectoryOrganization(GetApplicationDirectoryOrganizationRequest) returns (GetApplicationDirectoryOrganizationResponse) {
+    option (google.api.http) = {get: "/api/v1/integrations/applications/{application_id}/directory/organization"};
+    option (openapi.v3.operation) = {security: [{additional_properties: [{name: "BearerAuth" value: {value: []}}]}]};
+  }
+  rpc ListApplicationDirectoryDepartments(ListApplicationDirectoryDepartmentsRequest) returns (ListApplicationDirectoryDepartmentsResponse) {
+    option (google.api.http) = {get: "/api/v1/integrations/applications/{application_id}/directory/departments"};
+    option (openapi.v3.operation) = {security: [{additional_properties: [{name: "BearerAuth" value: {value: []}}]}]};
+  }
+  rpc ListApplicationDirectoryUsers(ListApplicationDirectoryUsersRequest) returns (ListApplicationDirectoryUsersResponse) {
+    option (google.api.http) = {get: "/api/v1/integrations/applications/{application_id}/directory/users"};
+    option (openapi.v3.operation) = {security: [{additional_properties: [{name: "BearerAuth" value: {value: []}}]}]};
+  }
   rpc VerifyApplicationIdentity(VerifyApplicationIdentityRequest) returns (VerifyApplicationIdentityResponse) {
     option (google.api.http) = {post: "/api/v1/admin/portal/applications/{application_id}/verify" body: "*"};
     option (openapi.v3.operation) = {security: [{additional_properties: [{name: "SessionCookie" value: {value: []}}, {name: "CsrfToken" value: {value: []}}]}, {additional_properties: [{name: "BearerAuth" value: {value: []}}]}]};
@@ -524,6 +536,54 @@ message ConsumeApplicationEnrollmentResponse {
   string provisioning_secret = 8;
   int64 provisioning_key_version = 9;
   string provisioning_fingerprint = 10;
+  string application_id = 11;
+  string directory_token = 12;
+  string directory_base_path = 13;
+}
+message GetApplicationDirectoryOrganizationRequest { string application_id = 1; }
+message GetApplicationDirectoryOrganizationResponse { ApplicationDirectoryOrganization organization = 1; }
+message ListApplicationDirectoryDepartmentsRequest { string application_id = 1; }
+message ListApplicationDirectoryDepartmentsResponse {
+  repeated ApplicationDirectoryDepartment departments = 1;
+  google.protobuf.Timestamp snapshot_at = 2;
+}
+message ListApplicationDirectoryUsersRequest {
+  string application_id = 1;
+  int32 page_size = 2;
+  string page_token = 3;
+  google.protobuf.Timestamp updated_after = 4;
+}
+message ListApplicationDirectoryUsersResponse {
+  repeated ApplicationDirectoryUser users = 1;
+  string next_page_token = 2;
+  google.protobuf.Timestamp snapshot_at = 3;
+}
+message ApplicationDirectoryOrganization {
+  string id = 1;
+  string key = 2;
+  string name = 3;
+  string status = 4;
+  google.protobuf.Timestamp updated_at = 5;
+}
+message ApplicationDirectoryDepartment {
+  string id = 1;
+  string parent_id = 2;
+  string key = 3;
+  string name = 4;
+  string status = 5;
+  int64 sort_order = 6;
+  google.protobuf.Timestamp updated_at = 7;
+}
+message ApplicationDirectoryUser {
+  string subject = 1;
+  string login_name = 2;
+  string display_name = 3;
+  string email = 4;
+  string department_id = 5;
+  string status = 6;
+  repeated string roles = 7;
+  int64 version = 8;
+  google.protobuf.Timestamp updated_at = 9;
 }
 message PrepareApplicationCredentialApprovalRequest { string application_id = 1; repeated string redirect_uris = 2; }
 message PrepareApplicationCredentialApprovalResponse { string approval_status = 1; string approver_name = 2; string next_action = 3; string provider_application_ref = 4; string public_client_id = 5; string issuer = 6; repeated string scopes = 7; }

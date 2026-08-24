@@ -90,7 +90,7 @@ test('应用详情使用标准页签且信息卡片不重叠', async ({ page }, 
   await mockVelora(page, 'admin')
   await page.goto('/admin/applications/app-1')
   await expect(page.locator('.ant-page-header-heading-title').getByText('Spectra', { exact: true })).toBeVisible()
-  for (const tab of ['概览', '基本信息', '登录设置', '应用角色', '使用范围', '账号下发', '上线检查', '操作记录']) await expect(page.getByRole('tab', { name: tab })).toBeVisible()
+  for (const tab of ['概览', '接入资料', '基本信息', '登录设置', '应用角色', '使用范围', '账号下发', '上线检查', '操作记录']) await expect(page.getByRole('tab', { name: tab })).toBeVisible()
   const cards = page.locator('.velora-application-stat-card')
   await expect(cards).toHaveCount(3)
   const boxes = await cards.evaluateAll((nodes) => nodes.map((node) => { const box = node.getBoundingClientRect(); return { left: box.left, right: box.right, top: box.top, bottom: box.bottom } }))

@@ -29,6 +29,7 @@ const OperationPortalServiceDeletePortalApplication = "/forge.v1.PortalService/D
 const OperationPortalServiceDeletePortalCategory = "/forge.v1.PortalService/DeletePortalCategory"
 const OperationPortalServiceDeletePortalTag = "/forge.v1.PortalService/DeletePortalTag"
 const OperationPortalServiceDisableApplication = "/forge.v1.PortalService/DisableApplication"
+const OperationPortalServiceGetApplicationDirectoryOrganization = "/forge.v1.PortalService/GetApplicationDirectoryOrganization"
 const OperationPortalServiceGetApplicationOnboarding = "/forge.v1.PortalService/GetApplicationOnboarding"
 const OperationPortalServiceGetIdentityConsoleLink = "/forge.v1.PortalService/GetIdentityConsoleLink"
 const OperationPortalServiceGetIdentityOverview = "/forge.v1.PortalService/GetIdentityOverview"
@@ -36,6 +37,8 @@ const OperationPortalServiceGetPortalApplication = "/forge.v1.PortalService/GetP
 const OperationPortalServiceGetPortalApplicationProvisioningTarget = "/forge.v1.PortalService/GetPortalApplicationProvisioningTarget"
 const OperationPortalServiceLaunchPortalApplication = "/forge.v1.PortalService/LaunchPortalApplication"
 const OperationPortalServiceListAdminPortalApplications = "/forge.v1.PortalService/ListAdminPortalApplications"
+const OperationPortalServiceListApplicationDirectoryDepartments = "/forge.v1.PortalService/ListApplicationDirectoryDepartments"
+const OperationPortalServiceListApplicationDirectoryUsers = "/forge.v1.PortalService/ListApplicationDirectoryUsers"
 const OperationPortalServiceListPortalApplicationAccessGrants = "/forge.v1.PortalService/ListPortalApplicationAccessGrants"
 const OperationPortalServiceListPortalApplicationEffectiveAccess = "/forge.v1.PortalService/ListPortalApplicationEffectiveAccess"
 const OperationPortalServiceListPortalApplicationRoles = "/forge.v1.PortalService/ListPortalApplicationRoles"
@@ -72,6 +75,7 @@ type PortalServiceHTTPServer interface {
 	DeletePortalCategory(context.Context, *DeletePortalCategoryRequest) (*DeletePortalCategoryResponse, error)
 	DeletePortalTag(context.Context, *DeletePortalTagRequest) (*DeletePortalTagResponse, error)
 	DisableApplication(context.Context, *DisableApplicationRequest) (*DisableApplicationResponse, error)
+	GetApplicationDirectoryOrganization(context.Context, *GetApplicationDirectoryOrganizationRequest) (*GetApplicationDirectoryOrganizationResponse, error)
 	GetApplicationOnboarding(context.Context, *GetApplicationOnboardingRequest) (*GetApplicationOnboardingResponse, error)
 	GetIdentityConsoleLink(context.Context, *GetIdentityConsoleLinkRequest) (*GetIdentityConsoleLinkResponse, error)
 	GetIdentityOverview(context.Context, *GetIdentityOverviewRequest) (*GetIdentityOverviewResponse, error)
@@ -79,6 +83,8 @@ type PortalServiceHTTPServer interface {
 	GetPortalApplicationProvisioningTarget(context.Context, *GetPortalApplicationProvisioningTargetRequest) (*GetPortalApplicationProvisioningTargetResponse, error)
 	LaunchPortalApplication(context.Context, *LaunchPortalApplicationRequest) (*LaunchPortalApplicationResponse, error)
 	ListAdminPortalApplications(context.Context, *ListAdminPortalApplicationsRequest) (*ListAdminPortalApplicationsResponse, error)
+	ListApplicationDirectoryDepartments(context.Context, *ListApplicationDirectoryDepartmentsRequest) (*ListApplicationDirectoryDepartmentsResponse, error)
+	ListApplicationDirectoryUsers(context.Context, *ListApplicationDirectoryUsersRequest) (*ListApplicationDirectoryUsersResponse, error)
 	ListPortalApplicationAccessGrants(context.Context, *ListPortalApplicationAccessGrantsRequest) (*ListPortalApplicationAccessGrantsResponse, error)
 	ListPortalApplicationEffectiveAccess(context.Context, *ListPortalApplicationEffectiveAccessRequest) (*ListPortalApplicationEffectiveAccessResponse, error)
 	ListPortalApplicationRoles(context.Context, *ListPortalApplicationRolesRequest) (*ListPortalApplicationRolesResponse, error)
@@ -143,6 +149,9 @@ func RegisterPortalServiceHTTPServer(s *http.Server, srv PortalServiceHTTPServer
 	r.PUT("/api/v1/admin/portal/applications/{application_id}/identity-binding", _PortalService_UpsertApplicationIdentityBinding0_HTTP_Handler(srv))
 	r.POST("/api/v1/admin/portal/applications/{application_id}/credential-approval", _PortalService_PrepareApplicationCredentialApproval0_HTTP_Handler(srv))
 	r.POST("/api/v1/application-enrollments:consume", _PortalService_ConsumeApplicationEnrollment0_HTTP_Handler(srv))
+	r.GET("/api/v1/integrations/applications/{application_id}/directory/organization", _PortalService_GetApplicationDirectoryOrganization0_HTTP_Handler(srv))
+	r.GET("/api/v1/integrations/applications/{application_id}/directory/departments", _PortalService_ListApplicationDirectoryDepartments0_HTTP_Handler(srv))
+	r.GET("/api/v1/integrations/applications/{application_id}/directory/users", _PortalService_ListApplicationDirectoryUsers0_HTTP_Handler(srv))
 	r.POST("/api/v1/admin/portal/applications/{application_id}/verify", _PortalService_VerifyApplicationIdentity0_HTTP_Handler(srv))
 	r.POST("/api/v1/admin/portal/applications/{application_id}/onboarding-checks", _PortalService_RunApplicationOnboardingChecks0_HTTP_Handler(srv))
 	r.POST("/api/v1/admin/portal/applications/{application_id}/submit-publish", _PortalService_SubmitApplicationPublish0_HTTP_Handler(srv))
@@ -954,6 +963,72 @@ func _PortalService_ConsumeApplicationEnrollment0_HTTP_Handler(srv PortalService
 	}
 }
 
+func _PortalService_GetApplicationDirectoryOrganization0_HTTP_Handler(srv PortalServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in GetApplicationDirectoryOrganizationRequest
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindVars(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationPortalServiceGetApplicationDirectoryOrganization)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.GetApplicationDirectoryOrganization(ctx, req.(*GetApplicationDirectoryOrganizationRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*GetApplicationDirectoryOrganizationResponse)
+		return ctx.Result(200, reply)
+	}
+}
+
+func _PortalService_ListApplicationDirectoryDepartments0_HTTP_Handler(srv PortalServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in ListApplicationDirectoryDepartmentsRequest
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindVars(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationPortalServiceListApplicationDirectoryDepartments)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.ListApplicationDirectoryDepartments(ctx, req.(*ListApplicationDirectoryDepartmentsRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*ListApplicationDirectoryDepartmentsResponse)
+		return ctx.Result(200, reply)
+	}
+}
+
+func _PortalService_ListApplicationDirectoryUsers0_HTTP_Handler(srv PortalServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in ListApplicationDirectoryUsersRequest
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindVars(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationPortalServiceListApplicationDirectoryUsers)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.ListApplicationDirectoryUsers(ctx, req.(*ListApplicationDirectoryUsersRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*ListApplicationDirectoryUsersResponse)
+		return ctx.Result(200, reply)
+	}
+}
+
 func _PortalService_VerifyApplicationIdentity0_HTTP_Handler(srv PortalServiceHTTPServer) func(ctx http.Context) error {
 	return func(ctx http.Context) error {
 		var in VerifyApplicationIdentityRequest
@@ -1090,6 +1165,7 @@ type PortalServiceHTTPClient interface {
 	DeletePortalCategory(ctx context.Context, req *DeletePortalCategoryRequest, opts ...http.CallOption) (rsp *DeletePortalCategoryResponse, err error)
 	DeletePortalTag(ctx context.Context, req *DeletePortalTagRequest, opts ...http.CallOption) (rsp *DeletePortalTagResponse, err error)
 	DisableApplication(ctx context.Context, req *DisableApplicationRequest, opts ...http.CallOption) (rsp *DisableApplicationResponse, err error)
+	GetApplicationDirectoryOrganization(ctx context.Context, req *GetApplicationDirectoryOrganizationRequest, opts ...http.CallOption) (rsp *GetApplicationDirectoryOrganizationResponse, err error)
 	GetApplicationOnboarding(ctx context.Context, req *GetApplicationOnboardingRequest, opts ...http.CallOption) (rsp *GetApplicationOnboardingResponse, err error)
 	GetIdentityConsoleLink(ctx context.Context, req *GetIdentityConsoleLinkRequest, opts ...http.CallOption) (rsp *GetIdentityConsoleLinkResponse, err error)
 	GetIdentityOverview(ctx context.Context, req *GetIdentityOverviewRequest, opts ...http.CallOption) (rsp *GetIdentityOverviewResponse, err error)
@@ -1097,6 +1173,8 @@ type PortalServiceHTTPClient interface {
 	GetPortalApplicationProvisioningTarget(ctx context.Context, req *GetPortalApplicationProvisioningTargetRequest, opts ...http.CallOption) (rsp *GetPortalApplicationProvisioningTargetResponse, err error)
 	LaunchPortalApplication(ctx context.Context, req *LaunchPortalApplicationRequest, opts ...http.CallOption) (rsp *LaunchPortalApplicationResponse, err error)
 	ListAdminPortalApplications(ctx context.Context, req *ListAdminPortalApplicationsRequest, opts ...http.CallOption) (rsp *ListAdminPortalApplicationsResponse, err error)
+	ListApplicationDirectoryDepartments(ctx context.Context, req *ListApplicationDirectoryDepartmentsRequest, opts ...http.CallOption) (rsp *ListApplicationDirectoryDepartmentsResponse, err error)
+	ListApplicationDirectoryUsers(ctx context.Context, req *ListApplicationDirectoryUsersRequest, opts ...http.CallOption) (rsp *ListApplicationDirectoryUsersResponse, err error)
 	ListPortalApplicationAccessGrants(ctx context.Context, req *ListPortalApplicationAccessGrantsRequest, opts ...http.CallOption) (rsp *ListPortalApplicationAccessGrantsResponse, err error)
 	ListPortalApplicationEffectiveAccess(ctx context.Context, req *ListPortalApplicationEffectiveAccessRequest, opts ...http.CallOption) (rsp *ListPortalApplicationEffectiveAccessResponse, err error)
 	ListPortalApplicationRoles(ctx context.Context, req *ListPortalApplicationRolesRequest, opts ...http.CallOption) (rsp *ListPortalApplicationRolesResponse, err error)
@@ -1261,6 +1339,19 @@ func (c *PortalServiceHTTPClientImpl) DisableApplication(ctx context.Context, in
 	return &out, nil
 }
 
+func (c *PortalServiceHTTPClientImpl) GetApplicationDirectoryOrganization(ctx context.Context, in *GetApplicationDirectoryOrganizationRequest, opts ...http.CallOption) (*GetApplicationDirectoryOrganizationResponse, error) {
+	var out GetApplicationDirectoryOrganizationResponse
+	pattern := "/api/v1/integrations/applications/{application_id}/directory/organization"
+	path := binding.EncodeURL(pattern, in, true)
+	opts = append(opts, http.Operation(OperationPortalServiceGetApplicationDirectoryOrganization))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "GET", path, nil, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
 func (c *PortalServiceHTTPClientImpl) GetApplicationOnboarding(ctx context.Context, in *GetApplicationOnboardingRequest, opts ...http.CallOption) (*GetApplicationOnboardingResponse, error) {
 	var out GetApplicationOnboardingResponse
 	pattern := "/api/v1/admin/portal/applications/{application_id}/onboarding"
@@ -1344,6 +1435,32 @@ func (c *PortalServiceHTTPClientImpl) ListAdminPortalApplications(ctx context.Co
 	pattern := "/api/v1/admin/portal/applications"
 	path := binding.EncodeURL(pattern, in, true)
 	opts = append(opts, http.Operation(OperationPortalServiceListAdminPortalApplications))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "GET", path, nil, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+func (c *PortalServiceHTTPClientImpl) ListApplicationDirectoryDepartments(ctx context.Context, in *ListApplicationDirectoryDepartmentsRequest, opts ...http.CallOption) (*ListApplicationDirectoryDepartmentsResponse, error) {
+	var out ListApplicationDirectoryDepartmentsResponse
+	pattern := "/api/v1/integrations/applications/{application_id}/directory/departments"
+	path := binding.EncodeURL(pattern, in, true)
+	opts = append(opts, http.Operation(OperationPortalServiceListApplicationDirectoryDepartments))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "GET", path, nil, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+func (c *PortalServiceHTTPClientImpl) ListApplicationDirectoryUsers(ctx context.Context, in *ListApplicationDirectoryUsersRequest, opts ...http.CallOption) (*ListApplicationDirectoryUsersResponse, error) {
+	var out ListApplicationDirectoryUsersResponse
+	pattern := "/api/v1/integrations/applications/{application_id}/directory/users"
+	path := binding.EncodeURL(pattern, in, true)
+	opts = append(opts, http.Operation(OperationPortalServiceListApplicationDirectoryUsers))
 	opts = append(opts, http.PathTemplate(pattern))
 	err := c.cc.Invoke(ctx, "GET", path, nil, &out, opts...)
 	if err != nil {

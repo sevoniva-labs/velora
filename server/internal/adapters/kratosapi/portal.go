@@ -330,11 +330,15 @@ func (s *PortalService) ListAdminPortalApplications(ctx context.Context, req *fo
 	if err != nil {
 		return nil, err
 	}
-	items, err := s.portal.AdminListApplications(ctx, principal, int(req.GetLimit()))
+	pageSize := int(req.GetPageSize())
+	if pageSize == 0 && req.GetLimit() > 0 {
+		pageSize = int(req.GetLimit())
+	}
+	items, total, page, pageSize, err := s.portal.AdminListApplicationsPage(ctx, principal, int(req.GetPage()), pageSize, req.GetKeyword(), req.GetStatus(), req.GetLaunchType(), req.GetLifecycleStatus())
 	if err != nil {
 		return nil, internalError(err)
 	}
-	return &forgev1.ListAdminPortalApplicationsResponse{Applications: portalApplicationsProto(items)}, nil
+	return &forgev1.ListAdminPortalApplicationsResponse{Applications: portalApplicationsProto(items), Total: total, Page: int32(page), PageSize: int32(pageSize)}, nil
 }
 
 func (s *PortalService) CreatePortalApplication(ctx context.Context, req *forgev1.CreatePortalApplicationRequest) (*forgev1.CreatePortalApplicationResponse, error) {

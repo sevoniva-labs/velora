@@ -19,11 +19,15 @@ type PortalRepo struct{ db *database.DB }
 func NewPortalRepo(db *database.DB) *PortalRepo { return &PortalRepo{db: db} }
 
 type ApplicationFilter struct {
-	Keyword       string
-	CategoryID    string
-	TagID         string
-	FavoritesOnly bool
-	Limit         int
+	Keyword         string
+	CategoryID      string
+	TagID           string
+	FavoritesOnly   bool
+	Limit           int
+	Offset          int
+	Status          string
+	LaunchType      string
+	LifecycleStatus string
 }
 
 type ApplicationInput struct {
@@ -67,6 +71,17 @@ func (r *PortalRepo) ListApplications(ctx context.Context, orgID, userID string,
 	if !includeDisabled {
 		query += ` AND a.status=?`
 		args = append(args, portaldomain.StatusEnabled)
+	} else if status := strings.TrimSpace(f.Status); status != "" {
+		query += ` AND a.status=?`
+		args = append(args, status)
+	}
+	if launchType := strings.TrimSpace(f.LaunchType); launchType != "" {
+		query += ` AND a.launch_type=?`
+		args = append(args, launchType)
+	}
+	if lifecycleStatus := strings.TrimSpace(f.LifecycleStatus); lifecycleStatus != "" {
+		query += ` AND a.lifecycle_status=?`
+		args = append(args, lifecycleStatus)
 	}
 	if keyword := strings.TrimSpace(f.Keyword); keyword != "" {
 		query += ` AND (LOWER(a.code) LIKE LOWER(?) OR LOWER(a.name) LIKE LOWER(?) OR LOWER(a.description) LIKE LOWER(?))`
@@ -92,8 +107,11 @@ func (r *PortalRepo) ListApplications(ctx context.Context, orgID, userID string,
 	if f.Limit > 500 {
 		f.Limit = 500
 	}
-	query += ` LIMIT ?`
-	args = append(args, f.Limit)
+	if f.Offset < 0 {
+		f.Offset = 0
+	}
+	query += ` LIMIT ? OFFSET ?`
+	args = append(args, f.Limit, f.Offset)
 	rows, err := r.db.QueryContext(ctx, r.db.Rebind(query), args...)
 	if err != nil {
 		return nil, err
@@ -125,6 +143,46 @@ func (r *PortalRepo) ListApplications(ctx context.Context, orgID, userID string,
 		}
 	}
 	return items, nil
+}
+
+func (r *PortalRepo) CountApplications(ctx context.Context, orgID, userID string, f ApplicationFilter, includeDisabled bool) (int64, error) {
+	query := `SELECT COUNT(*) FROM portal_applications a WHERE a.organization_id=?`
+	args := []any{orgID}
+	if !includeDisabled {
+		query += ` AND a.status=?`
+		args = append(args, portaldomain.StatusEnabled)
+	} else if status := strings.TrimSpace(f.Status); status != "" {
+		query += ` AND a.status=?`
+		args = append(args, status)
+	}
+	if launchType := strings.TrimSpace(f.LaunchType); launchType != "" {
+		query += ` AND a.launch_type=?`
+		args = append(args, launchType)
+	}
+	if lifecycleStatus := strings.TrimSpace(f.LifecycleStatus); lifecycleStatus != "" {
+		query += ` AND a.lifecycle_status=?`
+		args = append(args, lifecycleStatus)
+	}
+	if keyword := strings.TrimSpace(f.Keyword); keyword != "" {
+		query += ` AND (LOWER(a.code) LIKE LOWER(?) OR LOWER(a.name) LIKE LOWER(?) OR LOWER(a.description) LIKE LOWER(?))`
+		needle := "%" + keyword + "%"
+		args = append(args, needle, needle, needle)
+	}
+	if id := strings.TrimSpace(f.CategoryID); id != "" {
+		query += ` AND a.category_id=?`
+		args = append(args, id)
+	}
+	if id := strings.TrimSpace(f.TagID); id != "" {
+		query += ` AND EXISTS (SELECT 1 FROM portal_application_tags pt WHERE pt.application_id=a.id AND pt.tag_id=?)`
+		args = append(args, id)
+	}
+	if f.FavoritesOnly {
+		query += ` AND EXISTS (SELECT 1 FROM portal_favorites favorite WHERE favorite.organization_id=a.organization_id AND favorite.user_id=? AND favorite.application_id=a.id)`
+		args = append(args, userID)
+	}
+	var total int64
+	err := r.db.QueryRowContext(ctx, r.db.Rebind(query), args...).Scan(&total)
+	return total, err
 }
 
 func (r *PortalRepo) GetApplication(ctx context.Context, orgID, userID, id string, includeDisabled bool) (portaldomain.Application, error) {

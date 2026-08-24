@@ -2297,10 +2297,17 @@ func (x *ListPortalTagsResponse) GetTags() []*PortalTag {
 }
 
 type ListAdminPortalApplicationsRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Limit         int32                  `protobuf:"varint,1,opt,name=limit,proto3" json:"limit,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Deprecated: Marked as deprecated in forge/v1/portal.proto.
+	Limit           int32  `protobuf:"varint,1,opt,name=limit,proto3" json:"limit,omitempty"`
+	Page            int32  `protobuf:"varint,2,opt,name=page,proto3" json:"page,omitempty"`
+	PageSize        int32  `protobuf:"varint,3,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
+	Keyword         string `protobuf:"bytes,4,opt,name=keyword,proto3" json:"keyword,omitempty"`
+	Status          string `protobuf:"bytes,5,opt,name=status,proto3" json:"status,omitempty"`
+	LaunchType      string `protobuf:"bytes,6,opt,name=launch_type,json=launchType,proto3" json:"launch_type,omitempty"`
+	LifecycleStatus string `protobuf:"bytes,7,opt,name=lifecycle_status,json=lifecycleStatus,proto3" json:"lifecycle_status,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
 }
 
 func (x *ListAdminPortalApplicationsRequest) Reset() {
@@ -2333,6 +2340,7 @@ func (*ListAdminPortalApplicationsRequest) Descriptor() ([]byte, []int) {
 	return file_forge_v1_portal_proto_rawDescGZIP(), []int{32}
 }
 
+// Deprecated: Marked as deprecated in forge/v1/portal.proto.
 func (x *ListAdminPortalApplicationsRequest) GetLimit() int32 {
 	if x != nil {
 		return x.Limit
@@ -2340,9 +2348,54 @@ func (x *ListAdminPortalApplicationsRequest) GetLimit() int32 {
 	return 0
 }
 
+func (x *ListAdminPortalApplicationsRequest) GetPage() int32 {
+	if x != nil {
+		return x.Page
+	}
+	return 0
+}
+
+func (x *ListAdminPortalApplicationsRequest) GetPageSize() int32 {
+	if x != nil {
+		return x.PageSize
+	}
+	return 0
+}
+
+func (x *ListAdminPortalApplicationsRequest) GetKeyword() string {
+	if x != nil {
+		return x.Keyword
+	}
+	return ""
+}
+
+func (x *ListAdminPortalApplicationsRequest) GetStatus() string {
+	if x != nil {
+		return x.Status
+	}
+	return ""
+}
+
+func (x *ListAdminPortalApplicationsRequest) GetLaunchType() string {
+	if x != nil {
+		return x.LaunchType
+	}
+	return ""
+}
+
+func (x *ListAdminPortalApplicationsRequest) GetLifecycleStatus() string {
+	if x != nil {
+		return x.LifecycleStatus
+	}
+	return ""
+}
+
 type ListAdminPortalApplicationsResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Applications  []*PortalApplication   `protobuf:"bytes,1,rep,name=applications,proto3" json:"applications,omitempty"`
+	Total         int64                  `protobuf:"varint,2,opt,name=total,proto3" json:"total,omitempty"`
+	Page          int32                  `protobuf:"varint,3,opt,name=page,proto3" json:"page,omitempty"`
+	PageSize      int32                  `protobuf:"varint,4,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -2382,6 +2435,27 @@ func (x *ListAdminPortalApplicationsResponse) GetApplications() []*PortalApplica
 		return x.Applications
 	}
 	return nil
+}
+
+func (x *ListAdminPortalApplicationsResponse) GetTotal() int64 {
+	if x != nil {
+		return x.Total
+	}
+	return 0
+}
+
+func (x *ListAdminPortalApplicationsResponse) GetPage() int32 {
+	if x != nil {
+		return x.Page
+	}
+	return 0
+}
+
+func (x *ListAdminPortalApplicationsResponse) GetPageSize() int32 {
+	if x != nil {
+		return x.PageSize
+	}
+	return 0
 }
 
 type CreatePortalApplicationRequest struct {
@@ -6383,11 +6457,21 @@ const file_forge_v1_portal_proto_rawDesc = "" +
 	"categories\"\x17\n" +
 	"\x15ListPortalTagsRequest\"A\n" +
 	"\x16ListPortalTagsResponse\x12'\n" +
-	"\x04tags\x18\x01 \x03(\v2\x13.forge.v1.PortalTagR\x04tags\":\n" +
-	"\"ListAdminPortalApplicationsRequest\x12\x14\n" +
-	"\x05limit\x18\x01 \x01(\x05R\x05limit\"f\n" +
+	"\x04tags\x18\x01 \x03(\v2\x13.forge.v1.PortalTagR\x04tags\"\xed\x01\n" +
+	"\"ListAdminPortalApplicationsRequest\x12\x18\n" +
+	"\x05limit\x18\x01 \x01(\x05B\x02\x18\x01R\x05limit\x12\x12\n" +
+	"\x04page\x18\x02 \x01(\x05R\x04page\x12\x1b\n" +
+	"\tpage_size\x18\x03 \x01(\x05R\bpageSize\x12\x18\n" +
+	"\akeyword\x18\x04 \x01(\tR\akeyword\x12\x16\n" +
+	"\x06status\x18\x05 \x01(\tR\x06status\x12\x1f\n" +
+	"\vlaunch_type\x18\x06 \x01(\tR\n" +
+	"launchType\x12)\n" +
+	"\x10lifecycle_status\x18\a \x01(\tR\x0flifecycleStatus\"\xad\x01\n" +
 	"#ListAdminPortalApplicationsResponse\x12?\n" +
-	"\fapplications\x18\x01 \x03(\v2\x1b.forge.v1.PortalApplicationR\fapplications\"\xba\x03\n" +
+	"\fapplications\x18\x01 \x03(\v2\x1b.forge.v1.PortalApplicationR\fapplications\x12\x14\n" +
+	"\x05total\x18\x02 \x01(\x03R\x05total\x12\x12\n" +
+	"\x04page\x18\x03 \x01(\x05R\x04page\x12\x1b\n" +
+	"\tpage_size\x18\x04 \x01(\x05R\bpageSize\"\xba\x03\n" +
 	"\x1eCreatePortalApplicationRequest\x12\x12\n" +
 	"\x04code\x18\x01 \x01(\tR\x04code\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12 \n" +

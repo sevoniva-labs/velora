@@ -227,6 +227,29 @@ func (s *Service) AdminListApplications(ctx context.Context, principal domain.Pr
 	return s.repo.ListApplications(ctx, principal.OrganizationID, principal.UserID, repository.ApplicationFilter{Limit: limit}, true)
 }
 
+func (s *Service) AdminListApplicationsPage(ctx context.Context, principal domain.Principal, page, pageSize int, keyword, status, launchType, lifecycleStatus string) ([]portaldomain.Application, int64, int, int, error) {
+	if page < 1 {
+		page = 1
+	}
+	if pageSize < 1 {
+		pageSize = 20
+	}
+	if pageSize > 200 {
+		pageSize = 200
+	}
+	status = strings.ToUpper(strings.TrimSpace(status))
+	if status != "" && status != portaldomain.StatusEnabled && status != portaldomain.StatusDisabled {
+		return nil, 0, page, pageSize, errors.New("invalid application status")
+	}
+	filter := repository.ApplicationFilter{Keyword: keyword, Status: status, LaunchType: strings.ToUpper(strings.TrimSpace(launchType)), LifecycleStatus: strings.ToUpper(strings.TrimSpace(lifecycleStatus)), Limit: pageSize, Offset: (page - 1) * pageSize}
+	total, err := s.repo.CountApplications(ctx, principal.OrganizationID, principal.UserID, filter, true)
+	if err != nil {
+		return nil, 0, page, pageSize, err
+	}
+	items, err := s.repo.ListApplications(ctx, principal.OrganizationID, principal.UserID, filter, true)
+	return items, total, page, pageSize, err
+}
+
 func (s *Service) GetApplicationOnboarding(ctx context.Context, principal domain.Principal, id string) (portaldomain.Application, portaldomain.IdentityBinding, []portaldomain.Verification, error) {
 	app, err := s.repo.GetApplication(ctx, principal.OrganizationID, principal.UserID, strings.TrimSpace(id), true)
 	if errors.Is(err, sql.ErrNoRows) {

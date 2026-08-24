@@ -150,6 +150,9 @@ export interface ListApplicationsParams {
   favorites?: boolean
   page?: number
   pageSize?: number
+  status?: string
+  ssoType?: string
+  lifecycleStatus?: string
 }
 
 async function fetchPortalApplications(params: ListApplicationsParams = {}, admin = false): Promise<Application[]> {
@@ -338,7 +341,7 @@ export function convertMailToTodo(_id: string | number, _input: ConvertMailToTod
 
 export interface AdminApplicationInput { code: string; name: string; description?: string; keywords?: string; icon?: string; categoryId?: string | number | null; homeUrl?: string; launchUrl?: string; ssoType: string; owner?: string; department?: string; ownerUserId?: string; ownerDepartmentId?: string; status: string; sort?: number; isFeatured?: boolean; tagIds?: (string | number)[]; policies?: { policyType: string; value: string }[] }
 function applicationBody(input: AdminApplicationInput, includeCode: boolean): AnyRecord { const body: AnyRecord = { name: input.name, description: input.description ?? '', icon: input.icon ?? '', categoryId: input.categoryId == null ? '' : String(input.categoryId), homeUrl: input.homeUrl ?? '', launchUrl: input.launchUrl ?? '', launchType: input.ssoType || 'URL', ownerUserId: input.ownerUserId ?? '', ownerDepartmentId: input.ownerDepartmentId ?? '', status: input.status || 'ENABLED', sortOrder: input.sort ?? 0, featured: input.isFeatured ?? false, tagIds: (input.tagIds ?? []).map(String) }; if (includeCode) body.code = input.code; return body }
-export async function adminListApplications(params: ListApplicationsParams = {}): Promise<Page<Application>> { const all = await fetchPortalApplications(params, true); const page = params.page ?? 1; const pageSize = params.pageSize ?? 20; return pageOf(all.slice((page - 1) * pageSize, page * pageSize), page, pageSize, all.length) }
+export async function adminListApplications(params: ListApplicationsParams = {}): Promise<Page<Application>> { const page = params.page ?? 1; const pageSize = params.pageSize ?? 20; const data = record(await apiFetch<unknown>(`/admin/portal/applications${buildQuery({ page, page_size: pageSize, keyword: params.keyword, status: params.status, launch_type: params.ssoType, lifecycle_status: params.lifecycleStatus })}`)); const items = listFrom(data, 'applications', 'items').map(mapApplication); return pageOf(items, Number(data.page ?? page), Number(data.pageSize ?? pageSize), Number(data.total ?? items.length)) }
 export async function adminCreateApplication(input: AdminApplicationInput): Promise<Application> { const data = await apiFetch<unknown>('/admin/portal/applications', { method: 'POST', body: applicationBody(input, true) }); return mapApplication(record(data).application ?? data) }
 export async function adminUpdateApplication(id: string | number, input: AdminApplicationInput): Promise<Application> { const data = await apiFetch<unknown>(`/admin/portal/applications/${encodeURIComponent(String(id))}`, { method: 'PATCH', body: applicationBody(input, false) }); return mapApplication(record(data).application ?? data) }
 

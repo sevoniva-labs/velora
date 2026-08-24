@@ -22,6 +22,7 @@ import {
 } from '../api/api'
 import type { AuthCapabilities } from '../api/api'
 import { portalConfig } from '../config/portal'
+import { usePageTitle } from '../hooks/usePageTitle'
 
 /** 品牌区能力说明：只描述用户能实际使用的功能，不使用宣传式表述。 */
 const FEATURES = [
@@ -44,6 +45,7 @@ const DECO_TILES = [
  * 登录方式由后端公开能力动态决定。认证服务的实现细节不在用户界面暴露。
  */
 export default function Login() {
+  usePageTitle('登录')
   const me = useMe()
   const [searchParams] = useSearchParams()
   const { message } = AntdApp.useApp()

@@ -97,7 +97,7 @@ web-budget:
 	node scripts/check-web-bundle-budget.mjs
 
 web-e2e-install-cn:
-	$(PNPM) --filter @forge/e2e e2e:install:cn
+	cd $(WEB_DIR) && $(PNPM) e2e:install:cn
 
 contract:
 	python3 scripts/check-error-codes.py
@@ -186,7 +186,7 @@ ci-web: ci-policy web-install
 	node scripts/check-web-bundle-budget.mjs
 
 ci-web-e2e: ci-web
-	$(PNPM) --filter @forge/e2e e2e
+	cd $(WEB_DIR) && $(PNPM) e2e
 	node scripts/check-web-bundle-budget.mjs
 
 ci-deploy: ci-policy apisix-policy pitr-check-test
@@ -206,7 +206,7 @@ supply-chain-evidence: ci-policy
 release-evidence: supply-chain-evidence
 	bash scripts/verify-image-supply-chain.sh
 
-verify: ci-go ci-web ci-deploy security-tools supply-chain-evidence
+verify: ci-go ci-web-e2e ci-deploy security-tools supply-chain-evidence
 
 offline-check: fmt contract
 	python3 -m json.tool web/apps/shell/package.json >/dev/null

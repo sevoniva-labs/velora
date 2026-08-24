@@ -52,6 +52,10 @@ build args；发布验收同时核对健康接口版本、页面版本和 OCI �
 
 验收：E2E 在干净环境和生产验收账号上均可执行，截图、trace 和报告可追溯。
 
+仓库 E2E 位于 `web/e2e`，执行 `make -C server web-e2e-install-cn` 从 npmmirror 安装固定
+Chromium，再执行 `make -C server ci-web-e2e`。默认同时验证桌面与窄屏；失败时保留截图、
+视频和 trace。连接真实环境时设置 `E2E_BASE_URL`，不在仓库保存生产账号或密码。
+
 ### Phase 3：后台核心产品闭环
 
 - 工作台增加账号下发失败、异常登录、锁定用户、待执行变更、即将过期权限/密钥和系统健康。

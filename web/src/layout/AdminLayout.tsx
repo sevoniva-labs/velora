@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
-import { ModalForm, ProFormText, ProLayout, type MenuDataItem } from '@ant-design/pro-components'
+import { ModalForm, ProFormText, ProLayout } from '@ant-design/pro-components'
 import { App as AntdApp, Avatar, Button, Dropdown, Space } from 'antd'
 import { HomeOutlined, LogoutOutlined, UserOutlined } from '@ant-design/icons'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
@@ -26,8 +26,22 @@ export function visibleNavigation(items: AdminNavItem[], permissions: string[], 
   })
 }
 
-function toMenuData(items: AdminNavItem[]): MenuDataItem[] {
-  return items.map((item) => ({ key: item.key, path: item.path, name: item.label, icon: item.icon, children: item.children ? toMenuData(item.children) : undefined }))
+interface AdminMenuRoute {
+  key: string
+  path: string
+  name: string
+  icon?: ReactNode
+  routes?: AdminMenuRoute[]
+}
+
+function toMenuData(items: AdminNavItem[]): AdminMenuRoute[] {
+  return items.map((item) => ({
+    key: item.key,
+    path: item.path ?? `/admin/group/${item.key}`,
+    name: item.label,
+    icon: item.icon,
+    routes: item.children ? toMenuData(item.children) : undefined,
+  }))
 }
 
 export function AdminLayout({ children }: AdminLayoutProps) {
@@ -59,13 +73,13 @@ export function AdminLayout({ children }: AdminLayoutProps) {
     <>
       <ProLayout
       className="forge-layout"
-      layout="side"
+      layout="mix"
       navTheme="light"
       title={portalName}
       logo="/sevoniva-mark.svg"
       location={{ pathname: location.pathname }}
-      menuDataRender={() => menuData}
-      menuItemRender={(item, dom) => item.path ? <Link to={item.path}>{dom}</Link> : dom}
+      route={{ routes: menuData }}
+      menuItemRender={(item, dom) => item.path && !item.path.startsWith('/admin/group/') ? <Link to={item.path}>{dom}</Link> : dom}
       collapsed={collapsed}
       onCollapse={setCollapsed}
       siderWidth={224}

@@ -5,7 +5,11 @@ import {
   hasAnyPermission,
   IDENTITY_CONSOLE,
   IDENTITY_READ,
+  APPROVAL_REQUEST_READ,
+  APPROVAL_TASK_DECIDE,
   PORTAL_MANAGE,
+  isAdministrativeUser,
+  portalRoleLabel,
 } from './permissions'
 
 describe('permission-driven administration gates', () => {
@@ -28,5 +32,18 @@ describe('permission-driven administration gates', () => {
     expect(canAccessAdmin([], ['system_admin'])).toBe(true)
     expect(hasPermission([IDENTITY_READ], PORTAL_MANAGE, ['system_admin'])).toBe(true)
     expect(canAccessAdmin([], ['operator'])).toBe(false)
+  })
+
+  it('does not present an approval-only member as an administrator', () => {
+    const permissions = [APPROVAL_REQUEST_READ, APPROVAL_TASK_DECIDE]
+    expect(canAccessAdmin(permissions, ['user'])).toBe(true)
+    expect(isAdministrativeUser(permissions, ['user'])).toBe(false)
+    expect(portalRoleLabel(permissions, ['user'])).toBe('审批人')
+  })
+
+  it('uses a precise product label for built-in administration roles', () => {
+    expect(portalRoleLabel([], ['system_admin'])).toBe('系统管理员')
+    expect(portalRoleLabel([IDENTITY_READ], ['iam_admin'])).toBe('身份管理员')
+    expect(portalRoleLabel([PORTAL_MANAGE], ['custom_operator'])).toBe('管理成员')
   })
 })

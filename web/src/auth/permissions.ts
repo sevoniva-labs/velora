@@ -80,3 +80,22 @@ export const ADMIN_ENTRY_PERMISSIONS = [
 export function canAccessAdmin(permissions: string[] | undefined, roles: string[] = []): boolean {
   return hasAnyPermission(permissions, ADMIN_ENTRY_PERMISSIONS, roles)
 }
+
+const BUILT_IN_ADMIN_ROLES = new Set(['system_admin', 'application_admin', 'iam_admin', 'auditor'])
+const APPROVAL_CENTER_PERMISSIONS = new Set([APPROVAL_REQUEST_READ, APPROVAL_REQUEST_CREATE, APPROVAL_TASK_DECIDE])
+
+/** Whether the account owns an actual administration role/capability. */
+export function isAdministrativeUser(permissions: string[] | undefined, roles: string[] = []): boolean {
+  if (roles.some((role) => BUILT_IN_ADMIN_ROLES.has(role))) return true
+  return (permissions ?? []).some((permission) => ADMIN_ENTRY_PERMISSIONS.includes(permission) && !APPROVAL_CENTER_PERMISSIONS.has(permission))
+}
+
+export function portalRoleLabel(permissions: string[] | undefined, roles: string[] = []): string {
+  if (roles.includes('system_admin')) return '系统管理员'
+  if (roles.includes('application_admin')) return '应用管理员'
+  if (roles.includes('iam_admin')) return '身份管理员'
+  if (roles.includes('auditor')) return '审计员'
+  if (isAdministrativeUser(permissions, roles)) return '管理成员'
+  if (hasPermission(permissions, APPROVAL_TASK_DECIDE, roles)) return '审批人'
+  return '普通成员'
+}

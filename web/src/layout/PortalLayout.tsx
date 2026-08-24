@@ -5,7 +5,7 @@ import { LogoutOutlined, SettingOutlined, UserOutlined } from '@ant-design/icons
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useState, type KeyboardEvent } from 'react'
 import { useMe } from '../auth/useMe'
-import { canAccessAdmin } from '../auth/permissions'
+import { APPROVAL_REQUEST_READ, APPROVAL_TASK_DECIDE, canAccessAdmin, hasAnyPermission, isAdministrativeUser, portalRoleLabel } from '../auth/permissions'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { logout } from '../api/api'
 import { portalConfig } from '../config/portal'
@@ -30,6 +30,11 @@ export function PortalLayout({ children }: PortalLayoutProps) {
   const { name: portalName, welcome: portalWelcome } = portalConfig
 
   const isAdmin = canAccessAdmin(me.data?.permissions, me.data?.roles)
+  const isManagementUser = isAdministrativeUser(me.data?.permissions, me.data?.roles)
+  const approvalOnly = !isManagementUser && hasAnyPermission(me.data?.permissions, [APPROVAL_REQUEST_READ, APPROVAL_TASK_DECIDE], me.data?.roles)
+  const adminEntryPath = approvalOnly ? '/admin/approvals' : '/admin'
+  const adminEntryLabel = approvalOnly ? '审批中心' : '管理后台'
+  const roleLabel = portalRoleLabel(me.data?.permissions, me.data?.roles)
   const displayName = me.data?.displayName || me.data?.username || '用户'
   const activeKey = NAV_ITEMS.find((i) => location.pathname.startsWith(i.path))?.key ?? 'home'
 
@@ -83,9 +88,9 @@ export function PortalLayout({ children }: PortalLayoutProps) {
             <button
               type="button"
               className={location.pathname.startsWith('/admin') ? 'velora-module-tab is-active' : 'velora-module-tab'}
-              onClick={() => navigate('/admin')}
+              onClick={() => navigate(adminEntryPath)}
             >
-              管理后台
+              {adminEntryLabel}
             </button>
           )}
         </nav>
@@ -122,8 +127,8 @@ export function PortalLayout({ children }: PortalLayoutProps) {
                       {
                         key: 'admin',
                         icon: <SettingOutlined />,
-                        label: '管理后台',
-                        onClick: () => navigate('/admin'),
+                        label: adminEntryLabel,
+                        onClick: () => navigate(adminEntryPath),
                       },
                       { type: 'divider' as const },
                     ]
@@ -142,7 +147,7 @@ export function PortalLayout({ children }: PortalLayoutProps) {
               <Avatar size={28} icon={<UserOutlined />} />
               <span className="velora-user-chip-info">
                 <span className="velora-user-chip-name">{displayName}</span>
-                <span className="velora-user-chip-role">{isAdmin ? '管理员' : '普通成员'}</span>
+                <span className="velora-user-chip-role">{roleLabel}</span>
               </span>
             </button>
           </Dropdown>

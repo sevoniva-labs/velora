@@ -44,7 +44,7 @@ export default function AccessReviews() {
     { title: '原因', dataIndex: 'reason', ellipsis: true },
     { title: '操作', valueType: 'option', width: 90, render: (_, row) => row.decision ? <Typography.Text type="secondary">已处理</Typography.Text> : canManage ? <Button type="link" onClick={() => setDeciding(row)}>处理</Button> : <Typography.Text type="secondary">待处理</Typography.Text> },
   ]
-  return <PageContainer title="权限检查"><ProTable<AccessReview> rowKey="id" columns={columns} dataSource={reviews.data ?? []} loading={reviews.isLoading} search={{ labelWidth: 'auto' }} pagination={{ pageSize: 20 }} toolBarRender={canManage ? () => [<Button key="create" type="primary" icon={<PlusOutlined />} onClick={() => setCreateOpen(true)}>发起检查</Button>] : false} />
+  return <PageContainer title="权限检查"><ProTable<AccessReview> className="velora-admin-primary-table" rowKey="id" columns={columns} dataSource={reviews.data ?? []} loading={reviews.isLoading} search={{ labelWidth: 'auto' }} pagination={{ pageSize: 20 }} toolBarRender={canManage ? () => [<Button key="create" type="primary" icon={<PlusOutlined />} onClick={() => setCreateOpen(true)}>发起检查</Button>] : false} />
     <ModalForm<CreateForm> title="发起权限检查" open={createOpen} onOpenChange={setCreateOpen} initialValues={{ dueAt: dayjs().add(7, 'day') }} submitter={{ searchConfig: { submitText: '发起检查', resetText: '取消' } }} onFinish={async (values) => { await create.mutateAsync(values); return true }}>
       <ProForm.Item name="reviewerId" label="检查负责人" rules={[{ required: true, message: '请选择检查负责人' }]}><AdminUserSelect /></ProForm.Item>
       <ProFormDateTimePicker name="dueAt" label="截止时间" rules={[{ required: true, message: '请选择截止时间' }]} />

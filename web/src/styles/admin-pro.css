@@ -1,32 +1,217 @@
 :root {
-  --admin-bg-canvas: #f7f8fa;
-  --admin-bg-surface: #ffffff;
-  --admin-text-primary: rgba(0, 0, 0, 0.88);
-  --admin-text-secondary: rgba(0, 0, 0, 0.65);
-  --admin-menu-active: rgba(0, 0, 0, 0.04);
-  --admin-border: rgba(0, 0, 0, 0.06);
-  --admin-shadow: 0 1px 2px rgba(0, 0, 0, 0.03), 0 4px 12px rgba(0, 0, 0, 0.04);
+  --admin-content-gap: 16px;
+  --admin-surface-radius: 14px;
+  --admin-surface-border: rgba(20, 32, 58, 0.08);
+  --admin-surface-shadow: 0 10px 28px -20px rgba(6, 20, 55, 0.22);
 }
 
-.velora-admin-pro-layout,
-.velora-admin-pro-layout .ant-pro-layout-container,
-.velora-admin-pro-layout .ant-layout,
-.velora-admin-pro-layout .ant-layout-header,
-.velora-admin-pro-layout .ant-pro-sider { background: var(--admin-bg-canvas) !important; }
+/* PageContainer sits inside the portal shell, so it must not add a second page gutter. */
+.velora-admin-content .ant-pro-page-container-warp-page-header,
+.velora-admin-content .ant-pro-page-container-children-container {
+  padding-inline: 0;
+}
 
-.velora-admin-pro-layout .ant-pro-layout-content { padding: 24px !important; background: var(--admin-bg-canvas) !important; }
-.velora-admin-pro-layout .ant-pro-sider { border-inline-end: 1px solid var(--admin-border); box-shadow: none; }
-.velora-admin-pro-layout .ant-pro-global-header { border-block-end: 1px solid var(--admin-border); box-shadow: none; }
-.velora-admin-pro-layout .ant-menu-item-selected { font-weight: 600; }
-.velora-admin-content { min-width: 0; }
-.velora-admin-content .ant-card,
-.velora-admin-content .ant-table-wrapper { border: 0; border-radius: 8px; background: var(--admin-bg-surface); box-shadow: var(--admin-shadow); }
-.velora-admin-content .ant-card .ant-table-wrapper { box-shadow: none; }
+.velora-admin-content .ant-pro-page-container-warp-page-header { padding-block: 2px 18px; }
+.velora-admin-content .ant-pro-page-container-children-container { padding-block-end: 0; }
+
+.velora-admin-content .ant-page-header-heading-title {
+  color: var(--velora-title);
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.velora-admin-content .ant-pro-card,
+.velora-admin-content .ant-table-wrapper,
+.velora-admin-content .ant-pro-table { min-width: 0; }
 .velora-admin-content .ant-alert-description { max-width: 920px; }
-.velora-admin-pro-table-card { padding: 16px 24px; border-radius: 8px; background: var(--admin-bg-surface); box-shadow: var(--admin-shadow); }
-.velora-admin-page-card { padding: 16px 24px; border-radius: 8px; background: var(--admin-bg-surface); box-shadow: var(--admin-shadow); }
+
+.velora-admin-content .ant-pro-table > .ant-pro-card {
+  overflow: hidden;
+  border: 1px solid var(--admin-surface-border);
+  border-radius: var(--admin-surface-radius);
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: var(--admin-surface-shadow);
+}
+
+.velora-admin-content .ant-pro-table-search {
+  margin-block-end: var(--admin-content-gap);
+}
+
+.velora-admin-content .ant-pro-table-list-toolbar-container {
+  min-height: 56px;
+  gap: 16px;
+  padding-inline: 20px;
+}
+
+.velora-admin-content .ant-pro-table-list-toolbar-left,
+.velora-admin-content .ant-pro-table-list-toolbar-right {
+  min-width: 0;
+}
+
+.velora-admin-content .ant-empty {
+  margin-block: 48px;
+}
+
+.velora-admin-page-card,
+.velora-admin-pro-table-card {
+  padding: 20px 24px;
+  border: 1px solid var(--admin-surface-border);
+  border-radius: var(--admin-surface-radius);
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: var(--admin-surface-shadow);
+}
+
 .table-action-cell { white-space: nowrap; }
 
+/* Dashboard and application overview: independent cards with real gaps. */
+.velora-dashboard-stat-grid,
+.velora-application-stat-grid,
+.velora-dashboard-action-grid {
+  display: grid;
+  gap: var(--admin-content-gap);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.velora-dashboard-stat-card,
+.velora-application-stat-card,
+.velora-dashboard-action-card {
+  height: 100%;
+  overflow: hidden;
+  border: 1px solid var(--admin-surface-border) !important;
+  border-radius: var(--admin-surface-radius) !important;
+  box-shadow: var(--admin-surface-shadow) !important;
+}
+
+.velora-dashboard-stat-card .ant-pro-card-body,
+.velora-application-stat-card .ant-pro-card-body {
+  min-height: 116px;
+  padding: 22px 24px;
+}
+
+.velora-dashboard-action-card .ant-pro-card-header {
+  min-height: 58px;
+  gap: 12px;
+  padding-inline: 22px;
+}
+
+.velora-dashboard-action-card .ant-pro-card-title {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--velora-title);
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.velora-dashboard-action-card .ant-pro-card-extra { flex: 0 0 auto; }
+
+.velora-dashboard-action-card .ant-pro-card-body {
+  display: flex;
+  min-height: 96px;
+  align-items: center;
+  padding: 18px 22px 22px;
+}
+
+.velora-dashboard-action-card .ant-typography { margin: 0; }
+.velora-dashboard-action-icon { font-size: 24px; }
+.velora-dashboard-action-icon.is-primary { color: var(--velora-primary); }
+.velora-dashboard-action-icon.is-warning { color: #d48806; }
+.velora-dashboard-action-icon.is-success { color: #389e0d; }
+
+.velora-application-overview {
+  overflow: hidden;
+  border: 1px solid var(--admin-surface-border);
+  border-radius: var(--admin-surface-radius);
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: var(--admin-surface-shadow);
+}
+
+/* Application detail tabs: keep the PageContainer Tabs component, refine its visual hierarchy. */
+.velora-application-management .ant-pro-page-container-tabs .ant-tabs-nav { margin: 12px 0 0; }
+.velora-application-management .ant-pro-page-container-tabs .ant-tabs-nav::before { border-bottom: 0; }
+
+.velora-application-management .ant-pro-page-container-tabs .ant-tabs-nav-list {
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid var(--admin-surface-border);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.7);
+}
+
+.velora-application-management .ant-pro-page-container-tabs .ant-tabs-tab {
+  margin: 0 !important;
+  padding: 7px 12px;
+  border-radius: 7px;
+  color: var(--velora-secondary);
+  transition: color 0.16s ease, background 0.16s ease;
+}
+
+.velora-application-management .ant-pro-page-container-tabs .ant-tabs-tab:hover {
+  color: var(--velora-primary);
+  background: var(--velora-primary-softer);
+}
+
+.velora-application-management .ant-pro-page-container-tabs .ant-tabs-tab-active { background: var(--velora-primary-soft); }
+.velora-application-management .ant-pro-page-container-tabs .ant-tabs-tab-active .ant-tabs-tab-btn { color: var(--velora-primary); font-weight: 600; }
+.velora-application-management .ant-pro-page-container-tabs .ant-tabs-ink-bar { display: none; }
+
+/* Full-page tables reserve a stable body, keeping pagination at the page bottom. */
+.velora-admin-primary-table > .ant-pro-card:not(.ant-pro-table-search) {
+  min-height: max(440px, calc(100vh - 300px));
+}
+
+.velora-admin-primary-table > .ant-pro-card:not(.ant-pro-table-search) > .ant-pro-card-body,
+.velora-admin-primary-table > .ant-pro-card:not(.ant-pro-table-search) .ant-table-wrapper,
+.velora-admin-primary-table > .ant-pro-card:not(.ant-pro-table-search) .ant-spin-nested-loading,
+.velora-admin-primary-table > .ant-pro-card:not(.ant-pro-table-search) .ant-spin-container {
+  display: flex;
+  min-height: 0;
+  flex: 1 1 auto;
+  flex-direction: column;
+}
+
+.velora-admin-primary-table .ant-table-pagination {
+  margin-block: auto 0 !important;
+  padding-block-start: 20px;
+}
+
+.velora-admin-table-after-filter > .ant-pro-card:not(.ant-pro-table-search) {
+  min-height: max(400px, calc(100vh - 360px));
+}
+
+/* Paginated tables inside detail tabs keep a compact but stable footer position. */
+.velora-admin-secondary-table > .ant-pro-card:not(.ant-pro-table-search) {
+  min-height: 420px;
+}
+
+.velora-admin-secondary-table > .ant-pro-card:not(.ant-pro-table-search) > .ant-pro-card-body,
+.velora-admin-secondary-table > .ant-pro-card:not(.ant-pro-table-search) .ant-table-wrapper,
+.velora-admin-secondary-table > .ant-pro-card:not(.ant-pro-table-search) .ant-spin-nested-loading,
+.velora-admin-secondary-table > .ant-pro-card:not(.ant-pro-table-search) .ant-spin-container {
+  display: flex;
+  min-height: 0;
+  flex: 1 1 auto;
+  flex-direction: column;
+}
+
+.velora-admin-secondary-table .ant-table-pagination {
+  margin-block: auto 0 !important;
+  padding-block-start: 20px;
+}
+
+@media (max-width: 1100px) {
+  .velora-dashboard-stat-grid,
+  .velora-application-stat-grid,
+  .velora-dashboard-action-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
 @media (max-width: 760px) {
-  .velora-admin-pro-layout .ant-pro-layout-content { padding: 16px !important; }
+  .velora-dashboard-stat-grid,
+  .velora-application-stat-grid,
+  .velora-dashboard-action-grid { grid-template-columns: 1fr; }
+  .velora-application-management .ant-pro-page-container-tabs .ant-tabs-nav-list { width: max-content; }
+  .velora-admin-primary-table > .ant-pro-card:not(.ant-pro-table-search),
+  .velora-admin-table-after-filter > .ant-pro-card:not(.ant-pro-table-search),
+  .velora-admin-secondary-table > .ant-pro-card:not(.ant-pro-table-search) { min-height: 420px; }
 }

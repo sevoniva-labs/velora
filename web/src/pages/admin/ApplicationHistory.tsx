@@ -14,5 +14,5 @@ export default function ApplicationHistory({ applicationId }: Props) {
     { title: '操作人', dataIndex: 'operator' },
     { title: '来源 IP', dataIndex: 'ip', render: (_, row) => row.ip || '—' },
   ]
-  return <ProTable<AuditLog> rowKey="id" columns={columns} request={async (params) => { const data = await adminListAuditLogs({ page: params.current, pageSize: params.pageSize, resourceId: applicationId }); return { data: data.items, total: data.total, success: true } }} search={false} options={false} pagination={{ defaultPageSize: 20, showSizeChanger: true }} />
+  return <ProTable<AuditLog> className="velora-admin-secondary-table" rowKey="id" columns={columns} request={async (params) => { const data = await adminListAuditLogs({ page: params.current, pageSize: params.pageSize, resourceId: applicationId }); return { data: data.items, total: data.total, success: true } }} search={false} options={false} pagination={{ defaultPageSize: 20, showSizeChanger: true }} />
 }

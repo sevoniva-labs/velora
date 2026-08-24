@@ -139,6 +139,22 @@ export async function updateUserRoles(userId: string, roles: string[], approvalI
   return messageFromResponse(data, 'user')
 }
 
+export function unlockUser(userId: string): Promise<unknown> {
+  return apiFetch(`/admin/users/${encodeURIComponent(userId)}/unlock`, { method: 'POST', body: {} })
+}
+
+export function resetUserPassword(userId: string, password: string, approvalId: string): Promise<unknown> {
+  return apiFetch(`/admin/users/${encodeURIComponent(userId)}/reset-password`, { method: 'POST', body: { password, approvalId } })
+}
+
+export async function verifyAuditIntegrity(): Promise<boolean> {
+  return Boolean((await apiFetch<{ verified?: boolean }>('/admin/audit-logs/integrity')).verified)
+}
+
+export async function exportAuditLogs(format: 'json' | 'csv', limit: number, approvalId: string): Promise<{ content: string; contentType: string; filename: string }> {
+  return apiFetch(`/admin/audit-logs/export?format=${encodeURIComponent(format)}&limit=${limit}&approval_id=${encodeURIComponent(approvalId)}`)
+}
+
 export async function listApplicationAccessGrants(applicationId: string): Promise<ApplicationAccessGrant[]> {
   return ((await apiFetch<{ grants?: ApplicationAccessGrant[] }>(`/admin/portal/applications/${encodeURIComponent(applicationId)}/access-grants`)).grants ?? []).map(normalizeAccessGrant)
 }

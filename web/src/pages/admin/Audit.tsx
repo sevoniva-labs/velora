@@ -1,14 +1,19 @@
 import { useState } from 'react'
 import type { ReactNode } from 'react'
-import { Button, Drawer, Empty, Tag, Typography } from 'antd'
-import { PageContainer, ProDescriptions, ProFormDateTimeRangePicker, ProFormSelect, ProFormText, ProTable, QueryFilter, type ProColumns } from '@ant-design/pro-components'
-import { useQuery } from '@tanstack/react-query'
+import { App, Button, Drawer, Empty, Space, Tag, Typography } from 'antd'
+import { ModalForm, PageContainer, ProDescriptions, ProForm, ProFormDigit, ProFormDateTimeRangePicker, ProFormSelect, ProFormText, ProTable, QueryFilter, type ProColumns } from '@ant-design/pro-components'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import type { Dayjs } from 'dayjs'
 import { adminListAuditLogs, queryKeys } from '../../api/api'
 import type { AuditLog } from '../../types'
 import { AUDIT_ACTION_LABEL, AUDIT_RESOURCE_LABEL, auditActionLabel, auditResourceLabel } from '../../labels'
 import { usePageTitle } from '../../hooks/usePageTitle'
 import { formatDateTime } from '../../utils/format'
+import { createApproval, exportAuditLogs, listApprovals, verifyAuditIntegrity } from '../../api/admin-platform'
+import AdminUserSelect from '../../components/AdminUserSelect'
+import { useMe } from '../../auth/useMe'
+
+interface ExportForm { format: 'json' | 'csv'; limit: number; approverId: string }
 
 function parseDetail(value: string): Record<string, unknown> {
   if (!value) return {}
@@ -17,10 +22,19 @@ function parseDetail(value: string): Record<string, unknown> {
 
 export default function AdminAudit() {
   usePageTitle('操作记录')
+  const { message } = App.useApp()
+  const me = useMe()
+  const queryClient = useQueryClient()
   const [page, setPage] = useState(1)
   const [filters, setFilters] = useState<{ action?: string; operator?: string; resourceType?: string; result?: string; from?: string; to?: string }>({})
   const [selected, setSelected] = useState<AuditLog>()
+  const [exportOpen, setExportOpen] = useState(false)
   const logs = useQuery({ queryKey: queryKeys.auditLogs({ page, ...filters }), queryFn: () => adminListAuditLogs({ page, pageSize: 20, ...filters }) })
+  const approvals = useQuery({ queryKey: ['admin', 'approvals'], queryFn: listApprovals })
+  const approvedExport = (approvals.data ?? []).find((item) => item.action === 'audit.export' && item.resourceId === 'organization' && item.status === 'APPROVED')
+  const integrity = useMutation({ mutationFn: verifyAuditIntegrity, onSuccess: (verified) => verified ? message.success('操作记录完整性校验通过') : message.error('操作记录完整性校验失败'), onError: (error) => message.error(error instanceof Error ? error.message : '完整性校验失败') })
+  const requestExport = useMutation({ mutationFn: (values: ExportForm) => createApproval({ requestType: 'AUDIT_LOG_EXPORT', action: 'audit.export', resource: 'audit_log', resourceId: 'organization', summary: `导出最近 ${values.limit} 条操作记录`, payloadJson: JSON.stringify({ format: values.format, limit: values.limit }), approverIds: [values.approverId] }), onSuccess: async () => { message.success('导出申请已提交'); setExportOpen(false); await queryClient.invalidateQueries({ queryKey: ['admin', 'approvals'] }) }, onError: (error) => message.error(error instanceof Error ? error.message : '导出申请提交失败') })
+  const executeExport = useMutation({ mutationFn: async () => { const payload = JSON.parse(approvedExport!.payloadJson) as { format?: 'json' | 'csv'; limit?: number }; const result = await exportAuditLogs(payload.format ?? 'csv', payload.limit ?? 1000, approvedExport!.id); const binary = atob(result.content); const bytes = Uint8Array.from(binary, (character) => character.charCodeAt(0)); const href = URL.createObjectURL(new Blob([bytes], { type: result.contentType })); const link = document.createElement('a'); link.href = href; link.download = result.filename || 'audit-logs.csv'; link.click(); URL.revokeObjectURL(href) }, onSuccess: async () => { message.success('操作记录已导出'); await queryClient.invalidateQueries({ queryKey: ['admin', 'approvals'] }) }, onError: (error) => message.error(error instanceof Error ? error.message : '导出失败') })
   const columns: ProColumns<AuditLog>[] = [
     { title: '时间', dataIndex: 'createdAt', valueType: 'dateTime', search: false, width: 180, render: (_, row) => formatDateTime(row.createdAt) },
     { title: '操作人', dataIndex: 'operator', search: false, width: 160 },
@@ -30,7 +44,7 @@ export default function AdminAudit() {
     { title: '来源 IP', dataIndex: 'ip', search: false, width: 140 },
     { title: '详情', valueType: 'option', width: 80, render: (_, row) => <Button type="link" onClick={() => setSelected(row)}>查看</Button> },
   ]
-  return <PageContainer title="操作记录">
+  return <PageContainer title="操作记录" extra={<Space><Button loading={integrity.isPending} onClick={() => integrity.mutate()}>校验完整性</Button>{approvedExport ? <Button type="primary" loading={executeExport.isPending} onClick={() => executeExport.mutate()}>导出已批准记录</Button> : <Button type="primary" onClick={() => setExportOpen(true)}>导出</Button>}</Space>}>
     <QueryFilter<{ operator?: string; action?: string; resourceType?: string; result?: string; occurredAt?: [Dayjs, Dayjs] }> defaultCollapsed={false} onFinish={async (values) => { setFilters({ operator: values.operator?.trim(), action: values.action, resourceType: values.resourceType, result: values.result, from: values.occurredAt?.[0]?.toISOString(), to: values.occurredAt?.[1]?.toISOString() }); setPage(1); return true }} onReset={() => { setFilters({}); setPage(1) }}>
       <ProFormText name="operator" label="操作人" placeholder="姓名或账号" />
       <ProFormSelect name="action" label="操作" showSearch fieldProps={{ optionFilterProp: 'label' }} options={Object.entries(AUDIT_ACTION_LABEL).map(([value, label]) => ({ value, label }))} />
@@ -42,6 +56,11 @@ export default function AdminAudit() {
     <Drawer title="操作详情" open={Boolean(selected)} onClose={() => setSelected(undefined)} width={640}>
       {selected && <AuditDetail log={selected} />}
     </Drawer>
+    <ModalForm<ExportForm> title="申请导出操作记录" open={exportOpen} onOpenChange={setExportOpen} initialValues={{ format: 'csv', limit: 1000 }} submitter={{ searchConfig: { submitText: '提交审批', resetText: '取消' } }} onFinish={async (values) => { await requestExport.mutateAsync(values); return true }}>
+      <ProFormSelect name="format" label="文件格式" options={[{ value: 'csv', label: 'CSV' }, { value: 'json', label: 'JSON' }]} rules={[{ required: true }]} />
+      <ProFormDigit name="limit" label="记录数量" min={1} max={5000} fieldProps={{ precision: 0 }} rules={[{ required: true, message: '请输入记录数量' }]} />
+      <ProForm.Item name="approverId" label="审批人" rules={[{ required: true, message: '请选择审批人' }]}><AdminUserSelect excludeIds={me.data?.id ? [me.data.id] : []} /></ProForm.Item>
+    </ModalForm>
   </PageContainer>
 }
 

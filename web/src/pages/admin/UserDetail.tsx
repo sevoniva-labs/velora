@@ -1,20 +1,22 @@
 import { useMemo, useState } from 'react'
-import { App, Button, Empty, Skeleton, Space, Tag, Typography } from 'antd'
-import { DrawerForm, ModalForm, PageContainer, ProDescriptions, ProForm, ProFormList, ProFormSelect, ProFormSwitch, ProTable, type ProColumns } from '@ant-design/pro-components'
+import { App, Button, Empty, Popconfirm, Skeleton, Space, Tag, Typography } from 'antd'
+import { DrawerForm, ModalForm, PageContainer, ProDescriptions, ProForm, ProFormList, ProFormSelect, ProFormSwitch, ProFormText, ProTable, type ProColumns } from '@ant-design/pro-components'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate, useParams } from 'react-router-dom'
 import { adminGetUser } from '../../api/api'
-import { createApproval, listApprovals, listDepartments, listPlatformRoles, listPositions, listUserAssignments, listUserEffectiveApplicationAccess, replaceUserAssignments, updateUserRoles } from '../../api/admin-platform'
+import { createApproval, listApprovals, listDepartments, listPlatformRoles, listPositions, listUserAssignments, listUserEffectiveApplicationAccess, replaceUserAssignments, resetUserPassword, unlockUser, updateUserRoles } from '../../api/admin-platform'
 import QueryErrorState from '../../components/QueryErrorState'
 import type { ApprovalRequest, UserAssignment, UserEffectiveApplicationAccess } from '../../types'
 import { usePageTitle } from '../../hooks/usePageTitle'
 import { useMe } from '../../auth/useMe'
 import AdminUserSelect from '../../components/AdminUserSelect'
-import { SYSTEM_USER_ASSIGNMENT_MANAGE, SYSTEM_USER_ASSIGNMENT_READ, SYSTEM_USER_ROLE_MANAGE } from '../../auth/permissions'
+import { SYSTEM_USER_ASSIGNMENT_MANAGE, SYSTEM_USER_ASSIGNMENT_READ, SYSTEM_USER_ROLE_MANAGE, SYSTEM_USER_UPDATE } from '../../auth/permissions'
 import { useAdminPermission } from '../../auth/useAdminPermission'
 
 interface AssignmentForm { assignments: UserAssignment[] }
 interface RoleForm { roles: string[]; approverId: string }
+interface PasswordApprovalForm { approverId: string }
+interface PasswordResetForm { password: string; confirmPassword: string }
 
 export default function UserDetail() {
   const { id = '' } = useParams()
@@ -25,9 +27,12 @@ export default function UserDetail() {
   const canReadAssignments = useAdminPermission(SYSTEM_USER_ASSIGNMENT_READ)
   const canManageAssignments = useAdminPermission(SYSTEM_USER_ASSIGNMENT_MANAGE)
   const canManageRoles = useAdminPermission(SYSTEM_USER_ROLE_MANAGE)
+  const canUpdateUser = useAdminPermission(SYSTEM_USER_UPDATE)
   const [tab, setTab] = useState('profile')
   const [assignmentOpen, setAssignmentOpen] = useState(false)
   const [roleOpen, setRoleOpen] = useState(false)
+  const [passwordApprovalOpen, setPasswordApprovalOpen] = useState(false)
+  const [passwordResetOpen, setPasswordResetOpen] = useState(false)
   const userQuery = useQuery({ queryKey: ['admin', 'users', id], queryFn: () => adminGetUser(id), enabled: Boolean(id) })
   const user = userQuery.data
   usePageTitle(user?.displayName || '用户详情')
@@ -36,7 +41,7 @@ export default function UserDetail() {
   const roles = useQuery({ queryKey: ['admin', 'roles'], queryFn: listPlatformRoles })
   const assignments = useQuery({ queryKey: ['admin', 'users', id, 'assignments'], queryFn: () => listUserAssignments(id), enabled: Boolean(id) && canReadAssignments })
   const effectiveAccess = useQuery({ queryKey: ['admin', 'users', id, 'effective-application-access'], queryFn: () => listUserEffectiveApplicationAccess(id), enabled: Boolean(id) })
-  const approvals = useQuery({ queryKey: ['admin', 'approvals'], queryFn: listApprovals, enabled: canManageRoles })
+  const approvals = useQuery({ queryKey: ['admin', 'approvals'], queryFn: listApprovals, enabled: canManageRoles || canUpdateUser })
   const departmentNames = useMemo(() => new Map((departments.data ?? []).map((item) => [item.id, item.name])), [departments.data])
   const positionNames = useMemo(() => new Map((positions.data ?? []).map((item) => [item.id, item.name])), [positions.data])
   const assignmentMutation = useMutation({ mutationFn: (values: AssignmentForm) => replaceUserAssignments(id, values.assignments ?? []), onSuccess: async () => { message.success('任职信息已更新'); setAssignmentOpen(false); await queryClient.invalidateQueries({ queryKey: ['admin', 'users', id, 'assignments'] }) }, onError: (error) => message.error(error instanceof Error ? error.message : '任职信息保存失败') })
@@ -44,6 +49,10 @@ export default function UserDetail() {
   const roleRequest = useMutation({ mutationFn: (values: RoleForm) => { const roleKeys = Array.from(new Set(values.roles ?? [])).sort(); return createApproval({ requestType: 'USER_ROLE_CHANGE', action: 'user.roles.update', resource: 'user', resourceId: id, summary: `更新用户“${user?.displayName || user?.loginName}”的平台角色`, payloadJson: JSON.stringify({ roles: roleKeys }), approverIds: [values.approverId] }) }, onSuccess: async () => { message.success('平台角色变更已提交审批'); setRoleOpen(false); await refreshRoles() }, onError: (error) => message.error(error instanceof Error ? error.message : '审批提交失败') })
   const roleExecution = useMutation({ mutationFn: (approval: ApprovalRequest) => { const payload = JSON.parse(approval.payloadJson) as { roles?: string[] }; return updateUserRoles(id, payload.roles ?? [], approval.id) }, onSuccess: async () => { message.success('平台角色已更新'); await refreshRoles() }, onError: (error) => message.error(error instanceof Error ? error.message : '角色变更执行失败') })
   const approvedRoleChange = (approvals.data ?? []).find((item) => item.action === 'user.roles.update' && item.resourceId === id && item.status === 'APPROVED')
+  const passwordApprovalRequest = useMutation({ mutationFn: (values: PasswordApprovalForm) => createApproval({ requestType: 'USER_PASSWORD_RESET', action: 'user.password.reset', resource: 'user', resourceId: id, summary: `重置用户“${user?.displayName || user?.loginName}”的密码`, payloadJson: JSON.stringify({ force_change: true }), approverIds: [values.approverId] }), onSuccess: async () => { message.success('密码重置申请已提交'); setPasswordApprovalOpen(false); await queryClient.invalidateQueries({ queryKey: ['admin', 'approvals'] }) }, onError: (error) => message.error(error instanceof Error ? error.message : '密码重置申请提交失败') })
+  const approvedPasswordReset = (approvals.data ?? []).find((item) => item.action === 'user.password.reset' && item.resourceId === id && item.status === 'APPROVED')
+  const passwordReset = useMutation({ mutationFn: (values: PasswordResetForm) => resetUserPassword(id, values.password, approvedPasswordReset!.id), onSuccess: async () => { message.success('密码已重置，用户下次登录必须修改密码'); setPasswordResetOpen(false); await queryClient.invalidateQueries({ queryKey: ['admin', 'approvals'] }) }, onError: (error) => message.error(error instanceof Error ? error.message : '密码重置失败') })
+  const unlock = useMutation({ mutationFn: () => unlockUser(id), onSuccess: async () => { message.success('用户已解锁'); await queryClient.invalidateQueries({ queryKey: ['admin', 'users'] }) }, onError: (error) => message.error(error instanceof Error ? error.message : '用户解锁失败') })
 
   if (userQuery.isLoading) return <PageContainer title="用户详情" onBack={() => navigate('/admin/users')}><div className="velora-admin-page-card"><Skeleton active /></div></PageContainer>
   if (userQuery.isError) return <PageContainer title="用户详情" onBack={() => navigate('/admin/users')}><QueryErrorState refetch={() => void userQuery.refetch()} /></PageContainer>
@@ -61,7 +70,12 @@ export default function UserDetail() {
   ]
 
   const tabs = [{ key: 'profile', tab: '基本信息' }, ...(canReadAssignments ? [{ key: 'assignments', tab: '部门与岗位' }] : []), { key: 'access', tab: '可使用应用' }]
-  const extra = tab === 'profile' && canManageRoles ? [approvedRoleChange ? <Button key="execute-roles" type="primary" loading={roleExecution.isPending} onClick={() => roleExecution.mutate(approvedRoleChange)}>执行角色变更</Button> : <Button key="roles" type="primary" onClick={() => setRoleOpen(true)}>配置平台角色</Button>] : tab === 'assignments' && canManageAssignments ? [<Button key="assignments" type="primary" onClick={() => setAssignmentOpen(true)}>编辑任职</Button>] : undefined
+  const profileActions = tab === 'profile' ? [
+    ...(canUpdateUser && user?.status === 'LOCKED' ? [<Popconfirm key="unlock" title="解锁此用户？" onConfirm={() => unlock.mutate()}><Button loading={unlock.isPending}>解锁用户</Button></Popconfirm>] : []),
+    ...(canUpdateUser ? [approvedPasswordReset ? <Button key="execute-password" danger onClick={() => setPasswordResetOpen(true)}>执行密码重置</Button> : <Button key="password" onClick={() => setPasswordApprovalOpen(true)}>重置密码</Button>] : []),
+    ...(canManageRoles ? [approvedRoleChange ? <Button key="execute-roles" type="primary" loading={roleExecution.isPending} onClick={() => roleExecution.mutate(approvedRoleChange)}>执行角色变更</Button> : <Button key="roles" type="primary" onClick={() => setRoleOpen(true)}>配置平台角色</Button>] : []),
+  ] : []
+  const extra = profileActions.length ? profileActions : tab === 'assignments' && canManageAssignments ? [<Button key="assignments" type="primary" onClick={() => setAssignmentOpen(true)}>编辑任职</Button>] : undefined
 
   return <PageContainer title={user?.displayName || user?.loginName || '用户详情'} onBack={() => navigate('/admin/users')} tabList={tabs} tabActiveKey={tab} onTabChange={setTab} extra={extra}>
     {tab === 'profile' && <ProDescriptions className="velora-admin-page-card" column={2} dataSource={user} columns={[
@@ -85,6 +99,13 @@ export default function UserDetail() {
     <ModalForm<RoleForm> key={`${id}-${user?.roles.join('-')}`} title="配置平台角色" open={roleOpen} onOpenChange={setRoleOpen} initialValues={{ roles: user?.roles ?? [] }} submitter={{ searchConfig: { submitText: '提交审批', resetText: '取消' } }} onFinish={async (values) => { await roleRequest.mutateAsync(values); return true }}>
       <ProFormSelect name="roles" label="平台角色" mode="multiple" options={(roles.data ?? []).map((role) => ({ label: role.name, value: role.key }))} rules={[{ required: true, message: '至少保留一个平台角色' }]} />
       <ProForm.Item name="approverId" label="审批人" rules={[{ required: true, message: '请选择审批人' }]}><AdminUserSelect excludeIds={me.data?.id ? [me.data.id] : []} /></ProForm.Item>
+    </ModalForm>
+    <ModalForm<PasswordApprovalForm> title="申请重置密码" open={passwordApprovalOpen} onOpenChange={setPasswordApprovalOpen} submitter={{ searchConfig: { submitText: '提交审批', resetText: '取消' } }} onFinish={async (values) => { await passwordApprovalRequest.mutateAsync(values); return true }}>
+      <ProForm.Item name="approverId" label="审批人" rules={[{ required: true, message: '请选择审批人' }]}><AdminUserSelect excludeIds={me.data?.id ? [me.data.id] : []} /></ProForm.Item>
+    </ModalForm>
+    <ModalForm<PasswordResetForm> title="设置临时密码" open={passwordResetOpen} onOpenChange={setPasswordResetOpen} submitter={{ searchConfig: { submitText: '确认重置', resetText: '取消' }, submitButtonProps: { danger: true } }} onFinish={async (values) => { if (values.password !== values.confirmPassword) throw new Error('两次输入的密码不一致'); await passwordReset.mutateAsync(values); return true }}>
+      <ProFormText.Password name="password" label="临时密码" rules={[{ required: true, message: '请输入临时密码' }, { min: 12, message: '至少 12 位' }, { pattern: /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).+$/, message: '需包含大小写字母、数字和符号' }]} fieldProps={{ autoComplete: 'new-password' }} />
+      <ProFormText.Password name="confirmPassword" label="确认密码" dependencies={['password']} rules={[{ required: true, message: '请再次输入密码' }, ({ getFieldValue }) => ({ validator: (_, value) => !value || getFieldValue('password') === value ? Promise.resolve() : Promise.reject(new Error('两次输入的密码不一致')) })]} fieldProps={{ autoComplete: 'new-password' }} />
     </ModalForm>
   </PageContainer>
 }

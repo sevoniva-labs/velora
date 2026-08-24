@@ -5,6 +5,7 @@ import { adminGetUser, adminPageUsers } from '../api/api'
 import type { AdminUser } from '../types'
 
 interface AdminUserSelectProps {
+  id?: string
   value?: string | string[]
   onChange?: (value: string | string[]) => void
   mode?: 'multiple'
@@ -19,7 +20,7 @@ function userOption(user: AdminUser) {
 }
 
 /** 面向大组织的人员选择器：服务端检索，且补取已选人员避免显示原始 ID。 */
-export default function AdminUserSelect({ value, onChange, mode, excludeIds = [], placeholder = '搜索姓名或账号', disabled, onUserSelect }: AdminUserSelectProps) {
+export default function AdminUserSelect({ id, value, onChange, mode, excludeIds = [], placeholder = '搜索姓名或账号', disabled, onUserSelect }: AdminUserSelectProps) {
   const [keyword, setKeyword] = useState('')
   const selectedIds = useMemo(() => (Array.isArray(value) ? value : value ? [value] : []), [value])
   const directory = useQuery({
@@ -39,6 +40,7 @@ export default function AdminUserSelect({ value, onChange, mode, excludeIds = []
 
   return (
     <Select
+      id={id}
       value={value}
       mode={mode}
       disabled={disabled}

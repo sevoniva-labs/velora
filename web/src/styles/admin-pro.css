@@ -159,13 +159,13 @@
 }
 
 .velora-admin-primary-table .ant-table-pagination {
-  margin-block: auto 20px !important;
+  margin-block: auto 8px !important;
   padding-inline: 20px;
   padding-block-start: 20px;
 }
 
 .velora-admin-primary-table .ant-pro-list-pagination {
-  margin-block: auto 20px;
+  margin-block: auto 8px;
   padding-inline: 20px;
   padding-block-start: 20px;
 }
@@ -200,7 +200,7 @@
 }
 
 .velora-admin-secondary-table .ant-table-pagination {
-  margin-block: auto 20px !important;
+  margin-block: auto 8px !important;
   padding-inline: 20px;
   padding-block-start: 20px;
 }

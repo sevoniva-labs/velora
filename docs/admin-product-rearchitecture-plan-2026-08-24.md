@@ -439,7 +439,7 @@ OIDC 应用的“接入中”被列表显示成“停用”。`DRAFT / WAITING /
 
 实施状态：已完成。代码、测试、文档、生产迁移、制品部署、认证 API、真实门户登录、Turnstile Managed 配置和系统管理员全菜单目视验收均已通过。
 
-生产收口版本：Server `0f4c944`、Web `2afae43`。后台保留 ProComponents 标准信息架构和原有侧栏布局，组件主题与 Velora 门户共用；不引用 go-antd-fullstack/Forge 视觉身份，也不维护平行的 Admin Token。登录保护采用风险触发的 Turnstile Managed + `interaction-only`；IP/账号限流、账号锁定、Siteverify、action/hostname 校验和审计均保留。Velora 提供 TOTP 自助管理、恢复码登录和高风险操作 step-up，不向用户暴露 Casdoor。
+生产收口版本：Server `0f4c944`、Web `3ea5416`。后台业务页面继续使用 ProComponents；全局壳恢复既有 Velora 门户视觉，包括 64px 品牌蓝顶栏、品牌与用户区、216px 分组侧栏和品牌蓝选中态。功能、权限模型和接口保持最新，不引用 go-antd-fullstack/Forge 视觉身份。登录保护采用风险触发的 Turnstile Managed + `interaction-only`；IP/账号限流、账号锁定、Siteverify、action/hostname 校验和审计均保留。
 
 - 临时授权、访问复核、配置变更和回滚产品化；
 - 服务账号最小权限 Scope；

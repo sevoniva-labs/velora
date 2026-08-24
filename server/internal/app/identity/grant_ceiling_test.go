@@ -52,6 +52,25 @@ func TestAuthorizeDirectoryActorDoesNotForceMFA(t *testing.T) {
 	}
 }
 
+func TestAuthorizeUserCreationRequiresMFAOnlyForPrivilegedRoles(t *testing.T) {
+	actor := domain.Principal{Type: "USER", UserID: "u1", OrganizationID: "org1"}
+	if err := authorizeUserCreation(actor, "org1", []string{"user"}); err != nil {
+		t.Fatalf("ordinary user creation should not force MFA: %v", err)
+	}
+	if err := authorizeUserCreation(actor, "org1", []string{"user", "auditor"}); !errors.Is(err, ErrStepUpRequired) {
+		t.Fatalf("privileged user creation should require step-up, got %v", err)
+	}
+	verifiedAt := time.Now().UTC()
+	actor.MFAVerifiedAt = &verifiedAt
+	if err := authorizeUserCreation(actor, "org1", []string{"application_admin"}); err != nil {
+		t.Fatalf("recent MFA should permit privileged user creation: %v", err)
+	}
+	actor.Type = "TOKEN"
+	if err := authorizeUserCreation(actor, "org1", []string{"user"}); !errors.Is(err, ErrGrantCeiling) {
+		t.Fatalf("service token should not create users, got %v", err)
+	}
+}
+
 func TestEnforceRoleMutation(t *testing.T) {
 	systemAdmin := domain.Principal{Roles: []string{"system_admin"}}
 	if err := enforceRoleMutation(systemAdmin, nil, []string{"system_admin", "security_admin"}); err != nil {

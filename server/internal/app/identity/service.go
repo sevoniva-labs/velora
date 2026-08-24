@@ -975,7 +975,10 @@ func (s *Service) GetUser(ctx context.Context, actor domain.Principal, userID st
 	return user, nil
 }
 func (s *Service) CreateUser(ctx context.Context, actor domain.Principal, orgID, login, display, raw string, roles []string) (domain.User, error) {
-	if err := authorizeGrantActor(actor, orgID); err != nil {
+	if len(roles) == 0 {
+		roles = []string{"user"}
+	}
+	if err := authorizeUserCreation(actor, orgID, roles); err != nil {
 		return domain.User{}, err
 	}
 	if _, err := s.repo.OrganizationByID(ctx, orgID); err != nil {
@@ -988,9 +991,6 @@ func (s *Service) CreateUser(ctx context.Context, actor domain.Principal, orgID,
 	display = strings.TrimSpace(display)
 	if login == "" || len(login) > 120 {
 		return domain.User{}, ErrInvalidLoginName
-	}
-	if len(roles) == 0 {
-		roles = []string{"user"}
 	}
 	allowed := map[string]struct{}{"system_admin": {}, "security_admin": {}, "auditor": {}, "user": {}}
 	for _, r := range roles {
@@ -1022,7 +1022,10 @@ func (s *Service) CreateManagedUser(ctx context.Context, actor domain.Principal,
 	if s.managedIdentity == nil || !s.managedIdentity.Enabled() {
 		return domain.User{}, errors.New("managed identity provider is unavailable")
 	}
-	if err := authorizeGrantActor(actor, orgID); err != nil {
+	if len(roles) == 0 {
+		roles = []string{"user"}
+	}
+	if err := authorizeUserCreation(actor, orgID, roles); err != nil {
 		return domain.User{}, err
 	}
 	if err := s.enforceOrganizationActive(ctx, orgID); err != nil {
@@ -1036,9 +1039,6 @@ func (s *Service) CreateManagedUser(ctx context.Context, actor domain.Principal,
 		if parsed, err := mail.ParseAddress(email); err != nil || parsed.Address != email {
 			return domain.User{}, ErrInvalidLoginName
 		}
-	}
-	if len(roles) == 0 {
-		roles = []string{"user"}
 	}
 	allowed := map[string]struct{}{"system_admin": {}, "security_admin": {}, "auditor": {}, "application_admin": {}, "iam_admin": {}, "user": {}}
 	for _, role := range roles {
@@ -2191,6 +2191,21 @@ func authorizeGrantActor(actor domain.Principal, orgID string) error {
 		return err
 	}
 	return RequireRecentMFA(actor)
+}
+
+// Creating a normal workforce account is routine directory maintenance.
+// Assigning any privileged platform role at creation time is an authority
+// increase and therefore still requires a recent MFA verification.
+func authorizeUserCreation(actor domain.Principal, orgID string, roles []string) error {
+	if err := authorizeDirectoryActor(actor, orgID); err != nil {
+		return err
+	}
+	for _, role := range roles {
+		if strings.TrimSpace(role) != "user" {
+			return RequireRecentMFA(actor)
+		}
+	}
+	return nil
 }
 
 // Directory maintenance changes organization metadata but does not grant a

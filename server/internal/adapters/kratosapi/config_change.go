@@ -24,7 +24,7 @@ func (s *PlatformService) ListConfigChanges(ctx context.Context, _ *forgev1.List
 	}
 	items, err := s.configChange.List(ctx, principal)
 	if err != nil {
-		return nil, internalError(err)
+		return nil, serviceError(err)
 	}
 	reply := &forgev1.ListConfigChangesResponse{Changes: make([]*forgev1.ConfigChange, 0, len(items))}
 	for _, item := range items {

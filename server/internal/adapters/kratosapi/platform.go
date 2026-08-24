@@ -996,7 +996,7 @@ func serviceError(err error) error {
 		return kratoserrors.Forbidden("PERMISSION_DENIED", "operation is not permitted")
 	case errors.Is(err, appidentity.ErrRoleConflict):
 		return kratoserrors.Conflict("ROLE_CONFLICT", "role combination violates segregation of duties")
-	case errors.Is(err, appidentity.ErrInteractiveSessionRequired):
+	case errors.Is(err, appidentity.ErrInteractiveSessionRequired), errors.Is(err, appconfigchange.ErrActorRequired):
 		return kratoserrors.Forbidden("INTERACTIVE_SESSION_REQUIRED", "interactive session is required")
 	case errors.Is(err, appidentity.ErrStepUpRequired):
 		return kratoserrors.Forbidden("STEP_UP_REQUIRED", "recent multi-factor authentication is required")

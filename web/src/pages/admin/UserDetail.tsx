@@ -89,4 +89,4 @@ export default function UserDetail() {
   </PageContainer>
 }
 
-function sourceLabel(subjectType: string): string { return ({ EVERYONE: '全体成员', DEPARTMENT: '部门', USER_GROUP: '用户组', PLATFORM_ROLE: '平台角色', USER: '指定人员' } as Record<string, string>)[subjectType] ?? '访问规则' }
+function sourceLabel(subjectType: string): string { return ({ EVERYONE: '全体成员', DEPARTMENT: '部门', USER_GROUP: '用户组', PLATFORM_ROLE: '平台角色', USER: '指定人员' } as Record<string, string>)[subjectType] ?? '使用范围' }

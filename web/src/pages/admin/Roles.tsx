@@ -39,11 +39,11 @@ export default function Roles() {
   const copyRoleMutation = useMutation({ mutationFn: (values: RoleForm) => copyPlatformRole(copyRole!.key, values), onSuccess: async () => { message.success('角色已复制'); setCopyRole(undefined); await refresh() }, onError: (error) => message.error(error instanceof Error ? error.message : '角色复制失败') })
   const columns: ProColumns<PlatformRole>[] = [
     { title: '角色', dataIndex: 'name', render: (_, row) => <Space direction="vertical" size={0}><Typography.Text strong>{row.name}</Typography.Text><Typography.Text type="secondary">{row.description || '—'}</Typography.Text></Space> },
-    { title: '权限数', dataIndex: 'permissions', search: false, width: 100, render: (_, row) => `${row.permissions.length} 项` },
-    { title: '可管理范围', dataIndex: 'dataScope', valueType: 'select', valueEnum: Object.fromEntries(Object.entries(DATA_SCOPE_LABELS).map(([key, text]) => [key, { text }])), render: (_, row) => <Tag>{DATA_SCOPE_LABELS[row.dataScope] ?? '自定义范围'}</Tag> },
+    { title: '权限', dataIndex: 'permissions', search: false, width: 100, render: (_, row) => row.key === 'system_admin' ? '全部' : `${row.permissions.length} 项` },
+    { title: '可管理范围', dataIndex: 'dataScope', valueType: 'select', valueEnum: Object.fromEntries(Object.entries(DATA_SCOPE_LABELS).map(([key, text]) => [key, { text }])), render: (_, row) => <Tag>{row.key === 'system_admin' ? '全平台' : row.dataScope ? DATA_SCOPE_LABELS[row.dataScope] ?? '自定义范围' : '未设置'}</Tag> },
     { title: '状态', dataIndex: 'status', valueType: 'select', valueEnum: { ACTIVE: { text: '启用', status: 'Success' }, DISABLED: { text: '停用', status: 'Default' } }, width: 90 },
   ]
-  if (canManage) columns.push({ title: '操作', valueType: 'option', width: 320, render: (_, row) => <Space className="table-action-cell"><Button type="link" onClick={() => setPermissionRole(row)}>管理权限</Button><Button type="link" onClick={() => setScopeRole(row)}>管理范围</Button><Button type="link" onClick={() => setEditRole(row)}>编辑</Button><Button type="link" onClick={() => setCopyRole(row)}>复制</Button></Space> })
+  if (canManage) columns.push({ title: '操作', valueType: 'option', width: 340, render: (_, row) => <Space className="table-action-cell"><Button type="link" onClick={() => setPermissionRole(row)}>管理权限</Button><Button type="link" onClick={() => setScopeRole(row)}>设置管理范围</Button><Button type="link" onClick={() => setEditRole(row)}>编辑</Button><Button type="link" onClick={() => setCopyRole(row)}>复制</Button></Space> })
 
   return <PageContainer title="平台角色">
     <ProTable<PlatformRole> rowKey="key" columns={columns} dataSource={roles.data ?? []} loading={roles.isLoading} search={{ labelWidth: 'auto' }} pagination={false} options={{ density: false }} toolBarRender={canManage ? () => [<Button key="create" type="primary" onClick={() => setCreateOpen(true)}>新建角色</Button>] : false} />

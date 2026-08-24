@@ -34,8 +34,8 @@ export const APP_LIFECYCLE_LABEL: Record<string, string> = {
   DRAFT: '草稿',
   IDENTITY_PENDING: '待配置登录',
   VERIFICATION_PENDING: '待验证',
-  READY: '待发布',
-  PUBLISHED: '已发布',
+  READY: '待上线',
+  PUBLISHED: '已上线',
   DISABLED: '已停用',
 }
 
@@ -55,8 +55,8 @@ export const ONBOARDING_STATUS_LABEL: Record<string, string> = {
   WAITING_FOR_DEPLOYMENT: '等待应用部署',
   VERIFIED: '验证通过',
   PILOT: '试运行',
-  READY: '待发布',
-  PUBLISHED: '已发布',
+  READY: '待上线',
+  PUBLISHED: '已上线',
   ACTION_REQUIRED: '需要处理',
   DEGRADED: '运行异常',
   SUSPENDED: '已停用',
@@ -66,9 +66,9 @@ export const ONBOARDING_OPERATION_LABEL: Record<string, string> = {
   RECONCILE_PROVIDER: '同步登录配置',
   UPSERT_IDENTITY_BINDING: '更新登录配置',
   VERIFY_IDENTITY: '验证统一登录',
-  RUN_CHECKS: '运行接入检查',
-  SUBMIT_PUBLISH: '提交发布',
-  PUBLISH: '发布应用',
+  RUN_CHECKS: '运行上线检查',
+  SUBMIT_PUBLISH: '提交上线',
+  PUBLISH: '应用上线',
   DISABLE: '停用应用',
 }
 
@@ -119,14 +119,14 @@ export const AUDIT_ACTION_LABEL: Record<string, string> = {
   'portal.application.create': '创建应用',
   'portal.application.update': '更新应用',
   'portal.application.delete': '删除应用',
-  'portal.application.publish': '发布应用',
-  'portal.application.submit_publish': '提交应用发布',
+  'portal.application.publish': '应用上线',
+  'portal.application.submit_publish': '提交应用上线',
   'portal.application.roles.replace': '更新应用角色',
-  'portal.application.access_grants.replace': '更新应用访问范围',
+  'portal.application.access_grants.replace': '更新应用使用范围',
   'portal.application.provisioning.upsert': '更新账号下发设置',
   'portal.application.provisioning.retry': '重新下发应用账号',
   'portal.application.credential_approval.create': '申请接入凭据',
-  'portal.policy.replace': '更新应用访问范围',
+  'portal.policy.replace': '更新应用使用范围',
   'iam.integration.update': '更新统一登录配置',
   'iam.console.open': '打开身份引擎应急控制台',
   'auth.federated.login': '统一身份登录',
@@ -165,7 +165,7 @@ export const AUDIT_ACTION_LABEL: Record<string, string> = {
   APPLICATION_LAUNCH: '启动应用',
   FAVORITE_ADD: '收藏应用',
   FAVORITE_REMOVE: '取消收藏',
-  PERMISSION_CHANGE: '访问策略变更',
+  PERMISSION_CHANGE: '应用使用范围变更',
   CATEGORY_CREATE: '创建分类',
   CATEGORY_UPDATE: '更新分类',
   CATEGORY_DELETE: '删除分类',
@@ -182,7 +182,7 @@ export function auditActionLabel(action: string): string {
 export const AUDIT_RESOURCE_LABEL: Record<string, string> = {
   user: '用户', role: '平台角色', session: '登录会话', api_token: '对接账号',
   portal_application: '应用', portal_category: '应用分类', portal_tag: '应用标签',
-  application_access: '应用访问范围', identity_integration: '统一登录配置',
+  application_access: '应用使用范围', identity_integration: '统一登录设置',
   approval: '审批', temporary_role_grant: '临时授权', access_review: '权限检查',
   config_change: '配置变更', identity_console: '身份管理应急入口',
 }
@@ -192,7 +192,7 @@ export function auditResourceLabel(resource: string): string {
 }
 
 export const APPROVAL_TYPE_LABEL: Record<string, string> = {
-  APPLICATION_ACCESS_CHANGE: '应用访问变更',
+  APPLICATION_ACCESS_CHANGE: '应用使用范围变更',
   TEMPORARY_ROLE_GRANT: '临时授权',
   USER_ROLE_CHANGE: '用户角色变更',
   ROLE_PERMISSION_CHANGE: '角色权限变更',

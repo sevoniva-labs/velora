@@ -1,14 +1,14 @@
 import { useState } from 'react'
 import { App, Button, Drawer, Form, Tag, Typography } from 'antd'
 import { PlusOutlined } from '@ant-design/icons'
-import { ModalForm, PageContainer, ProFormDateTimePicker, ProFormRadio, ProFormSelect, ProFormTextArea, ProTable, type ProColumns } from '@ant-design/pro-components'
+import { ModalForm, PageContainer, ProForm, ProFormDateTimePicker, ProFormRadio, ProFormTextArea, ProTable, type ProColumns } from '@ant-design/pro-components'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import dayjs, { type Dayjs } from 'dayjs'
-import { adminListUsers } from '../../api/api'
 import { createAccessReview, decideAccessReviewItem, listAccessReviewItems, listAccessReviews, listPlatformRoles } from '../../api/admin-platform'
 import type { AccessReview, AccessReviewItem } from '../../types'
 import { usePageTitle } from '../../hooks/usePageTitle'
 import { formatDateTime } from '../../utils/format'
+import AdminUserSelect from '../../components/AdminUserSelect'
 
 interface CreateForm { reviewerId: string; dueAt: Dayjs }
 interface DecisionForm { decision: 'APPROVE' | 'REVOKE'; reason: string }
@@ -22,7 +22,6 @@ export default function AccessReviews() {
   const [selected, setSelected] = useState<AccessReview>()
   const [deciding, setDeciding] = useState<AccessReviewItem>()
   const [decisionForm] = Form.useForm<DecisionForm>()
-  const users = useQuery({ queryKey: ['admin', 'users'], queryFn: adminListUsers })
   const reviews = useQuery({ queryKey: ['admin', 'access-reviews'], queryFn: listAccessReviews })
   const roles = useQuery({ queryKey: ['admin', 'roles'], queryFn: listPlatformRoles })
   const items = useQuery({ queryKey: ['admin', 'access-reviews', selected?.id, 'items'], queryFn: () => listAccessReviewItems(selected!.id), enabled: Boolean(selected) })
@@ -44,7 +43,7 @@ export default function AccessReviews() {
   ]
   return <PageContainer title="访问复核"><ProTable<AccessReview> rowKey="id" columns={columns} dataSource={reviews.data ?? []} loading={reviews.isLoading} search={{ labelWidth: 'auto' }} pagination={{ pageSize: 20 }} toolBarRender={() => [<Button key="create" type="primary" icon={<PlusOutlined />} onClick={() => setCreateOpen(true)}>发起复核</Button>]} />
     <ModalForm<CreateForm> title="发起访问复核" open={createOpen} onOpenChange={setCreateOpen} initialValues={{ dueAt: dayjs().add(7, 'day') }} submitter={{ searchConfig: { submitText: '发起复核', resetText: '取消' } }} onFinish={async (values) => { await create.mutateAsync(values); return true }}>
-      <ProFormSelect name="reviewerId" label="复核负责人" showSearch fieldProps={{ optionFilterProp: 'label' }} options={(users.data ?? []).filter((item) => item.status === 'ACTIVE').map((item) => ({ label: item.displayName || item.loginName, value: item.id }))} rules={[{ required: true, message: '请选择复核负责人' }]} />
+      <ProForm.Item name="reviewerId" label="复核负责人" rules={[{ required: true, message: '请选择复核负责人' }]}><AdminUserSelect /></ProForm.Item>
       <ProFormDateTimePicker name="dueAt" label="截止时间" rules={[{ required: true, message: '请选择截止时间' }]} />
     </ModalForm>
     <Drawer title={selected ? `访问复核 · ${selected.reviewerName}` : '访问复核'} open={Boolean(selected)} onClose={() => setSelected(undefined)} width={760}><ProTable<AccessReviewItem> rowKey="id" columns={itemColumns} dataSource={items.data ?? []} loading={items.isLoading} search={false} pagination={{ pageSize: 20 }} options={false} /></Drawer>

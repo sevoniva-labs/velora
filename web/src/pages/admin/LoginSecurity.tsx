@@ -1,12 +1,12 @@
 import { useState } from 'react'
 import { App, Button } from 'antd'
-import { ModalForm, PageContainer, ProDescriptions, ProForm, ProFormDigit, ProFormSelect, ProFormSwitch } from '@ant-design/pro-components'
+import { ModalForm, PageContainer, ProDescriptions, ProForm, ProFormDigit, ProFormSwitch } from '@ant-design/pro-components'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { adminListUsers } from '../../api/api'
 import { createApproval, getSecurityPolicy, listApprovals, updateSecurityPolicy } from '../../api/admin-platform'
 import type { ApprovalRequest, SecurityPolicy } from '../../types'
 import { useMe } from '../../auth/useMe'
 import { usePageTitle } from '../../hooks/usePageTitle'
+import AdminUserSelect from '../../components/AdminUserSelect'
 
 type PolicyForm = SecurityPolicy & { approverId: string }
 
@@ -17,13 +17,11 @@ export default function LoginSecurity() {
   const me = useMe()
   const [open, setOpen] = useState(false)
   const policy = useQuery({ queryKey: ['admin', 'security-policy'], queryFn: getSecurityPolicy })
-  const users = useQuery({ queryKey: ['admin', 'users'], queryFn: adminListUsers })
   const approvals = useQuery({ queryKey: ['admin', 'approvals'], queryFn: listApprovals })
   const refresh = async () => Promise.all([queryClient.invalidateQueries({ queryKey: ['admin', 'security-policy'] }), queryClient.invalidateQueries({ queryKey: ['admin', 'approvals'] })])
   const request = useMutation({ mutationFn: (values: PolicyForm) => { const { approverId, ...next } = values; return createApproval({ requestType: 'SECURITY_POLICY_CHANGE', action: 'security.config.update', resource: 'security', resourceId: 'policy', summary: '更新登录安全策略', payloadJson: JSON.stringify(policyPayload(next)), approverIds: [approverId] }) }, onSuccess: async () => { message.success('安全策略变更已提交审批'); setOpen(false); await refresh() }, onError: (error) => message.error(error instanceof Error ? error.message : '审批提交失败') })
   const approved = (approvals.data ?? []).find((item) => item.action === 'security.config.update' && item.resourceId === 'policy' && item.status === 'APPROVED')
   const execute = useMutation({ mutationFn: (approval: ApprovalRequest) => updateSecurityPolicy(policyFromPayload(JSON.parse(approval.payloadJson) as Record<string, unknown>), approval.id), onSuccess: async () => { message.success('登录安全策略已生效'); await refresh() }, onError: (error) => message.error(error instanceof Error ? error.message : '策略执行失败') })
-  const approvers = (users.data ?? []).filter((item) => item.status === 'ACTIVE' && item.id !== me.data?.id).map((item) => ({ label: item.displayName || item.loginName, value: item.id }))
   const value = policy.data
 
   return <PageContainer title="登录安全" extra={approved ? [<Button key="execute" type="primary" loading={execute.isPending} onClick={() => execute.mutate(approved)}>执行已批准变更</Button>] : [<Button key="edit" type="primary" onClick={() => setOpen(true)}>修改策略</Button>]}>
@@ -45,7 +43,7 @@ export default function LoginSecurity() {
       <ProFormDigit name="loginLockDurationSeconds" label="锁定时长（秒）" min={900} max={86400} colProps={{ span: 12 }} rules={[{ required: true }]} />
       <ProFormDigit name="sessionTtlSeconds" label="会话时长（秒）" min={900} max={43200} colProps={{ span: 12 }} rules={[{ required: true }]} />
       <ProFormDigit name="maxActiveSessions" label="并发会话上限" min={1} max={20} colProps={{ span: 12 }} rules={[{ required: true }]} />
-      <ProFormSelect name="approverId" label="审批人" options={approvers} showSearch fieldProps={{ optionFilterProp: 'label' }} colProps={{ span: 12 }} rules={[{ required: true, message: '请选择审批人' }]} />
+      <ProForm.Item name="approverId" label="审批人" colProps={{ span: 12 }} rules={[{ required: true, message: '请选择审批人' }]}><AdminUserSelect excludeIds={me.data?.id ? [me.data.id] : []} /></ProForm.Item>
       <ProForm.Group title="密码必须包含">
         <ProFormSwitch name="passwordRequireUpper" label="大写字母" />
         <ProFormSwitch name="passwordRequireLower" label="小写字母" />

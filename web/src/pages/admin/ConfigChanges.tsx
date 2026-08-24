@@ -1,14 +1,14 @@
 import { useMemo, useState } from 'react'
 import { App, Button, Space, Tag, Typography } from 'antd'
 import { PlusOutlined } from '@ant-design/icons'
-import { ModalForm, PageContainer, ProFormCheckbox, ProFormSelect, ProFormText, ProTable, type ProColumns } from '@ant-design/pro-components'
+import { ModalForm, PageContainer, ProForm, ProFormCheckbox, ProFormText, ProTable, type ProColumns } from '@ant-design/pro-components'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { adminListUsers } from '../../api/api'
 import { createApproval, createConfigChange, listApprovals, listConfigChanges, transitionConfigChange } from '../../api/admin-platform'
 import type { ApprovalRequest, ConfigChange } from '../../types'
 import { useMe } from '../../auth/useMe'
 import { usePageTitle } from '../../hooks/usePageTitle'
 import { formatDateTime } from '../../utils/format'
+import AdminUserSelect from '../../components/AdminUserSelect'
 
 interface CreateForm { namespace: string; group: string; dataId: string; valueDigest: string; valueRef: string; sensitive: boolean }
 interface ApprovalForm { approverId: string }
@@ -30,7 +30,6 @@ export default function ConfigChanges() {
   const [requesting, setRequesting] = useState<ConfigChange>()
   const changes = useQuery({ queryKey: ['admin', 'config-changes'], queryFn: listConfigChanges })
   const approvals = useQuery({ queryKey: ['admin', 'approvals'], queryFn: listApprovals })
-  const users = useQuery({ queryKey: ['admin', 'users'], queryFn: adminListUsers })
   const approvedByResource = useMemo(() => new Map((approvals.data ?? []).filter((item) => item.resource === 'config_change' && item.status === 'APPROVED').map((item) => [`${item.resourceId}:${item.action}`, item])), [approvals.data])
   const createInput = (values: CreateForm) => {
     const namespace = values.namespace.trim()
@@ -61,7 +60,7 @@ export default function ConfigChanges() {
       <ProFormCheckbox name="sensitive">包含敏感配置</ProFormCheckbox>
     </ModalForm>
     <ModalForm<ApprovalForm> key={requesting?.id ?? 'approval'} title={requesting ? ACTIONS[requesting.state]?.label : '提交申请'} open={Boolean(requesting)} onOpenChange={(value) => !value && setRequesting(undefined)} submitter={{ searchConfig: { submitText: '提交申请', resetText: '取消' } }} onFinish={async (values) => { await request.mutateAsync(values); return true }}>
-      <ProFormSelect name="approverId" label="审批人" showSearch fieldProps={{ optionFilterProp: 'label' }} options={(users.data ?? []).filter((item) => item.status === 'ACTIVE' && item.id !== me.data?.id).map((item) => ({ label: item.displayName || item.loginName, value: item.id }))} rules={[{ required: true, message: '请选择审批人' }]} />
+      <ProForm.Item name="approverId" label="审批人" rules={[{ required: true, message: '请选择审批人' }]}><AdminUserSelect excludeIds={me.data?.id ? [me.data.id] : []} /></ProForm.Item>
     </ModalForm>
   </PageContainer>
 }

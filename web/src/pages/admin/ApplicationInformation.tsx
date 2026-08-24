@@ -1,11 +1,12 @@
 import { useState } from 'react'
 import { App, Button, Tag } from 'antd'
-import { DrawerForm, ProDescriptions, ProFormSelect, ProFormText, ProFormTextArea } from '@ant-design/pro-components'
+import { DrawerForm, ProDescriptions, ProForm, ProFormSelect, ProFormText, ProFormTextArea } from '@ant-design/pro-components'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { adminListUsers, adminUpdateApplication, listCategories, listTags, type AdminApplicationInput } from '../../api/api'
+import { adminUpdateApplication, listCategories, listTags, type AdminApplicationInput } from '../../api/api'
 import { listDepartments } from '../../api/admin-platform'
 import type { Application } from '../../types'
 import { APP_STATUS_LABEL, SSO_TYPE_LABEL } from '../../labels'
+import AdminUserSelect from '../../components/AdminUserSelect'
 
 interface Props { application: Application }
 
@@ -13,7 +14,6 @@ export default function ApplicationInformation({ application }: Props) {
   const { message } = App.useApp()
   const queryClient = useQueryClient()
   const [open, setOpen] = useState(false)
-  const users = useQuery({ queryKey: ['admin', 'users'], queryFn: adminListUsers })
   const departments = useQuery({ queryKey: ['admin', 'departments'], queryFn: listDepartments })
   const categories = useQuery({ queryKey: ['categories'], queryFn: listCategories })
   const tags = useQuery({ queryKey: ['tags'], queryFn: listTags })
@@ -35,7 +35,7 @@ export default function ApplicationInformation({ application }: Props) {
     <DrawerForm<AdminApplicationInput> key={`${application.id}-${application.configVersion}`} title="编辑应用信息" open={open} onOpenChange={setOpen} width={620} initialValues={initialValues} submitter={{ searchConfig: { submitText: '保存', resetText: '取消' } }} onFinish={async (values) => { await update.mutateAsync(values); return true }}>
       <ProFormText name="name" label="应用名称" rules={[{ required: true, message: '请输入应用名称' }]} />
       <ProFormTextArea name="description" label="说明" fieldProps={{ maxLength: 200, showCount: true }} />
-      <ProFormSelect name="ownerUserId" label="负责人" showSearch fieldProps={{ optionFilterProp: 'label' }} options={(users.data ?? []).filter((item) => item.status === 'ACTIVE').map((item) => ({ label: `${item.displayName || item.loginName}（${item.loginName}）`, value: item.id }))} />
+      <ProForm.Item name="ownerUserId" label="负责人"><AdminUserSelect /></ProForm.Item>
       <ProFormSelect name="ownerDepartmentId" label="所属部门" showSearch fieldProps={{ optionFilterProp: 'label' }} options={(departments.data ?? []).filter((item) => item.status === 'ACTIVE').map((item) => ({ label: item.name, value: item.id }))} />
       <ProFormSelect name="categoryId" label="分类" options={(categories.data ?? []).map((item) => ({ label: item.name, value: item.id }))} />
       <ProFormSelect name="tagIds" label="标签" mode="multiple" options={(tags.data ?? []).map((item) => ({ label: item.name, value: item.id }))} />

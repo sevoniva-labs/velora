@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { App, Button, Space, Tag, Typography } from 'antd'
 import { PlusOutlined } from '@ant-design/icons'
-import { ModalForm, PageContainer, ProFormDateTimePicker, ProFormSelect, ProFormTextArea, ProTable, type ProColumns } from '@ant-design/pro-components'
+import { ModalForm, PageContainer, ProForm, ProFormDateTimePicker, ProFormSelect, ProFormTextArea, ProTable, type ProColumns } from '@ant-design/pro-components'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import dayjs, { type Dayjs } from 'dayjs'
 import { adminListUsers } from '../../api/api'
@@ -10,6 +10,7 @@ import type { ApprovalRequest, TemporaryRoleGrant } from '../../types'
 import { useMe } from '../../auth/useMe'
 import { usePageTitle } from '../../hooks/usePageTitle'
 import { formatDateTime } from '../../utils/format'
+import AdminUserSelect from '../../components/AdminUserSelect'
 
 interface RequestForm { userId: string; roleKey: string; reason: string; validUntil: Dayjs; approverId: string }
 interface RevokeForm { reason: string }
@@ -53,10 +54,10 @@ export default function TemporaryGrants() {
       {approved.length > 0 && <ProTable<ApprovalRequest> headerTitle="待执行" rowKey="id" columns={approvedColumns} dataSource={approved} search={false} pagination={false} options={false} />}
     </Space>
     <ModalForm<RequestForm> title="申请临时授权" open={requestOpen} onOpenChange={setRequestOpen} width={600} initialValues={{ validUntil: dayjs().add(8, 'hour') }} submitter={{ searchConfig: { submitText: '提交申请', resetText: '取消' } }} onFinish={async (values) => { await request.mutateAsync(values); return true }}>
-      <ProFormSelect name="userId" label="用户" showSearch fieldProps={{ optionFilterProp: 'label' }} options={(users.data ?? []).filter((item) => item.status === 'ACTIVE').map((item) => ({ label: `${item.displayName || item.loginName}（${item.loginName}）`, value: item.id }))} rules={[{ required: true, message: '请选择用户' }]} />
+      <ProForm.Item name="userId" label="用户" rules={[{ required: true, message: '请选择用户' }]}><AdminUserSelect /></ProForm.Item>
       <ProFormSelect name="roleKey" label="平台角色" options={(roles.data ?? []).map((item) => ({ label: item.name, value: item.key }))} rules={[{ required: true, message: '请选择平台角色' }]} />
       <ProFormDateTimePicker name="validUntil" label="失效时间" rules={[{ required: true, message: '请选择失效时间' }]} fieldProps={{ disabledDate: (date) => date.isBefore(dayjs(), 'day') }} />
-      <ProFormSelect name="approverId" label="审批人" showSearch fieldProps={{ optionFilterProp: 'label' }} options={(users.data ?? []).filter((item) => item.status === 'ACTIVE' && item.id !== me.data?.id).map((item) => ({ label: item.displayName || item.loginName, value: item.id }))} rules={[{ required: true, message: '请选择审批人' }]} />
+      <ProForm.Item name="approverId" label="审批人" rules={[{ required: true, message: '请选择审批人' }]}><AdminUserSelect excludeIds={me.data?.id ? [me.data.id] : []} /></ProForm.Item>
       <ProFormTextArea name="reason" label="申请原因" fieldProps={{ maxLength: 500, showCount: true }} rules={[{ required: true, message: '请输入申请原因' }]} />
     </ModalForm>
     <ModalForm<RevokeForm> key={revoking?.id ?? 'revoke'} title="撤销临时授权" open={Boolean(revoking)} onOpenChange={(value) => !value && setRevoking(undefined)} submitter={{ searchConfig: { submitText: '确认撤销', resetText: '取消' }, submitButtonProps: { danger: true } }} onFinish={async (values) => { await revoke.mutateAsync(values); return true }}>

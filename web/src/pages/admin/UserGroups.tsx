@@ -1,12 +1,12 @@
 import { useState } from 'react'
 import { App, Button, Space, Tag, Typography } from 'antd'
 import { PlusOutlined } from '@ant-design/icons'
-import { DrawerForm, PageContainer, ProFormSelect, ProFormText, ProFormTextArea, ProTable, type ProColumns } from '@ant-design/pro-components'
+import { DrawerForm, PageContainer, ProForm, ProFormSelect, ProFormText, ProFormTextArea, ProTable, type ProColumns } from '@ant-design/pro-components'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { adminListUsers } from '../../api/api'
 import { createUserGroup, listPlatformRoles, listUserGroups, replaceUserGroupMembers, replaceUserGroupRoles, updateUserGroup, type UserGroupInput } from '../../api/admin-platform'
 import type { UserGroup } from '../../types'
 import { usePageTitle } from '../../hooks/usePageTitle'
+import AdminUserSelect from '../../components/AdminUserSelect'
 
 interface GroupForm extends UserGroupInput { memberIds: string[]; roles: string[] }
 
@@ -17,7 +17,6 @@ export default function UserGroups() {
   const [open, setOpen] = useState(false)
   const [editing, setEditing] = useState<UserGroup>()
   const groups = useQuery({ queryKey: ['admin', 'user-groups'], queryFn: listUserGroups })
-  const users = useQuery({ queryKey: ['admin', 'users'], queryFn: adminListUsers })
   const roles = useQuery({ queryKey: ['admin', 'roles'], queryFn: listPlatformRoles })
   const mutation = useMutation({
     mutationFn: async (values: GroupForm) => {
@@ -44,7 +43,7 @@ export default function UserGroups() {
       {!editing && <ProFormText name="groupKey" label="用户组编码" rules={[{ required: true, message: '请输入用户组编码' }, { pattern: /^[a-z][a-z0-9_-]{1,63}$/, message: '使用小写字母、数字、短横线或下划线' }]} />}
       <ProFormText name="name" label="用户组名称" rules={[{ required: true, message: '请输入用户组名称' }]} />
       <ProFormTextArea name="description" label="说明" fieldProps={{ maxLength: 200, showCount: true }} />
-      <ProFormSelect name="memberIds" label="成员" mode="multiple" showSearch fieldProps={{ optionFilterProp: 'label' }} options={(users.data ?? []).filter((user) => user.status === 'ACTIVE').map((user) => ({ label: `${user.displayName || user.loginName}（${user.loginName}）`, value: user.id }))} />
+      <ProForm.Item name="memberIds" label="成员"><AdminUserSelect mode="multiple" /></ProForm.Item>
       <ProFormSelect name="roles" label="平台角色" mode="multiple" options={(roles.data ?? []).map((role) => ({ label: role.name, value: role.key }))} />
       <ProFormSelect name="status" label="状态" options={[{ label: '启用', value: 'ACTIVE' }, { label: '停用', value: 'DISABLED' }]} rules={[{ required: true }]} />
     </DrawerForm>

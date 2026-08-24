@@ -1,14 +1,15 @@
 import { useMemo, useState } from 'react'
 import { App, Button, Empty, Skeleton, Space, Tag, Typography } from 'antd'
-import { DrawerForm, ModalForm, PageContainer, ProDescriptions, ProFormList, ProFormSelect, ProFormSwitch, ProTable, type ProColumns } from '@ant-design/pro-components'
+import { DrawerForm, ModalForm, PageContainer, ProDescriptions, ProForm, ProFormList, ProFormSelect, ProFormSwitch, ProTable, type ProColumns } from '@ant-design/pro-components'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate, useParams } from 'react-router-dom'
-import { adminGetUser, adminListUsers } from '../../api/api'
+import { adminGetUser } from '../../api/api'
 import { createApproval, listApprovals, listDepartments, listPlatformRoles, listPositions, listUserAssignments, listUserEffectiveApplicationAccess, replaceUserAssignments, updateUserRoles } from '../../api/admin-platform'
 import QueryErrorState from '../../components/QueryErrorState'
 import type { ApprovalRequest, UserAssignment, UserEffectiveApplicationAccess } from '../../types'
 import { usePageTitle } from '../../hooks/usePageTitle'
 import { useMe } from '../../auth/useMe'
+import AdminUserSelect from '../../components/AdminUserSelect'
 
 interface AssignmentForm { assignments: UserAssignment[] }
 interface RoleForm { roles: string[]; approverId: string }
@@ -22,7 +23,6 @@ export default function UserDetail() {
   const [tab, setTab] = useState('profile')
   const [assignmentOpen, setAssignmentOpen] = useState(false)
   const [roleOpen, setRoleOpen] = useState(false)
-  const users = useQuery({ queryKey: ['admin', 'users'], queryFn: adminListUsers })
   const userQuery = useQuery({ queryKey: ['admin', 'users', id], queryFn: () => adminGetUser(id), enabled: Boolean(id) })
   const user = userQuery.data
   usePageTitle(user?.displayName || '用户详情')
@@ -76,7 +76,7 @@ export default function UserDetail() {
     </DrawerForm>
     <ModalForm<RoleForm> key={`${id}-${user?.roles.join('-')}`} title="配置平台角色" open={roleOpen} onOpenChange={setRoleOpen} initialValues={{ roles: user?.roles ?? [] }} submitter={{ searchConfig: { submitText: '提交审批', resetText: '取消' } }} onFinish={async (values) => { await roleRequest.mutateAsync(values); return true }}>
       <ProFormSelect name="roles" label="平台角色" mode="multiple" options={(roles.data ?? []).map((role) => ({ label: role.name, value: role.key }))} rules={[{ required: true, message: '至少保留一个平台角色' }]} />
-      <ProFormSelect name="approverId" label="审批人" showSearch fieldProps={{ optionFilterProp: 'label' }} options={(users.data ?? []).filter((item) => item.status === 'ACTIVE' && item.id !== me.data?.id).map((item) => ({ label: item.displayName || item.loginName, value: item.id }))} rules={[{ required: true, message: '请选择审批人' }]} />
+      <ProForm.Item name="approverId" label="审批人" rules={[{ required: true, message: '请选择审批人' }]}><AdminUserSelect excludeIds={me.data?.id ? [me.data.id] : []} /></ProForm.Item>
     </ModalForm>
   </PageContainer>
 }

@@ -426,9 +426,9 @@ export async function adminGetApplicationProvisioningTarget(id: string | number)
     throw error
   }
 }
-export async function adminUpsertApplicationProvisioningTarget(id: string | number, input: { endpointUrl: string; rotateSecret?: boolean; expectedConfigVersion?: number; credentialDeliveryMode?: 'CLI' | 'BROWSER' }): Promise<{ target: ApplicationProvisioningTarget; oneTimeProvisioningSecret?: string }> {
+export async function adminUpsertApplicationProvisioningTarget(id: string | number, input: { endpointUrl: string; rotateSecret?: boolean; expectedConfigVersion?: number; credentialDeliveryMode?: 'CLI' | 'BROWSER' }): Promise<{ target: ApplicationProvisioningTarget; oneTimeProvisioningSecret?: string; oneTimeDirectoryToken?: string; directoryBasePath?: string }> {
   const data = record(await apiFetch<unknown>(`/admin/portal/applications/${encodeURIComponent(String(id))}/provisioning-target`, { method: 'PUT', body: input }))
-  return { target: provisioningTargetFromResponse(data.target ?? data), oneTimeProvisioningSecret: data.oneTimeProvisioningSecret ? String(data.oneTimeProvisioningSecret) : undefined }
+  return { target: provisioningTargetFromResponse(data.target ?? data), oneTimeProvisioningSecret: data.oneTimeProvisioningSecret ? String(data.oneTimeProvisioningSecret) : undefined, oneTimeDirectoryToken: data.oneTimeDirectoryToken ? String(data.oneTimeDirectoryToken) : undefined, directoryBasePath: data.directoryBasePath ? String(data.directoryBasePath) : undefined }
 }
 export async function adminRetryApplicationProvisioning(id: string | number): Promise<{ target: ApplicationProvisioningTarget; retriedMessages: number }> {
   const data = record(await apiFetch<unknown>(`/admin/portal/applications/${encodeURIComponent(String(id))}/provisioning-target:retry`, { method: 'POST', body: {} }))

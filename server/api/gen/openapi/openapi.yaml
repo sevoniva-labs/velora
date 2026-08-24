@@ -5766,6 +5766,10 @@ components:
                     $ref: '#/components/schemas/forge.v1.PortalApplicationProvisioningTarget'
                 oneTimeProvisioningSecret:
                     type: string
+                oneTimeDirectoryToken:
+                    type: string
+                directoryBasePath:
+                    type: string
         forge.v1.User:
             type: object
             properties:

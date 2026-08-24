@@ -4370,6 +4370,8 @@ type UpsertPortalApplicationProvisioningTargetResponse struct {
 	state                     protoimpl.MessageState               `protogen:"open.v1"`
 	Target                    *PortalApplicationProvisioningTarget `protobuf:"bytes,1,opt,name=target,proto3" json:"target,omitempty"`
 	OneTimeProvisioningSecret string                               `protobuf:"bytes,2,opt,name=one_time_provisioning_secret,json=oneTimeProvisioningSecret,proto3" json:"one_time_provisioning_secret,omitempty"`
+	OneTimeDirectoryToken     string                               `protobuf:"bytes,3,opt,name=one_time_directory_token,json=oneTimeDirectoryToken,proto3" json:"one_time_directory_token,omitempty"`
+	DirectoryBasePath         string                               `protobuf:"bytes,4,opt,name=directory_base_path,json=directoryBasePath,proto3" json:"directory_base_path,omitempty"`
 	unknownFields             protoimpl.UnknownFields
 	sizeCache                 protoimpl.SizeCache
 }
@@ -4414,6 +4416,20 @@ func (x *UpsertPortalApplicationProvisioningTargetResponse) GetTarget() *PortalA
 func (x *UpsertPortalApplicationProvisioningTargetResponse) GetOneTimeProvisioningSecret() string {
 	if x != nil {
 		return x.OneTimeProvisioningSecret
+	}
+	return ""
+}
+
+func (x *UpsertPortalApplicationProvisioningTargetResponse) GetOneTimeDirectoryToken() string {
+	if x != nil {
+		return x.OneTimeDirectoryToken
+	}
+	return ""
+}
+
+func (x *UpsertPortalApplicationProvisioningTargetResponse) GetDirectoryBasePath() string {
+	if x != nil {
+		return x.DirectoryBasePath
 	}
 	return ""
 }
@@ -7292,10 +7308,12 @@ const file_forge_v1_portal_proto_rawDesc = "" +
 	"\fendpoint_url\x18\x02 \x01(\tR\vendpointUrl\x12#\n" +
 	"\rrotate_secret\x18\x03 \x01(\bR\frotateSecret\x126\n" +
 	"\x17expected_config_version\x18\x04 \x01(\x03R\x15expectedConfigVersion\x128\n" +
-	"\x18credential_delivery_mode\x18\x05 \x01(\tR\x16credentialDeliveryMode\"\xbb\x01\n" +
+	"\x18credential_delivery_mode\x18\x05 \x01(\tR\x16credentialDeliveryMode\"\xa4\x02\n" +
 	"1UpsertPortalApplicationProvisioningTargetResponse\x12E\n" +
 	"\x06target\x18\x01 \x01(\v2-.forge.v1.PortalApplicationProvisioningTargetR\x06target\x12?\n" +
-	"\x1cone_time_provisioning_secret\x18\x02 \x01(\tR\x19oneTimeProvisioningSecret\"\xc9\x06\n" +
+	"\x1cone_time_provisioning_secret\x18\x02 \x01(\tR\x19oneTimeProvisioningSecret\x127\n" +
+	"\x18one_time_directory_token\x18\x03 \x01(\tR\x15oneTimeDirectoryToken\x12.\n" +
+	"\x13directory_base_path\x18\x04 \x01(\tR\x11directoryBasePath\"\xc9\x06\n" +
 	"\x15PortalIdentityBinding\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12'\n" +
 	"\x0forganization_id\x18\x02 \x01(\tR\x0eorganizationId\x12%\n" +

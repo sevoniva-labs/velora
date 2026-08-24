@@ -48,7 +48,7 @@ export default function ApplicationManagement() {
     {tab === 'login' && application && <ApplicationLogin application={application} canManage={canManageIdentity} />}
     {tab === 'roles' && <ApplicationAccess applicationId={id} view="roles" />}
     {tab === 'access' && <ApplicationAccess applicationId={id} view="access" />}
-    {tab === 'provisioning' && application && <ApplicationProvisioning application={application} canManage={canManageIdentity} />}
+    {tab === 'provisioning' && application && <ApplicationProvisioning application={application} canManage={canManageIdentity} hasIdentityBinding={Boolean(onboarding.data?.binding)} />}
     {tab === 'release' && application && <ApplicationRelease application={application} canVerify={canVerify} canPublish={canPublish} />}
     {tab === 'history' && <ApplicationHistory applicationId={id} />}
   </PageContainer>

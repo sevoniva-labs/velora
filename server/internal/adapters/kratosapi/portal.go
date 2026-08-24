@@ -679,10 +679,18 @@ func (s *PortalService) UpsertPortalApplicationProvisioningTarget(ctx context.Co
 		}); err != nil {
 			return nil, serviceError(err)
 		}
-		return &forgev1.UpsertPortalApplicationProvisioningTargetResponse{Target: provisioningTargetProto(target), OneTimeProvisioningSecret: oneTimeSecret}, nil
+		directoryToken := ""
+		directoryBasePath := ""
+		if oneTimeSecret != "" {
+			directoryToken = appportal.DeriveDirectoryToken(oneTimeSecret, target.ApplicationID)
+			directoryBasePath = "/api/v1/integrations/applications/" + target.ApplicationID + "/directory"
+		}
+		return &forgev1.UpsertPortalApplicationProvisioningTargetResponse{Target: provisioningTargetProto(target), OneTimeProvisioningSecret: oneTimeSecret, OneTimeDirectoryToken: directoryToken, DirectoryBasePath: directoryBasePath}, nil
 	}, func(message proto.Message) proto.Message {
 		cached := proto.Clone(message).(*forgev1.UpsertPortalApplicationProvisioningTargetResponse)
 		cached.OneTimeProvisioningSecret = ""
+		cached.OneTimeDirectoryToken = ""
+		cached.DirectoryBasePath = ""
 		return cached
 	})
 	if err != nil {
@@ -691,8 +699,10 @@ func (s *PortalService) UpsertPortalApplicationProvisioningTarget(ctx context.Co
 	reply := response.(*forgev1.UpsertPortalApplicationProvisioningTargetResponse)
 	if strings.EqualFold(strings.TrimSpace(req.GetCredentialDeliveryMode()), "CLI") {
 		reply.OneTimeProvisioningSecret = ""
+		reply.OneTimeDirectoryToken = ""
+		reply.DirectoryBasePath = ""
 	}
-	if reply.GetOneTimeProvisioningSecret() != "" {
+	if reply.GetOneTimeProvisioningSecret() != "" || reply.GetOneTimeDirectoryToken() != "" {
 		setNoStore(ctx)
 	}
 	return reply, nil

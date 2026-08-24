@@ -425,7 +425,12 @@ message ReplacePortalApplicationRolesResponse { repeated PortalApplicationRole r
 message GetPortalApplicationProvisioningTargetRequest { string application_id = 1; }
 message GetPortalApplicationProvisioningTargetResponse { PortalApplicationProvisioningTarget target = 1; }
 message UpsertPortalApplicationProvisioningTargetRequest { string application_id = 1; string endpoint_url = 2; bool rotate_secret = 3; int64 expected_config_version = 4; string credential_delivery_mode = 5; }
-message UpsertPortalApplicationProvisioningTargetResponse { PortalApplicationProvisioningTarget target = 1; string one_time_provisioning_secret = 2; }
+message UpsertPortalApplicationProvisioningTargetResponse {
+  PortalApplicationProvisioningTarget target = 1;
+  string one_time_provisioning_secret = 2;
+  string one_time_directory_token = 3;
+  string directory_base_path = 4;
+}
 
 message PortalIdentityBinding {
   string id = 1;

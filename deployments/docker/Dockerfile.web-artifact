@@ -1,3 +1,11 @@
 ARG BASE_IMAGE
 FROM ${BASE_IMAGE}
+ARG VELORA_VERSION=dev
+ARG VELORA_REVISION=unknown
+ARG VELORA_BUILD_DATE=unknown
+LABEL org.opencontainers.image.title="Velora Web" \
+      org.opencontainers.image.version="${VELORA_VERSION}" \
+      org.opencontainers.image.revision="${VELORA_REVISION}" \
+      org.opencontainers.image.created="${VELORA_BUILD_DATE}" \
+      org.opencontainers.image.source="https://github.com/sevoniva-labs/velora"
 COPY web-dist/ /usr/share/nginx/html/

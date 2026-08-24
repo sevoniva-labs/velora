@@ -6,6 +6,7 @@ ARG NPM_CONFIG_REGISTRY=https://registry.npmmirror.com
 
 FROM ${DOCKER_REGISTRY}/library/node:22-alpine AS builder
 ARG NPM_CONFIG_REGISTRY
+ARG VELORA_VERSION=dev
 ENV COREPACK_NPM_REGISTRY=${NPM_CONFIG_REGISTRY}
 WORKDIR /app
 RUN corepack enable
@@ -13,9 +14,17 @@ COPY web/package.json web/pnpm-lock.yaml* web/.npmrc ./
 RUN pnpm config set registry "${NPM_CONFIG_REGISTRY}" \
     && pnpm install --frozen-lockfile
 COPY web/ .
-RUN pnpm build
+RUN VITE_APP_VERSION="${VELORA_VERSION}" pnpm build
 
 FROM ${DOCKER_REGISTRY}/library/nginx:1.27-alpine
+ARG VELORA_VERSION=dev
+ARG VELORA_REVISION=unknown
+ARG VELORA_BUILD_DATE=unknown
+LABEL org.opencontainers.image.title="Velora Web" \
+      org.opencontainers.image.version="${VELORA_VERSION}" \
+      org.opencontainers.image.revision="${VELORA_REVISION}" \
+      org.opencontainers.image.created="${VELORA_BUILD_DATE}" \
+      org.opencontainers.image.source="https://github.com/sevoniva-labs/velora"
 # 配置模板 + 渲染脚本（先于 nginx 启动执行）。
 # 官方 20-envsubst-on-templates.sh 会先渲染 templates/，与自定义渲染冲突，故移除；
 # 由 30-velora-envsubst.sh 独占渲染。

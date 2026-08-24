@@ -112,7 +112,7 @@ func enroll(args []string, stdin io.Reader, client *http.Client) error {
 	}
 	var wrapped envelope
 	if err := json.Unmarshal(raw, &wrapped); err != nil {
-		return errors.New("Velora 返回了无效响应")
+		return errors.New("velora 返回了无效响应")
 	}
 	if resp.StatusCode != http.StatusOK || wrapped.Code != "000000" {
 		return fmt.Errorf("领取失败: %s (request_id=%s)", safeMessage(wrapped.Message), wrapped.RequestID)
@@ -208,7 +208,7 @@ func readToken(stdin io.Reader, tokenFile string) (string, error) {
 			return "", statErr
 		}
 		if info.Mode()&os.ModeSymlink != 0 || !info.Mode().IsRegular() || info.Mode().Perm()&0o077 != 0 {
-			return "", errors.New("Token 文件必须是非符号链接且权限为 0600")
+			return "", errors.New("token 文件必须是非符号链接且权限为 0600")
 		}
 		// #nosec G304 -- the operator explicitly supplies this token file;
 		// Lstat above rejects symlinks, non-regular files and non-0600 access.
@@ -222,7 +222,7 @@ func readToken(stdin io.Reader, tokenFile string) (string, error) {
 	}
 	token := strings.TrimSpace(string(raw))
 	if len(token) < 32 {
-		return "", errors.New("Enrollment Token 格式无效")
+		return "", errors.New("enrollment token 格式无效")
 	}
 	return token, nil
 }

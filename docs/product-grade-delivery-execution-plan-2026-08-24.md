@@ -37,6 +37,11 @@
 
 验收：`make verify` 全绿；生产健康接口不再报告 `dev`；运行 Web revision 与页面资源提交一致。
 
+制品构建统一执行 `scripts/build-production-artifacts.sh <输出目录>`。脚本从当前提交生成
+`BUILD-INFO` 和 `SHA256SUMS`，并把同一 `0.2.0+<commit>` 注入 Server 与 Web。构建镜像时必须
+把 `BUILD-INFO` 中的值传入 `VELORA_VERSION`、`VELORA_REVISION`、`VELORA_BUILD_DATE` 三个
+build args；发布验收同时核对健康接口版本、页面版本和 OCI 标签，任一不一致不得上线。
+
 ### Phase 2：真实浏览器 E2E
 
 - 建立仓库内 Playwright 工程，国内镜像安装浏览器。
@@ -82,4 +87,3 @@
 - 每次提交前执行受影响测试；每个 Phase 结束执行完整门禁并立即 push。
 - 数据库仅使用向前兼容迁移；普通代码回滚不删除新增表或历史审计数据。
 - 生产发布前保留旧镜像 ID、不可变回滚标签、Compose 和环境文件备份。
-

@@ -331,7 +331,9 @@ func (s *PortalService) ListAdminPortalApplications(ctx context.Context, req *fo
 		return nil, err
 	}
 	pageSize := int(req.GetPageSize())
+	//lint:ignore SA1019 limit is retained for one release as a wire-compatible fallback for older clients.
 	if pageSize == 0 && req.GetLimit() > 0 {
+		//lint:ignore SA1019 see the compatibility note on the fallback branch above.
 		pageSize = int(req.GetLimit())
 	}
 	items, total, page, pageSize, err := s.portal.AdminListApplicationsPage(ctx, principal, int(req.GetPage()), pageSize, req.GetKeyword(), req.GetStatus(), req.GetLaunchType(), req.GetLifecycleStatus())

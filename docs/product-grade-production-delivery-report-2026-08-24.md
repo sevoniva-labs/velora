@@ -1,10 +1,10 @@
 # Velora 产品级生产交付报告
 
-日期：2026-08-24  
+日期：2026-08-25（2026-08-24 首次交付，2026-08-25 增量发布）
 目标环境：`ubuntu@175.27.250.53`  
-生产版本：`0.2.0+5d23528ec15b`
+生产版本：`0.2.0+f29246a54799`
 
-生产提交：`5d23528ec15b5c0ca5c0e7e1fedd70c513b9682c`
+生产提交：`f29246a54799d57a00c752ed73b8c6b2950cae85`
 
 ## 1. 交付结论
 
@@ -39,6 +39,10 @@ Velora 已达到“受控单节点 V1”的产品交付标准：门户、登录�
   操作的列名和无必要的说明框。
 - 工作台、概览卡片、列表和详情页统一间距与容器规则；分页跟随表格底部；桌面、窄屏、200%
   缩放均纳入重叠和横向溢出检查。
+- 修复静态 `dataSource` 下 ProTable 查询按钮只显示表单却不筛选的产品缺陷；审批、角色、组织、
+  用户组、会话、临时权限、权限复核、配置发布和接口凭据等列表现在均支持真实查询与重置。
+- 工作台系统状态改用服务端正式 `/api/v1/system/ready` 契约，避免因不存在的 `/system/readiness`
+  路径把健康生产环境误报为异常；无论管理员仅拥有哪一项后台权限，均可看到工作台入口。
 
 ### 3.2 管理闭环
 
@@ -57,11 +61,11 @@ Velora 已达到“受控单节点 V1”的产品交付标准：门户、登录�
 - 128 个 HTTP 操作的契约和 OpenAPI 安全校验；Proto lint、breaking 和生成一致性。
 - 全部 Go 单元测试和 race 测试；`go vet`、gosec、staticcheck、golangci-lint。
 - `govulncheck` 可达漏洞为 0；gitleaks 当前树与历史扫描均未发现泄漏。
-- Web lint、15 个测试文件共 66 个用例、生产构建和分包预算。
-- Playwright 共 16 个逻辑场景；桌面、移动两个项目展开为 32 项，21 项通过、11 项按设备条件
+- Web lint、16 个测试文件共 71 个用例、生产构建和分包预算。
+- Playwright 共 17 个逻辑场景；桌面、移动两个项目展开为 34 项，22 项通过、12 项按设备条件
   预期跳过、0 项失败。除登录、无应用空态、分组菜单、窄屏、标准页签、卡片重叠、键盘、
   缩放和 axe 基线外，还覆盖 MFA、风险 Turnstile、页面权限、8 个应用详情页签、四类访问范围、
-  审批到执行、账号下发、应用停用恢复、退出和分页位置。
+  审批到执行、账号下发、应用停用恢复、退出、分页位置和列表查询真实性。
 - 生产 Compose、APISIX、PITR 脚本、可观测性静态策略、Helm lint/template 和供应链证据。
 - 门禁执行时发现并修复已弃用分页兼容字段触发的 staticcheck 问题；兼容读取被隔离并增加
   page size 优先、旧 limit 回退和默认值回归测试。最终 staticcheck 与 golangci-lint 均为 0 问题。
@@ -73,9 +77,9 @@ Velora 已达到“受控单节点 V1”的产品交付标准：门户、登录�
 - 本地使用 `goproxy.cn` 和 `registry.npmmirror.com` 构建 Linux AMD64 Server、Worker、迁移程序、
   Demo 和 Web；服务器只封装轻量 artifact 镜像。
 - `BUILD-INFO`、`SHA256SUMS`、API 健康版本和 OCI revision/version 标签一致。
-- Server/Worker 镜像：`sha256:431f998a5273d22ff1cd87b9d12d872eb8f53344a354e1b31972d1783937b48d`。
-- Web 镜像：`sha256:c3de1d2c1e6bf6ce16de4d1c0bf302eedbf5a911e313b25d5885e8296ca1dc2e`。
-- 发布前回滚目录：`/opt/velora/prod/releases/20260824T155255Z-before-5d23528`，包含 Compose、
+- Server/Worker 镜像：`sha256:136218d82334a0b29bf87582779551802ad7e81c2af501f6e9bdab57a46fb4f9`。
+- Web 镜像：`sha256:254bfc09615b82588d753683125a0652fa48f03dd36b15ff56f0338b12b614bc`。
+- 发布前回滚目录：`/opt/velora/prod/releases/20260824T162144Z-before-f29246a`，包含 Compose、
   权限为 0600 的环境文件、旧镜像 ID/回滚标签和 207,670 字节 PostgreSQL 自定义格式备份。
 - 新增迁移均为向前兼容。应用回滚保留新增表和审计历史，不执行破坏性降级。
 
@@ -87,9 +91,9 @@ Velora 已达到“受控单节点 V1”的产品交付标准：门户、登录�
 - 公网仅发布 80/443；HSTS、CSP、X-Frame-Options、nosniff、Referrer-Policy 和
   Permissions-Policy 已生效。
 - 健康、备份、审计归档、证书续期四个 systemd timer 均 enabled/active。
-- 最近备份和审计归档证据均为 passed、encrypted、signed、remote_copy；本次发布后生产综合
-  健康巡检于 `2026-08-24T15:54Z` 执行成功。
-- 公网 `/api/v1/system/health` 返回版本 `0.2.0+5d23528ec15b`；`/api/v1/system/ready` 的数据库、
+- 最近备份和审计归档证据均为 passed、encrypted、signed、remote_copy；本次增量发布后生产综合
+  健康巡检于 `2026-08-24T16:23Z` 执行成功。
+- 公网 `/api/v1/system/health` 返回版本 `0.2.0+f29246a54799`；`/api/v1/system/ready` 的数据库、
   缓存、消息、搜索、对象存储五项依赖全部为 `UP`。
 - `home/auth/demo` 证书到期时间均为 2026-11-20，自动续期已启用。
 
@@ -123,9 +127,9 @@ Velora 已达到“受控单节点 V1”的产品交付标准：门户、登录�
 
 ```bash
 cd /opt/velora/prod/runtime/compose
-docker tag velora-rollback-server:before-5d23528 velora-prod-server:latest
-docker tag velora-rollback-worker:before-5d23528 velora-prod-worker:latest
-docker tag velora-rollback-web:before-5d23528 velora-prod-web:latest
+docker tag velora-rollback-server:before-f29246a velora-prod-server:latest
+docker tag velora-rollback-worker:before-f29246a velora-prod-worker:latest
+docker tag velora-rollback-web:before-f29246a velora-prod-web:latest
 docker compose --env-file prod.env -f docker-compose.yml \
   up -d --no-build --no-deps --force-recreate server worker web
 ```

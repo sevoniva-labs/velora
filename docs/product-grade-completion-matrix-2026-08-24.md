@@ -1,6 +1,6 @@
 # Velora 产品级完成矩阵
 
-日期：2026-08-24
+日期：2026-08-25（2026-08-24 首版，2026-08-25 增量复核）
 
 范围：门户、管理后台、管理 API、应用接入、生产发布
 
@@ -38,6 +38,8 @@
 | 工作台和应用概览卡片不重叠 | 独立 CSS Grid、卡片间距；桌面几何重叠断言 | 完成 |
 | 详情使用标准 PageContainer Tabs，不使用自绘页签 | `ApplicationManagement.tsx` | 完成 |
 | 分页器位于表格底部且页面高度稳定 | `styles/admin-pro.css` 主/次表格布局；审批页几何断言 | 完成 |
+| 管理列表的查询/重置会真实改变结果，不使用无效的静态搜索表单 | `utils/tableSearch.ts`；审批、角色、组织、用户组、会话、临时权限等列表 | 71 项单测 + 审批列表 E2E 通过 |
+| 工作台系统状态使用正式就绪接口，不误报异常 | `admin-platform.ts` 调用 `/system/ready`；接口路径回归测试 | 完成；生产五项依赖均 `UP` |
 | 窄屏和 200% 缩放不横向溢出 | 响应式样式、移动项目和缩放 E2E | 完成 |
 | 不出现“下一项”等不明确字段；必要文案使用业务中文 | `labels.ts`、应用列表/概览与全仓文案走查 | 完成 |
 | 表单可见标签能关联复杂人员选择器 | `AdminUserSelect.tsx` 透传 `id` | 单元测试 + 四类授权 E2E 通过 |
@@ -52,7 +54,7 @@
 | 可追溯版本 | `BUILD-INFO`、`SHA256SUMS`、API version、OCI revision/version | 完成 |
 | 安全与供应链门禁 | gosec、govulncheck、gitleaks、staticcheck、golangci-lint、SBOM/签名策略 | 完成 |
 | 生产依赖、健康、备份、归档和证书巡检 | `docs/product-grade-production-delivery-report-2026-08-24.md` | 完成；本次增量发布后已复验 |
-| 可恢复发布 | 发布前镜像标签、配置副本、PostgreSQL pgdump；应用回滚不破坏新增表 | 完成；回滚点 `20260824T155255Z-before-5d23528` |
+| 可恢复发布 | 发布前镜像标签、配置副本、PostgreSQL pgdump；应用回滚不破坏新增表 | 完成；最新回滚点 `20260824T162144Z-before-f29246a` |
 
 ## 不得伪造为已完成的外部项目
 

@@ -15,6 +15,7 @@ import (
 	portaldomain "github.com/sevoniva-labs/velora/server/internal/domain/portal"
 )
 
+// #nosec G101 -- this is a public HMAC domain-separation label, not a credential.
 const directoryTokenContext = "velora:application-directory:v1:"
 
 type DirectoryAccess struct {

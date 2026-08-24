@@ -46,6 +46,38 @@ curl -s https://$VELORA_EXTERNAL_URL/api/v1/system/version   # API（经 nginx �
 curl -sI https://$VELORA_EXTERNAL_URL/ | grep -i strict   # 启用 HSTS 后应出现
 ```
 
+### 2.1 无源码服务器的轻量发布
+
+低资源生产机不编译 Go 或前端。发布机在已通过门禁的提交执行：
+
+```bash
+scripts/build-production-artifacts.sh /secure/releases/<revision>
+cd /secure/releases/<revision>
+shasum -a 256 -c SHA256SUMS
+```
+
+制品除 Server、Worker、迁移程序和 Web 静态文件外，还包含生产 Compose 及 PostgreSQL
+启动所需的两个只读脚本。安装时保持制品中的相对目录结构：
+
+```text
+/opt/velora/prod/
+├── compose/init-db-prod.sh
+├── docker/postgres-entrypoint.sh
+└── runtime/compose/docker-compose.yml
+```
+
+先为当前镜像建立不可变回滚标签并备份数据库、Compose 与环境文件，再用 artifact
+Dockerfile 基于已批准的国内运行时基础镜像封装本地编译产物。执行迁移和启动时必须显式使用：
+
+```bash
+docker compose --env-file prod.env -f docker-compose.yml --profile release run --rm --no-deps migrate
+docker compose --env-file prod.env -f docker-compose.yml up -d --no-build --no-deps server worker web
+```
+
+不得通过 `. prod.env` 或 `source prod.env` 给 Compose 注入变量。数据库 DSN、密码或密钥可能
+包含 shell 特殊字符，shell 解析会截断或改写值；`--env-file` 才是生产发布的唯一入口。
+重建应用服务时使用 `--no-deps`，避免无计划重建 PostgreSQL、Redis 或 Casdoor。
+
 ## 3. TLS 说明
 
 - Web 容器 `VELORA_TLS_ENABLED=true` 时：80 → 301 → 443，443 挂载 `certs/velora.crt|key`。

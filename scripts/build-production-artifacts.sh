@@ -6,7 +6,13 @@ revision="${VELORA_REVISION:-$(git -C "$repo_root" rev-parse HEAD)}"
 short_revision="$(printf '%s' "$revision" | cut -c1-12)"
 release_version="${VELORA_VERSION:-0.2.0+$short_revision}"
 build_date="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-mkdir -p "$output_dir/server" "$output_dir/demo" "$output_dir/web/web-dist"
+mkdir -p \
+  "$output_dir/server" \
+  "$output_dir/demo" \
+  "$output_dir/web/web-dist" \
+  "$output_dir/runtime/compose" \
+  "$output_dir/compose" \
+  "$output_dir/docker"
 cd "$repo_root/server"
 export GOPROXY="${GOPROXY:-https://goproxy.cn,direct}"
 for target in "velora:./cmd/server" "velora-worker:./cmd/worker" "velora-connect:./cmd/velora-connect" "velora-migrate:./cmd/migrate" "velora-storage-check:./cmd/storage-check"; do
@@ -26,6 +32,10 @@ cp "$repo_root/deployments/docker/Dockerfile.server-artifact" "$output_dir/serve
 cp "$repo_root/deployments/docker/Dockerfile.demo-artifact" "$output_dir/demo/Dockerfile"
 cp "$repo_root/deployments/docker/Dockerfile.web-artifact" "$output_dir/web/Dockerfile"
 cp -R "$repo_root/web/dist/." "$output_dir/web/web-dist/"
+cp "$repo_root/deployments/env/prod/docker-compose.yml" "$output_dir/runtime/compose/docker-compose.yml"
+cp "$repo_root/deployments/compose/init-db-prod.sh" "$output_dir/compose/init-db-prod.sh"
+cp "$repo_root/deployments/docker/postgres-entrypoint.sh" "$output_dir/docker/postgres-entrypoint.sh"
+chmod 0755 "$output_dir/compose/init-db-prod.sh" "$output_dir/docker/postgres-entrypoint.sh"
 (cd "$output_dir" && printf 'version=%s\nrevision=%s\nbuild_date=%s\n' "$release_version" "$revision" "$build_date" > BUILD-INFO)
-(cd "$output_dir" && find server demo web -type f -print0 | sort -z | xargs -0 shasum -a 256 > SHA256SUMS)
+(cd "$output_dir" && find server demo web runtime compose docker -type f -print0 | sort -z | xargs -0 shasum -a 256 > SHA256SUMS)
 echo "production artifacts: $output_dir ($release_version, $revision)"

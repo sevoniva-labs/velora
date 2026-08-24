@@ -407,10 +407,20 @@ function mapApplicationProvisioningTarget(value: unknown): ApplicationProvisioni
     configVersion: Number(item.configVersion ?? 0),
   }
 }
+
+// The HTTP envelope flattens protobuf responses that contain only one message
+// field, while multi-field mutation responses retain their `target` member.
+// Accept both shapes so the read screen cannot silently render a healthy
+// provisioning target as "disabled".
+export function provisioningTargetFromResponse(value: unknown): ApplicationProvisioningTarget {
+  const data = record(value)
+  return mapApplicationProvisioningTarget(data.target ?? data)
+}
+
 export async function adminGetApplicationProvisioningTarget(id: string | number): Promise<ApplicationProvisioningTarget | undefined> {
   try {
     const data = record(await apiFetch<unknown>(`/admin/portal/applications/${encodeURIComponent(String(id))}/provisioning-target`))
-    return mapApplicationProvisioningTarget(data.target)
+    return provisioningTargetFromResponse(data)
   } catch (error) {
     if (error instanceof ApiError && error.status === 404) return undefined
     throw error
@@ -418,11 +428,11 @@ export async function adminGetApplicationProvisioningTarget(id: string | number)
 }
 export async function adminUpsertApplicationProvisioningTarget(id: string | number, input: { endpointUrl: string; rotateSecret?: boolean; expectedConfigVersion?: number; credentialDeliveryMode?: 'CLI' | 'BROWSER' }): Promise<{ target: ApplicationProvisioningTarget; oneTimeProvisioningSecret?: string }> {
   const data = record(await apiFetch<unknown>(`/admin/portal/applications/${encodeURIComponent(String(id))}/provisioning-target`, { method: 'PUT', body: input }))
-  return { target: mapApplicationProvisioningTarget(data.target), oneTimeProvisioningSecret: data.oneTimeProvisioningSecret ? String(data.oneTimeProvisioningSecret) : undefined }
+  return { target: provisioningTargetFromResponse(data.target ?? data), oneTimeProvisioningSecret: data.oneTimeProvisioningSecret ? String(data.oneTimeProvisioningSecret) : undefined }
 }
 export async function adminRetryApplicationProvisioning(id: string | number): Promise<{ target: ApplicationProvisioningTarget; retriedMessages: number }> {
   const data = record(await apiFetch<unknown>(`/admin/portal/applications/${encodeURIComponent(String(id))}/provisioning-target:retry`, { method: 'POST', body: {} }))
-  return { target: mapApplicationProvisioningTarget(data.target), retriedMessages: Number(data.retriedMessages ?? 0) }
+  return { target: provisioningTargetFromResponse(data.target ?? data), retriedMessages: Number(data.retriedMessages ?? 0) }
 }
 
 export interface IdentityOverview { onboardingEnabled: boolean; adminEntryEnabled: boolean; providerKey: string; adminUrlHost: string; issuer: string; connectionStatus: string; pendingApplicationCount: number; automationEnabled: boolean }

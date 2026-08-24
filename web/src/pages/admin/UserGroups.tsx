@@ -1,7 +1,7 @@
 import { useState } from 'react'
-import { App, Button, Space, Tag, Typography } from 'antd'
+import { App, Button, Popconfirm, Space, Tag, Typography } from 'antd'
 import { PlusOutlined } from '@ant-design/icons'
-import { DrawerForm, PageContainer, ProForm, ProFormSelect, ProFormText, ProFormTextArea, ProTable, type ProColumns } from '@ant-design/pro-components'
+import { DrawerForm, PageContainer, ProForm, ProFormSelect, ProFormText, ProFormTextArea, ProList, type ProColumns } from '@ant-design/pro-components'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { createUserGroup, listPlatformRoles, listUserGroups, replaceUserGroupMembers, replaceUserGroupRoles, updateUserGroup, type UserGroupInput } from '../../api/admin-platform'
 import type { UserGroup } from '../../types'
@@ -34,17 +34,21 @@ export default function UserGroups() {
     onSuccess: async () => { message.success(editing ? '用户组已更新' : '用户组已创建'); setOpen(false); await queryClient.invalidateQueries({ queryKey: ['admin', 'user-groups'] }) },
     onError: (error) => message.error(error instanceof Error ? error.message : '用户组保存失败'),
   })
+  const updateStatus = useMutation({
+    mutationFn: (group: UserGroup) => updateUserGroup(group.id, { groupKey: group.groupKey, name: group.name, description: group.description, status: group.status === 'ACTIVE' ? 'DISABLED' : 'ACTIVE' }),
+    onSuccess: async (group) => { message.success(group.status === 'ACTIVE' ? '用户组已启用' : '用户组已停用'); await queryClient.invalidateQueries({ queryKey: ['admin', 'user-groups'] }) },
+    onError: (error) => message.error(error instanceof Error ? error.message : '用户组状态更新失败'),
+  })
   const columns: ProColumns<UserGroup>[] = [
-    { title: '用户组', dataIndex: 'name', render: (_, row) => <Space direction="vertical" size={0}><Typography.Text strong>{row.name}</Typography.Text><Typography.Text type="secondary">{row.groupKey}</Typography.Text></Space> },
-    { title: '成员', dataIndex: 'memberCount', search: false, width: 100, render: (_, row) => `${row.memberCount} 人` },
-    { title: '平台角色', dataIndex: 'roles', search: false, render: (_, row) => row.roles.length ? row.roles.map((role) => <Tag key={role}>{roles.data?.find((item) => item.key === role)?.name ?? role}</Tag>) : '—' },
-    { title: '说明', dataIndex: 'description', search: false, ellipsis: true },
-    { title: '状态', dataIndex: 'status', valueType: 'select', valueEnum: { ACTIVE: { text: '启用' }, DISABLED: { text: '停用' } }, render: (_, row) => row.status === 'ACTIVE' ? <Tag color="success">启用</Tag> : <Tag>停用</Tag> },
+    { title: '用户组', dataIndex: 'name', listSlot: 'title', render: (_, row) => <Typography.Text strong>{row.name}</Typography.Text> },
+    { dataIndex: 'groupKey', listSlot: 'description', search: false, render: (_, row) => <Typography.Text type="secondary">{row.groupKey}{row.description ? ` · ${row.description}` : ''}</Typography.Text> },
+    { title: '状态', dataIndex: 'status', listSlot: 'subTitle', valueType: 'select', valueEnum: { ACTIVE: { text: '启用' }, DISABLED: { text: '停用' } }, render: (_, row) => <Tag color={row.status === 'ACTIVE' ? 'success' : 'default'}>{row.status === 'ACTIVE' ? '启用' : '停用'}</Tag> },
+    { dataIndex: 'memberCount', listSlot: 'content', search: false, render: (_, row) => <Space wrap><Typography.Text>{row.memberCount} 名成员</Typography.Text>{row.roles.length ? row.roles.map((role) => <Tag key={role}>{roles.data?.find((item) => item.key === role)?.name ?? role}</Tag>) : <Typography.Text type="secondary">未分配平台角色</Typography.Text>}</Space> },
   ]
-  if (canManage) columns.push({ title: '操作', valueType: 'option', width: 90, render: (_, row) => <Button type="link" onClick={() => { setEditing(row); setOpen(true) }}>编辑</Button> })
+  if (canManage) columns.push({ title: '操作', listSlot: 'actions', valueType: 'option', search: false, render: (_, row) => [<Button key="edit" type="link" onClick={() => { setEditing(row); setOpen(true) }}>编辑</Button>, <Popconfirm key="status" title={row.status === 'ACTIVE' ? '停用此用户组？' : '启用此用户组？'} description={row.status === 'ACTIVE' ? '停用后，该组不再授予平台角色。成员关系会保留。' : undefined} okText={row.status === 'ACTIVE' ? '停用' : '启用'} okButtonProps={{ danger: row.status === 'ACTIVE' }} onConfirm={() => updateStatus.mutate(row)}><Button type="link" danger={row.status === 'ACTIVE'}>{row.status === 'ACTIVE' ? '停用' : '启用'}</Button></Popconfirm>] })
 
   return <PageContainer title="用户组">
-    {groups.isError ? <QueryErrorState refetch={groups.refetch} /> : <ProTable<UserGroup> className="velora-admin-primary-table" rowKey="id" columns={columns} {...groupTable} loading={groups.isLoading} search={{ labelWidth: 'auto' }} pagination={{ pageSize: 20 }} toolBarRender={canManage ? () => [<Button key="create" type="primary" icon={<PlusOutlined />} onClick={() => { setEditing(undefined); setOpen(true) }}>新建用户组</Button>] : false} />}
+    {groups.isError ? <QueryErrorState refetch={groups.refetch} /> : <ProList<UserGroup> className="velora-admin-primary-table velora-admin-entity-list" rowKey="id" columns={columns} {...groupTable} loading={groups.isLoading} search={{ filterType: 'light' }} pagination={{ pageSize: 20 }} toolBarRender={canManage ? () => [<Button key="create" type="primary" icon={<PlusOutlined />} onClick={() => { setEditing(undefined); setOpen(true) }}>新建用户组</Button>] : false} />}
     <DrawerForm<GroupForm> key={editing?.id ?? 'new'} title={editing ? '编辑用户组' : '新建用户组'} open={open} onOpenChange={setOpen} width={560} initialValues={editing ?? { status: 'ACTIVE', memberIds: [], roles: [] }} submitter={{ searchConfig: { submitText: '保存', resetText: '取消' } }} onFinish={async (values) => { await mutation.mutateAsync(values); return true }}>
       {!editing && <ProFormText name="groupKey" label="用户组编码" rules={[{ required: true, message: '请输入用户组编码' }, { pattern: /^[a-z][a-z0-9_-]{1,63}$/, message: '使用小写字母、数字、短横线或下划线' }]} />}
       <ProFormText name="name" label="用户组名称" rules={[{ required: true, message: '请输入用户组名称' }]} />

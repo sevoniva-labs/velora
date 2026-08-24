@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { App, Button, Space, Tag, Typography } from 'antd'
+import { App, Button, Popconfirm, Space, Tag, Typography } from 'antd'
 import { PlusOutlined } from '@ant-design/icons'
 import { DrawerForm, PageContainer, ProDescriptions, ProFormDigit, ProFormSelect, ProFormText, ProFormTextArea, ProTable, type ProColumns } from '@ant-design/pro-components'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
@@ -50,6 +50,8 @@ export default function Organization() {
     onError: (error) => message.error(error instanceof Error ? error.message : '岗位保存失败'),
   })
   const organizationMutation = useMutation({ mutationFn: updateOrganization, onSuccess: async () => { message.success('组织信息已更新'); setOrganizationOpen(false); await queryClient.invalidateQueries({ queryKey: ['admin', 'organization'] }) }, onError: (error) => message.error(error instanceof Error ? error.message : '组织信息保存失败') })
+  const departmentStatusMutation = useMutation({ mutationFn: (department: Department) => updateDepartment(department.id, { name: department.name, parentId: department.parentId, status: department.status === 'ACTIVE' ? 'DISABLED' : 'ACTIVE', sortOrder: department.sortOrder }), onSuccess: async (department) => { message.success(department.status === 'ACTIVE' ? '部门已启用' : '部门已停用'); await refresh() }, onError: (error) => message.error(error instanceof Error ? error.message : '部门状态更新失败') })
+  const positionStatusMutation = useMutation({ mutationFn: (position: Position) => updatePosition(position.id, { name: position.name, description: position.description, departmentId: position.departmentId, status: position.status === 'ACTIVE' ? 'DISABLED' : 'ACTIVE', sortOrder: position.sortOrder }), onSuccess: async (position) => { message.success(position.status === 'ACTIVE' ? '岗位已启用' : '岗位已停用'); await refresh() }, onError: (error) => message.error(error instanceof Error ? error.message : '岗位状态更新失败') })
 
   const departmentById = new Map((departments.data ?? []).map((item) => [item.id, item]))
   const departmentColumns: ProColumns<Department>[] = [
@@ -58,14 +60,14 @@ export default function Organization() {
     { title: '状态', dataIndex: 'status', valueType: 'select', valueEnum: { ACTIVE: { text: '启用' }, DISABLED: { text: '停用' } }, render: (_, row) => statusTag(row.status) },
     { title: '排序', dataIndex: 'sortOrder', search: false, width: 90 },
   ]
-  if (canManageDepartments) departmentColumns.push({ title: '操作', valueType: 'option', width: 90, render: (_, row) => <Button type="link" onClick={() => { setEditingDepartment(row); setDepartmentOpen(true) }}>编辑</Button> })
+  if (canManageDepartments) departmentColumns.push({ title: '操作', valueType: 'option', width: 150, render: (_, row) => <Space className="table-action-cell"><Button type="link" onClick={() => { setEditingDepartment(row); setDepartmentOpen(true) }}>编辑</Button><Popconfirm title={row.status === 'ACTIVE' ? '停用此部门？' : '启用此部门？'} description={row.status === 'ACTIVE' ? '停用后不能再用于新增人员和岗位。已有数据会保留。' : undefined} okText={row.status === 'ACTIVE' ? '停用' : '启用'} okButtonProps={{ danger: row.status === 'ACTIVE' }} onConfirm={() => departmentStatusMutation.mutate(row)}><Button type="link" danger={row.status === 'ACTIVE'}>{row.status === 'ACTIVE' ? '停用' : '启用'}</Button></Popconfirm></Space> })
   const positionColumns: ProColumns<Position>[] = [
     { title: '岗位', dataIndex: 'name', render: (_, row) => <Space direction="vertical" size={0}><Typography.Text strong>{row.name}</Typography.Text><Typography.Text type="secondary">{row.positionKey}</Typography.Text></Space> },
     { title: '所属部门', dataIndex: 'departmentId', valueType: 'select', valueEnum: Object.fromEntries((departments.data ?? []).map((item) => [item.id, item.name])), render: (_, row) => departmentById.get(row.departmentId)?.name ?? '—' },
     { title: '说明', dataIndex: 'description', search: false, ellipsis: true },
     { title: '状态', dataIndex: 'status', valueType: 'select', valueEnum: { ACTIVE: { text: '启用' }, DISABLED: { text: '停用' } }, render: (_, row) => statusTag(row.status) },
   ]
-  if (canManagePositions) positionColumns.push({ title: '操作', valueType: 'option', width: 90, render: (_, row) => <Button type="link" onClick={() => { setEditingPosition(row); setPositionOpen(true) }}>编辑</Button> })
+  if (canManagePositions) positionColumns.push({ title: '操作', valueType: 'option', width: 150, render: (_, row) => <Space className="table-action-cell"><Button type="link" onClick={() => { setEditingPosition(row); setPositionOpen(true) }}>编辑</Button><Popconfirm title={row.status === 'ACTIVE' ? '停用此岗位？' : '启用此岗位？'} description={row.status === 'ACTIVE' ? '停用后不能再分配给人员。已有任职记录会保留。' : undefined} okText={row.status === 'ACTIVE' ? '停用' : '启用'} okButtonProps={{ danger: row.status === 'ACTIVE' }} onConfirm={() => positionStatusMutation.mutate(row)}><Button type="link" danger={row.status === 'ACTIVE'}>{row.status === 'ACTIVE' ? '停用' : '启用'}</Button></Popconfirm></Space> })
 
   const tabs = [{ key: 'organization', tab: '组织信息' }, ...(canReadDepartments ? [{ key: 'departments', tab: '部门' }] : []), ...(canReadPositions ? [{ key: 'positions', tab: '岗位' }] : [])]
   return <PageContainer title="组织架构" tabList={tabs} tabActiveKey={tab} onTabChange={setTab} extra={tab === 'organization' && canManageOrganization ? <Button type="primary" onClick={() => setOrganizationOpen(true)}>编辑组织信息</Button> : undefined}>

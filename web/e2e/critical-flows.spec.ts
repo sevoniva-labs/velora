@@ -257,6 +257,27 @@ test('后台列表查询会真实过滤当前数据', async ({ page }, testInfo)
   await captureAudit(page, '04-approvals-filtered')
 })
 
+test('短列表分页器固定在卡片底部且保留统一留白', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop-chromium', '列表布局只在桌面执行一次')
+  const state = newState()
+  await installCriticalMock(page, state)
+  await page.goto('/admin/applications')
+  const table = page.locator('.velora-admin-primary-table').first()
+  const card = table.locator(':scope > .ant-pro-card:not(.ant-pro-table-search)').first()
+  const pagination = table.locator('.ant-pagination').first()
+  await expect(pagination).toBeVisible()
+  const [cardBox, paginationBox] = await Promise.all([card.boundingBox(), pagination.boundingBox()])
+  expect(cardBox && paginationBox, '列表卡片和分页器应完成布局').toBeTruthy()
+  const bottomGap = cardBox!.y + cardBox!.height - (paginationBox!.y + paginationBox!.height)
+  expect(bottomGap, '分页器与卡片底部应保留 16–32px 留白').toBeGreaterThanOrEqual(16)
+  expect(bottomGap, '分页器不应随数据行数上浮').toBeLessThanOrEqual(32)
+
+  await page.getByRole('button', { name: '停用' }).click()
+  await page.getByRole('button', { name: '停用' }).last().click()
+  await expect.poll(() => state.appStatus).toBe('DISABLED')
+  await expect(page.getByRole('button', { name: '启用' })).toBeVisible()
+})
+
 test('后台接口失败显示可重试错误而不是空数据', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-chromium', '错误态只在桌面执行一次')
   await installCriticalMock(page, newState({ failApprovals: true }))

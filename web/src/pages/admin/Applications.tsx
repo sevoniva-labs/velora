@@ -1,10 +1,10 @@
 import { useRef, useState } from 'react'
-import { App, Button, Space, Tag, Typography } from 'antd'
+import { App, Button, Popconfirm, Space, Tag, Typography } from 'antd'
 import { PlusOutlined } from '@ant-design/icons'
-import { ModalForm, PageContainer, ProFormSelect, ProFormText, ProFormTextArea, ProTable, type ActionType, type ProColumns } from '@ant-design/pro-components'
+import { ModalForm, PageContainer, ProFormSelect, ProFormText, ProFormTextArea, ProList, type ActionType, type ProColumns } from '@ant-design/pro-components'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { Link, useNavigate } from 'react-router-dom'
-import { adminCreateApplication, adminListApplications, type AdminApplicationInput } from '../../api/api'
+import { adminCreateApplication, adminListApplications, adminUpdateApplication, type AdminApplicationInput } from '../../api/api'
 import { AppIcon } from '../../components/AppCard'
 import { APP_LIFECYCLE_COLOR, APP_LIFECYCLE_LABEL, SSO_TYPE_LABEL, enumLabel } from '../../labels'
 import type { Application } from '../../types'
@@ -29,15 +29,37 @@ export default function Applications() {
     onSuccess: async (application) => { message.success('应用已创建'); setOpen(false); await queryClient.invalidateQueries({ queryKey: ['admin', 'applications'] }); navigate(`/admin/applications/${application.id}`) },
     onError: (error) => message.error(error instanceof Error ? error.message : '应用创建失败'),
   })
+  const updateStatus = useMutation({
+    mutationFn: (application: Application) => adminUpdateApplication(application.id, {
+      code: application.code,
+      name: application.name,
+      description: application.description,
+      icon: application.icon,
+      categoryId: application.categoryId,
+      homeUrl: application.homeUrl,
+      launchUrl: application.launchUrl,
+      ssoType: application.ssoType,
+      ownerUserId: application.ownerUserId,
+      ownerDepartmentId: application.ownerDepartmentId,
+      status: application.status === 'ENABLED' ? 'DISABLED' : 'ENABLED',
+      sort: application.sort,
+      isFeatured: application.isFeatured,
+      tagIds: application.tags.map((item) => item.id),
+    }),
+    onSuccess: async (application) => { message.success(application.status === 'ENABLED' ? '应用已启用' : '应用已停用'); await queryClient.invalidateQueries({ queryKey: ['admin', 'applications'] }); actionRef.current?.reload() },
+    onError: (error) => message.error(error instanceof Error ? error.message : '应用状态更新失败'),
+  })
   const columns: ProColumns<Application>[] = [
-    { title: '应用', dataIndex: 'keyword', render: (_, row) => <Space><AppIcon app={row} size={36} /><Space direction="vertical" size={0}><Link to={`/admin/applications/${row.id}`}><Typography.Text strong>{row.name}</Typography.Text></Link><Typography.Text type="secondary">{row.code}</Typography.Text></Space></Space> },
-    { title: '登录方式', dataIndex: 'ssoType', valueType: 'select', valueEnum: { URL: { text: '普通链接' }, OIDC: { text: '统一登录' } }, render: (_, row) => SSO_TYPE_LABEL[row.ssoType] },
-    { title: '接入状态', dataIndex: 'lifecycleStatus', valueType: 'select', valueEnum: Object.fromEntries(Object.entries(APP_LIFECYCLE_LABEL).map(([key, text]) => [key, { text }])), render: (_, row) => <Tag color={APP_LIFECYCLE_COLOR[row.lifecycleStatus ?? '']}>{enumLabel(APP_LIFECYCLE_LABEL, row.lifecycleStatus, '草稿')}</Tag> },
-    { title: '使用状态', dataIndex: 'status', valueType: 'select', valueEnum: { ENABLED: { text: '可用' }, DISABLED: { text: '已停用' } }, render: (_, row) => <Tag color={row.status === 'ENABLED' ? 'success' : 'default'}>{row.status === 'ENABLED' ? '可用' : '已停用'}</Tag> },
-    { title: '操作', valueType: 'option', width: 90, render: (_, row) => <Link to={`/admin/applications/${row.id}`}>{canCreate ? '管理' : '查看'}</Link> },
+    { dataIndex: 'icon', listSlot: 'avatar', search: false, render: (_, row) => <AppIcon app={row} size={40} /> },
+    { title: '应用', dataIndex: 'keyword', listSlot: 'title', render: (_, row) => <Link to={`/admin/applications/${row.id}`}><Typography.Text strong>{row.name}</Typography.Text></Link> },
+    { dataIndex: 'code', listSlot: 'description', search: false, render: (_, row) => <Typography.Text type="secondary">{row.code}{row.description ? ` · ${row.description}` : ''}</Typography.Text> },
+    { title: '使用状态', dataIndex: 'status', listSlot: 'subTitle', valueType: 'select', valueEnum: { ENABLED: { text: '可用' }, DISABLED: { text: '已停用' } }, render: (_, row) => <Space size={4}><Tag color={row.status === 'ENABLED' ? 'success' : 'default'}>{row.status === 'ENABLED' ? '可用' : '已停用'}</Tag><Tag color={APP_LIFECYCLE_COLOR[row.lifecycleStatus ?? '']}>{enumLabel(APP_LIFECYCLE_LABEL, row.lifecycleStatus, '草稿')}</Tag><Tag>{SSO_TYPE_LABEL[row.ssoType]}</Tag></Space> },
+    { title: '登录方式', dataIndex: 'ssoType', valueType: 'select', valueEnum: { URL: { text: '普通链接' }, OIDC: { text: '统一登录' } } },
+    { title: '接入状态', dataIndex: 'lifecycleStatus', valueType: 'select', valueEnum: Object.fromEntries(Object.entries(APP_LIFECYCLE_LABEL).map(([key, text]) => [key, { text }])) },
+    { title: '操作', listSlot: 'actions', valueType: 'option', search: false, render: (_, row) => [<Link key="manage" to={`/admin/applications/${row.id}`}>{canCreate ? '管理' : '查看'}</Link>, canCreate ? <Popconfirm key="status" title={row.status === 'ENABLED' ? '停用此应用？' : '启用此应用？'} description={row.status === 'ENABLED' ? '停用后，用户将无法从门户进入该应用。' : undefined} okText={row.status === 'ENABLED' ? '停用' : '启用'} okButtonProps={{ danger: row.status === 'ENABLED' }} onConfirm={() => updateStatus.mutate(row)}><Button type="link" danger={row.status === 'ENABLED'} loading={updateStatus.isPending}>{row.status === 'ENABLED' ? '停用' : '启用'}</Button></Popconfirm> : null].filter(Boolean) },
   ]
   return <PageContainer title="应用管理">
-    {loadError ? <QueryErrorState refetch={() => setLoadError(false)} /> : <ProTable<Application> className="velora-admin-primary-table" actionRef={actionRef} rowKey="id" columns={columns} search={{ labelWidth: 'auto' }} request={async (params) => { try { const data = await adminListApplications({ page: params.current, pageSize: params.pageSize, keyword: String(params.keyword ?? '') || undefined, status: String(params.status ?? '') || undefined, ssoType: String(params.ssoType ?? '') || undefined, lifecycleStatus: String(params.lifecycleStatus ?? '') || undefined }); return { data: data.items, total: data.total, success: true } } catch { setLoadError(true); return { data: [], total: 0, success: false } } }} pagination={{ defaultPageSize: 20, showSizeChanger: true }} toolBarRender={canCreate ? () => [<Button key="create" type="primary" icon={<PlusOutlined />} onClick={() => setOpen(true)}>新建应用</Button>] : false} />}
+    {loadError ? <QueryErrorState refetch={() => setLoadError(false)} /> : <ProList<Application> className="velora-admin-primary-table velora-admin-entity-list" actionRef={actionRef} rowKey="id" columns={columns} search={{ filterType: 'light' }} request={async (params) => { try { const data = await adminListApplications({ page: params.current, pageSize: params.pageSize, keyword: String(params.keyword ?? '') || undefined, status: String(params.status ?? '') || undefined, ssoType: String(params.ssoType ?? '') || undefined, lifecycleStatus: String(params.lifecycleStatus ?? '') || undefined }); return { data: data.items, total: data.total, success: true } } catch { setLoadError(true); return { data: [], total: 0, success: false } } }} pagination={{ defaultPageSize: 20, showSizeChanger: true }} toolBarRender={canCreate ? () => [<Button key="create" type="primary" icon={<PlusOutlined />} onClick={() => setOpen(true)}>新建应用</Button>] : false} />}
     <ModalForm<CreateApplication> title="新建应用" open={open} onOpenChange={setOpen} width={600} initialValues={{ ssoType: 'OIDC' }} submitter={{ searchConfig: { submitText: '创建应用', resetText: '取消' } }} onFinish={async (values) => { await create.mutateAsync(values); return true }}>
       <ProFormText name="name" label="应用名称" rules={[{ required: true, message: '请输入应用名称' }]} />
       <ProFormText name="code" label="应用编码" rules={[{ required: true, message: '请输入应用编码' }, { pattern: /^[a-z][a-z0-9_-]{1,63}$/, message: '使用小写字母、数字、短横线或下划线' }]} />

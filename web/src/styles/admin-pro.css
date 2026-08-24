@@ -136,11 +136,14 @@
 
 /* Full-page tables reserve a stable body, keeping pagination at the page bottom. */
 .velora-admin-primary-table > .ant-pro-card:not(.ant-pro-table-search) {
+  display: flex;
   min-height: max(440px, calc(100vh - 300px));
+  flex-direction: column;
 }
 
 .velora-admin-primary-table > .ant-pro-card:not(.ant-pro-table-search) > .ant-pro-card-body,
 .velora-admin-primary-table > .ant-pro-card:not(.ant-pro-table-search) .ant-table-wrapper,
+.velora-admin-primary-table > .ant-pro-card:not(.ant-pro-table-search) .ant-pro-list-container,
 .velora-admin-primary-table > .ant-pro-card:not(.ant-pro-table-search) .ant-spin-nested-loading,
 .velora-admin-primary-table > .ant-pro-card:not(.ant-pro-table-search) .ant-spin-container {
   display: flex;
@@ -150,8 +153,28 @@
 }
 
 .velora-admin-primary-table .ant-table-pagination {
-  margin-block: auto 0 !important;
+  margin-block: auto 20px !important;
+  padding-inline: 20px;
   padding-block-start: 20px;
+}
+
+.velora-admin-primary-table .ant-pro-list-pagination {
+  margin-block: auto 20px;
+  padding-inline: 20px;
+  padding-block-start: 20px;
+}
+
+.velora-admin-entity-list .ant-pro-list-item {
+  padding: 18px 20px;
+}
+
+.velora-admin-entity-list .ant-pro-list-item-title {
+  color: var(--velora-title);
+  font-size: 15px;
+}
+
+.velora-admin-entity-list .ant-pro-list-item-action {
+  margin-inline-start: 24px;
 }
 
 .velora-admin-table-after-filter > .ant-pro-card:not(.ant-pro-table-search) {
@@ -160,7 +183,9 @@
 
 /* Paginated tables inside detail tabs keep a compact but stable footer position. */
 .velora-admin-secondary-table > .ant-pro-card:not(.ant-pro-table-search) {
+  display: flex;
   min-height: 420px;
+  flex-direction: column;
 }
 
 .velora-admin-secondary-table > .ant-pro-card:not(.ant-pro-table-search) > .ant-pro-card-body,
@@ -174,7 +199,8 @@
 }
 
 .velora-admin-secondary-table .ant-table-pagination {
-  margin-block: auto 0 !important;
+  margin-block: auto 20px !important;
+  padding-inline: 20px;
   padding-block-start: 20px;
 }
 

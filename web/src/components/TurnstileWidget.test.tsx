@@ -24,8 +24,8 @@ describe('TurnstileWidget', () => {
     render(<TurnstileWidget siteKey="site-key" onVerify={onVerify} />)
 
     await waitFor(() => expect(window.turnstile?.render).toHaveBeenCalledOnce())
-    expect(options?.size).toBe('invisible')
-    expect(options).not.toHaveProperty('appearance')
+    expect(options?.size).toBe('flexible')
+    expect(options?.appearance).toBe('interaction-only')
     expect(options).not.toHaveProperty('before-interactive-callback')
     expect(options).not.toHaveProperty('after-interactive-callback')
     options?.callback('verified-token')

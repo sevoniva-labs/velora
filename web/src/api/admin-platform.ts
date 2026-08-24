@@ -160,6 +160,10 @@ export async function verifyAuditIntegrity(): Promise<boolean> {
   return Boolean((await apiFetch<{ verified?: boolean }>('/admin/audit-logs/integrity')).verified)
 }
 
+export function getSystemReadiness(): Promise<{ status: string; dependencies: { name: string; status: string }[] }> {
+  return apiFetch('/system/readiness')
+}
+
 export async function exportAuditLogs(format: 'json' | 'csv', limit: number, approvalId: string): Promise<{ content: string; contentType: string; filename: string }> {
   return apiFetch(`/admin/audit-logs/export?format=${encodeURIComponent(format)}&limit=${limit}&approval_id=${encodeURIComponent(approvalId)}`)
 }

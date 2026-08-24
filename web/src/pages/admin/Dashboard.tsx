@@ -4,7 +4,7 @@ import { PageContainer, ProCard, StatisticCard } from '@ant-design/pro-component
 import { useQuery } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import { adminDashboard, adminListAuditLogs, adminPageUsers, queryKeys } from '../../api/api'
-import { listAccessReviews, listApprovals, listTemporaryRoleGrants } from '../../api/admin-platform'
+import { getSystemReadiness, listAccessReviews, listApprovals, listTemporaryRoleGrants } from '../../api/admin-platform'
 import { useMe } from '../../auth/useMe'
 import { APPROVAL_REQUEST_READ, APPROVAL_TASK_DECIDE, AUDIT_READ, PORTAL_MANAGE, SYSTEM_ACCESS_REVIEW_READ, SYSTEM_TEMPORARY_GRANT_READ, SYSTEM_USER_READ, hasAnyPermission, hasPermission } from '../../auth/permissions'
 import { usePageTitle } from '../../hooks/usePageTitle'
@@ -27,6 +27,7 @@ export default function AdminDashboard() {
   const reviews = useQuery({ queryKey: ['admin', 'access-reviews'], queryFn: listAccessReviews, enabled: canReadReviews })
   const lockedUsers = useQuery({ queryKey: ['admin', 'users', 'locked-count'], queryFn: () => adminPageUsers({ page: 1, pageSize: 1, status: 'LOCKED' }), enabled: canReadUsers })
   const failedOperations = useQuery({ queryKey: ['admin', 'audit', 'failed-count'], queryFn: () => adminListAuditLogs({ page: 1, pageSize: 1, result: 'FAILED' }), enabled: canReadAudit })
+  const readiness = useQuery({ queryKey: ['system', 'readiness'], queryFn: getSystemReadiness, refetchInterval: 60_000, retry: false })
   const pendingApprovals = (approvals.data ?? []).filter((item) => item.status === 'PENDING')
   const pendingExecutions = (approvals.data ?? []).filter((item) => item.status === 'APPROVED')
   const activeGrants = (grants.data ?? []).filter((item) => item.status === 'ACTIVE' || item.status === 'SCHEDULED')
@@ -45,6 +46,7 @@ export default function AdminDashboard() {
       {canReadReviews && <ProCard className="velora-dashboard-action-card" title="待完成的权限检查" extra={<Button type="link" onClick={() => navigate('/admin/access-reviews')}>查看</Button>}><Space align="center"><SafetyCertificateOutlined className="velora-dashboard-action-icon is-success" /><Typography.Title level={3}>{openReviews.length}</Typography.Title></Space></ProCard>}
       {canReadUsers && <ProCard className="velora-dashboard-action-card" title="已锁定用户" extra={<Button type="link" onClick={() => navigate('/admin/users')}>查看</Button>}><Space align="center"><UserDeleteOutlined className="velora-dashboard-action-icon is-warning" /><Typography.Title level={3}>{lockedUsers.data?.total ?? 0}</Typography.Title></Space></ProCard>}
       {canReadAudit && <ProCard className="velora-dashboard-action-card" title="失败操作" extra={<Button type="link" onClick={() => navigate('/admin/audit')}>查看</Button>}><Space align="center"><ExclamationCircleOutlined className="velora-dashboard-action-icon is-warning" /><Typography.Title level={3}>{failedOperations.data?.total ?? 0}</Typography.Title></Space></ProCard>}
+      <ProCard className="velora-dashboard-action-card" title="系统状态"><Space align="center"><SafetyCertificateOutlined className={`velora-dashboard-action-icon ${readiness.data?.status === 'UP' ? 'is-success' : 'is-warning'}`} /><Typography.Title level={3}>{readiness.isError ? '异常' : readiness.isLoading ? '检查中' : readiness.data?.status === 'UP' ? '正常' : '异常'}</Typography.Title></Space></ProCard>
     </div>
     {canReadApprovals && pendingApprovals.length > 0 && <ProCard title="待处理事项" style={{ marginTop: 16 }}>
       <Space direction="vertical" size={12} style={{ width: '100%' }}>{pendingApprovals.slice(0, 5).map((item) => <Row key={item.id} justify="space-between" align="middle" wrap={false}><Col flex="auto"><Typography.Text>{item.summary}</Typography.Text></Col><Col><Tag color="processing">待审批</Tag></Col></Row>)}</Space>

@@ -61,9 +61,9 @@ OFFLINE_BUNDLE_DIR=/path/to/approved-bundle make offline-check
 
 ## 国内浏览器制品边界
 
-受控安装脚本只在已验证平台启用公开国内镜像。当前证据仅包括 Linux ARM64 Playwright Chromium 制品地址的可达性检查；macOS 对应公开镜像返回不可用，因此本次 macOS E2E 使用本机已安装 Chrome。
+受控安装命令使用锁文件固定的 Playwright 版本，并仅从 npmmirror 下载对应 Chromium。Jenkins 在完整门禁前显式执行该命令；下载或安装失败时流水线直接失败，不会回退海外源。macOS 本地验收也可通过显式路径使用已安装 Chrome。
 
-这证明浏览器场景可运行，不证明 macOS 浏览器二进制能够从国内镜像重复安装。银行内网 CI 应将审核后的 Chromium 制品同步到 Harbor/制品库，固定版本和摘要，再通过显式路径执行。
+公开镜像适合当前国内开发与交付环境。银行内网 CI 仍应将审核后的 Chromium 制品同步到内部制品库，固定版本和摘要，再通过显式路径执行。
 
 ## 尚未验证，不得宣称
 

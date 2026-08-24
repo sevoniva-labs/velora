@@ -99,7 +99,7 @@ make ci-web-e2e
 
 E2E 使用真实 Go SPA/CSP 服务和 Vite 生产构建，覆盖普通 SPA、可信 Wujie、独立域 iframe、权限过滤、双版本故障关闭、签名回滚和脚本严格 CSP。
 
-`make web-e2e-install-cn` 是受控国内浏览器安装入口。当前公开国内 Playwright 浏览器制品只验证了 Linux ARM64 路径；脚本在不支持的平台明确失败，不静默回退海外源。macOS 验证使用调用方显式提供的本地 Chrome，不宣称完成国内镜像安装验证。
+`make web-e2e-install-cn` 是受控国内浏览器安装入口，使用锁文件固定的 Playwright 版本并仅从 npmmirror 下载 Chromium。Jenkins 在 `make verify` 前显式执行该命令，失败即阻断；不会静默回退海外源。内网环境应将制品同步至内部仓库后改为显式浏览器路径。
 
 ## 可观测扩展
 

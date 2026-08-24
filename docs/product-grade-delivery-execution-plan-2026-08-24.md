@@ -56,6 +56,8 @@ build args；发布验收同时核对健康接口版本、页面版本和 OCI �
 仓库 E2E 位于 `web/e2e`，执行 `make -C server web-e2e-install-cn` 从 npmmirror 安装固定
 Chromium，再执行 `make -C server ci-web-e2e`。默认同时验证桌面与窄屏；失败时保留截图、
 视频和 trace。连接真实环境时设置 `E2E_BASE_URL`，不在仓库保存生产账号或密码。
+根目录与 `server/` 下的 Jenkinsfile 均先执行受控浏览器安装，再执行完整 `make verify`；
+CI 策略门禁会校验这两个步骤，防止流水线改造时静默跳过真实浏览器测试。
 
 ### Phase 3：后台核心产品闭环
 

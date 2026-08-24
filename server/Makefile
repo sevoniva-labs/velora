@@ -25,7 +25,7 @@ help:
 	@echo "  make pitr-check    Read-only PostgreSQL PITR prerequisite check"
 	@echo "  make web-dev       Run frontend"
 	@echo "  make web-budget    Enforce production frontend bundle budgets"
-	@echo "  make web-e2e-install-cn  Install validated Linux ARM64 Chromium from npmmirror"
+	@echo "  make web-e2e-install-cn  Install pinned Chromium from the controlled npmmirror source"
 	@echo "  make ci-web-e2e    Run frontend gates and production browser E2E"
 	@echo "  make ai-governance Validate Claude/Codex/Cursor policy and Skill sync"
 	@echo "  make apisix-policy Validate optional APISIX production integration"

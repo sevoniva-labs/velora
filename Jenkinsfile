@@ -10,8 +10,14 @@ pipeline {
     GOSUMDB = 'sum.golang.org https://goproxy.cn/sumdb/sum.golang.org'
     NPM_REGISTRY = 'https://registry.npmmirror.com'
     npm_config_registry = 'https://registry.npmmirror.com'
+    PLAYWRIGHT_DOWNLOAD_HOST = 'https://npmmirror.com/mirrors/playwright'
   }
   stages {
+    stage('Browser prerequisite') {
+      steps {
+        sh 'make -C server web-e2e-install-cn'
+      }
+    }
     stage('Repository gates') {
       steps {
         sh 'make verify'

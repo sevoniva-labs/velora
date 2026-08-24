@@ -57,4 +57,15 @@ for version in 'TRIVY_VERSION:-0.74.0' 'COSIGN_VERSION:-3.1.2'; do
   }
 done
 
+for pipeline in ../Jenkinsfile Jenkinsfile; do
+  rg -Fq "make -C server web-e2e-install-cn" "$pipeline" || {
+    echo "Jenkins pipeline must install Playwright Chromium from the controlled domestic source: $pipeline" >&2
+    exit 1
+  }
+  rg -Fq "sh 'make verify'" "$pipeline" || {
+    echo "Jenkins pipeline must run the complete verification gate: $pipeline" >&2
+    exit 1
+  }
+done
+
 echo "CI policy OK: domestic sources and pinned tools"

@@ -62,7 +62,7 @@ docker-up: ## 启动全部服务（PostgreSQL + Casdoor + Server + Web）
 docker-down: ## 停止全部服务
 	docker compose down
 
-docker-up-prod: ## 生产部署（独立 Compose、TLS + 密钥校验，见 docs/ops-deploy.md）
+docker-up-prod: ## 生产部署（独立 Compose、TLS + 密钥校验，见 docs/operations.md）
 	@test -f "$(PROD_ENV_FILE)" || { echo "错误：生产变量文件不存在：$(PROD_ENV_FILE)" >&2; exit 1; }
 	docker compose --env-file "$(PROD_ENV_FILE)" -f deployments/env/prod/docker-compose.yml up -d --build
 
@@ -78,10 +78,10 @@ check-prod-config: ## 仅校验生产 Compose，不启动容器
 verify: ## 执行后端完整生产门禁（含前端、部署和安全扫描）
 	$(MAKE) -C server verify
 
-backup: ## 数据库全量备份（见 docs/ops-backup.md）
+backup: ## 数据库全量备份（见 docs/operations.md）
 	./scripts/backup-db.sh
 
-audit-archive: ## 归档 180 天前审计日志（见 docs/ops-audit.md）
+audit-archive: ## 归档 180 天前审计日志（见 docs/operations.md）
 	./scripts/audit-archive.sh
 
 migrate: ## 执行一次性数据库迁移（读取 VELORA_DATABASE_DSN）

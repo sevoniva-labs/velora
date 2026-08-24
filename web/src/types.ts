@@ -352,6 +352,7 @@ export interface IdentityBinding {
   publicClientId: string
   issuer: string
   redirectUris: string[]
+  environments: ApplicationEnvironment[]
   scopes: string[]
   configurationStatus: string
   verificationStatus: string
@@ -361,6 +362,12 @@ export interface IdentityBinding {
   configVersion: number
   createdAt?: string
   updatedAt?: string
+}
+
+export interface ApplicationEnvironment {
+  key: 'DEVELOPMENT' | 'TEST' | 'PRODUCTION'
+  name: string
+  redirectUris: string[]
 }
 
 export interface ApplicationVerification {

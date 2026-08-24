@@ -40,3 +40,14 @@ func TestIdentityBindingScopesNormalizeAndRejectUnsafeValues(t *testing.T) {
 		}
 	}
 }
+
+func TestIdentityBindingValidationChecksEnvironmentBoundaries(t *testing.T) {
+	input := IdentityBindingInput{ProviderKey: IdentityProviderCasdoor, Protocol: ProtocolOIDC, ProviderApplicationRef: "demo", PublicClientID: "client", Issuer: "https://identity.example.test", RedirectURIs: []string{"http://localhost:5173/auth/callback", "https://app.example.test/auth/callback"}, Environments: []ApplicationEnvironment{{Key: "DEVELOPMENT", Name: "开发环境", RedirectURIs: []string{"http://localhost:5173/auth/callback"}}, {Key: "PRODUCTION", Name: "生产环境", RedirectURIs: []string{"https://app.example.test/auth/callback"}}}}
+	if err := input.Validate(); err != nil {
+		t.Fatalf("valid environment mapping rejected: %v", err)
+	}
+	input.Environments[1].RedirectURIs = []string{"http://localhost:5173/auth/callback"}
+	if err := input.Validate(); err == nil {
+		t.Fatal("production environment accepted a non-HTTPS callback")
+	}
+}

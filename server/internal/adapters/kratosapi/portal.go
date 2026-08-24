@@ -1061,7 +1061,7 @@ func (s *PortalService) UpsertApplicationIdentityBinding(ctx context.Context, re
 		event := newAuditEvent(ctx, principal, "iam.integration.update", "portal_application", req.GetApplicationId(), map[string]any{"protocol": req.GetProtocol(), "provider": portaldomain.IdentityProviderCasdoor})
 		if err := s.audited(ctx, event, func(txCtx context.Context) error {
 			var operationErr error
-			binding, app, operationErr = s.portal.UpsertApplicationIdentityBinding(txCtx, principal, req.GetApplicationId(), portaldomain.IdentityBindingInput{ProviderKey: req.GetProviderKey(), Protocol: req.GetProtocol(), ProviderApplicationRef: req.GetProviderApplicationRef(), PublicClientID: req.GetPublicClientId(), Issuer: req.GetIssuer(), RedirectURIs: req.GetRedirectUris(), Scopes: req.GetScopes()}, req.GetExpectedConfigVersion())
+			binding, app, operationErr = s.portal.UpsertApplicationIdentityBinding(txCtx, principal, req.GetApplicationId(), portaldomain.IdentityBindingInput{ProviderKey: req.GetProviderKey(), Protocol: req.GetProtocol(), ProviderApplicationRef: req.GetProviderApplicationRef(), PublicClientID: req.GetPublicClientId(), Issuer: req.GetIssuer(), RedirectURIs: req.GetRedirectUris(), Scopes: req.GetScopes(), Environments: applicationEnvironmentsDomain(req.GetEnvironments())}, req.GetExpectedConfigVersion())
 			if operationErr != nil || !automationEnabled {
 				return operationErr
 			}
@@ -1456,7 +1456,25 @@ func identityBindingProto(item portaldomain.IdentityBinding) *forgev1.PortalIden
 	if item.ID == "" {
 		return nil
 	}
-	return &forgev1.PortalIdentityBinding{Id: item.ID, OrganizationId: item.OrganizationID, ApplicationId: item.ApplicationID, ProviderKey: item.ProviderKey, Protocol: item.Protocol, ProviderApplicationRef: item.ProviderApplicationRef, PublicClientId: item.PublicClientID, Issuer: item.Issuer, RedirectUris: item.RedirectURIs, Scopes: item.Scopes, ConfigurationStatus: item.ConfigurationStatus, VerificationStatus: item.VerificationStatus, VerifiedAt: optionalTimestamp(item.VerifiedAt), VerifiedBy: item.VerifiedBy, VerificationError: item.VerificationError, ConfigVersion: item.ConfigVersion, CreatedAt: timestamp(item.CreatedAt), UpdatedAt: timestamp(item.UpdatedAt)}
+	return &forgev1.PortalIdentityBinding{Id: item.ID, OrganizationId: item.OrganizationID, ApplicationId: item.ApplicationID, ProviderKey: item.ProviderKey, Protocol: item.Protocol, ProviderApplicationRef: item.ProviderApplicationRef, PublicClientId: item.PublicClientID, Issuer: item.Issuer, RedirectUris: item.RedirectURIs, Scopes: item.Scopes, Environments: applicationEnvironmentsProto(item.Environments), ConfigurationStatus: item.ConfigurationStatus, VerificationStatus: item.VerificationStatus, VerifiedAt: optionalTimestamp(item.VerifiedAt), VerifiedBy: item.VerifiedBy, VerificationError: item.VerificationError, ConfigVersion: item.ConfigVersion, CreatedAt: timestamp(item.CreatedAt), UpdatedAt: timestamp(item.UpdatedAt)}
+}
+
+func applicationEnvironmentsDomain(items []*forgev1.PortalApplicationEnvironment) []portaldomain.ApplicationEnvironment {
+	out := make([]portaldomain.ApplicationEnvironment, 0, len(items))
+	for _, item := range items {
+		if item != nil {
+			out = append(out, portaldomain.ApplicationEnvironment{Key: item.GetKey(), Name: item.GetName(), RedirectURIs: item.GetRedirectUris()})
+		}
+	}
+	return out
+}
+
+func applicationEnvironmentsProto(items []portaldomain.ApplicationEnvironment) []*forgev1.PortalApplicationEnvironment {
+	out := make([]*forgev1.PortalApplicationEnvironment, 0, len(items))
+	for _, item := range items {
+		out = append(out, &forgev1.PortalApplicationEnvironment{Key: item.Key, Name: item.Name, RedirectUris: item.RedirectURIs})
+	}
+	return out
 }
 
 func onboardingOperationProto(item portaldomain.OnboardingOperation) *forgev1.PortalApplicationOnboardingOperation {

@@ -45,6 +45,7 @@ type IdentityBinding struct {
 	PublicClientID         string
 	Issuer                 string
 	RedirectURIs           []string
+	Environments           []ApplicationEnvironment
 	Scopes                 []string
 	ConfigurationStatus    string
 	VerificationStatus     string
@@ -63,9 +64,16 @@ type IdentityBindingInput struct {
 	PublicClientID         string
 	Issuer                 string
 	RedirectURIs           []string
+	Environments           []ApplicationEnvironment
 	Scopes                 []string
 	ConfigurationStatus    string
 	VerificationStatus     string
+}
+
+type ApplicationEnvironment struct {
+	Key          string   `json:"key"`
+	Name         string   `json:"name"`
+	RedirectURIs []string `json:"redirect_uris"`
 }
 
 type Verification struct {
@@ -107,6 +115,9 @@ func (b IdentityBindingInput) Validate() error {
 	if len(b.RedirectURIs) > 32 {
 		return ErrInvalidIdentityBinding
 	}
+	if err := validateApplicationEnvironments(b.Environments, b.RedirectURIs); err != nil {
+		return err
+	}
 	for _, raw := range b.RedirectURIs {
 		u, err := url.Parse(strings.TrimSpace(raw))
 		if err != nil || !validIdentityURL(u) {
@@ -115,6 +126,39 @@ func (b IdentityBindingInput) Validate() error {
 	}
 	if _, err := NormalizeOIDCScopes(b.Scopes); err != nil {
 		return ErrInvalidIdentityBinding
+	}
+	return nil
+}
+
+func validateApplicationEnvironments(environments []ApplicationEnvironment, redirects []string) error {
+	if len(environments) == 0 {
+		return nil
+	}
+	allowed := map[string]string{"DEVELOPMENT": "开发环境", "TEST": "测试环境", "PRODUCTION": "生产环境"}
+	redirectSet := make(map[string]struct{}, len(redirects))
+	for _, value := range redirects {
+		redirectSet[strings.TrimSpace(value)] = struct{}{}
+	}
+	seen := make(map[string]struct{}, len(environments))
+	for _, environment := range environments {
+		key := strings.ToUpper(strings.TrimSpace(environment.Key))
+		if _, ok := allowed[key]; !ok || strings.TrimSpace(environment.Name) == "" || len(environment.RedirectURIs) == 0 {
+			return ErrInvalidIdentityBinding
+		}
+		if _, exists := seen[key]; exists {
+			return ErrInvalidIdentityBinding
+		}
+		seen[key] = struct{}{}
+		for _, redirect := range environment.RedirectURIs {
+			normalized := strings.TrimSpace(redirect)
+			if _, ok := redirectSet[normalized]; !ok {
+				return ErrInvalidIdentityBinding
+			}
+			parsed, err := url.Parse(normalized)
+			if err != nil || (key != "DEVELOPMENT" && !strings.EqualFold(parsed.Scheme, "https")) {
+				return ErrInvalidIdentityBinding
+			}
+		}
 	}
 	return nil
 }
@@ -172,6 +216,29 @@ func (b IdentityBinding) RedirectURIsJSON() string {
 
 func DecodeRedirectURIs(raw string) []string {
 	var out []string
+	if json.Unmarshal([]byte(raw), &out) != nil {
+		return nil
+	}
+	return out
+}
+
+func EncodeApplicationEnvironments(environments []ApplicationEnvironment) string {
+	names := map[string]string{"DEVELOPMENT": "开发环境", "TEST": "测试环境", "PRODUCTION": "生产环境"}
+	normalized := make([]ApplicationEnvironment, 0, len(environments))
+	for _, environment := range environments {
+		key := strings.ToUpper(strings.TrimSpace(environment.Key))
+		redirects := make([]string, 0, len(environment.RedirectURIs))
+		for _, redirect := range environment.RedirectURIs {
+			redirects = append(redirects, strings.TrimSpace(redirect))
+		}
+		normalized = append(normalized, ApplicationEnvironment{Key: key, Name: names[key], RedirectURIs: redirects})
+	}
+	data, _ := json.Marshal(normalized)
+	return string(data)
+}
+
+func DecodeApplicationEnvironments(raw string) []ApplicationEnvironment {
+	var out []ApplicationEnvironment
 	if json.Unmarshal([]byte(raw), &out) != nil {
 		return nil
 	}

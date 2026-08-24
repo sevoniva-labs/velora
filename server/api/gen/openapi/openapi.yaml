@@ -4527,6 +4527,17 @@ components:
                     type: array
                     items:
                         type: string
+        forge.v1.PortalApplicationEnvironment:
+            type: object
+            properties:
+                key:
+                    type: string
+                name:
+                    type: string
+                redirectUris:
+                    type: array
+                    items:
+                        type: string
         forge.v1.PortalApplicationOnboardingCheck:
             type: object
             properties:
@@ -4732,6 +4743,10 @@ components:
                     type: array
                     items:
                         type: string
+                environments:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/forge.v1.PortalApplicationEnvironment'
         forge.v1.PortalTag:
             type: object
             properties:
@@ -5538,6 +5553,10 @@ components:
                         type: string
                 credentialDeliveryMode:
                     type: string
+                environments:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/forge.v1.PortalApplicationEnvironment'
         forge.v1.UpsertApplicationIdentityBindingResponse:
             type: object
             properties:

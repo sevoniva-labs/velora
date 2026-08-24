@@ -801,12 +801,13 @@ func uniqueNonEmpty(values []string) []string {
 
 func (r *PortalRepo) GetIdentityBinding(ctx context.Context, orgID, appID string) (portaldomain.IdentityBinding, error) {
 	var b portaldomain.IdentityBinding
-	var redirectJSON, scopesJSON string
-	err := r.db.QueryRowContext(ctx, r.db.Rebind(`SELECT id,organization_id,application_id,provider_key,protocol,provider_application_ref,public_client_id,issuer,redirect_uris_json,scopes_json,configuration_status,verification_status,verified_at,verified_by,verification_error,config_version,created_at,updated_at FROM portal_application_identity_bindings WHERE organization_id=? AND application_id=?`), orgID, appID).Scan(&b.ID, &b.OrganizationID, &b.ApplicationID, &b.ProviderKey, &b.Protocol, &b.ProviderApplicationRef, &b.PublicClientID, &b.Issuer, &redirectJSON, &scopesJSON, &b.ConfigurationStatus, &b.VerificationStatus, &b.VerifiedAt, &b.VerifiedBy, &b.VerificationError, &b.ConfigVersion, &b.CreatedAt, &b.UpdatedAt)
+	var redirectJSON, scopesJSON, environmentsJSON string
+	err := r.db.QueryRowContext(ctx, r.db.Rebind(`SELECT id,organization_id,application_id,provider_key,protocol,provider_application_ref,public_client_id,issuer,redirect_uris_json,scopes_json,environments_json,configuration_status,verification_status,verified_at,verified_by,verification_error,config_version,created_at,updated_at FROM portal_application_identity_bindings WHERE organization_id=? AND application_id=?`), orgID, appID).Scan(&b.ID, &b.OrganizationID, &b.ApplicationID, &b.ProviderKey, &b.Protocol, &b.ProviderApplicationRef, &b.PublicClientID, &b.Issuer, &redirectJSON, &scopesJSON, &environmentsJSON, &b.ConfigurationStatus, &b.VerificationStatus, &b.VerifiedAt, &b.VerifiedBy, &b.VerificationError, &b.ConfigVersion, &b.CreatedAt, &b.UpdatedAt)
 	if err != nil {
 		return portaldomain.IdentityBinding{}, err
 	}
 	b.RedirectURIs = portaldomain.DecodeRedirectURIs(redirectJSON)
+	b.Environments = portaldomain.DecodeApplicationEnvironments(environmentsJSON)
 	_ = json.Unmarshal([]byte(scopesJSON), &b.Scopes)
 	if len(b.Scopes) == 0 {
 		b.Scopes = append([]string(nil), portaldomain.DefaultOIDCScopes...)
@@ -824,6 +825,7 @@ func (r *PortalRepo) UpsertIdentityBinding(ctx context.Context, orgID, actorID, 
 		return portaldomain.IdentityBinding{}, err
 	}
 	scopesJSON, _ := json.Marshal(scopes)
+	environmentsJSON := portaldomain.EncodeApplicationEnvironments(input.Environments)
 	var out portaldomain.IdentityBinding
 	err = r.db.WithinTx(ctx, func(txCtx context.Context) error {
 		var id string
@@ -834,14 +836,14 @@ func (r *PortalRepo) UpsertIdentityBinding(ctx context.Context, orgID, actorID, 
 		}
 		if readErr == sql.ErrNoRows {
 			id = uuid.NewString()
-			if _, err := r.db.ExecContext(txCtx, r.db.Rebind(`INSERT INTO portal_application_identity_bindings(id,organization_id,application_id,provider_key,protocol,provider_application_ref,public_client_id,issuer,redirect_uris_json,scopes_json,configuration_status,verification_status,config_version,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`), id, orgID, appID, strings.ToLower(strings.TrimSpace(input.ProviderKey)), strings.ToUpper(strings.TrimSpace(input.Protocol)), strings.TrimSpace(input.ProviderApplicationRef), strings.TrimSpace(input.PublicClientID), strings.TrimSpace(input.Issuer), (&portaldomain.IdentityBinding{RedirectURIs: input.RedirectURIs}).RedirectURIsJSON(), string(scopesJSON), "CONFIGURED", "PENDING", 1, now, now); err != nil {
+			if _, err := r.db.ExecContext(txCtx, r.db.Rebind(`INSERT INTO portal_application_identity_bindings(id,organization_id,application_id,provider_key,protocol,provider_application_ref,public_client_id,issuer,redirect_uris_json,scopes_json,environments_json,configuration_status,verification_status,config_version,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`), id, orgID, appID, strings.ToLower(strings.TrimSpace(input.ProviderKey)), strings.ToUpper(strings.TrimSpace(input.Protocol)), strings.TrimSpace(input.ProviderApplicationRef), strings.TrimSpace(input.PublicClientID), strings.TrimSpace(input.Issuer), (&portaldomain.IdentityBinding{RedirectURIs: input.RedirectURIs}).RedirectURIsJSON(), string(scopesJSON), environmentsJSON, "CONFIGURED", "PENDING", 1, now, now); err != nil {
 				return err
 			}
 		} else {
 			if expectedVersion > 0 && expectedVersion != version {
 				return portaldomain.ErrOptimisticConflict
 			}
-			res, err := r.db.ExecContext(txCtx, r.db.Rebind(`UPDATE portal_application_identity_bindings SET provider_key=?,protocol=?,provider_application_ref=?,public_client_id=?,issuer=?,redirect_uris_json=?,scopes_json=?,configuration_status=?,verification_status='PENDING',verified_at=NULL,verified_by='',verification_error='',config_version=config_version+1,updated_at=? WHERE organization_id=? AND application_id=? AND config_version=?`), strings.ToLower(strings.TrimSpace(input.ProviderKey)), strings.ToUpper(strings.TrimSpace(input.Protocol)), strings.TrimSpace(input.ProviderApplicationRef), strings.TrimSpace(input.PublicClientID), strings.TrimSpace(input.Issuer), (&portaldomain.IdentityBinding{RedirectURIs: input.RedirectURIs}).RedirectURIsJSON(), string(scopesJSON), "CONFIGURED", now, orgID, appID, version)
+			res, err := r.db.ExecContext(txCtx, r.db.Rebind(`UPDATE portal_application_identity_bindings SET provider_key=?,protocol=?,provider_application_ref=?,public_client_id=?,issuer=?,redirect_uris_json=?,scopes_json=?,environments_json=?,configuration_status=?,verification_status='PENDING',verified_at=NULL,verified_by='',verification_error='',config_version=config_version+1,updated_at=? WHERE organization_id=? AND application_id=? AND config_version=?`), strings.ToLower(strings.TrimSpace(input.ProviderKey)), strings.ToUpper(strings.TrimSpace(input.Protocol)), strings.TrimSpace(input.ProviderApplicationRef), strings.TrimSpace(input.PublicClientID), strings.TrimSpace(input.Issuer), (&portaldomain.IdentityBinding{RedirectURIs: input.RedirectURIs}).RedirectURIsJSON(), string(scopesJSON), environmentsJSON, "CONFIGURED", now, orgID, appID, version)
 			if err != nil {
 				return err
 			}
@@ -908,9 +910,9 @@ func (r *PortalRepo) RecordIdentityVerification(ctx context.Context, orgID, acto
 	var verification portaldomain.Verification
 	err := r.db.WithinTx(ctx, func(txCtx context.Context) error {
 		var b portaldomain.IdentityBinding
-		var redirectJSON, scopesJSON string
+		var redirectJSON, scopesJSON, environmentsJSON string
 		var version int64
-		if err := r.db.QueryRowContext(txCtx, r.db.Rebind(`SELECT id,organization_id,application_id,provider_key,protocol,provider_application_ref,public_client_id,issuer,redirect_uris_json,scopes_json,configuration_status,verification_status,verified_at,verified_by,verification_error,config_version,created_at,updated_at FROM portal_application_identity_bindings WHERE organization_id=? AND application_id=? FOR UPDATE`), orgID, appID).Scan(&b.ID, &b.OrganizationID, &b.ApplicationID, &b.ProviderKey, &b.Protocol, &b.ProviderApplicationRef, &b.PublicClientID, &b.Issuer, &redirectJSON, &scopesJSON, &b.ConfigurationStatus, &b.VerificationStatus, &b.VerifiedAt, &b.VerifiedBy, &b.VerificationError, &version, &b.CreatedAt, &b.UpdatedAt); err != nil {
+		if err := r.db.QueryRowContext(txCtx, r.db.Rebind(`SELECT id,organization_id,application_id,provider_key,protocol,provider_application_ref,public_client_id,issuer,redirect_uris_json,scopes_json,environments_json,configuration_status,verification_status,verified_at,verified_by,verification_error,config_version,created_at,updated_at FROM portal_application_identity_bindings WHERE organization_id=? AND application_id=? FOR UPDATE`), orgID, appID).Scan(&b.ID, &b.OrganizationID, &b.ApplicationID, &b.ProviderKey, &b.Protocol, &b.ProviderApplicationRef, &b.PublicClientID, &b.Issuer, &redirectJSON, &scopesJSON, &environmentsJSON, &b.ConfigurationStatus, &b.VerificationStatus, &b.VerifiedAt, &b.VerifiedBy, &b.VerificationError, &version, &b.CreatedAt, &b.UpdatedAt); err != nil {
 			return err
 		}
 		if expectedVersion > 0 && version != expectedVersion {
@@ -918,6 +920,7 @@ func (r *PortalRepo) RecordIdentityVerification(ctx context.Context, orgID, acto
 		}
 		b.ConfigVersion = version
 		b.RedirectURIs = portaldomain.DecodeRedirectURIs(redirectJSON)
+		b.Environments = portaldomain.DecodeApplicationEnvironments(environmentsJSON)
 		_ = json.Unmarshal([]byte(scopesJSON), &b.Scopes)
 		verification = portaldomain.Verification{ID: uuid.NewString(), OrganizationID: orgID, ApplicationID: appID, BindingID: b.ID, CheckType: checkType, Result: result, ErrorCode: errorCode, Evidence: evidence, VerifiedBy: actorID, OccurredAt: now, RequestID: requestID}
 		if _, err := r.db.ExecContext(txCtx, r.db.Rebind(`INSERT INTO portal_application_verifications(id,organization_id,application_id,binding_id,check_type,result,error_code,evidence_json,verified_by,occurred_at,request_id) VALUES(?,?,?,?,?,?,?,?,?,?,?)`), verification.ID, orgID, appID, b.ID, checkType, result, errorCode, evidence, actorID, now, requestID); err != nil {

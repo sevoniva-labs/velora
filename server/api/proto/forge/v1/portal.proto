@@ -434,6 +434,12 @@ message PortalIdentityBinding {
   google.protobuf.Timestamp created_at = 16;
   google.protobuf.Timestamp updated_at = 17;
   repeated string scopes = 18;
+  repeated PortalApplicationEnvironment environments = 19;
+}
+message PortalApplicationEnvironment {
+  string key = 1;
+  string name = 2;
+  repeated string redirect_uris = 3;
 }
 message PortalApplicationVerification {
   string id = 1;
@@ -497,6 +503,7 @@ message UpsertApplicationIdentityBindingRequest {
   string approval_id = 9;
   repeated string scopes = 10;
   string credential_delivery_mode = 11;
+  repeated PortalApplicationEnvironment environments = 12;
 }
 message UpsertApplicationIdentityBindingResponse {
   PortalIdentityBinding binding = 1;

@@ -57,6 +57,8 @@ func (s *Store) Issue(ctx context.Context, bundle Bundle) (string, time.Time, er
 		return "", time.Time{}, ErrUnavailable
 	}
 	bundle.IssuedAt = time.Now().UTC().Format(time.RFC3339Nano)
+	// #nosec G117 -- this purpose-built one-time credential bundle is encrypted
+	// before cache storage and can only be consumed once within the short TTL.
 	raw, err := json.Marshal(bundle)
 	if err != nil {
 		return "", time.Time{}, err

@@ -338,6 +338,8 @@ func (s *PortalService) ListAdminPortalApplications(ctx context.Context, req *fo
 	if err != nil {
 		return nil, internalError(err)
 	}
+	// #nosec G115 -- repository pagination normalizes page and bounds pageSize;
+	// the request contract itself is int32, so the response conversion is safe.
 	return &forgev1.ListAdminPortalApplicationsResponse{Applications: portalApplicationsProto(items), Total: total, Page: int32(page), PageSize: int32(pageSize)}, nil
 }
 
@@ -1456,6 +1458,7 @@ func identityBindingProto(item portaldomain.IdentityBinding) *forgev1.PortalIden
 }
 
 func onboardingOperationProto(item portaldomain.OnboardingOperation) *forgev1.PortalApplicationOnboardingOperation {
+	// #nosec G115 -- retry attempts are policy-bounded to a small positive value.
 	return &forgev1.PortalApplicationOnboardingOperation{Id: item.ID, OperationType: item.OperationType, DesiredVersion: item.DesiredVersion, Status: item.Status, AttemptCount: int32(item.AttemptCount), ErrorCode: item.ErrorCode, NextRetryAt: optionalTimestamp(item.NextRetryAt), UpdatedAt: timestamp(item.UpdatedAt), CompletedAt: optionalTimestamp(item.CompletedAt)}
 }
 

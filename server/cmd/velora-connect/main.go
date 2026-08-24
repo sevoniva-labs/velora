@@ -155,6 +155,8 @@ func doctor(args []string) error {
 	if info.Mode()&os.ModeSymlink != 0 || !info.Mode().IsRegular() || info.Mode().Perm()&0o077 != 0 {
 		return errors.New("配置文件必须是非符号链接且权限不得开放给组或其他用户")
 	}
+	// #nosec G304 -- the operator explicitly supplies this local config path;
+	// Lstat above rejects symlinks, non-regular files and group/world access.
 	raw, err := os.ReadFile(path)
 	if err != nil {
 		return err
@@ -190,6 +192,7 @@ func prepareOutput(raw string) (string, error) {
 	if info.Mode()&os.ModeSymlink != 0 || !info.IsDir() {
 		return "", errors.New("输出路径必须是非符号链接目录")
 	}
+	// #nosec G302 -- this is a directory and 0700 is the required private mode.
 	if err := os.Chmod(dir, 0o700); err != nil {
 		return "", err
 	}
@@ -207,6 +210,8 @@ func readToken(stdin io.Reader, tokenFile string) (string, error) {
 		if info.Mode()&os.ModeSymlink != 0 || !info.Mode().IsRegular() || info.Mode().Perm()&0o077 != 0 {
 			return "", errors.New("Token 文件必须是非符号链接且权限为 0600")
 		}
+		// #nosec G304 -- the operator explicitly supplies this token file;
+		// Lstat above rejects symlinks, non-regular files and non-0600 access.
 		raw, err = os.ReadFile(tokenFile)
 	} else {
 		fmt.Fprint(os.Stderr, "请输入 Enrollment Token：")

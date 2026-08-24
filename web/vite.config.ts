@@ -19,27 +19,7 @@ export default defineConfig({
     },
   },
   build: {
-    chunkSizeWarningLimit: 1400,
-    rolldownOptions: {
-      output: {
-        advancedChunks: {
-          groups: [
-            {
-              name: 'react-vendor',
-              test: /node_modules\/(react|react-dom|react-router|react-router-dom|@tanstack|scheduler|use-sync-external-store)/,
-            },
-            {
-              name: 'pro-vendor',
-              test: /node_modules\/@ant-design\/(pro|icons|cssinjs|fast-color|colors)/,
-            },
-            {
-              name: 'rc-vendor',
-              test: /node_modules\/(@rc-component|rc-[a-z-]+|dayjs|@babel\/runtime)/,
-            },
-          ],
-        },
-      },
-    },
+    chunkSizeWarningLimit: 1100,
   },
   test: {
     environment: 'jsdom',

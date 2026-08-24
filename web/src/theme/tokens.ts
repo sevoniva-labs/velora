@@ -168,3 +168,36 @@ export const veloraTheme: ThemeConfig = {
     },
   },
 }
+
+/**
+ * 管理后台严格沿用 go-antd-fullstack 的 Forge 主题。
+ * 门户可保留自己的品牌表达，后台不再维护第二套视觉 Token。
+ */
+export const scaffoldAdminTheme: ThemeConfig = {
+  token: {
+    colorPrimary: '#1677FF',
+    colorInfo: '#1677FF',
+    colorSuccess: '#16A34A',
+    colorWarning: '#D97706',
+    colorError: '#DC2626',
+    colorBgLayout: '#F5F7FA',
+    borderRadius: 8,
+    borderRadiusLG: 12,
+    controlHeight: 36,
+    fontSize: 14,
+    fontFamily: 'Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif',
+    motion: true,
+  },
+  components: {
+    Layout: { bodyBg: '#F5F7FA', headerBg: '#FFFFFF', siderBg: '#FFFFFF' },
+    Menu: { itemBorderRadius: 8, itemMarginInline: 8 },
+    Table: { headerBg: '#FAFAFA', headerBorderRadius: 8 },
+    Card: { borderRadiusLG: 12 },
+    Button: { borderRadius: 8, controlHeight: 36 },
+    Input: { borderRadius: 8, controlHeight: 38 },
+    Select: { borderRadius: 8, controlHeight: 38 },
+    Modal: { borderRadiusLG: 12 },
+    Drawer: { borderRadiusLG: 12 },
+    Tabs: { cardBg: '#FFFFFF' },
+  },
+}

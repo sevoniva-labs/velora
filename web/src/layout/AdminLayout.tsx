@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { ModalForm, ProFormText, ProLayout, type MenuDataItem } from '@ant-design/pro-components'
-import { App as AntdApp, Avatar, Button, Dropdown } from 'antd'
+import { App as AntdApp, Avatar, Button, ConfigProvider, Dropdown, Space } from 'antd'
 import { HomeOutlined, LogoutOutlined, UserOutlined } from '@ant-design/icons'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
@@ -10,6 +10,7 @@ import { useMe } from '../auth/useMe'
 import { adminNavItems, type AdminNavItem } from './menu'
 import { hasAnyPermission } from '../auth/permissions'
 import { portalConfig } from '../config/portal'
+import { scaffoldAdminTheme } from '../theme/tokens'
 
 export interface AdminLayoutProps { children: ReactNode }
 
@@ -56,10 +57,11 @@ export function AdminLayout({ children }: AdminLayoutProps) {
   })
 
   return (
-    <>
+    <ConfigProvider theme={scaffoldAdminTheme}>
       <ProLayout
-      className="velora-admin-pro-layout"
+      className="forge-layout"
       layout="side"
+      navTheme="light"
       title={portalName}
       logo="/sevoniva-mark.svg"
       location={{ pathname: location.pathname }}
@@ -67,28 +69,24 @@ export function AdminLayout({ children }: AdminLayoutProps) {
       menuItemRender={(item, dom) => item.path ? <Link to={item.path}>{dom}</Link> : dom}
       collapsed={collapsed}
       onCollapse={setCollapsed}
-      siderWidth={208}
+      siderWidth={224}
+      contentWidth="Fluid"
       fixedHeader
       fixSiderbar
       breakpoint="lg"
-      token={{
-        header: { colorBgHeader: 'var(--admin-bg-canvas)', colorHeaderTitle: 'var(--admin-text-primary)' },
-        sider: { colorMenuBackground: 'var(--admin-bg-canvas)', colorTextMenu: 'var(--admin-text-secondary)', colorTextMenuSelected: 'var(--admin-text-primary)', colorBgMenuItemSelected: 'var(--admin-menu-active)' },
-        pageContainer: { paddingInlinePageContainerContent: 0, paddingBlockPageContainerContent: 0 },
-      }}
+      menu={{ type: 'group', autoClose: false }}
       actionsRender={() => [<Button key="portal" type="text" icon={<HomeOutlined />} onClick={() => navigate('/home')}>返回门户</Button>]}
       avatarProps={{
-        src: <Avatar size={28} icon={<UserOutlined />} />,
-        title: displayName,
-        render: (_, dom) => <Dropdown trigger={['click']} menu={{ items: [
+        src: undefined,
+        title: false,
+        render: () => <Dropdown trigger={['click']} menu={{ items: [
           { key: 'role', label: roleLabel, disabled: true },
           { type: 'divider' },
           { key: 'logout', label: '退出登录', icon: <LogoutOutlined />, danger: true, onClick: () => logoutMutation.mutate() },
-        ] }}>{dom}</Dropdown>,
+        ] }}><Space className="user-trigger"><Avatar size={28} icon={<UserOutlined />} /><span className="user-name">{displayName}</span></Space></Dropdown>,
       }}
-      contentStyle={{ padding: 24, minHeight: 'calc(100vh - 56px)' }}
     >
-      <main id="main" className="velora-admin-content">{children}</main>
+      <main id="main">{children}</main>
       </ProLayout>
       <ModalForm<{ currentPassword: string; mfaCode?: string; recoveryCode?: string }>
         title="确认本人操作"
@@ -119,6 +117,6 @@ export function AdminLayout({ children }: AdminLayoutProps) {
         )}
         <Button type="link" size="small" style={{ paddingInline: 0 }} onClick={() => setRecoveryMode((value) => !value)}>{recoveryMode ? '使用验证码' : '使用恢复码'}</Button>
       </ModalForm>
-    </>
+    </ConfigProvider>
   )
 }

@@ -95,6 +95,20 @@ export default function TurnstileWidget({ siteKey, action = 'login', onVerify, o
       setFailed(true)
     }
 
+    const resetTimedOutChallenge = () => {
+      onExpire?.()
+      onVerify('')
+      if (!widgetId || !window.turnstile) {
+        setRetryAttempt((attempt) => attempt + 1)
+        return
+      }
+      try {
+        window.turnstile.reset(widgetId)
+      } catch {
+        setRetryAttempt((attempt) => attempt + 1)
+      }
+    }
+
     loadTurnstileScript()
       .then(() => {
         if (cancelled || !el || !window.turnstile) return
@@ -109,7 +123,9 @@ export default function TurnstileWidget({ siteKey, action = 'login', onVerify, o
             onVerify('')
           },
           'error-callback': failVerification,
-          'timeout-callback': failVerification,
+          // A challenge timeout is recoverable. Reset it in place instead of
+          // hiding the widget and leaving the login button permanently disabled.
+          'timeout-callback': resetTimedOutChallenge,
           theme,
           size: 'flexible',
           appearance: 'interaction-only',

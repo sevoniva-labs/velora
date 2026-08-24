@@ -148,7 +148,7 @@ func PortalRules() map[string][]string {
 		forgev1.OperationPortalServiceListPortalTags:               {},
 		// Identity administrators need the sanitized admin application list to
 		// select an application for onboarding; mutation routes remain manage-only.
-		forgev1.OperationPortalServiceListAdminPortalApplications:               {"portal.application.manage", "iam.integration.read"},
+		forgev1.OperationPortalServiceListAdminPortalApplications:               {"portal.application.manage", "portal.application.publish", "iam.integration.read", "iam.integration.manage", "iam.integration.verify"},
 		forgev1.OperationPortalServiceCreatePortalApplication:                   {"portal.application.manage"},
 		forgev1.OperationPortalServiceUpdatePortalApplication:                   {"portal.application.manage"},
 		forgev1.OperationPortalServiceDeletePortalApplication:                   {"portal.application.manage"},
@@ -170,7 +170,7 @@ func PortalRules() map[string][]string {
 		forgev1.OperationPortalServiceRetryPortalApplicationProvisioning:        {"portal.application.manage", "iam.integration.manage"},
 		forgev1.OperationPortalServiceGetIdentityOverview:                       {"iam.integration.read"},
 		forgev1.OperationPortalServiceGetIdentityConsoleLink:                    {"iam.console.open"},
-		forgev1.OperationPortalServiceGetApplicationOnboarding:                  {"iam.integration.read"},
+		forgev1.OperationPortalServiceGetApplicationOnboarding:                  {"portal.application.manage", "portal.application.publish", "iam.integration.read", "iam.integration.manage", "iam.integration.verify"},
 		forgev1.OperationPortalServiceUpsertApplicationIdentityBinding:          {"iam.integration.manage"},
 		forgev1.OperationPortalServicePrepareApplicationCredentialApproval:      {"iam.integration.manage"},
 		forgev1.OperationPortalServiceVerifyApplicationIdentity:                 {"iam.integration.verify"},

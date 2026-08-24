@@ -7,9 +7,9 @@ import QueryErrorState from '../../components/QueryErrorState'
 import { APP_LIFECYCLE_LABEL, ONBOARDING_CHECK_LABEL, enumLabel } from '../../labels'
 import { formatDateTime } from '../../utils/format'
 
-interface Props { application: Application }
+interface Props { application: Application; canVerify: boolean; canPublish: boolean }
 
-export default function ApplicationRelease({ application }: Props) {
+export default function ApplicationRelease({ application, canVerify, canPublish }: Props) {
   const { message } = App.useApp()
   const queryClient = useQueryClient()
   const onboarding = useQuery({ queryKey: queryKeys.applicationOnboarding(application.id), queryFn: () => getApplicationOnboarding(application.id) })
@@ -22,10 +22,10 @@ export default function ApplicationRelease({ application }: Props) {
   const data = onboarding.data
   const identityVerified = application.ssoType === 'URL' || data?.binding?.verificationStatus === 'PASSED'
   const allChecksPassed = Boolean(data?.onboardingChecks.length) && data!.onboardingChecks.every((item) => item.result === 'PASSED')
-  let action = { label: '运行发布检查', run: () => checks.mutate(), loading: checks.isPending, disabled: false }
-  if (!identityVerified) action = { label: '验证登录配置', run: () => verify.mutate(), loading: verify.isPending, disabled: !data?.binding }
-  else if (allChecksPassed && application.lifecycleStatus !== 'READY' && application.lifecycleStatus !== 'PUBLISHED') action = { label: '提交发布', run: () => submit.mutate(), loading: submit.isPending, disabled: !data?.canPublish }
-  else if (application.lifecycleStatus === 'READY') action = { label: '发布应用', run: () => publish.mutate(), loading: publish.isPending, disabled: !data?.canPublish }
+  let action = { label: '运行发布检查', run: () => checks.mutate(), loading: checks.isPending, disabled: !canVerify }
+  if (!identityVerified) action = { label: '验证登录配置', run: () => verify.mutate(), loading: verify.isPending, disabled: !canVerify || !data?.binding }
+  else if (allChecksPassed && application.lifecycleStatus !== 'READY' && application.lifecycleStatus !== 'PUBLISHED') action = { label: '提交发布', run: () => submit.mutate(), loading: submit.isPending, disabled: !canPublish || !data?.canPublish }
+  else if (application.lifecycleStatus === 'READY') action = { label: '发布应用', run: () => publish.mutate(), loading: publish.isPending, disabled: !canPublish || !data?.canPublish }
   return <Space direction="vertical" size={16} style={{ width: '100%' }}>
     <ProDescriptions column={2} loading={onboarding.isLoading} dataSource={data ?? {}} columns={[
       { title: '接入状态', render: () => enumLabel(APP_LIFECYCLE_LABEL, application.lifecycleStatus, '草稿') },

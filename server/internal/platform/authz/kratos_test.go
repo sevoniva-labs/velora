@@ -96,6 +96,16 @@ func TestIdentityReaderCanListOnboardingApplicationsButCannotMutate(t *testing.T
 	}
 }
 
+func TestApplicationAdministratorsCanReadOnboardingState(t *testing.T) {
+	handler := Server(PortalRules())(func(context.Context, any) (any, error) { return "ok", nil })
+	operation := forgev1.OperationPortalServiceGetApplicationOnboarding
+	for _, permission := range []string{"portal.application.manage", "portal.application.publish", "iam.integration.read", "iam.integration.manage", "iam.integration.verify"} {
+		if _, err := handler(authorizationContext(operation, domain.Principal{Permissions: []string{permission}}), nil); err != nil {
+			t.Fatalf("application administrator %q cannot read onboarding state: %v", permission, err)
+		}
+	}
+}
+
 func TestIdentityBindingMutationUsesIntegrationManageNotConsoleAccess(t *testing.T) {
 	handler := Server(PortalRules())(func(context.Context, any) (any, error) { return "ok", nil })
 	operation := forgev1.OperationPortalServiceUpsertApplicationIdentityBinding

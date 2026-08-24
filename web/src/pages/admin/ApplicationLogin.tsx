@@ -7,7 +7,7 @@ import type { Application } from '../../types'
 import QueryErrorState from '../../components/QueryErrorState'
 import { formatDateTime } from '../../utils/format'
 
-interface Props { application: Application }
+interface Props { application: Application; canManage: boolean }
 interface LoginForm { redirectUris: string }
 
 function verificationStatus(status?: string) {
@@ -16,7 +16,7 @@ function verificationStatus(status?: string) {
   return <Tag>待验证</Tag>
 }
 
-export default function ApplicationLogin({ application }: Props) {
+export default function ApplicationLogin({ application, canManage }: Props) {
   const { message } = App.useApp()
   const queryClient = useQueryClient()
   const [open, setOpen] = useState(false)
@@ -48,7 +48,7 @@ export default function ApplicationLogin({ application }: Props) {
   if (onboarding.isError) return <QueryErrorState refetch={() => void onboarding.refetch()} />
   const binding = onboarding.data?.binding
   return <>
-    <ProDescriptions column={2} loading={onboarding.isLoading} dataSource={binding ?? {}} extra={<Button type="primary" onClick={() => setOpen(true)}>{binding ? '更新回调地址' : '配置登录'}</Button>} columns={[
+    <ProDescriptions column={2} loading={onboarding.isLoading} dataSource={binding ?? {}} extra={canManage ? <Button type="primary" onClick={() => setOpen(true)}>{binding ? '更新回调地址' : '配置登录'}</Button> : undefined} columns={[
       { title: '配置状态', render: () => binding ? <Tag color="success">已配置</Tag> : <Tag>未配置</Tag> },
       { title: '验证状态', render: () => verificationStatus(binding?.verificationStatus) },
       { title: '回调地址', span: 2, render: () => binding?.redirectUris?.length ? <Space direction="vertical" size={2}>{binding.redirectUris.map((uri) => <Typography.Text key={uri} copyable>{uri}</Typography.Text>)}</Space> : '—' },

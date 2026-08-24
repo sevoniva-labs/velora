@@ -14,7 +14,7 @@ import {
   TeamOutlined,
   UsergroupAddOutlined,
 } from '@ant-design/icons'
-import { API_TOKEN_MANAGE, APPROVAL_REQUEST_READ, APPROVAL_TASK_DECIDE, AUDIT_READ, PORTAL_MANAGE, SYSTEM_ACCESS_REVIEW_READ, SYSTEM_CONFIG_READ, SYSTEM_DEPARTMENT_READ, SYSTEM_POSITION_READ, SYSTEM_ROLE_READ, SYSTEM_SESSION_READ, SYSTEM_TEMPORARY_GRANT_READ, SYSTEM_USER_GROUP_READ, SYSTEM_USER_READ } from '../auth/permissions'
+import { API_TOKEN_MANAGE, APPROVAL_REQUEST_READ, APPROVAL_TASK_DECIDE, AUDIT_READ, IDENTITY_MANAGE, IDENTITY_READ, IDENTITY_VERIFY, PORTAL_MANAGE, PORTAL_PUBLISH, SYSTEM_ACCESS_REVIEW_READ, SYSTEM_CONFIG_READ, SYSTEM_DEPARTMENT_READ, SYSTEM_POSITION_READ, SYSTEM_ROLE_READ, SYSTEM_SESSION_READ, SYSTEM_TEMPORARY_GRANT_READ, SYSTEM_USER_GROUP_READ, SYSTEM_USER_READ } from '../auth/permissions'
 
 export interface AdminNavItem {
   key: string
@@ -28,9 +28,9 @@ export interface AdminNavItem {
 export const adminNavItems: AdminNavItem[] = [
   { key: 'admin-overview', path: '/admin', label: '工作台', icon: <DashboardOutlined />, permissions: [PORTAL_MANAGE, AUDIT_READ, SYSTEM_USER_READ] },
   {
-    key: 'admin-app-center', label: '应用中心', icon: <AppstoreOutlined />, permissions: [PORTAL_MANAGE],
+    key: 'admin-app-center', label: '应用中心', icon: <AppstoreOutlined />, permissions: [PORTAL_MANAGE, PORTAL_PUBLISH, IDENTITY_READ, IDENTITY_MANAGE, IDENTITY_VERIFY],
     children: [
-      { key: 'admin-apps', path: '/admin/applications', label: '应用', permissions: [PORTAL_MANAGE] },
+      { key: 'admin-apps', path: '/admin/applications', label: '应用', permissions: [PORTAL_MANAGE, PORTAL_PUBLISH, IDENTITY_READ, IDENTITY_MANAGE, IDENTITY_VERIFY] },
       { key: 'admin-taxonomy', path: '/admin/taxonomy', label: '分类与标签', permissions: [PORTAL_MANAGE] },
     ],
   },

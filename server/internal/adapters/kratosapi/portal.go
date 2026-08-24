@@ -330,11 +330,7 @@ func (s *PortalService) ListAdminPortalApplications(ctx context.Context, req *fo
 	if err != nil {
 		return nil, err
 	}
-	pageSize := int(req.GetPageSize())
-	legacyLimit := req.GetLimit() //nolint:staticcheck // Deprecated wire field is retained for one release for older clients.
-	if pageSize == 0 && legacyLimit > 0 {
-		pageSize = int(legacyLimit)
-	}
+	pageSize := adminApplicationPageSize(req)
 	items, total, page, pageSize, err := s.portal.AdminListApplicationsPage(ctx, principal, int(req.GetPage()), pageSize, req.GetKeyword(), req.GetStatus(), req.GetLaunchType(), req.GetLifecycleStatus())
 	if err != nil {
 		return nil, internalError(err)
@@ -342,6 +338,16 @@ func (s *PortalService) ListAdminPortalApplications(ctx context.Context, req *fo
 	// #nosec G115 -- repository pagination normalizes page and bounds pageSize;
 	// the request contract itself is int32, so the response conversion is safe.
 	return &forgev1.ListAdminPortalApplicationsResponse{Applications: portalApplicationsProto(items), Total: total, Page: int32(page), PageSize: int32(pageSize)}, nil
+}
+
+func adminApplicationPageSize(req *forgev1.ListAdminPortalApplicationsRequest) int {
+	pageSize := int(req.GetPageSize())
+	//lint:ignore SA1019 Deprecated wire field is intentionally read for one compatibility release.
+	legacyLimit := req.GetLimit()
+	if pageSize == 0 && legacyLimit > 0 {
+		return int(legacyLimit)
+	}
+	return pageSize
 }
 
 func (s *PortalService) CreatePortalApplication(ctx context.Context, req *forgev1.CreatePortalApplicationRequest) (*forgev1.CreatePortalApplicationResponse, error) {

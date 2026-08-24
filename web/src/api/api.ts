@@ -229,12 +229,28 @@ export function consumeOIDCRedirect(): string {
   }
 }
 
-export async function loginWithPassword(username: string, password: string, redirect?: string, _turnstileToken?: string): Promise<{ redirect: string; bridgeAction?: string; bridgeTicket?: string }> {
+export async function loginWithPassword(username: string, password: string, redirect?: string, _turnstileToken?: string, mfa?: { code?: string; recoveryCode?: string }): Promise<{ redirect: string; bridgeAction?: string; bridgeTicket?: string }> {
 	const data = await apiFetch<{ bridgeAction?: string; bridgeTicket?: string }>('/auth/login', {
 		method: 'POST',
-		body: { loginName: username, organization: 'default', password, returnPath: internalRedirect(redirect), turnstileToken: _turnstileToken || undefined },
+		body: { loginName: username, organization: 'default', password, returnPath: internalRedirect(redirect), turnstileToken: _turnstileToken || undefined, mfaCode: mfa?.code || undefined, recoveryCode: mfa?.recoveryCode || undefined },
 	})
 	return { redirect: internalRedirect(redirect), bridgeAction: data?.bridgeAction, bridgeTicket: data?.bridgeTicket }
+}
+
+export async function getMFAStatus(): Promise<boolean> {
+  return Boolean((await apiFetch<{ enabled?: boolean }>('/mfa')).enabled)
+}
+
+export function beginMFAEnrollment(currentPassword: string): Promise<{ secret: string; provisioningUri: string }> {
+  return apiFetch('/mfa/totp/enrollment', { method: 'POST', body: { currentPassword } })
+}
+
+export function confirmMFAEnrollment(code: string): Promise<{ recoveryCodes: string[] }> {
+  return apiFetch('/mfa/totp/enrollment/confirmation', { method: 'POST', body: { code } })
+}
+
+export function disableMFA(currentPassword: string, code?: string, recoveryCode?: string): Promise<unknown> {
+  return apiFetch('/mfa/totp/disable', { method: 'POST', body: { currentPassword, code: code || undefined, recoveryCode: recoveryCode || undefined } })
 }
 
 export function sessionBridgeFallbackURL(action: string, returnPath: string, portalOrigin = window.location.origin): string {

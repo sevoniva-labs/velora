@@ -58,6 +58,8 @@ export default function Login() {
   const [turnstileRequired, setTurnstileRequired] = useState(false)
   // Turnstile token 一次性有效：登录失败/过期后递增 key 强制重挂载 widget 获取新 token。
   const [turnstileAttempt, setTurnstileAttempt] = useState(0)
+  const [mfaRequired, setMfaRequired] = useState(false)
+  const [useRecoveryCode, setUseRecoveryCode] = useState(false)
   const { data: turnstile } = useQuery({
     queryKey: ['turnstile-config'],
     queryFn: getTurnstileConfig,
@@ -106,14 +108,14 @@ export default function Login() {
     }
   }
 
-  const onFinish = async (values: { username: string; password: string }) => {
+  const onFinish = async (values: { username: string; password: string; mfaCode?: string; recoveryCode?: string }) => {
     if (turnstileEnabled && turnstileRequired && !turnstileToken) {
       message.warning('请完成人机验证后继续。')
       return
     }
     setSubmitting(true)
     try {
-      const res = await loginWithPassword(values.username, values.password, redirect ?? undefined, turnstileToken || undefined)
+      const res = await loginWithPassword(values.username, values.password, redirect ?? undefined, turnstileToken || undefined, { code: values.mfaCode, recoveryCode: values.recoveryCode })
       // 先通过一次性 POST 把 Casdoor 的 host-only 会话交给 auth 域名；
       // 没有桥接票据时才回到 Velora 页面，避免把票据放进 URL。
       if (res.bridgeAction && res.bridgeTicket) {
@@ -122,7 +124,12 @@ export default function Login() {
         window.location.assign(res.redirect || '/')
       }
     } catch (err) {
-      if (err instanceof ApiError && err.status === 403 && turnstileEnabled) {
+      if (err instanceof ApiError && err.status === 428) {
+        setMfaRequired(true)
+        message.info('请输入多因素认证验证码。')
+      } else if (mfaRequired && err instanceof ApiError && err.status === 401) {
+        message.error('验证码或恢复码不正确，请重试。')
+      } else if (err instanceof ApiError && err.status === 403 && turnstileEnabled) {
         setTurnstileRequired(true)
         message.warning('请完成安全验证后重试。')
       } else {
@@ -224,7 +231,7 @@ export default function Login() {
               <p className="velora-login-note">登录验证由企业身份中心完成。</p>
             </>
           ) : (
-            <Form<{ username: string; password: string }>
+            <Form<{ username: string; password: string; mfaCode?: string; recoveryCode?: string }>
               name="login"
               size="large"
               onFinish={onFinish}
@@ -246,6 +253,13 @@ export default function Login() {
                   maxLength={128}
                 />
               </Form.Item>
+              {mfaRequired && !useRecoveryCode && <Form.Item label="验证码" name="mfaCode" rules={[{ required: true, message: '请输入 6 位验证码' }, { pattern: /^\d{6}$/, message: '请输入 6 位数字验证码' }]}>
+                <Input inputMode="numeric" autoComplete="one-time-code" maxLength={6} prefix={<SafetyCertificateOutlined style={{ color: '#98a2b3' }} />} placeholder="6 位验证码" />
+              </Form.Item>}
+              {mfaRequired && useRecoveryCode && <Form.Item label="恢复码" name="recoveryCode" rules={[{ required: true, message: '请输入恢复码' }]}>
+                <Input autoComplete="one-time-code" maxLength={128} prefix={<SafetyCertificateOutlined style={{ color: '#98a2b3' }} />} placeholder="恢复码" />
+              </Form.Item>}
+              {mfaRequired && <Button type="link" size="small" style={{ paddingInline: 0, marginTop: -8 }} onClick={() => setUseRecoveryCode((value) => !value)}>{useRecoveryCode ? '使用验证码' : '使用恢复码'}</Button>}
               {turnstileEnabled && turnstileRequired && (
                 <div style={{ marginTop: 12, marginBottom: 4 }}>
                   <TurnstileWidget

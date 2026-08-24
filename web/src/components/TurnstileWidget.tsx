@@ -23,7 +23,7 @@ interface TurnstileRenderOptions {
   'refresh-expired'?: 'auto' | 'manual' | 'never'
   'refresh-timeout'?: 'auto' | 'manual' | 'never'
   theme?: 'light' | 'dark' | 'auto'
-  size?: 'normal' | 'compact' | 'flexible'
+  size?: 'normal' | 'compact' | 'flexible' | 'invisible'
   appearance?: 'always' | 'execute' | 'interaction-only'
 }
 
@@ -122,10 +122,10 @@ export default function TurnstileWidget({ siteKey, action = 'login', onVerify, o
           'error-callback': showFailedChallenge,
           'timeout-callback': clearTimedOutChallenge,
           theme,
-          size: 'flexible',
-          // The production widget runs in invisible mode. Keep the embed out of
-          // the layout unless Cloudflare explicitly needs user interaction.
-          appearance: 'interaction-only',
+          // This site key is configured as an Invisible widget in Cloudflare.
+          // Rendering it as a visible/flexible widget makes Cloudflare reject
+          // most challenges before a token is issued.
+          size: 'invisible',
         })
         widgetIdRef.current = widgetId
       })

@@ -1,10 +1,14 @@
 import { useCallback, useState } from 'react'
-import { Alert, Avatar, Button, Card, Descriptions, Divider, Form, Input, List, Modal, Space, Tag, Typography, message } from 'antd'
-import { KeyOutlined, LaptopOutlined, LogoutOutlined } from '@ant-design/icons'
+import { Alert, Avatar, Button, Card, Descriptions, Divider, Form, Input, List, Modal, QRCode, Space, Tag, Typography, message } from 'antd'
+import { KeyOutlined, LaptopOutlined, LogoutOutlined, SafetyCertificateOutlined } from '@ant-design/icons'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   changePassword,
+  beginMFAEnrollment,
+  confirmMFAEnrollment,
+  disableMFA,
   getAuthCapabilities,
+  getMFAStatus,
   getUserProfile,
   listSessions,
   logout,
@@ -19,10 +23,16 @@ const { Title, Text } = Typography
 export default function UserCenter() {
   const [form] = Form.useForm()
   const [msg, msgCtx] = message.useMessage()
+  const queryClient = useQueryClient()
   const [deviceModalOpen, setDeviceModalOpen] = useState(false)
+  const [beginMFAOpen, setBeginMFAOpen] = useState(false)
+  const [disableMFAOpen, setDisableMFAOpen] = useState(false)
+  const [enrollment, setEnrollment] = useState<{ secret: string; provisioningUri: string }>()
+  const [recoveryCodes, setRecoveryCodes] = useState<string[]>([])
 
   const { data: profile } = useQuery({ queryKey: ['user-center', 'profile'], queryFn: getUserProfile })
   const { data: authCapabilities } = useQuery({ queryKey: ['auth', 'capabilities'], queryFn: getAuthCapabilities })
+  const mfaStatus = useQuery({ queryKey: ['auth', 'mfa'], queryFn: getMFAStatus })
   const localPasswordManagement = authCapabilities?.authMode === 'password' && authCapabilities?.passwordLoginEnabled === true
 
   const changePwd = useMutation({
@@ -37,6 +47,9 @@ export default function UserCenter() {
     },
     onError: (err: Error) => msg.error(err.message || '密码更新失败'),
   })
+  const beginMFA = useMutation({ mutationFn: beginMFAEnrollment, onSuccess: (data) => { setEnrollment(data); setBeginMFAOpen(false) }, onError: (error: Error) => msg.error(error.message || '无法开始设置多因素认证') })
+  const confirmMFA = useMutation({ mutationFn: confirmMFAEnrollment, onSuccess: async (data) => { setEnrollment(undefined); setRecoveryCodes(data.recoveryCodes ?? []); await queryClient.invalidateQueries({ queryKey: ['auth', 'mfa'] }); msg.success('多因素认证已启用') }, onError: (error: Error) => msg.error(error.message || '验证码不正确') })
+  const disableMFAMutation = useMutation({ mutationFn: (values: { currentPassword: string; code?: string; recoveryCode?: string }) => disableMFA(values.currentPassword, values.code, values.recoveryCode), onSuccess: async () => { setDisableMFAOpen(false); await queryClient.invalidateQueries({ queryKey: ['auth', 'mfa'] }); msg.success('多因素认证已关闭') }, onError: (error: Error) => msg.error(error.message || '无法关闭多因素认证') })
 
   const onFinish = useCallback(
     (values: { oldPassword: string; newPassword: string }) => {
@@ -152,6 +165,13 @@ export default function UserCenter() {
         />
       </Card>}
 
+      <Card title="多因素认证" style={{ marginBottom: 16 }} extra={mfaStatus.data ? <Tag color="success">已启用</Tag> : <Tag>未启用</Tag>}>
+        <Space direction="vertical" size={12} style={{ width: '100%' }}>
+          <Text type="secondary">使用身份验证器生成的动态验证码保护账号。启用后登录和敏感操作需要验证码。</Text>
+          {mfaStatus.data ? <Button danger onClick={() => setDisableMFAOpen(true)}>关闭多因素认证</Button> : <Button type="primary" icon={<SafetyCertificateOutlined />} loading={mfaStatus.isLoading} onClick={() => setBeginMFAOpen(true)}>启用多因素认证</Button>}
+        </Space>
+      </Card>
+
       {/* 登录设备 */}
       <Card
         title="登录设备"
@@ -169,6 +189,37 @@ export default function UserCenter() {
         <Text type="secondary">管理已登录的设备会话。可查看最近活跃时间与 IP，或强制下线可疑设备。</Text>
         <DeviceModal open={deviceModalOpen} onClose={() => setDeviceModalOpen(false)} />
       </Card>
+
+      <Modal title="启用多因素认证" open={beginMFAOpen} onCancel={() => setBeginMFAOpen(false)} footer={null} destroyOnHidden>
+        <Form layout="vertical" onFinish={(values: { currentPassword: string }) => beginMFA.mutate(values.currentPassword)}>
+          <Form.Item name="currentPassword" label="当前密码" rules={[{ required: true, message: '请输入当前密码' }]}><Input.Password autoComplete="current-password" /></Form.Item>
+          <Button type="primary" htmlType="submit" block loading={beginMFA.isPending}>继续</Button>
+        </Form>
+      </Modal>
+      <Modal title="绑定身份验证器" open={Boolean(enrollment)} onCancel={() => setEnrollment(undefined)} footer={null} destroyOnHidden maskClosable={false}>
+        {enrollment && <Space direction="vertical" size={16} style={{ width: '100%' }}>
+          <Text>使用身份验证器扫描二维码，然后输入生成的 6 位验证码。</Text>
+          <div style={{ display: 'flex', justifyContent: 'center' }}><QRCode value={enrollment.provisioningUri} /></div>
+          <Typography.Text copyable code>{enrollment.secret}</Typography.Text>
+          <Form layout="vertical" onFinish={(values: { code: string }) => confirmMFA.mutate(values.code)}>
+            <Form.Item name="code" label="验证码" rules={[{ required: true, pattern: /^\d{6}$/, message: '请输入 6 位数字验证码' }]}><Input inputMode="numeric" autoComplete="one-time-code" maxLength={6} /></Form.Item>
+            <Button type="primary" htmlType="submit" block loading={confirmMFA.isPending}>确认启用</Button>
+          </Form>
+        </Space>}
+      </Modal>
+      <Modal title="保存恢复码" open={recoveryCodes.length > 0} onCancel={() => undefined} footer={<Button type="primary" onClick={() => setRecoveryCodes([])}>我已妥善保存</Button>} closable={false} maskClosable={false}>
+        <Alert type="warning" showIcon message="恢复码只显示一次" description="请保存在安全位置。每个恢复码只能使用一次。" style={{ marginBottom: 16 }} />
+        <Typography.Paragraph copyable={{ text: recoveryCodes.join('\n') }}><pre style={{ whiteSpace: 'pre-wrap' }}>{recoveryCodes.join('\n')}</pre></Typography.Paragraph>
+      </Modal>
+      <Modal title="关闭多因素认证" open={disableMFAOpen} onCancel={() => setDisableMFAOpen(false)} footer={null} destroyOnHidden>
+        <Form layout="vertical" onFinish={(values: { currentPassword: string; code?: string; recoveryCode?: string }) => { if (!values.code && !values.recoveryCode) { msg.warning('请输入验证码或恢复码'); return }; disableMFAMutation.mutate(values) }}>
+          <Form.Item name="currentPassword" label="当前密码" rules={[{ required: true, message: '请输入当前密码' }]}><Input.Password autoComplete="current-password" /></Form.Item>
+          <Form.Item name="code" label="验证码"><Input inputMode="numeric" autoComplete="one-time-code" maxLength={6} /></Form.Item>
+          <Divider plain>或</Divider>
+          <Form.Item name="recoveryCode" label="恢复码"><Input autoComplete="one-time-code" /></Form.Item>
+          <Button danger type="primary" htmlType="submit" block loading={disableMFAMutation.isPending}>确认关闭</Button>
+        </Form>
+      </Modal>
     </div>
   )
 }

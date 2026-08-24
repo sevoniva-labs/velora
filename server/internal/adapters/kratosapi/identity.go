@@ -87,6 +87,17 @@ func (s *IdentityService) requirePasswordManagement() error {
 	return nil
 }
 
+func (s *IdentityService) reauthenticateManagedPassword(ctx context.Context, principal domain.Principal, rawPassword string) error {
+	if !s.casdoorPasswordLoginEnabled || s.casdoorPasswordProvider == nil || strings.TrimSpace(rawPassword) == "" {
+		return appidentity.ErrInvalidCredentials
+	}
+	federated, err := s.casdoorPasswordProvider.AuthenticatePassword(ctx, principal.LoginName, rawPassword, "", "")
+	if err != nil || federated.Subject == "" || federated.Provider != s.casdoorPasswordProvider.Name() {
+		return appidentity.ErrInvalidCredentials
+	}
+	return s.identity.ValidateFederatedIdentity(ctx, principal, federated.Provider, federated.Subject)
+}
+
 func (s *IdentityService) Login(ctx context.Context, req *forgev1.LoginRequest) (*forgev1.LoginResponse, error) {
 	if tr, ok := transport.FromServerContext(ctx); ok {
 		tr.ReplyHeader().Set("Cache-Control", "no-store")
@@ -246,9 +257,6 @@ func (s *IdentityService) GetMFAStatus(ctx context.Context, _ *forgev1.GetMFASta
 	if err != nil {
 		return nil, err
 	}
-	if err := s.requirePasswordManagement(); err != nil {
-		return nil, err
-	}
 	enabled, err := s.identity.MFAEnabled(ctx, principal)
 	if err != nil {
 		return nil, serviceError(err)
@@ -261,14 +269,15 @@ func (s *IdentityService) BeginMFAEnrollment(ctx context.Context, req *forgev1.B
 	if err != nil {
 		return nil, err
 	}
-	if err := s.requirePasswordManagement(); err != nil {
-		return nil, err
-	}
 	event := newAuditEvent(ctx, principal, "auth.mfa.enrollment.begin", "user", principal.UserID, nil)
 	var enrollment domain.MFAEnrollment
 	err = s.audited(ctx, event, func(txCtx context.Context) error {
 		var enrollErr error
-		enrollment, enrollErr = s.identity.BeginMFAEnrollment(txCtx, principal, req.GetCurrentPassword())
+		if s.passwordLoginEnabled {
+			enrollment, enrollErr = s.identity.BeginMFAEnrollment(txCtx, principal, req.GetCurrentPassword())
+		} else if enrollErr = s.reauthenticateManagedPassword(txCtx, principal, req.GetCurrentPassword()); enrollErr == nil {
+			enrollment, enrollErr = s.identity.BeginMFAEnrollmentVerified(txCtx, principal)
+		}
 		return enrollErr
 	})
 	if err != nil {
@@ -280,9 +289,6 @@ func (s *IdentityService) BeginMFAEnrollment(ctx context.Context, req *forgev1.B
 func (s *IdentityService) ConfirmMFAEnrollment(ctx context.Context, req *forgev1.ConfirmMFAEnrollmentRequest) (*forgev1.ConfirmMFAEnrollmentResponse, error) {
 	principal, err := requiredPrincipal(ctx)
 	if err != nil {
-		return nil, err
-	}
-	if err := s.requirePasswordManagement(); err != nil {
 		return nil, err
 	}
 	if err := s.allow(ctx, "mfa-confirm:user:"+principal.UserID, 5, 5*time.Minute, "300"); err != nil {
@@ -306,15 +312,18 @@ func (s *IdentityService) DisableMFA(ctx context.Context, req *forgev1.DisableMF
 	if err != nil {
 		return nil, err
 	}
-	if err := s.requirePasswordManagement(); err != nil {
-		return nil, err
-	}
 	if err := s.allow(ctx, "mfa-disable:user:"+principal.UserID, 5, 15*time.Minute, "900"); err != nil {
 		return nil, err
 	}
 	event := newAuditEvent(ctx, principal, "auth.mfa.disable", "user", principal.UserID, nil)
 	err = s.audited(ctx, event, func(txCtx context.Context) error {
-		return s.identity.DisableMFA(txCtx, principal, req.GetCurrentPassword(), req.GetCode(), req.GetRecoveryCode())
+		if s.passwordLoginEnabled {
+			return s.identity.DisableMFA(txCtx, principal, req.GetCurrentPassword(), req.GetCode(), req.GetRecoveryCode())
+		}
+		if verifyErr := s.reauthenticateManagedPassword(txCtx, principal, req.GetCurrentPassword()); verifyErr != nil {
+			return verifyErr
+		}
+		return s.identity.DisableMFAVerified(txCtx, principal, req.GetCode(), req.GetRecoveryCode())
 	})
 	if err != nil {
 		return nil, serviceError(err)
@@ -387,9 +396,6 @@ func (s *IdentityService) StepUpAuthentication(ctx context.Context, req *forgev1
 	if err != nil {
 		return nil, err
 	}
-	if err := s.requirePasswordManagement(); err != nil {
-		return nil, err
-	}
 	if err := s.allow(ctx, "step-up:user:"+principal.UserID, 5, 5*time.Minute, "300"); err != nil {
 		return nil, err
 	}
@@ -397,7 +403,11 @@ func (s *IdentityService) StepUpAuthentication(ctx context.Context, req *forgev1
 	var verifiedAt time.Time
 	err = s.audited(ctx, event, func(txCtx context.Context) error {
 		var stepUpErr error
-		verifiedAt, stepUpErr = s.identity.StepUpAuthentication(txCtx, principal, req.GetCurrentPassword(), req.GetMfaCode(), req.GetRecoveryCode())
+		if s.passwordLoginEnabled {
+			verifiedAt, stepUpErr = s.identity.StepUpAuthentication(txCtx, principal, req.GetCurrentPassword(), req.GetMfaCode(), req.GetRecoveryCode())
+		} else if stepUpErr = s.reauthenticateManagedPassword(txCtx, principal, req.GetCurrentPassword()); stepUpErr == nil {
+			verifiedAt, stepUpErr = s.identity.StepUpAuthenticationVerified(txCtx, principal, req.GetMfaCode(), req.GetRecoveryCode())
+		}
 		return stepUpErr
 	})
 	if err != nil {

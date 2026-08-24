@@ -585,7 +585,7 @@ func (s *Service) LoginWithMFA(ctx context.Context, orgID, login, raw, mfaCode, 
 // adapter must authenticate the credential first; this method only accepts an
 // explicit, approved subject mapping and never provisions or matches by
 // email/login name.
-func (s *Service) LoginFederated(ctx context.Context, orgID, provider, subject, ip, ua string, mfaVerified bool) (domain.Principal, string, string, time.Time, error) {
+func (s *Service) LoginFederated(ctx context.Context, orgID, provider, subject, ip, ua string, providerMFAVerified bool, mfaCode, recoveryCode string) (domain.Principal, string, string, time.Time, error) {
 	provider = strings.ToLower(strings.TrimSpace(provider))
 	subject = strings.TrimSpace(subject)
 	if !federatedProviderPattern.MatchString(provider) || subject == "" || len(subject) > 512 {
@@ -612,6 +612,10 @@ func (s *Service) LoginFederated(ctx context.Context, orgID, provider, subject, 
 	if strings.ToUpper(org.Status) != "ACTIVE" {
 		return domain.Principal{}, "", "", time.Time{}, ErrDisabled
 	}
+	localMFAVerified, err := s.verifyLoginMFA(ctx, user.ID, mfaCode, recoveryCode)
+	if err != nil {
+		return domain.Principal{}, "", "", time.Time{}, err
+	}
 	policy, err := s.resolveSecurityPolicy(ctx, orgID)
 	if err != nil {
 		return domain.Principal{}, "", "", time.Time{}, err
@@ -625,7 +629,7 @@ func (s *Service) LoginFederated(ctx context.Context, orgID, provider, subject, 
 		return domain.Principal{}, "", "", time.Time{}, err
 	}
 	expires := time.Now().UTC().Add(policy.sessionTTL)
-	authenticationLevel, mfaVerifiedAt := federatedSessionAttributes(mfaVerified, time.Now().UTC())
+	authenticationLevel, mfaVerifiedAt := federatedSessionAttributes(providerMFAVerified || localMFAVerified, time.Now().UTC())
 	sessionID, err := s.repo.CreateSession(ctx, user.ID, hashToken(token), expires, ip, ua, authenticationLevel, mfaVerifiedAt)
 	if err != nil {
 		return domain.Principal{}, "", "", time.Time{}, err
@@ -688,6 +692,15 @@ func (s *Service) StepUpAuthentication(ctx context.Context, actor domain.Princip
 	}
 	if !s.hasher.Verify(currentPassword, hash) {
 		return time.Time{}, ErrInvalidCredentials
+	}
+	return s.StepUpAuthenticationVerified(ctx, actor, code, recoveryCode)
+}
+
+// StepUpAuthenticationVerified completes step-up after the adapter has
+// reauthenticated the primary credential with the configured identity source.
+func (s *Service) StepUpAuthenticationVerified(ctx context.Context, actor domain.Principal, code, recoveryCode string) (time.Time, error) {
+	if err := requireInteractivePrincipal(actor); err != nil {
+		return time.Time{}, err
 	}
 	factor, err := s.repo.ActiveMFAFactor(ctx, actor.UserID)
 	if errors.Is(err, sql.ErrNoRows) {
@@ -763,6 +776,18 @@ func (s *Service) BeginMFAEnrollment(ctx context.Context, actor domain.Principal
 	if !s.hasher.Verify(currentPassword, hash) {
 		return domain.MFAEnrollment{}, ErrInvalidCredentials
 	}
+	return s.BeginMFAEnrollmentVerified(ctx, actor)
+}
+
+// BeginMFAEnrollmentVerified starts enrollment after primary-credential
+// reauthentication has already succeeded at the configured identity source.
+func (s *Service) BeginMFAEnrollmentVerified(ctx context.Context, actor domain.Principal) (domain.MFAEnrollment, error) {
+	if err := requireInteractivePrincipal(actor); err != nil {
+		return domain.MFAEnrollment{}, err
+	}
+	if s.crypt == nil {
+		return domain.MFAEnrollment{}, ErrMFAUnavailable
+	}
 	secret, url, err := s.totp.Generate("Velora", actor.LoginName)
 	if err != nil {
 		return domain.MFAEnrollment{}, err
@@ -817,6 +842,15 @@ func (s *Service) DisableMFA(ctx context.Context, actor domain.Principal, curren
 	if !s.hasher.Verify(currentPassword, hash) {
 		return ErrInvalidCredentials
 	}
+	return s.DisableMFAVerified(ctx, actor, code, recoveryCode)
+}
+
+// DisableMFAVerified disables MFA after the adapter has reauthenticated the
+// primary credential with the configured identity source.
+func (s *Service) DisableMFAVerified(ctx context.Context, actor domain.Principal, code, recoveryCode string) error {
+	if err := requireInteractivePrincipal(actor); err != nil {
+		return err
+	}
 	factor, err := s.repo.ActiveMFAFactor(ctx, actor.UserID)
 	if err != nil {
 		return err
@@ -825,6 +859,17 @@ func (s *Service) DisableMFA(ctx context.Context, actor domain.Principal, curren
 		return err
 	}
 	return s.repo.DeleteMFAAndOtherSessions(ctx, actor.UserID, actor.SessionID)
+}
+
+func (s *Service) ValidateFederatedIdentity(ctx context.Context, actor domain.Principal, provider, subject string) error {
+	if err := requireInteractivePrincipal(actor); err != nil {
+		return err
+	}
+	link, err := s.repo.FederatedIdentityByProviderSubject(ctx, actor.OrganizationID, strings.ToLower(strings.TrimSpace(provider)), strings.TrimSpace(subject))
+	if err != nil || link.UserID != actor.UserID {
+		return ErrInvalidCredentials
+	}
+	return nil
 }
 
 func (s *Service) recoveryCodeHash(userID, code string) string {

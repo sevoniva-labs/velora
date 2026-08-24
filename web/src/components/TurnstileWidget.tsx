@@ -123,7 +123,9 @@ export default function TurnstileWidget({ siteKey, action = 'login', onVerify, o
           'timeout-callback': clearTimedOutChallenge,
           theme,
           size: 'flexible',
-          appearance: 'always',
+          // The production widget runs in invisible mode. Keep the embed out of
+          // the layout unless Cloudflare explicitly needs user interaction.
+          appearance: 'interaction-only',
         })
         widgetIdRef.current = widgetId
       })
@@ -150,7 +152,7 @@ export default function TurnstileWidget({ siteKey, action = 'login', onVerify, o
 
   return (
     <div>
-      <div ref={containerRef} data-testid="turnstile-widget" style={{ display: failed ? 'none' : undefined, minHeight: 65 }} />
+      <div ref={containerRef} data-testid="turnstile-widget" style={{ display: failed ? 'none' : undefined }} />
       {failed && (
         <div role="alert" style={{ minHeight: 32, color: '#667085', fontSize: 13, lineHeight: '32px' }}>
           安全验证暂不可用，

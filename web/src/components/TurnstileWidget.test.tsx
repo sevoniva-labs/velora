@@ -9,7 +9,7 @@ describe('TurnstileWidget', () => {
     delete window.turnstile
   })
 
-  it('keeps the verification control visible and reports a completed challenge', async () => {
+  it('keeps the verification unobtrusive and reports a completed challenge', async () => {
     let options: WidgetOptions | undefined
     const onVerify = vi.fn()
     window.turnstile = {
@@ -24,7 +24,7 @@ describe('TurnstileWidget', () => {
     render(<TurnstileWidget siteKey="site-key" onVerify={onVerify} />)
 
     await waitFor(() => expect(window.turnstile?.render).toHaveBeenCalledOnce())
-    expect(options?.appearance).toBe('always')
+    expect(options?.appearance).toBe('interaction-only')
     expect(options).not.toHaveProperty('before-interactive-callback')
     expect(options).not.toHaveProperty('after-interactive-callback')
     options?.callback('verified-token')

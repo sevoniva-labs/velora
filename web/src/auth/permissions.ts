@@ -19,6 +19,8 @@ export const SYSTEM_USER_UPDATE = 'system.user.update'
 export const SYSTEM_USER_ROLE_MANAGE = 'system.user.role.manage'
 export const SYSTEM_USER_ASSIGNMENT_READ = 'system.user.assignment.read'
 export const SYSTEM_USER_ASSIGNMENT_MANAGE = 'system.user.assignment.manage'
+export const SYSTEM_ORGANIZATION_READ = 'system.organization.read'
+export const SYSTEM_ORGANIZATION_MANAGE = 'system.organization.manage'
 export const SYSTEM_DEPARTMENT_READ = 'system.department.read'
 export const SYSTEM_DEPARTMENT_MANAGE = 'system.department.manage'
 export const SYSTEM_POSITION_READ = 'system.position.read'
@@ -65,6 +67,7 @@ export const ADMIN_ENTRY_PERMISSIONS = [
   AUDIT_READ,
   API_TOKEN_MANAGE,
   SYSTEM_USER_READ,
+  SYSTEM_ORGANIZATION_READ,
   SYSTEM_DEPARTMENT_READ,
   SYSTEM_POSITION_READ,
   SYSTEM_USER_GROUP_READ,

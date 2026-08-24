@@ -54,6 +54,18 @@ export interface Department {
   updatedAt: string
 }
 
+export interface OrganizationInfo {
+  id: string
+  organizationKey: string
+  name: string
+  description: string
+  status: 'ACTIVE' | 'DISABLED'
+  maxUsers: number
+  maxActiveSessions: number
+  createdAt?: string
+  updatedAt?: string
+}
+
 export interface Position {
   id: string
   organizationId: string

@@ -1,9 +1,10 @@
 import { apiFetch } from './client'
-import type { AccessReview, AccessReviewItem, AdminSession, AdminUser, ApplicationAccessGrant, ApplicationAccessImpact, ApplicationEffectiveAccess, ApprovalRequest, ConfigChange, Department, PlatformPermission, PlatformRole, Position, SecurityPolicy, TemporaryRoleGrant, UserAssignment, UserEffectiveApplicationAccess, UserGroup } from '../types'
+import type { AccessReview, AccessReviewItem, AdminSession, AdminUser, ApplicationAccessGrant, ApplicationAccessImpact, ApplicationEffectiveAccess, ApprovalRequest, ConfigChange, Department, OrganizationInfo, PlatformPermission, PlatformRole, Position, SecurityPolicy, TemporaryRoleGrant, UserAssignment, UserEffectiveApplicationAccess, UserGroup } from '../types'
 
 export type DepartmentInput = Pick<Department, 'name' | 'parentId' | 'status' | 'sortOrder'> & { departmentKey?: string }
 export type PositionInput = Pick<Position, 'name' | 'description' | 'departmentId' | 'status' | 'sortOrder'> & { positionKey?: string }
 export type UserGroupInput = Pick<UserGroup, 'name' | 'description' | 'status'> & { groupKey?: string }
+export type OrganizationInput = Pick<OrganizationInfo, 'name' | 'description' | 'status' | 'maxUsers' | 'maxActiveSessions'>
 
 export function messageFromResponse<T>(value: T | Record<string, T>, field: string): T {
   if (value && typeof value === 'object' && field in value) return (value as Record<string, T>)[field]
@@ -28,6 +29,14 @@ function normalizeEffectiveAccess(item: ApplicationEffectiveAccess): Application
 
 export async function listDepartments(): Promise<Department[]> {
   return (await apiFetch<{ departments?: Department[] }>('/admin/departments')).departments ?? []
+}
+
+export async function getOrganization(): Promise<OrganizationInfo> {
+  return messageFromResponse(await apiFetch<{ organization: OrganizationInfo }>('/admin/organization'), 'organization')
+}
+
+export async function updateOrganization(input: OrganizationInput): Promise<OrganizationInfo> {
+  return messageFromResponse(await apiFetch<{ organization: OrganizationInfo }>('/admin/organization', { method: 'PATCH', body: input }), 'organization')
 }
 
 export async function createDepartment(input: DepartmentInput): Promise<Department> {

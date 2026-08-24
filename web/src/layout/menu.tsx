@@ -14,7 +14,7 @@ import {
   TeamOutlined,
   UsergroupAddOutlined,
 } from '@ant-design/icons'
-import { API_TOKEN_MANAGE, APPROVAL_REQUEST_READ, APPROVAL_TASK_DECIDE, AUDIT_READ, IDENTITY_MANAGE, IDENTITY_READ, IDENTITY_VERIFY, PORTAL_MANAGE, PORTAL_PUBLISH, SYSTEM_ACCESS_REVIEW_READ, SYSTEM_CONFIG_READ, SYSTEM_DEPARTMENT_READ, SYSTEM_POSITION_READ, SYSTEM_ROLE_READ, SYSTEM_SESSION_READ, SYSTEM_TEMPORARY_GRANT_READ, SYSTEM_USER_GROUP_READ, SYSTEM_USER_READ } from '../auth/permissions'
+import { API_TOKEN_MANAGE, APPROVAL_REQUEST_READ, APPROVAL_TASK_DECIDE, AUDIT_READ, IDENTITY_MANAGE, IDENTITY_READ, IDENTITY_VERIFY, PORTAL_MANAGE, PORTAL_PUBLISH, SYSTEM_ACCESS_REVIEW_READ, SYSTEM_CONFIG_READ, SYSTEM_DEPARTMENT_READ, SYSTEM_ORGANIZATION_READ, SYSTEM_POSITION_READ, SYSTEM_ROLE_READ, SYSTEM_SESSION_READ, SYSTEM_TEMPORARY_GRANT_READ, SYSTEM_USER_GROUP_READ, SYSTEM_USER_READ } from '../auth/permissions'
 
 export interface AdminNavItem {
   key: string
@@ -35,10 +35,10 @@ export const adminNavItems: AdminNavItem[] = [
     ],
   },
   {
-    key: 'admin-people', label: '组织与人员', icon: <TeamOutlined />, permissions: [SYSTEM_USER_READ, SYSTEM_DEPARTMENT_READ, SYSTEM_POSITION_READ, SYSTEM_USER_GROUP_READ],
+    key: 'admin-people', label: '组织与人员', icon: <TeamOutlined />, permissions: [SYSTEM_USER_READ, SYSTEM_ORGANIZATION_READ, SYSTEM_DEPARTMENT_READ, SYSTEM_POSITION_READ, SYSTEM_USER_GROUP_READ],
     children: [
       { key: 'admin-users', path: '/admin/users', label: '用户', permissions: [SYSTEM_USER_READ] },
-      { key: 'admin-organization', path: '/admin/organization', label: '部门与岗位', permissions: [SYSTEM_DEPARTMENT_READ, SYSTEM_POSITION_READ], icon: <ApartmentOutlined /> },
+      { key: 'admin-organization', path: '/admin/organization', label: '组织架构', permissions: [SYSTEM_ORGANIZATION_READ, SYSTEM_DEPARTMENT_READ, SYSTEM_POSITION_READ], icon: <ApartmentOutlined /> },
       { key: 'admin-user-groups', path: '/admin/user-groups', label: '用户组', permissions: [SYSTEM_USER_GROUP_READ], icon: <UsergroupAddOutlined /> },
     ],
   },

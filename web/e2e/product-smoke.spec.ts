@@ -4,6 +4,11 @@ import AxeBuilder from '@axe-core/playwright'
 type Session = 'anonymous' | 'member' | 'admin'
 const ok = (data: unknown) => ({ code: '000000', message: 'success', data, request_id: 'e2e' })
 
+async function captureAudit(page: Page, name: string) {
+  const directory = process.env.VELORA_AUDIT_CAPTURE_DIR
+  if (directory) await page.screenshot({ path: `${directory}/${name}.png`, fullPage: true, animations: 'disabled' })
+}
+
 async function fulfill(route: Route, status: number, body: unknown) {
   await route.fulfill({ status, contentType: 'application/json', body: JSON.stringify(body) })
 }
@@ -12,6 +17,7 @@ async function mockVelora(page: Page, session: Session) {
   await page.route('**/api/v1/**', async (route) => {
     const path = new URL(route.request().url()).pathname.replace('/api/v1', '')
     if (path === '/system/health') return fulfill(route, 200, ok({ status: 'UP', auth_mode: 'oidc', password_login_enabled: true, turnstile_enabled: false }))
+    if (path === '/system/ready') return fulfill(route, 200, ok({ status: 'UP', dependencies: [] }))
     if (path === '/me') {
       if (session === 'anonymous') return fulfill(route, 401, { code: '200001', message: 'authentication required', request_id: 'e2e' })
       return fulfill(route, 200, ok({ user: {
@@ -42,6 +48,7 @@ test('登录入口稳定展示企业账号表单且默认不阻塞于验证码',
   await expect(page.getByPlaceholder('请输入密码')).toBeVisible()
   await expect(page.locator('.cf-turnstile')).toHaveCount(0)
   await expect(page).toHaveTitle(/登录/)
+  await captureAudit(page, '01-login')
 })
 
 test('无应用权限是正常空态，不显示加载失败', async ({ page }) => {
@@ -65,6 +72,7 @@ test('管理后台保留分组导航，工作台卡片不重叠', async ({ page 
     const overlap = boxes[i].left < boxes[j].right && boxes[i].right > boxes[j].left && boxes[i].top < boxes[j].bottom && boxes[i].bottom > boxes[j].top
     expect(overlap, `工作台卡片 ${i + 1} 与 ${j + 1} 不应重叠`).toBeFalsy()
   }
+  await captureAudit(page, '02-admin-dashboard')
 })
 
 test('窄屏后台无水平溢出且导航可打开', async ({ page }, testInfo) => {
@@ -91,6 +99,7 @@ test('应用详情使用标准页签且信息卡片不重叠', async ({ page }, 
     expect(overlap, `应用概览卡片 ${i + 1} 与 ${j + 1} 不应重叠`).toBeFalsy()
   }
   await expect(page.getByText('下一项', { exact: true })).toHaveCount(0)
+  await captureAudit(page, '03-application-detail')
 })
 
 test('关键操作可通过键盘到达且页面放大后不横向溢出', async ({ page }, testInfo) => {

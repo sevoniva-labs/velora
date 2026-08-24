@@ -7,6 +7,7 @@ import { createIntegrationToken, listIntegrationTokens, revokeIntegrationToken, 
 import { useMe } from '../../auth/useMe'
 import { usePageTitle } from '../../hooks/usePageTitle'
 import { formatDateTime } from '../../utils/format'
+import { useClientTableSearch } from '../../utils/tableSearch'
 
 interface CreateForm { name: string; scopes: string[]; expiresInDays: number }
 
@@ -28,6 +29,7 @@ export default function AdminIntegrationTokens() {
   const [open, setOpen] = useState(false)
   const [secret, setSecret] = useState<string>()
   const tokens = useQuery({ queryKey: ['admin', 'integration-tokens'], queryFn: listIntegrationTokens })
+  const tokenTable = useClientTableSearch(tokens.data ?? [], { exact: ['revoked'] })
   const scopeOptions = useMemo(() => {
     const permissions = (me.data?.permissions ?? []).filter((item) => item !== '*').sort()
     const options = permissions.map((value) => ({ value, label: permissionLabel(value) }))
@@ -45,7 +47,7 @@ export default function AdminIntegrationTokens() {
     { title: '操作', valueType: 'option', width: 90, render: (_, row) => row.revoked ? null : <Popconfirm title="停用此对接账号？" description="停用后，使用该密钥的系统将无法访问平台。" okText="停用" okButtonProps={{ danger: true }} onConfirm={() => revoke.mutate(row.id)}><Button type="link" danger>停用</Button></Popconfirm> },
   ]
   return <PageContainer title="接口凭据">
-    <ProTable<IntegrationToken> rowKey="id" columns={columns} dataSource={tokens.data ?? []} loading={tokens.isLoading} search={{ labelWidth: 'auto' }} pagination={false} toolBarRender={() => [<Button key="create" type="primary" icon={<PlusOutlined />} onClick={() => setOpen(true)}>新建对接账号</Button>]} />
+    <ProTable<IntegrationToken> rowKey="id" columns={columns} {...tokenTable} loading={tokens.isLoading} search={{ labelWidth: 'auto' }} pagination={false} toolBarRender={() => [<Button key="create" type="primary" icon={<PlusOutlined />} onClick={() => setOpen(true)}>新建对接账号</Button>]} />
     <ModalForm<CreateForm> title="新建对接账号" open={open} onOpenChange={setOpen} initialValues={{ expiresInDays: 90 }} submitter={{ searchConfig: { submitText: '创建', resetText: '取消' } }} onFinish={async (values) => { await create.mutateAsync(values); return true }}>
       <ProFormText name="name" label="名称" fieldProps={{ prefix: <KeyOutlined />, maxLength: 100 }} rules={[{ required: true, message: '请输入名称' }]} />
       <ProFormSelect name="scopes" label="允许操作" mode="multiple" options={scopeOptions} rules={[{ required: true, message: '请选择允许执行的操作' }]} />

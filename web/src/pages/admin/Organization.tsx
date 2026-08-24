@@ -8,6 +8,7 @@ import type { Department, Position } from '../../types'
 import { usePageTitle } from '../../hooks/usePageTitle'
 import { SYSTEM_DEPARTMENT_MANAGE, SYSTEM_DEPARTMENT_READ, SYSTEM_ORGANIZATION_MANAGE, SYSTEM_POSITION_MANAGE, SYSTEM_POSITION_READ } from '../../auth/permissions'
 import { useAdminPermission } from '../../auth/useAdminPermission'
+import { useClientTableSearch } from '../../utils/tableSearch'
 
 const ACTIVE_OPTIONS = [{ label: '启用', value: 'ACTIVE' }, { label: '停用', value: 'DISABLED' }]
 
@@ -33,6 +34,8 @@ export default function Organization() {
   const departments = useQuery({ queryKey: ['admin', 'departments'], queryFn: listDepartments, enabled: canReadDepartments || canReadPositions })
   const positions = useQuery({ queryKey: ['admin', 'positions'], queryFn: listPositions, enabled: canReadPositions })
   const organization = useQuery({ queryKey: ['admin', 'organization'], queryFn: getOrganization })
+  const departmentTable = useClientTableSearch(departments.data ?? [], { exact: ['status'] })
+  const positionTable = useClientTableSearch(positions.data ?? [], { exact: ['status'] })
   const refresh = async () => { await Promise.all([queryClient.invalidateQueries({ queryKey: ['admin', 'departments'] }), queryClient.invalidateQueries({ queryKey: ['admin', 'positions'] })]) }
 
   const departmentMutation = useMutation({
@@ -73,8 +76,8 @@ export default function Organization() {
       { title: '每人会话上限', dataIndex: 'maxActiveSessions' },
       { title: '说明', dataIndex: 'description', span: 2, render: (_, row) => row.description || '—' },
     ]} />}
-    {tab === 'departments' && <ProTable<Department> className="velora-admin-primary-table" rowKey="id" loading={departments.isLoading} dataSource={departments.data ?? []} columns={departmentColumns} search={{ labelWidth: 'auto' }} pagination={false} toolBarRender={canManageDepartments ? () => [<Button key="create" type="primary" icon={<PlusOutlined />} onClick={() => { setEditingDepartment(undefined); setDepartmentOpen(true) }}>新建部门</Button>] : false} />}
-    {tab === 'positions' && <ProTable<Position> className="velora-admin-primary-table" rowKey="id" loading={positions.isLoading || departments.isLoading} dataSource={positions.data ?? []} columns={positionColumns} search={{ labelWidth: 'auto' }} pagination={false} toolBarRender={canManagePositions ? () => [<Button key="create" type="primary" icon={<PlusOutlined />} onClick={() => { setEditingPosition(undefined); setPositionOpen(true) }}>新建岗位</Button>] : false} />}
+    {tab === 'departments' && <ProTable<Department> className="velora-admin-primary-table" rowKey="id" loading={departments.isLoading} {...departmentTable} columns={departmentColumns} search={{ labelWidth: 'auto' }} pagination={false} toolBarRender={canManageDepartments ? () => [<Button key="create" type="primary" icon={<PlusOutlined />} onClick={() => { setEditingDepartment(undefined); setDepartmentOpen(true) }}>新建部门</Button>] : false} />}
+    {tab === 'positions' && <ProTable<Position> className="velora-admin-primary-table" rowKey="id" loading={positions.isLoading || departments.isLoading} {...positionTable} columns={positionColumns} search={{ labelWidth: 'auto' }} pagination={false} toolBarRender={canManagePositions ? () => [<Button key="create" type="primary" icon={<PlusOutlined />} onClick={() => { setEditingPosition(undefined); setPositionOpen(true) }}>新建岗位</Button>] : false} />}
 
     <DrawerForm<OrganizationInput> key={organization.data?.updatedAt ?? 'organization'} title="编辑组织信息" open={organizationOpen} onOpenChange={setOrganizationOpen} width={520} initialValues={organization.data} submitter={{ searchConfig: { submitText: '保存', resetText: '取消' } }} onFinish={async (values) => { await organizationMutation.mutateAsync(values); return true }}>
       <ProFormText name="name" label="组织名称" rules={[{ required: true, message: '请输入组织名称' }]} />

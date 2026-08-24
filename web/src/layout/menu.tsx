@@ -26,7 +26,7 @@ export interface AdminNavItem {
 }
 
 export const adminNavItems: AdminNavItem[] = [
-  { key: 'admin-overview', path: '/admin', label: '工作台', icon: <DashboardOutlined />, permissions: [PORTAL_MANAGE, AUDIT_READ, SYSTEM_USER_READ] },
+  { key: 'admin-overview', path: '/admin', label: '工作台', icon: <DashboardOutlined /> },
   {
     key: 'admin-app-center', label: '应用中心', icon: <AppstoreOutlined />, permissions: [PORTAL_MANAGE, PORTAL_PUBLISH, IDENTITY_READ, IDENTITY_MANAGE, IDENTITY_VERIFY],
     children: [

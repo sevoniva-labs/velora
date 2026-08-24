@@ -161,7 +161,7 @@ export async function verifyAuditIntegrity(): Promise<boolean> {
 }
 
 export function getSystemReadiness(): Promise<{ status: string; dependencies: { name: string; status: string }[] }> {
-  return apiFetch('/system/readiness')
+  return apiFetch('/system/ready')
 }
 
 export async function exportAuditLogs(format: 'json' | 'csv', limit: number, approvalId: string): Promise<{ content: string; contentType: string; filename: string }> {

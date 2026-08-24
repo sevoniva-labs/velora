@@ -11,6 +11,7 @@ import { formatDateTime } from '../../utils/format'
 import AdminUserSelect from '../../components/AdminUserSelect'
 import { SYSTEM_CONFIG_MANAGE } from '../../auth/permissions'
 import { useAdminPermission } from '../../auth/useAdminPermission'
+import { useClientTableSearch } from '../../utils/tableSearch'
 
 interface CreateForm { namespace: string; group: string; dataId: string; valueDigest: string; valueRef: string; sensitive: boolean }
 interface ApprovalForm { approverId: string }
@@ -32,6 +33,7 @@ export default function ConfigChanges() {
   const [createOpen, setCreateOpen] = useState(false)
   const [requesting, setRequesting] = useState<ConfigChange>()
   const changes = useQuery({ queryKey: ['admin', 'config-changes'], queryFn: listConfigChanges })
+  const changeTable = useClientTableSearch(changes.data ?? [], { exact: ['state', 'sensitive'] })
   const approvals = useQuery({ queryKey: ['admin', 'approvals'], queryFn: listApprovals, enabled: canManage })
   const approvedByResource = useMemo(() => new Map((approvals.data ?? []).filter((item) => item.resource === 'config_change' && item.status === 'APPROVED').map((item) => [`${item.resourceId}:${item.action}`, item])), [approvals.data])
   const createInput = (values: CreateForm) => {
@@ -53,7 +55,7 @@ export default function ConfigChanges() {
   ]
   if (canManage) columns.push({ title: '操作', valueType: 'option', width: 120, render: (_, row) => { const config = ACTIONS[row.state]; if (!config) return <Typography.Text type="secondary">—</Typography.Text>; const approved = approvedByResource.get(`${row.id}:${config.auditAction}`); return approved ? <Button type="link" loading={execute.isPending} onClick={() => execute.mutate({ change: row, approval: approved })}>执行</Button> : <Button type="link" onClick={() => setRequesting(row)}>{config.label}</Button> } })
   return <PageContainer title="配置发布">
-    <ProTable<ConfigChange> className="velora-admin-primary-table" rowKey="id" columns={columns} dataSource={changes.data ?? []} loading={changes.isLoading} search={{ labelWidth: 'auto' }} pagination={{ pageSize: 20 }} toolBarRender={canManage ? () => [<Button key="create" type="primary" icon={<PlusOutlined />} onClick={() => setCreateOpen(true)}>新建变更</Button>] : false} />
+    <ProTable<ConfigChange> className="velora-admin-primary-table" rowKey="id" columns={columns} {...changeTable} loading={changes.isLoading} search={{ labelWidth: 'auto' }} pagination={{ pageSize: 20 }} toolBarRender={canManage ? () => [<Button key="create" type="primary" icon={<PlusOutlined />} onClick={() => setCreateOpen(true)}>新建变更</Button>] : false} />
     <ModalForm<CreateForm> title="新建配置发布单" open={createOpen} onOpenChange={setCreateOpen} width={640} modalProps={{ centered: true }} initialValues={{ sensitive: false }} submitter={{ searchConfig: { submitText: '创建发布单', resetText: '取消' } }} onFinish={async (values) => { await create.mutateAsync(createInput(values)); return true }}>
       <ProFormText name="namespace" label="运行环境" width="md" rules={[{ required: true, message: '请输入运行环境' }]} />
       <ProFormText name="group" label="配置分组" width="md" rules={[{ required: true, message: '请输入配置分组' }]} />

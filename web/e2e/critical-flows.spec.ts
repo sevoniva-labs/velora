@@ -7,6 +7,11 @@ async function fulfill(route: Route, status: number, body: unknown) {
   await route.fulfill({ status, contentType: 'application/json', body: JSON.stringify(body) })
 }
 
+async function captureAudit(page: Page, name: string) {
+  const directory = process.env.VELORA_AUDIT_CAPTURE_DIR
+  if (directory) await page.screenshot({ path: `${directory}/${name}.png`, fullPage: true, animations: 'disabled' })
+}
+
 function application(status = 'ENABLED') {
   return {
     id: 'app-1', code: 'spectra', name: 'Spectra', description: '数据分析平台',
@@ -176,7 +181,10 @@ async function installCriticalMock(page: Page, state: CriticalState) {
     if (path === '/admin/portal/categories') return fulfill(route, 200, ok({ categories: [] }))
     if (path === '/admin/portal/tags') return fulfill(route, 200, ok({ tags: [] }))
 
-    if (path === '/approvals' && method === 'GET') return fulfill(route, 200, ok({ approvals: [approval(state)] }))
+    if (path === '/approvals' && method === 'GET') {
+      const closed = { ...approval(state), id: 'approval-closed', summary: '已拒绝的历史申请', status: 'REJECTED', tasks: [] }
+      return fulfill(route, 200, ok({ approvals: [approval(state), closed] }))
+    }
     if (path === '/approvals/approval-1/decisions' && method === 'POST') {
       const input = await body(route)
       state.approvalStatus = String(input.decision) === 'APPROVE' ? 'APPROVED' : 'PENDING'
@@ -230,6 +238,20 @@ test('后台菜单和直达页面使用同一权限边界', async ({ page }) => 
   await expect(page.getByText('安全与审计', { exact: true })).toHaveCount(0)
   await page.goto('/admin/applications')
   await expect(page.getByText('无权访问此页面', { exact: true })).toBeVisible()
+})
+
+test('后台列表查询会真实过滤当前数据', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop-chromium', '列表查询只在桌面执行一次')
+  const state = newState()
+  await installCriticalMock(page, state)
+  await page.goto('/admin/approvals')
+  await expect(page.getByText('已拒绝的历史申请', { exact: true })).toBeVisible()
+  await page.getByText('展开', { exact: true }).click()
+  await selectOption(page, '状态', '待审批')
+  await page.getByRole('button', { name: /查\s*询/ }).click()
+  await expect(page.getByText('已拒绝的历史申请', { exact: true })).toHaveCount(0)
+  await expect(page.getByText('变更 Spectra 使用范围', { exact: true })).toBeVisible()
+  await captureAudit(page, '04-approvals-filtered')
 })
 
 test('应用管理全部页签均加载对应的可操作内容', async ({ page }, testInfo) => {

@@ -11,6 +11,7 @@ import { formatDateTime } from '../../utils/format'
 import AdminUserSelect from '../../components/AdminUserSelect'
 import { SYSTEM_ACCESS_REVIEW_MANAGE } from '../../auth/permissions'
 import { useAdminPermission } from '../../auth/useAdminPermission'
+import { useClientTableSearch } from '../../utils/tableSearch'
 
 interface CreateForm { reviewerId: string; dueAt: Dayjs; scopeType: 'ALL' | 'ROLE' | 'DEPARTMENT' | 'USER'; scopeId?: string }
 interface DecisionForm { decision: 'APPROVE' | 'REVOKE'; reason: string }
@@ -27,6 +28,7 @@ export default function AccessReviews() {
   const [deciding, setDeciding] = useState<AccessReviewItem>()
   const [decisionForm] = Form.useForm<DecisionForm>()
   const reviews = useQuery({ queryKey: ['admin', 'access-reviews'], queryFn: listAccessReviews })
+  const reviewTable = useClientTableSearch(reviews.data ?? [], { exact: ['status'] })
   const roles = useQuery({ queryKey: ['admin', 'roles'], queryFn: listPlatformRoles })
   const departments = useQuery({ queryKey: ['admin', 'departments'], queryFn: listDepartments })
   const items = useQuery({ queryKey: ['admin', 'access-reviews', selected?.id, 'items'], queryFn: () => listAccessReviewItems(selected!.id), enabled: Boolean(selected) })
@@ -49,7 +51,7 @@ export default function AccessReviews() {
     { title: '原因', dataIndex: 'reason', ellipsis: true },
     { title: '操作', valueType: 'option', width: 90, render: (_, row) => row.decision && row.decision !== 'PENDING' ? <Typography.Text type="secondary">已处理</Typography.Text> : canManage ? <Button type="link" onClick={() => setDeciding(row)}>处理</Button> : <Typography.Text type="secondary">待处理</Typography.Text> },
   ]
-  return <PageContainer title="权限复核"><ProTable<AccessReview> className="velora-admin-primary-table" rowKey="id" columns={columns} dataSource={reviews.data ?? []} loading={reviews.isLoading} search={{ labelWidth: 'auto' }} pagination={{ pageSize: 20 }} toolBarRender={canManage ? () => [<Button key="create" type="primary" icon={<PlusOutlined />} onClick={() => setCreateOpen(true)}>发起复核</Button>] : false} />
+  return <PageContainer title="权限复核"><ProTable<AccessReview> className="velora-admin-primary-table" rowKey="id" columns={columns} {...reviewTable} loading={reviews.isLoading} search={{ labelWidth: 'auto' }} pagination={{ pageSize: 20 }} toolBarRender={canManage ? () => [<Button key="create" type="primary" icon={<PlusOutlined />} onClick={() => setCreateOpen(true)}>发起复核</Button>] : false} />
     <ModalForm<CreateForm> title="发起权限复核" open={createOpen} onOpenChange={setCreateOpen} initialValues={{ dueAt: dayjs().add(7, 'day'), scopeType: 'ALL' }} submitter={{ searchConfig: { submitText: '发起复核', resetText: '取消' } }} onFinish={async (values) => { await create.mutateAsync(values); return true }}>
       <ProForm.Item name="reviewerId" label="复核负责人" rules={[{ required: true, message: '请选择复核负责人' }]}><AdminUserSelect /></ProForm.Item>
       <ProFormRadio.Group name="scopeType" label="复核范围" options={[{ label: '全部用户', value: 'ALL' }, { label: '平台角色', value: 'ROLE' }, { label: '部门', value: 'DEPARTMENT' }, { label: '指定用户', value: 'USER' }]} rules={[{ required: true }]} />

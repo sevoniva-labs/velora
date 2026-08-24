@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { APPROVAL_REQUEST_READ, PORTAL_MANAGE, SYSTEM_ACCESS_REVIEW_READ, SYSTEM_CONFIG_READ, SYSTEM_TEMPORARY_GRANT_READ, SYSTEM_USER_READ } from '../auth/permissions'
+import { APPROVAL_REQUEST_READ, PORTAL_MANAGE, SYSTEM_ACCESS_REVIEW_READ, SYSTEM_CONFIG_READ, SYSTEM_ROLE_READ, SYSTEM_TEMPORARY_GRANT_READ, SYSTEM_USER_READ } from '../auth/permissions'
 import { visibleNavigation } from './AdminLayout'
 import { adminActiveKey, adminNavItems } from './menu'
 
@@ -29,6 +29,11 @@ describe('admin navigation', () => {
     expect(JSON.stringify(navigation)).toContain('临时授权')
     expect(JSON.stringify(navigation)).toContain('权限复核')
     expect(JSON.stringify(navigation)).toContain('配置发布')
+  })
+
+  it('keeps the workbench available to every scoped administrator', () => {
+    const navigation = visibleNavigation(adminNavItems, [SYSTEM_ROLE_READ], [])
+    expect(navigation.map((item) => item.label)).toEqual(['工作台', '权限治理'])
   })
 
   it('selects the correct navigation item for nested routes', () => {

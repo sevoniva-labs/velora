@@ -25,6 +25,7 @@ import {
 import QueryErrorState from '../../components/QueryErrorState'
 import { usePageTitle } from '../../hooks/usePageTitle'
 import type { Category, Tag } from '../../types'
+import { useClientTableSearch } from '../../utils/tableSearch'
 
 type TaxonomyTab = 'categories' | 'tags'
 type TaxonomyRecord = Category | Tag
@@ -46,6 +47,9 @@ export default function Taxonomy() {
   const categories = useQuery({ queryKey: queryKeys.categories, queryFn: listCategories })
   const tags = useQuery({ queryKey: queryKeys.tags, queryFn: listTags })
   const activeQuery = tab === 'categories' ? categories : tags
+  const categoryTable = useClientTableSearch(categories.data ?? [])
+  const tagTable = useClientTableSearch(tags.data ?? [])
+  const activeTable = tab === 'categories' ? categoryTable : tagTable
 
   const refresh = async (target: TaxonomyTab) => {
     await queryClient.invalidateQueries({ queryKey: target === 'categories' ? queryKeys.categories : queryKeys.tags })
@@ -131,7 +135,7 @@ export default function Taxonomy() {
           key={tab}
           rowKey="id"
           columns={columns}
-          dataSource={(activeQuery.data ?? []) as TaxonomyRecord[]}
+          {...activeTable}
           loading={activeQuery.isLoading}
           search={{ labelWidth: 'auto' }}
           pagination={false}

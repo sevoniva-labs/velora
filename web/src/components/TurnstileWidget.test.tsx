@@ -9,7 +9,7 @@ describe('TurnstileWidget', () => {
     delete window.turnstile
   })
 
-  it('uses interaction-only mode and reports a completed challenge', async () => {
+  it('keeps the verification control visible and reports a completed challenge', async () => {
     let options: WidgetOptions | undefined
     const onVerify = vi.fn()
     window.turnstile = {
@@ -24,14 +24,14 @@ describe('TurnstileWidget', () => {
     render(<TurnstileWidget siteKey="site-key" onVerify={onVerify} />)
 
     await waitFor(() => expect(window.turnstile?.render).toHaveBeenCalledOnce())
-    expect(options?.appearance).toBe('interaction-only')
+    expect(options?.appearance).toBe('always')
     expect(options).not.toHaveProperty('before-interactive-callback')
     expect(options).not.toHaveProperty('after-interactive-callback')
     options?.callback('verified-token')
     expect(onVerify).toHaveBeenLastCalledWith('verified-token')
   })
 
-  it('delegates transient recovery to Turnstile without hiding the verification control', async () => {
+  it('stops unbounded retries and offers an explicit reload after failure', async () => {
     let options: WidgetOptions | undefined
     const onExpire = vi.fn()
     const onVerify = vi.fn()
@@ -45,14 +45,14 @@ describe('TurnstileWidget', () => {
     await waitFor(() => expect(renderWidget).toHaveBeenCalledOnce())
     act(() => options?.['timeout-callback']?.())
 
-    expect(options?.retry).toBe('auto')
-    expect(options?.['retry-interval']).toBe(8_000)
+    expect(options?.retry).toBe('never')
     expect(options?.['refresh-expired']).toBe('auto')
     expect(options?.['refresh-timeout']).toBe('auto')
     act(() => options?.['error-callback']?.('network-error'))
     expect(onExpire).toHaveBeenCalledOnce()
     expect(onVerify).toHaveBeenLastCalledWith('')
-    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
-    expect(screen.getByTestId('turnstile-widget')).toBeVisible()
+    expect(screen.getByRole('alert')).toHaveTextContent('安全验证暂不可用')
+    expect(screen.getByRole('button', { name: '重新加载' })).toBeVisible()
+    expect(screen.getByTestId('turnstile-widget')).not.toBeVisible()
   })
 })

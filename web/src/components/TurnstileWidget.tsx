@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 
 declare global {
   interface Window {
+    __veloraTurnstileScriptPromise?: Promise<void> | null
     turnstile?: {
       render: (el: HTMLElement, opts: TurnstileRenderOptions) => string
       reset: (widgetId?: string) => void
@@ -34,47 +35,42 @@ interface TurnstileWidgetProps {
   theme?: 'light' | 'dark' | 'auto'
 }
 
-let scriptPromise: Promise<void> | null = null
 const SCRIPT_ID = 'cloudflare-turnstile-script'
 const SCRIPT_LOAD_TIMEOUT_MS = 8_000
 
 /** 幂等加载 Turnstile 官方脚本（challenges.cloudflare.com）。 */
 function loadTurnstileScript(): Promise<void> {
-  if (scriptPromise) return scriptPromise
-  scriptPromise = new Promise<void>((resolve, reject) => {
-    if (window.turnstile) {
-      resolve()
-      return
+  if (window.turnstile) return Promise.resolve()
+  if (window.__veloraTurnstileScriptPromise) return window.__veloraTurnstileScriptPromise
+  window.__veloraTurnstileScriptPromise = new Promise<void>((resolve, reject) => {
+    let s = document.getElementById(SCRIPT_ID) as HTMLScriptElement | null
+    if (!s) {
+      s = document.createElement('script')
+      s.id = SCRIPT_ID
+      s.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit'
+      s.async = true
     }
-    document.getElementById(SCRIPT_ID)?.remove()
-    const s = document.createElement('script')
-    s.id = SCRIPT_ID
-    s.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit'
-    s.async = true
     const finish = (error?: Error) => {
       window.clearTimeout(timeout)
-      s.onload = null
-      s.onerror = null
       if (error) {
         s.remove()
-        scriptPromise = null
+        window.__veloraTurnstileScriptPromise = null
         reject(error)
         return
       }
       resolve()
     }
     const timeout = window.setTimeout(() => finish(new Error('Turnstile 脚本加载超时')), SCRIPT_LOAD_TIMEOUT_MS)
-    s.onload = () => {
+    s.addEventListener('load', () => {
       if (window.turnstile) finish()
       else finish(new Error('Turnstile 未正确初始化'))
-    }
-    s.onerror = () => {
-      scriptPromise = null // 允许重试
+    }, { once: true })
+    s.addEventListener('error', () => {
       finish(new Error('Turnstile 脚本加载失败'))
-    }
-    document.head.appendChild(s)
+    }, { once: true })
+    if (!s.isConnected) document.head.appendChild(s)
   })
-  return scriptPromise
+  return window.__veloraTurnstileScriptPromise
 }
 
 /**
@@ -99,8 +95,9 @@ export default function TurnstileWidget({ siteKey, action = 'login', onVerify, o
       onVerify('')
     }
 
-    const clearFailedChallenge = () => {
+    const showFailedChallenge = () => {
       onVerify('')
+      setFailed(true)
     }
 
     loadTurnstileScript()
@@ -116,17 +113,17 @@ export default function TurnstileWidget({ siteKey, action = 'login', onVerify, o
             onExpire?.()
             onVerify('')
           },
-          // Let Turnstile own transient failure recovery. Hiding the widget from
-          // error/timeout callbacks can permanently lock a legitimate user out.
-          retry: 'auto',
-          'retry-interval': 8_000,
+          // Do not let an unavailable challenge retry forever. An unbounded
+          // retry loop can create hundreds of bot-classified challenges and
+          // lock legitimate users out. Recovery is an explicit user action.
+          retry: 'never',
           'refresh-expired': 'auto',
           'refresh-timeout': 'auto',
-          'error-callback': clearFailedChallenge,
+          'error-callback': showFailedChallenge,
           'timeout-callback': clearTimedOutChallenge,
           theme,
           size: 'flexible',
-          appearance: 'interaction-only',
+          appearance: 'always',
         })
         widgetIdRef.current = widgetId
       })

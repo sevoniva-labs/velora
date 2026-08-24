@@ -51,6 +51,15 @@ func TestPlatformAuthorizationRequiresPermissionAndTokenScope(t *testing.T) {
 	}
 }
 
+func TestTokenScopeMayMatchAnyAlternativeOperationPermission(t *testing.T) {
+	handler := Server(PortalRules())(func(context.Context, any) (any, error) { return "ok", nil })
+	operation := forgev1.OperationPortalServiceListAdminPortalApplications
+	principal := domain.Principal{Type: "TOKEN", Permissions: []string{"iam.integration.read"}, Scopes: []string{"iam.integration.read"}}
+	if _, err := handler(authorizationContext(operation, principal), nil); err != nil {
+		t.Fatalf("least-privilege identity reader token rejected: %v", err)
+	}
+}
+
 func TestPlatformAuthorizationDeniesUnregisteredOperation(t *testing.T) {
 	handler := Server(PlatformRules())(func(context.Context, any) (any, error) { return "ok", nil })
 	principal := domain.Principal{Roles: []string{"system_admin"}}

@@ -270,17 +270,20 @@ func (p Principal) HasRole(keys ...string) bool {
 }
 func (p Principal) HasPermission(keys ...string) bool {
 	if p.Type == "TOKEN" {
+		scopeAllowed := false
 		for _, want := range keys {
-			allowed := false
 			for _, scope := range p.Scopes {
 				if permissionsEquivalent(scope, want) || scope == "*" {
-					allowed = true
+					scopeAllowed = true
 					break
 				}
 			}
-			if !allowed {
-				return false
+			if scopeAllowed {
+				break
 			}
+		}
+		if !scopeAllowed {
+			return false
 		}
 	}
 	if p.HasRole("system_admin") {

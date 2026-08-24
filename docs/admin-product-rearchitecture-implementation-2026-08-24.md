@@ -71,25 +71,25 @@ VITE_UI_SCALE
 
 - 生产备份服务执行成功，退出码为 0。
 - Server、Worker、Migrate 使用本机构建的 `linux/amd64` 制品；Web 在本机构建后上传。依赖使用 `goproxy.cn`，服务器未执行 Go 或前端编译。
-- Server 与 Migrate 基础制品版本：`ab0f83c`；Worker 最终版本：`7505112`；Server 最终版本：`e79c546`；Web 最终版本：`13d56d5`。最终版本已包含分类与标签管理归位、旧访问策略写入退役、生产应用硬删除禁用、门户展示假 API 移除、用户目录服务端分页、检索和筛选，以及 Turnstile 挑战超时和临时错误的自动恢复。
+- Server 与 Migrate 基础制品版本：`ab0f83c`；Worker 最终版本：`7505112`；Server 最终版本：`d1f35ce`；Web 最终版本：`bdb9133`。最终版本已包含分类与标签管理归位、旧访问策略写入退役、生产应用硬删除禁用、门户展示假 API 移除、用户目录服务端分页、检索和筛选、Turnstile 有界失败恢复，以及审计日志的服务端分页和多条件调查筛选。
 - PostgreSQL additive migration 成功，当前 Goose 版本为 `31`；`application_access_grants`、`application_access_grant_roles`、`user_application_entitlement_sources`、应用负责人字段、平台角色生命周期字段和 `user_role_exclusions` 均已存在。
 - 旧策略迁移后有 3 条访问规则、1 条权限来源，现有 2 个应用保留。
 - Server、Worker、Web、PostgreSQL、Redis、Casdoor、Edge 与 Demo 容器健康。
 - `home` 健康、API health、API readiness、OIDC Discovery 与 Demo health 均返回 HTTP 200；readiness 的 database、cache、messaging、search、storage 均为 `UP`。
 - 通过一次性生产验收令牌完成认证管理 API 验收：6 个平台角色、3 个用户、2 个应用均可读取；`carson` 的有效应用权限可解释；Spectra 账号下发重试保持 `HEALTHY`；旧单用户 entitlement 和旧访问策略写接口均返回 400，生产应用物理删除返回 400，确认旧写入面已退役。最终版本进一步验证 `/api/v1/admin/users?page=1&page_size=1&keyword=carson&status=ACTIVE` 返回 `total=1`、`page=1`、`page_size=1` 和唯一的 `carson`，证明检索、状态筛选与服务端分页在公网生产链路生效。验收令牌随后删除，数据库计数为 0，管理员强制改密标志恢复。
 - Server 发布后未发现 error、panic 或 fatal 日志。Worker 在未配置 WORM 归档时明确记录 `WARN` 并禁用清理，不会误报故障，也不会在没有不可变归档时删除审计数据。
-- 发布前镜像保留为 `rollback-pre-ab0f83c`、`rollback-pre-ea8478d`、`rollback-pre-7505112`、`rollback-pre-18600b1`、`rollback-pre-e79c546`、`rollback-pre-d6e1cb1` 和 `rollback-pre-13d56d5`；最终 Server 制品位于 `/opt/velora/prod/releases/e79c546`，最终 Web 制品位于 `/opt/velora/prod/releases/13d56d5`。最终 Server SHA-256 为 `c5ae3621ed1d8c30c1520fdd0c9048acd2364848df028a2780af2885da6dcc18`，Worker SHA-256 为 `0cdd6a13ba15249c64c241be0ef001cc8166072feb828cb0ce9ff1e6e60c22d1`，Web 压缩制品 SHA-256 为 `024a6ef9ed19fb168ba09a768d523a95bd3b2f03ca4202accc9e0aa268f9c564`；生产 Web 入口加载 `assets/index-BAqgXHU7.js`。
+- 发布前镜像保留为 `rollback-pre-ab0f83c`、`rollback-pre-ea8478d`、`rollback-pre-7505112`、`rollback-pre-18600b1`、`rollback-pre-e79c546`、`rollback-pre-d6e1cb1`、`rollback-pre-13d56d5`、`rollback-pre-d1f35ce` 和 `rollback-pre-bdb9133`。最终 Server 制品位于 `/opt/velora/prod/releases/d1f35ce`，Web 制品位于 `/opt/velora/prod/releases/bdb9133`。最终 Server SHA-256 为 `ab58e7bb24c5f8c8a3de7116e09fde251b639ce56e3e8e85aaa3c39c9997c810`，Worker SHA-256 为 `0cdd6a13ba15249c64c241be0ef001cc8166072feb828cb0ce9ff1e6e60c22d1`，Web 压缩制品 SHA-256 为 `5a37c0d96c12d0aedf983db05af5f47987148c1f88e7e692b7ab8c2a9bd21b24`；生产 Web 入口加载 `assets/index-CQCfv6pG.js`。
 
-最终自动门禁已在 `13d56d5` 发布前重新执行：Web lint、11 个测试文件共 54 项测试和生产构建通过；Server `go test ./...`、Proto、OpenAPI 与 127 条 HTTP 契约门禁通过，其中 76 条写操作受 CSRF 保护。
+最终自动门禁已在 `bdb9133` 发布前重新执行：Web lint、11 个测试文件共 54 项测试和生产构建通过；Server `go test ./...`、Proto、OpenAPI 与 127 条 HTTP 契约门禁在 `d1f35ce` 发布前通过，其中 76 条写操作受 CSRF 保护。操作审计使用 ProComponents `QueryFilter`，按操作人、动作、对象类型、对象、结果和时间范围查询；分页、总数和过滤均由服务端执行，应用变更记录不再只读取前 500 条后在浏览器中过滤。
 
-浏览器已验证未认证访问 `/admin` 正确回到 Velora 登录页，页面不暴露 Casdoor。`18600b1` 移除了前端自设的错误倒计时；后续实测又发现 Cloudflare 自身的挑战超时回调仍会被当成永久错误并隐藏控件。`13d56d5` 依照 Turnstile 官方配置启用 `retry=auto`、`refresh-expired=auto` 和 `refresh-timeout=auto`，前端回调只清理失效 token，不再与控件的自动恢复竞争。生产持续等待超过 60 秒后验证控件仍可操作且无错误提示。自动化不得代替用户完成验证码；登录后的菜单、应用详情和治理操作仍需用户完成一次验证码后继续目视验收，不得把该项记录为已通过。
+浏览器已验证未认证访问 `/admin` 正确回到 Velora 登录页，页面不暴露 Casdoor。生产实测发现 `retry=auto` 在挑战持续失败时每 8 秒无限重试；Cloudflare 24 小时分析因此记录 796 次登录挑战，其中 99.25% 被判为自动流量，并在客户端出现 `300010`。`bdb9133` 将失败重试改为显式人工触发，脚本加载 Promise 提升到页面全局以阻止重复加载，控件固定显示且过期仍由 Cloudflare 自动刷新。部署后生产登录页重新稳定显示“请验证您是真人”，不再后台持续创建挑战。自动化不得代替用户完成验证码；登录后的菜单、应用详情和治理操作仍需用户完成一次验证码后继续目视验收，不得把该项记录为已通过。
 
 ## 最终生产核验快照
 
 核验时间：2026-08-24（Asia/Shanghai）。
 
 - 公网 `/api/v1/system/health` 与 `/api/v1/system/ready` 均返回成功，database、cache、messaging、search、storage 全部为 `UP`。
-- Server、Web、Worker、OIDC Demo、Redis、Casdoor、Edge、PostgreSQL 全部健康；生产 Server 二进制 SHA-256 与 `e79c546` 制品一致，Web 入口为 `assets/index-BAqgXHU7.js`；最新 Worker 日志仅包含预期的 WORM 未配置警告。
+- Server、Web、Worker、OIDC Demo、Redis、Casdoor、Edge、PostgreSQL 全部健康；生产 Server 二进制 SHA-256 与 `d1f35ce` 制品一致，Web 入口为 `assets/index-CQCfv6pG.js`；最新 Worker 日志仅包含预期的 WORM 未配置警告。
 - 数据库迁移版本为 31；平台角色 6 个；最终分页验收后临时令牌 0 个；`admin.must_change_password=true` 已恢复。
 - `user_role_exclusions` 当前为 0 条是正常生产数据状态；迁移、外键和访问复核撤权代码路径已通过自动测试。
 - WORM 归档适配器属于已明确预留能力；在正式配置不可变归档前，审计清理保持关闭。这不是数据保留门禁失败，也不得手工开启清理。

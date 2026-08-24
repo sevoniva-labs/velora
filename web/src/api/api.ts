@@ -166,7 +166,6 @@ async function fetchPortalApplications(params: ListApplicationsParams = {}, admi
 export interface AuthCapabilities {
   authMode: 'oidc' | 'password'
   passwordLoginEnabled: boolean
-  casdoorAccountUrl: string
 }
 
 const OIDC_REDIRECT_STORAGE_KEY = 'velora.oidc.redirect'
@@ -191,7 +190,6 @@ export async function getAuthCapabilities(): Promise<AuthCapabilities> {
     // In OIDC mode this flag may represent the explicitly enabled Casdoor
     // password compatibility flow; production health must still fail closed.
     passwordLoginEnabled: Boolean(data.passwordLoginEnabled),
-    casdoorAccountUrl: String(data.casdoorAccountUrl ?? ''),
   }
 }
 

@@ -34,6 +34,7 @@ func TestSystemHealthNeverAdvertisesPasswordInProduction(t *testing.T) {
 	cfg := config.Default()
 	cfg.App.Environment = "production"
 	cfg.Security.AuthMode = "password"
+	cfg.Security.CasdoorAccountURL = "https://identity.internal.example/account"
 	svc := NewSystemService(cfg, "test", nil, nil)
 	reply, err := svc.Health(context.Background(), &forgev1.HealthRequest{})
 	if err != nil {
@@ -41,6 +42,9 @@ func TestSystemHealthNeverAdvertisesPasswordInProduction(t *testing.T) {
 	}
 	if reply.PasswordLoginEnabled {
 		t.Fatalf("production health advertised password login: %+v", reply)
+	}
+	if reply.CasdoorAccountUrl != "" {
+		t.Fatalf("public health exposed the identity provider account URL: %+v", reply)
 	}
 }
 

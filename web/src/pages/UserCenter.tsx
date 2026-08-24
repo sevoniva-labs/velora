@@ -147,9 +147,8 @@ export default function UserCenter() {
         <Alert
           type="info"
           showIcon
-          message="登录密码、多因素认证和账号资料由统一身份中心管理。"
-          description={authCapabilities?.casdoorAccountUrl ? '请前往统一身份中心修改密码或管理安全设置。' : '统一身份中心地址尚未配置，请联系管理员。'}
-          action={authCapabilities?.casdoorAccountUrl?.startsWith('https://') ? <Button href={authCapabilities.casdoorAccountUrl} target="_blank" rel="noreferrer">管理账号安全</Button> : undefined}
+          message="账号安全由企业统一管理"
+          description="如需修改登录凭据或安全设置，请联系系统管理员。"
         />
       </Card>}
 

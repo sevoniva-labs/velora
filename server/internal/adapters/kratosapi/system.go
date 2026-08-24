@@ -35,7 +35,6 @@ func (s *SystemService) Health(context.Context, *forgev1.HealthRequest) (*forgev
 		Version:              s.version,
 		AuthMode:             authMode,
 		PasswordLoginEnabled: passwordLoginEnabled,
-		CasdoorAccountUrl:    s.cfg.Security.CasdoorAccountURL,
 		TurnstileEnabled:     s.cfg.Security.TurnstileConfigured(),
 		TurnstileSiteKey:     s.cfg.Security.TurnstileSiteKey,
 		TurnstileAction:      s.cfg.Security.EffectiveTurnstileAction(),

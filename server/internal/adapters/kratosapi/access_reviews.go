@@ -86,7 +86,17 @@ func (s *PlatformService) DecideAccessReviewItem(ctx context.Context, req *forge
 }
 
 func accessReviewProto(review domain.AccessReview) *forgev1.AccessReview {
-	return &forgev1.AccessReview{Id: review.ID, OrganizationId: review.OrganizationID, ReviewerId: review.ReviewerID, ReviewerName: review.ReviewerName, Status: review.Status, DueAt: timestamp(review.DueAt), CreatedBy: review.CreatedBy, CreatedAt: timestamp(review.CreatedAt), CompletedAt: optionalTimestamp(review.CompletedAt), ScopeType: review.ScopeType, ScopeId: review.ScopeID, ScopeName: review.ScopeName, ItemCount: int32(review.ItemCount), PendingCount: int32(review.PendingCount)}
+	return &forgev1.AccessReview{Id: review.ID, OrganizationId: review.OrganizationID, ReviewerId: review.ReviewerID, ReviewerName: review.ReviewerName, Status: review.Status, DueAt: timestamp(review.DueAt), CreatedBy: review.CreatedBy, CreatedAt: timestamp(review.CreatedAt), CompletedAt: optionalTimestamp(review.CompletedAt), ScopeType: review.ScopeType, ScopeId: review.ScopeID, ScopeName: review.ScopeName, ItemCount: boundedInt32(review.ItemCount), PendingCount: boundedInt32(review.PendingCount)}
+}
+
+func boundedInt32(value int) int32 {
+	if value <= 0 {
+		return 0
+	}
+	if value > 2147483647 {
+		return 2147483647
+	}
+	return int32(value) // #nosec G115 -- value is explicitly bounded to the int32 range above.
 }
 
 func accessReviewItemProto(item domain.AccessReviewItem) *forgev1.AccessReviewItem {

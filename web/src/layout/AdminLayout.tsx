@@ -1,13 +1,13 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
-import { ModalForm, ProFormText, ProLayout, type MenuDataItem } from '@ant-design/pro-components'
-import { App as AntdApp, Avatar, Button, Dropdown } from 'antd'
-import { HomeOutlined, LogoutOutlined, UserOutlined } from '@ant-design/icons'
+import { ModalForm, ProFormText } from '@ant-design/pro-components'
+import { App as AntdApp, Avatar, Button, Drawer, Dropdown, Layout, Menu, type MenuProps } from 'antd'
+import { HomeOutlined, LogoutOutlined, MenuFoldOutlined, MenuOutlined, MenuUnfoldOutlined, UserOutlined } from '@ant-design/icons'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { logout, stepUpAuthentication } from '../api/api'
 import { ApiError, STEP_UP_REQUIRED_EVENT } from '../api/client'
 import { useMe } from '../auth/useMe'
-import { adminNavItems, type AdminNavItem } from './menu'
+import { adminActiveKey, adminNavItems, type AdminNavItem } from './menu'
 import { hasAnyPermission } from '../auth/permissions'
 import { portalConfig } from '../config/portal'
 
@@ -26,12 +26,26 @@ export function visibleNavigation(items: AdminNavItem[], permissions: string[], 
   })
 }
 
-function toMenuData(items: AdminNavItem[]): MenuDataItem[] {
-  return items.map((item) => ({ key: item.key, path: item.path, name: item.label, icon: item.icon, children: item.children ? toMenuData(item.children) : undefined }))
+function groupedMenuItems(items: AdminNavItem[]): MenuProps['items'] {
+  return items.map((item) => {
+    const children = item.children ?? []
+    const entries = children.length ? children : [item]
+    return {
+      type: 'group' as const,
+      key: `group-${item.key}`,
+      label: children.length ? item.label : '总览',
+      children: entries.map((entry) => ({
+        key: entry.key,
+        icon: entry.icon ?? item.icon,
+        label: entry.path ? <Link className="velora-side-link" to={entry.path}>{entry.label}</Link> : entry.label,
+      })),
+    }
+  })
 }
 
 export function AdminLayout({ children }: AdminLayoutProps) {
   const [collapsed, setCollapsed] = useState(false)
+  const [mobileOpen, setMobileOpen] = useState(false)
   const [stepUpOpen, setStepUpOpen] = useState(false)
   const [recoveryMode, setRecoveryMode] = useState(false)
   const { message } = AntdApp.useApp()
@@ -42,7 +56,12 @@ export function AdminLayout({ children }: AdminLayoutProps) {
   const portalName = portalConfig.name
   const displayName = me.data?.displayName || me.data?.username || '用户'
   const roleLabel = me.data?.roles.map((role) => ROLE_LABELS[role]).find(Boolean) || '管理成员'
-  const menuData = useMemo(() => toMenuData(visibleNavigation(adminNavItems, me.data?.permissions ?? [], me.data?.roles ?? [])), [me.data?.permissions, me.data?.roles])
+  const activeKey = adminActiveKey(location.pathname)
+  const visibleItems = useMemo(
+    () => visibleNavigation(adminNavItems, me.data?.permissions ?? [], me.data?.roles ?? []),
+    [me.data?.permissions, me.data?.roles],
+  )
+  const menuItems = useMemo(() => groupedMenuItems(visibleItems), [visibleItems])
 
   useEffect(() => {
     const requireStepUp = () => setStepUpOpen(true)
@@ -53,43 +72,103 @@ export function AdminLayout({ children }: AdminLayoutProps) {
   const logoutMutation = useMutation({
     mutationFn: logout,
     onSuccess: (result) => { queryClient.clear(); window.location.assign(result.federatedLogoutUrl || '/login') },
+    onError: (error) => message.error(error instanceof Error ? error.message : '退出失败，请稍后重试'),
   })
 
   return (
     <>
-      <ProLayout
-      className="velora-admin-pro-layout"
-      layout="side"
-      title={portalName}
-      logo="/sevoniva-mark.svg"
-      location={{ pathname: location.pathname }}
-      menuDataRender={() => menuData}
-      menuItemRender={(item, dom) => item.path ? <Link to={item.path}>{dom}</Link> : dom}
-      collapsed={collapsed}
-      onCollapse={setCollapsed}
-      siderWidth={208}
-      fixedHeader
-      fixSiderbar
-      breakpoint="lg"
-      token={{
-        header: { colorBgHeader: 'var(--admin-bg-canvas)', colorHeaderTitle: 'var(--admin-text-primary)' },
-        sider: { colorMenuBackground: 'var(--admin-bg-canvas)', colorTextMenu: 'var(--admin-text-secondary)', colorTextMenuSelected: 'var(--admin-text-primary)', colorBgMenuItemSelected: 'var(--admin-menu-active)' },
-        pageContainer: { paddingInlinePageContainerContent: 0, paddingBlockPageContainerContent: 0 },
-      }}
-      actionsRender={() => [<Button key="portal" type="text" icon={<HomeOutlined />} onClick={() => navigate('/home')}>返回门户</Button>]}
-      avatarProps={{
-        src: <Avatar size={28} icon={<UserOutlined />} />,
-        title: displayName,
-        render: (_, dom) => <Dropdown trigger={['click']} menu={{ items: [
-          { key: 'role', label: roleLabel, disabled: true },
-          { type: 'divider' },
-          { key: 'logout', label: '退出登录', icon: <LogoutOutlined />, danger: true, onClick: () => logoutMutation.mutate() },
-        ] }}>{dom}</Dropdown>,
-      }}
-      contentStyle={{ padding: 24, minHeight: 'calc(100vh - 56px)' }}
-    >
-      <main id="main" className="velora-admin-content">{children}</main>
-      </ProLayout>
+      <Layout className={collapsed ? 'velora-layout is-collapsed' : 'velora-layout'}>
+        <Layout.Header className="velora-header">
+          <Button
+            type="text"
+            className="velora-header-trigger velora-mobile-menu-trigger"
+            aria-label="打开导航"
+            icon={<MenuOutlined />}
+            onClick={() => setMobileOpen(true)}
+          />
+          <div className="velora-header-brand">
+            <Link className="velora-brand" to="/admin" aria-label="管理后台">
+              <span className="velora-brand-mark" aria-hidden="true">
+                <img src="/sevoniva-mark.svg" alt="" width={19} height={19} />
+              </span>
+              <span className="velora-brand-text">
+                <span className="velora-brand-name">{portalName}</span>
+                <span className="velora-brand-sub">{portalConfig.welcome} · 管理后台</span>
+              </span>
+            </Link>
+          </div>
+          <Button
+            type="text"
+            className="velora-header-trigger velora-sider-trigger"
+            aria-label={collapsed ? '展开菜单' : '收起菜单'}
+            icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
+            onClick={() => setCollapsed((value) => !value)}
+          />
+          <div className="velora-header-toolbar">
+            <Button className="velora-back-portal" icon={<HomeOutlined />} onClick={() => navigate('/home')}>返回门户</Button>
+            <span className="velora-header-divider" aria-hidden="true" />
+            <Dropdown
+              trigger={['click']}
+              menu={{ items: [
+                { key: 'role', label: roleLabel, disabled: true },
+                { type: 'divider' },
+                { key: 'logout', label: '退出登录', icon: <LogoutOutlined />, danger: true, onClick: () => logoutMutation.mutate() },
+              ] }}
+            >
+              <button type="button" className="velora-user-chip" aria-label={`当前用户：${displayName}`}>
+                <Avatar size={28} icon={<UserOutlined />} />
+                <span className="velora-user-chip-info">
+                  <span className="velora-user-chip-name">{displayName}</span>
+                  <span className="velora-user-chip-role">{roleLabel}</span>
+                </span>
+              </button>
+            </Dropdown>
+          </div>
+        </Layout.Header>
+
+        <Drawer
+          placement="left"
+          width={220}
+          open={mobileOpen}
+          title={`${portalName} 管理后台`}
+          styles={{ body: { padding: 0 } }}
+          onClose={() => setMobileOpen(false)}
+        >
+          <Menu
+            mode="inline"
+            selectedKeys={[activeKey]}
+            items={menuItems}
+            style={{ borderInlineEnd: 'none' }}
+            onClick={() => setMobileOpen(false)}
+          />
+        </Drawer>
+
+        <Layout hasSider className="velora-body">
+          <Layout.Sider
+            width={216}
+            collapsedWidth={64}
+            collapsible
+            collapsed={collapsed}
+            trigger={null}
+            theme="light"
+            className="velora-sider"
+          >
+            <div className="velora-sider-inner">
+              <Menu
+                mode="inline"
+                inlineCollapsed={collapsed}
+                selectedKeys={[activeKey]}
+                items={menuItems}
+                className="velora-side-menu"
+              />
+            </div>
+          </Layout.Sider>
+          <Layout.Content id="main" className="velora-main-content">
+            <div className="velora-page-content velora-admin-content">{children}</div>
+          </Layout.Content>
+        </Layout>
+      </Layout>
+
       <ModalForm<{ currentPassword: string; mfaCode?: string; recoveryCode?: string }>
         title="确认本人操作"
         open={stepUpOpen}
@@ -102,11 +181,8 @@ export function AdminLayout({ children }: AdminLayoutProps) {
             message.success('身份确认完成，请重新执行刚才的操作。')
             return true
           } catch (error) {
-            if (error instanceof ApiError && error.code === '200026') {
-              message.warning('请先在个人中心启用多因素认证。')
-            } else {
-              message.error('密码或验证码不正确。')
-            }
+            if (error instanceof ApiError && error.code === '200026') message.warning('请先在个人中心启用多因素认证。')
+            else message.error('密码或验证码不正确。')
             return false
           }
         }}

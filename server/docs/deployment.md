@@ -2,7 +2,7 @@
 
 ## Binary / systemd
 
-`deploy/systemd/velora.service` 提供 non-root、ProtectSystem、PrivateTmp 等基础加固。生产建议 Secret 文件 `0600`、应用目录只读、独立数据目录，并由反向代理/API 网关或应用自身 TLS 终止 HTTPS。
+`deploy/systemd/forge.service` 提供 non-root、ProtectSystem、PrivateTmp 等基础加固。生产建议 Secret 文件 `0600`、应用目录只读、独立数据目录，并由反向代理/API 网关或应用自身 TLS 终止 HTTPS。
 
 ## Docker Compose
 
@@ -24,7 +24,7 @@ Compose 只用于开发/验证。生产中间件建议使用组织已有 HA 服�
 
 ## Kubernetes / Helm
 
-Chart：`deploy/helm/velora`。
+Chart：`deploy/helm/forge`。
 
 内置：non-root、read-only root filesystem、drop ALL capability、RuntimeDefault seccomp、startup/readiness/liveness、rolling update、HPA、PDB、NetworkPolicy、ServiceMonitor、API/Worker 分离、External Secret 引用、可选 PVC。
 
@@ -53,9 +53,9 @@ secretEnv:
 ### Xinchuang
 
 ```bash
-helm upgrade --install velora deploy/helm/velora \
-  -f deploy/helm/velora/values.yaml \
-  -f deploy/helm/velora/values-xinchuang.yaml
+helm upgrade --install velora deploy/helm/forge \
+  -f deploy/helm/forge/values.yaml \
+  -f deploy/helm/forge/values-xinchuang.yaml
 ```
 
 `values-xinchuang.yaml` 提供 OceanBase/Redis/Nacos Config/GM/S3 的组合样例。Kubernetes 内服务发现固定使用 Service/DNS，不再把 Pod 重复注册到 Nacos；非 Kubernetes 环境可显式启用 Nacos Registry。真实麒麟/UOS/ARM/LoongArch/国产数据库组合必须进入兼容验证矩阵。

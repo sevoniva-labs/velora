@@ -4,7 +4,7 @@ This is the authoritative policy for human and AI contributors. Agent files and 
 
 ## 1. Product boundary
 
-Forge is a new enterprise and banking application scaffold without legacy compatibility obligations. It provides secure defaults, auditable controls, offline delivery, provider boundaries, and evidence generation. A feature switch may disable a complete module; it must not expose a partially governed variant that omits mandatory controls.
+Velora is an enterprise application portal and identity-governance platform without legacy compatibility obligations. It provides secure defaults, auditable controls, offline delivery, provider boundaries, and evidence generation. A feature switch may disable a complete module; it must not expose a partially governed variant that omits mandatory controls.
 
 The defaults are a modular monolith, one React SPA, optional Wujie behind a governed manifest, and independent-origin iframe isolation for untrusted applications. A domain is split only after ownership, data, SLO, deployment, transaction, and operational admission gates are documented and tested.
 

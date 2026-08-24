@@ -1,6 +1,6 @@
 # Compatibility & Xinchuang Matrix
 
-Forge 把“已有代码实现”“协议兼容 profile”“目标环境实测”严格分开。
+Velora 把“已有代码实现”“协议兼容 profile”“目标环境实测”严格分开。
 
 | Dimension | Target | Scaffold status | Production acceptance |
 |---|---|---|---|

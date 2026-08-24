@@ -8,6 +8,7 @@ import (
 	forgev1 "github.com/sevoniva-labs/velora/server/api/gen/go/forge/v1"
 	domain "github.com/sevoniva-labs/velora/server/internal/domain/identity"
 	"github.com/sevoniva-labs/velora/server/internal/platform/authn"
+	"google.golang.org/grpc"
 )
 
 type fakeHeader struct{}
@@ -143,4 +144,35 @@ func TestPlatformRulesRegisterUserDetailRead(t *testing.T) {
 	if len(permissions) != 1 || permissions[0] != "system.user.read" {
 		t.Fatalf("unexpected permissions: %v", permissions)
 	}
+}
+
+func TestAuthorizationRulesCoverEveryGovernedRPC(t *testing.T) {
+	rules := Rules()
+	services := []struct {
+		name    string
+		methods []string
+	}{
+		{name: forgev1.PlatformService_ServiceDesc.ServiceName, methods: grpcMethodNames(forgev1.PlatformService_ServiceDesc.Methods)},
+		{name: forgev1.ApprovalService_ServiceDesc.ServiceName, methods: grpcMethodNames(forgev1.ApprovalService_ServiceDesc.Methods)},
+		{name: forgev1.PortalService_ServiceDesc.ServiceName, methods: grpcMethodNames(forgev1.PortalService_ServiceDesc.Methods)},
+	}
+	for _, service := range services {
+		for _, method := range service.methods {
+			operation := "/" + service.name + "/" + method
+			if operation == forgev1.OperationPortalServiceConsumeApplicationEnrollment {
+				continue
+			}
+			if _, ok := rules[operation]; !ok {
+				t.Errorf("missing authorization policy for %s", operation)
+			}
+		}
+	}
+}
+
+func grpcMethodNames(methods []grpc.MethodDesc) []string {
+	out := make([]string, 0, len(methods))
+	for _, method := range methods {
+		out = append(out, method.MethodName)
+	}
+	return out
 }

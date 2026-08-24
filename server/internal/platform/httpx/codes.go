@@ -108,6 +108,7 @@ var codeMap = map[string]string{
 	"APPROVER_UNAVAILABLE":              "300014",
 	"ENROLLMENT_CREDENTIAL_UNAVAILABLE": "300015",
 	"PROVISIONING_CHECK_UNAVAILABLE":    "400014",
+	"LOGIN_CHALLENGE_UNAVAILABLE":       "400015",
 }
 
 func NumericCode(symbol string) string {

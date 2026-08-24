@@ -1329,7 +1329,7 @@ func (s *Service) ListDepartments(ctx context.Context, orgID string) ([]domain.D
 }
 
 func (s *Service) CreateDepartment(ctx context.Context, actor domain.Principal, orgID string, req domain.Department) (domain.Department, error) {
-	if err := authorizeGrantActor(actor, orgID); err != nil {
+	if err := authorizeDirectoryActor(actor, orgID); err != nil {
 		return domain.Department{}, err
 	}
 	req.OrganizationID = orgID
@@ -1348,7 +1348,7 @@ func (s *Service) CreateDepartment(ctx context.Context, actor domain.Principal, 
 }
 
 func (s *Service) UpdateDepartment(ctx context.Context, actor domain.Principal, orgID, departmentID string, req domain.Department) (domain.Department, error) {
-	if err := authorizeGrantActor(actor, orgID); err != nil {
+	if err := authorizeDirectoryActor(actor, orgID); err != nil {
 		return domain.Department{}, err
 	}
 	departmentID = strings.TrimSpace(departmentID)
@@ -1480,7 +1480,7 @@ func (s *Service) ListPositions(ctx context.Context, orgID string) ([]domain.Pos
 }
 
 func (s *Service) CreatePosition(ctx context.Context, actor domain.Principal, orgID string, req domain.Position) (domain.Position, error) {
-	if err := authorizeGrantActor(actor, orgID); err != nil {
+	if err := authorizeDirectoryActor(actor, orgID); err != nil {
 		return domain.Position{}, err
 	}
 	req.OrganizationID = orgID
@@ -1499,7 +1499,7 @@ func (s *Service) CreatePosition(ctx context.Context, actor domain.Principal, or
 }
 
 func (s *Service) UpdatePosition(ctx context.Context, actor domain.Principal, orgID, positionID string, req domain.Position) (domain.Position, error) {
-	if err := authorizeGrantActor(actor, orgID); err != nil {
+	if err := authorizeDirectoryActor(actor, orgID); err != nil {
 		return domain.Position{}, err
 	}
 	positionID = strings.TrimSpace(positionID)
@@ -1569,7 +1569,7 @@ func (s *Service) ListUserGroups(ctx context.Context, orgID string) ([]domain.Us
 }
 
 func (s *Service) CreateUserGroup(ctx context.Context, actor domain.Principal, orgID string, req domain.UserGroup) (domain.UserGroup, error) {
-	if err := authorizeGrantActor(actor, orgID); err != nil {
+	if err := authorizeDirectoryActor(actor, orgID); err != nil {
 		return domain.UserGroup{}, err
 	}
 	req.OrganizationID = orgID
@@ -1581,7 +1581,7 @@ func (s *Service) CreateUserGroup(ctx context.Context, actor domain.Principal, o
 }
 
 func (s *Service) UpdateUserGroup(ctx context.Context, actor domain.Principal, orgID, groupID string, req domain.UserGroup) (domain.UserGroup, error) {
-	if err := authorizeGrantActor(actor, orgID); err != nil {
+	if err := authorizeDirectoryActor(actor, orgID); err != nil {
 		return domain.UserGroup{}, err
 	}
 	groupID = strings.TrimSpace(groupID)
@@ -1601,6 +1601,11 @@ func (s *Service) UpdateUserGroup(ctx context.Context, actor domain.Principal, o
 		return domain.UserGroup{}, err
 	}
 	if current.Status != clean.Status {
+		if len(current.Roles) > 0 {
+			if err := RequireRecentMFA(actor); err != nil {
+				return domain.UserGroup{}, err
+			}
+		}
 		if err := enforceRoleMutation(actor, current.Roles, nil); err != nil {
 			return domain.UserGroup{}, err
 		}
@@ -1614,12 +1619,17 @@ func (s *Service) UpdateUserGroup(ctx context.Context, actor domain.Principal, o
 }
 
 func (s *Service) UpdateUserGroupMembers(ctx context.Context, actor domain.Principal, orgID, groupID string, memberIDs []string) error {
-	if err := authorizeGrantActor(actor, orgID); err != nil {
+	if err := authorizeDirectoryActor(actor, orgID); err != nil {
 		return err
 	}
 	group, err := s.repo.UserGroupByID(ctx, orgID, strings.TrimSpace(groupID))
 	if err != nil {
 		return err
+	}
+	if len(group.Roles) > 0 {
+		if err := RequireRecentMFA(actor); err != nil {
+			return err
+		}
 	}
 	if err := enforceRoleMutation(actor, nil, group.Roles); err != nil {
 		return err
@@ -1730,7 +1740,7 @@ func (s *Service) ListUserAssignments(ctx context.Context, actor domain.Principa
 }
 
 func (s *Service) ReplaceUserAssignments(ctx context.Context, actor domain.Principal, orgID, userID string, assignments []domain.UserAssignment) error {
-	if err := authorizeGrantActor(actor, orgID); err != nil {
+	if err := authorizeDirectoryActor(actor, orgID); err != nil {
 		return err
 	}
 	userID = strings.TrimSpace(userID)
@@ -2177,10 +2187,21 @@ func hasRoleConflict(roleKeys []string, rules []domain.RoleConflictRule) bool {
 }
 
 func authorizeGrantActor(actor domain.Principal, orgID string) error {
+	if err := authorizeDirectoryActor(actor, orgID); err != nil {
+		return err
+	}
+	return RequireRecentMFA(actor)
+}
+
+// Directory maintenance changes organization metadata but does not grant a
+// platform role by itself. It requires an interactive, same-organization user
+// session; recent MFA remains mandatory where a group/role/permission mutation
+// can actually increase authority.
+func authorizeDirectoryActor(actor domain.Principal, orgID string) error {
 	if actor.Type != "USER" || actor.UserID == "" || actor.OrganizationID == "" || actor.OrganizationID != orgID {
 		return ErrGrantCeiling
 	}
-	return RequireRecentMFA(actor)
+	return nil
 }
 
 func enforceRoleMutation(actor domain.Principal, current, next []string) error {

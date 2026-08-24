@@ -34,6 +34,24 @@ func TestAuthorizeGrantActor(t *testing.T) {
 	}
 }
 
+func TestAuthorizeDirectoryActorDoesNotForceMFA(t *testing.T) {
+	valid := domain.Principal{Type: "USER", UserID: "u1", OrganizationID: "org1"}
+	if err := authorizeDirectoryActor(valid, "org1"); err != nil {
+		t.Fatalf("interactive directory actor rejected without MFA: %v", err)
+	}
+	for name, actor := range map[string]domain.Principal{
+		"token":        {Type: "TOKEN", UserID: "u1", OrganizationID: "org1"},
+		"missing user": {Type: "USER", OrganizationID: "org1"},
+		"cross org":    {Type: "USER", UserID: "u1", OrganizationID: "org2"},
+	} {
+		t.Run(name, func(t *testing.T) {
+			if err := authorizeDirectoryActor(actor, "org1"); !errors.Is(err, ErrGrantCeiling) {
+				t.Fatalf("expected grant ceiling error, got %v", err)
+			}
+		})
+	}
+}
+
 func TestEnforceRoleMutation(t *testing.T) {
 	systemAdmin := domain.Principal{Roles: []string{"system_admin"}}
 	if err := enforceRoleMutation(systemAdmin, nil, []string{"system_admin", "security_admin"}); err != nil {

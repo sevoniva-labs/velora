@@ -122,10 +122,11 @@ export default function TurnstileWidget({ siteKey, action = 'login', onVerify, o
           'error-callback': showFailedChallenge,
           'timeout-callback': clearTimedOutChallenge,
           theme,
-          // The current production site key is configured as Invisible.
-          // Keep the render mode identical until the Cloudflare widget and
-          // frontend are switched to Managed in the same release window.
-          size: 'invisible',
+          // Managed mode stays visually silent for normal traffic and only
+          // reveals Cloudflare's official challenge when interaction is
+          // required. Do not wrap the challenge in a custom decorative card.
+          size: 'flexible',
+          appearance: 'interaction-only',
         })
         widgetIdRef.current = widgetId
       })

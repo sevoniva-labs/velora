@@ -377,7 +377,7 @@ test('账号下发失败可重试、修改接收地址并交付一次性密钥',
   const endpoint = 'https://spectra.example.test/api/v2/provisioning/users'
   await page.getByLabel('接收地址').fill(endpoint)
   await page.getByRole('button', { name: /保\s*存/ }).click()
-  await expect(page.getByText('保存账号下发密钥').last()).toBeVisible()
+  await expect(page.getByText('保存接入凭据').last()).toBeVisible()
   await page.getByRole('button', { name: '已保存' }).click()
   expect(state.provisioningBodies.at(-1)).toMatchObject({ endpointUrl: endpoint, credentialDeliveryMode: 'BROWSER' })
 })

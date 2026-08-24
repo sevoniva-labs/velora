@@ -56,11 +56,11 @@ export default function UserDetail() {
   const entitlementColumns: ProColumns<UserEffectiveApplicationAccess>[] = [
     { title: '应用', dataIndex: 'applicationCode', render: (_, row) => <Space direction="vertical" size={0}><Typography.Text strong>{row.applicationName || row.applicationCode}</Typography.Text><Typography.Text type="secondary">{row.applicationCode}</Typography.Text></Space> },
     { title: '应用角色', dataIndex: 'roles', render: (_, row) => row.roles.length ? row.roles.map((role) => <Tag key={role}>{role}</Tag>) : '仅访问' },
-    { title: '状态', dataIndex: 'status', render: (_, row) => row.status === 'ACTIVE' ? <Tag color="success">生效中</Tag> : <Tag>已停用</Tag> },
-    { title: '权限来源', dataIndex: 'sources', render: (_, row) => row.sources.length ? row.sources.map((source) => <Tag key={source.grantId}>{source.subjectName || sourceLabel(source.subjectType)}</Tag>) : <Typography.Text type="secondary">历史直接授权</Typography.Text> },
+    { title: '状态', dataIndex: 'status', render: (_, row) => row.status === 'ACTIVE' ? <Tag color="success">可使用</Tag> : <Tag>已停用</Tag> },
+    { title: '获得方式', dataIndex: 'sources', render: (_, row) => row.sources.length ? row.sources.map((source) => <Tag key={source.grantId}>{source.subjectName || sourceLabel(source.subjectType)}</Tag>) : <Typography.Text type="secondary">历史直接授权</Typography.Text> },
   ]
 
-  const tabs = [{ key: 'profile', tab: '基本信息' }, ...(canReadAssignments ? [{ key: 'assignments', tab: '部门与岗位' }] : []), { key: 'access', tab: '有效应用权限' }]
+  const tabs = [{ key: 'profile', tab: '基本信息' }, ...(canReadAssignments ? [{ key: 'assignments', tab: '部门与岗位' }] : []), { key: 'access', tab: '可使用应用' }]
   const extra = tab === 'profile' && canManageRoles ? [approvedRoleChange ? <Button key="execute-roles" type="primary" loading={roleExecution.isPending} onClick={() => roleExecution.mutate(approvedRoleChange)}>执行角色变更</Button> : <Button key="roles" type="primary" onClick={() => setRoleOpen(true)}>配置平台角色</Button>] : tab === 'assignments' && canManageAssignments ? [<Button key="assignments" type="primary" onClick={() => setAssignmentOpen(true)}>编辑任职</Button>] : undefined
 
   return <PageContainer title={user?.displayName || user?.loginName || '用户详情'} onBack={() => navigate('/admin/users')} tabList={tabs} tabActiveKey={tab} onTabChange={setTab} extra={extra}>
@@ -70,10 +70,10 @@ export default function UserDetail() {
       { title: '邮箱', dataIndex: 'email', render: (_, row) => row.email || '—' },
       { title: '账号状态', dataIndex: 'status', render: (_, row) => row.status === 'ACTIVE' ? <Tag color="success">正常</Tag> : row.status === 'LOCKED' ? <Tag color="warning">已锁定</Tag> : <Tag>已停用</Tag> },
       { title: '平台角色', dataIndex: 'roles', render: (_, row) => row.roles.map((key) => <Tag key={key}>{roles.data?.find((role) => role.key === key)?.name ?? key}</Tag>) },
-      { title: '身份来源', dataIndex: 'identitySource', render: () => '统一身份' },
+      { title: '账号来源', dataIndex: 'identitySource', render: () => '统一身份' },
     ]} />}
     {tab === 'assignments' && <ProTable<UserAssignment> rowKey={(row) => row.id ?? `${row.departmentId}-${row.positionId}`} columns={assignmentColumns} dataSource={assignments.data ?? []} loading={assignments.isLoading} search={false} pagination={false} options={false} />}
-    {tab === 'access' && <ProTable<UserEffectiveApplicationAccess> rowKey="applicationId" columns={entitlementColumns} dataSource={effectiveAccess.data ?? []} loading={effectiveAccess.isLoading} search={false} pagination={false} options={false} locale={{ emptyText: '暂无应用权限' }} />}
+    {tab === 'access' && <ProTable<UserEffectiveApplicationAccess> rowKey="applicationId" columns={entitlementColumns} dataSource={effectiveAccess.data ?? []} loading={effectiveAccess.isLoading} search={false} pagination={false} options={false} locale={{ emptyText: '暂无可使用应用' }} />}
 
     <DrawerForm<AssignmentForm> key={`${id}-${assignments.data?.length ?? 0}`} title="编辑任职" open={assignmentOpen} onOpenChange={setAssignmentOpen} width={620} initialValues={{ assignments: assignments.data ?? [] }} submitter={{ searchConfig: { submitText: '保存任职', resetText: '取消' } }} onFinish={async (values) => { const rows = values.assignments ?? []; if (rows.length && rows.filter((item) => item.primary).length !== 1) throw new Error('请设置且仅设置一个主职'); await assignmentMutation.mutateAsync(values); return true }}>
       <ProFormList name="assignments" creatorButtonProps={{ creatorButtonText: '添加任职' }} copyIconProps={false}>

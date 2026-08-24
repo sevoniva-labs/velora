@@ -82,9 +82,9 @@ export const OPERATION_STATUS_LABEL: Record<string, string> = {
 export const ONBOARDING_CHECK_LABEL: Record<string, string> = {
   access_policy: '访问范围',
   oidc_discovery: '统一登录配置',
-  provisioning_challenge: '账号同步签名',
-  provisioning_duplicate: '重复事件处理',
-  provisioning_stale: '乱序事件处理',
+  provisioning_challenge: '账号下发连接',
+  provisioning_duplicate: '重复下发保护',
+  provisioning_stale: '过期数据保护',
 }
 
 export function enumLabel(labels: Record<string, string>, value?: string, fallback = '未知'): string {
@@ -123,8 +123,8 @@ export const AUDIT_ACTION_LABEL: Record<string, string> = {
   'portal.application.submit_publish': '提交应用发布',
   'portal.application.roles.replace': '更新应用角色',
   'portal.application.access_grants.replace': '更新应用访问范围',
-  'portal.application.provisioning.upsert': '更新账号同步配置',
-  'portal.application.provisioning.retry': '重新同步应用账号',
+  'portal.application.provisioning.upsert': '更新账号下发设置',
+  'portal.application.provisioning.retry': '重新下发应用账号',
   'portal.application.credential_approval.create': '申请接入凭据',
   'portal.policy.replace': '更新应用访问范围',
   'iam.integration.update': '更新统一登录配置',
@@ -136,18 +136,18 @@ export const AUDIT_ACTION_LABEL: Record<string, string> = {
   'role.update': '更新平台角色',
   'role.copy': '复制平台角色',
   'role.permissions.update': '更新角色权限',
-  'role.data_scope.update': '更新角色数据范围',
+  'role.data_scope.update': '更新角色可管理范围',
   'temporary_role_grant.create': '创建临时授权',
   'temporary_role_grant.revoke': '撤销临时授权',
-  'access_review.create': '发起访问复核',
-  'access_review.item.decide': '提交复核结果',
-  'security.api_token.create': '创建服务账号',
-  'security.api_token.revoke': '吊销服务账号',
-  'config_change.create': '创建配置版本',
-  'config_change.approve': '批准配置版本',
-  'config_change.publish': '发布配置版本',
-  'config_change.rollback.request': '申请配置回滚',
-  'config_change.rollback': '执行配置回滚',
+  'access_review.create': '发起权限检查',
+  'access_review.item.decide': '提交权限检查结果',
+  'security.api_token.create': '创建对接账号',
+  'security.api_token.revoke': '停用对接账号',
+  'config_change.create': '创建配置变更',
+  'config_change.approve': '审批配置变更',
+  'config_change.publish': '应用配置变更',
+  'config_change.rollback.request': '申请恢复上一版本',
+  'config_change.rollback': '恢复上一版本',
   'portal.application.launch': '启动应用',
   'portal.favorite.add': '收藏应用',
   'portal.favorite.remove': '取消收藏',
@@ -180,11 +180,11 @@ export function auditActionLabel(action: string): string {
 }
 
 export const AUDIT_RESOURCE_LABEL: Record<string, string> = {
-  user: '用户', role: '平台角色', session: '在线会话', api_token: '服务账号',
+  user: '用户', role: '平台角色', session: '登录会话', api_token: '对接账号',
   portal_application: '应用', portal_category: '应用分类', portal_tag: '应用标签',
   application_access: '应用访问范围', identity_integration: '统一登录配置',
-  approval: '审批', temporary_role_grant: '临时授权', access_review: '访问复核',
-  config_change: '配置版本', identity_console: '身份引擎应急入口',
+  approval: '审批', temporary_role_grant: '临时授权', access_review: '权限检查',
+  config_change: '配置变更', identity_console: '身份管理应急入口',
 }
 
 export function auditResourceLabel(resource: string): string {
@@ -196,11 +196,11 @@ export const APPROVAL_TYPE_LABEL: Record<string, string> = {
   TEMPORARY_ROLE_GRANT: '临时授权',
   USER_ROLE_CHANGE: '用户角色变更',
   ROLE_PERMISSION_CHANGE: '角色权限变更',
-  ROLE_DATA_SCOPE_CHANGE: '角色数据范围变更',
-  CONFIG_CHANGE_APPROVE: '配置批准',
-  CONFIG_CHANGE_PUBLISH: '配置发布',
-  CONFIG_CHANGE_ROLLBACK_REQUEST: '配置回滚申请',
-  CONFIG_CHANGE_ROLLBACK: '配置回滚',
+  ROLE_DATA_SCOPE_CHANGE: '角色可管理范围变更',
+  CONFIG_CHANGE_APPROVE: '配置变更审批',
+  CONFIG_CHANGE_PUBLISH: '配置生效',
+  CONFIG_CHANGE_ROLLBACK_REQUEST: '恢复上一版本申请',
+  CONFIG_CHANGE_ROLLBACK: '恢复上一版本',
   SECURITY_POLICY_CHANGE: '安全策略变更',
 }
 

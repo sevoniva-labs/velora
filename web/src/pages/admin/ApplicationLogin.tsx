@@ -36,26 +36,25 @@ export default function ApplicationLogin({ application, canManage }: Props) {
         message.info(data.nextAction || '接入申请已提交')
       } else {
         const token = data.result?.enrollmentToken
-        if (token) Modal.info({ title: '领取接入配置', width: 680, content: <Space direction="vertical" style={{ width: '100%' }}><Input.Password value={token} readOnly visibilityToggle /><Typography.Text code copyable>{`velora-connect enroll --portal ${window.location.origin} --output /etc/${application.code}/velora`}</Typography.Text><Typography.Text type="secondary">令牌 5 分钟内单次有效</Typography.Text></Space>, okText: '完成', maskClosable: false })
-        message.success('登录配置已更新')
+        if (token) Modal.info({ title: '保存接入密钥', width: 680, content: <Space direction="vertical" style={{ width: '100%' }}><Input.Password value={token} readOnly visibilityToggle /><Typography.Text code copyable>{`velora-connect enroll --portal ${window.location.origin} --output /etc/${application.code}/velora`}</Typography.Text><Typography.Text type="secondary">该密钥仅显示一次，5 分钟内有效，请立即保存。</Typography.Text></Space>, okText: '已保存', maskClosable: false })
+        message.success('登录设置已更新')
       }
       await refresh()
     },
-    onError: (error) => message.error(error instanceof Error ? error.message : '登录配置保存失败'),
+    onError: (error) => message.error(error instanceof Error ? error.message : '登录设置保存失败'),
   })
 
-  if (application.ssoType === 'URL') return <ProDescriptions column={1} dataSource={application} columns={[{ title: '接入方式', render: () => '普通链接' }, { title: '启动地址', render: () => application.launchUrl || application.homeUrl || '—' }]} />
+  if (application.ssoType === 'URL') return <ProDescriptions column={1} dataSource={application} columns={[{ title: '登录方式', render: () => '普通链接' }, { title: '应用地址', render: () => application.launchUrl || application.homeUrl || '—' }]} />
   if (onboarding.isError) return <QueryErrorState refetch={() => void onboarding.refetch()} />
   const binding = onboarding.data?.binding
   return <>
-    <ProDescriptions column={2} loading={onboarding.isLoading} dataSource={binding ?? {}} extra={canManage ? <Button type="primary" onClick={() => setOpen(true)}>{binding ? '更新回调地址' : '配置登录'}</Button> : undefined} columns={[
-      { title: '配置状态', render: () => binding ? <Tag color="success">已配置</Tag> : <Tag>未配置</Tag> },
-      { title: '验证状态', render: () => verificationStatus(binding?.verificationStatus) },
-      { title: '回调地址', span: 2, render: () => binding?.redirectUris?.length ? <Space direction="vertical" size={2}>{binding.redirectUris.map((uri) => <Typography.Text key={uri} copyable>{uri}</Typography.Text>)}</Space> : '—' },
-      { title: '最近验证', render: () => formatDateTime(binding?.verifiedAt) },
-      { title: '配置版本', render: () => binding?.configVersion ? `v${binding.configVersion}` : '—' },
+    <ProDescriptions column={2} loading={onboarding.isLoading} dataSource={binding ?? {}} extra={canManage ? <Button type="primary" onClick={() => setOpen(true)}>{binding ? '修改登录回调' : '配置登录'}</Button> : undefined} columns={[
+      { title: '统一登录', render: () => binding ? <Tag color="success">已配置</Tag> : <Tag>未配置</Tag> },
+      { title: '连接检查', render: () => verificationStatus(binding?.verificationStatus) },
+      { title: '登录回调地址', span: 2, render: () => binding?.redirectUris?.length ? <Space direction="vertical" size={2}>{binding.redirectUris.map((uri) => <Typography.Text key={uri} copyable>{uri}</Typography.Text>)}</Space> : '—' },
+      { title: '最近检查', render: () => formatDateTime(binding?.verifiedAt) },
     ]} />
-    <DrawerForm<LoginForm> key={`${application.id}-${binding?.configVersion ?? 0}`} title="登录配置" open={open} onOpenChange={setOpen} width={620} initialValues={{ redirectUris: binding?.redirectUris?.join('\n') ?? '' }} submitter={{ searchConfig: { submitText: binding ? '保存' : '提交接入申请', resetText: '取消' } }} onFinish={async (values) => { await configure.mutateAsync(values); return true }}>
+    <DrawerForm<LoginForm> key={`${application.id}-${binding?.configVersion ?? 0}`} title="登录设置" open={open} onOpenChange={setOpen} width={620} initialValues={{ redirectUris: binding?.redirectUris?.join('\n') ?? '' }} submitter={{ searchConfig: { submitText: binding ? '保存' : '提交申请', resetText: '取消' } }} onFinish={async (values) => { await configure.mutateAsync(values); return true }}>
       <ProFormTextArea name="redirectUris" label="登录回调地址" fieldProps={{ rows: 4 }} rules={[{ required: true, message: '请输入登录回调地址' }, { validator: (_: unknown, value: string) => value.split(/\r?\n/).every((uri) => /^https:\/\//i.test(uri.trim())) ? Promise.resolve() : Promise.reject(new Error('每行填写一个 HTTPS 地址')) }]} />
     </DrawerForm>
   </>

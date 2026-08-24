@@ -31,7 +31,7 @@ export const adminNavItems: AdminNavItem[] = [
     key: 'admin-app-center', label: '应用中心', icon: <AppstoreOutlined />, permissions: [PORTAL_MANAGE, PORTAL_PUBLISH, IDENTITY_READ, IDENTITY_MANAGE, IDENTITY_VERIFY],
     children: [
       { key: 'admin-apps', path: '/admin/applications', label: '应用', permissions: [PORTAL_MANAGE, PORTAL_PUBLISH, IDENTITY_READ, IDENTITY_MANAGE, IDENTITY_VERIFY] },
-      { key: 'admin-taxonomy', path: '/admin/taxonomy', label: '分类与标签', permissions: [PORTAL_MANAGE] },
+      { key: 'admin-taxonomy', path: '/admin/taxonomy', label: '应用分类', permissions: [PORTAL_MANAGE] },
     ],
   },
   {
@@ -48,21 +48,21 @@ export const adminNavItems: AdminNavItem[] = [
       { key: 'admin-roles', path: '/admin/roles', label: '平台角色', permissions: [SYSTEM_ROLE_READ] },
       { key: 'admin-approvals', path: '/admin/approvals', label: '审批', permissions: [APPROVAL_REQUEST_READ, APPROVAL_TASK_DECIDE], icon: <CheckSquareOutlined /> },
       { key: 'admin-temporary-grants', path: '/admin/temporary-grants', label: '临时授权', permissions: [SYSTEM_TEMPORARY_GRANT_READ], icon: <ClockCircleOutlined /> },
-      { key: 'admin-access-reviews', path: '/admin/access-reviews', label: '访问复核', permissions: [SYSTEM_ACCESS_REVIEW_READ], icon: <AuditOutlined /> },
+      { key: 'admin-access-reviews', path: '/admin/access-reviews', label: '权限检查', permissions: [SYSTEM_ACCESS_REVIEW_READ], icon: <AuditOutlined /> },
     ],
   },
   {
     key: 'admin-security', label: '安全与审计', icon: <SafetyCertificateOutlined />, permissions: [AUDIT_READ, API_TOKEN_MANAGE, SYSTEM_SESSION_READ, SYSTEM_CONFIG_READ],
     children: [
       { key: 'admin-login-security', path: '/admin/login-security', label: '登录安全', permissions: [SYSTEM_CONFIG_READ], icon: <SafetyCertificateOutlined /> },
-      { key: 'admin-integration-tokens', path: '/admin/integration-tokens', label: '服务账号', permissions: [API_TOKEN_MANAGE], icon: <ApiOutlined /> },
-      { key: 'admin-sessions', path: '/admin/sessions', label: '在线会话', permissions: [SYSTEM_SESSION_READ], icon: <LockOutlined /> },
-      { key: 'admin-audit', path: '/admin/audit', label: '操作审计', permissions: [AUDIT_READ], icon: <AuditOutlined /> },
+      { key: 'admin-integration-tokens', path: '/admin/integration-tokens', label: '系统对接', permissions: [API_TOKEN_MANAGE], icon: <ApiOutlined /> },
+      { key: 'admin-sessions', path: '/admin/sessions', label: '登录会话', permissions: [SYSTEM_SESSION_READ], icon: <LockOutlined /> },
+      { key: 'admin-audit', path: '/admin/audit', label: '操作记录', permissions: [AUDIT_READ], icon: <AuditOutlined /> },
     ],
   },
   {
     key: 'admin-settings', label: '平台设置', icon: <SettingOutlined />, permissions: [SYSTEM_CONFIG_READ],
-    children: [{ key: 'admin-config-changes', path: '/admin/config-changes', label: '配置发布', permissions: [SYSTEM_CONFIG_READ] }],
+    children: [{ key: 'admin-config-changes', path: '/admin/config-changes', label: '配置变更', permissions: [SYSTEM_CONFIG_READ] }],
   },
 ]
 

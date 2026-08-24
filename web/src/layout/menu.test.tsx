@@ -20,15 +20,15 @@ describe('admin navigation', () => {
     expect(labels).not.toContain('访问策略')
     expect(labels).not.toContain('分类管理')
     expect(labels).not.toContain('标签管理')
-    expect(labels).toContain('分类与标签')
+    expect(labels).toContain('应用分类')
   })
 
   it('exposes governance and configuration through product tasks', () => {
     const navigation = visibleNavigation(adminNavItems, [APPROVAL_REQUEST_READ, SYSTEM_TEMPORARY_GRANT_READ, SYSTEM_ACCESS_REVIEW_READ, SYSTEM_CONFIG_READ], [])
     expect(JSON.stringify(navigation)).toContain('审批')
     expect(JSON.stringify(navigation)).toContain('临时授权')
-    expect(JSON.stringify(navigation)).toContain('访问复核')
-    expect(JSON.stringify(navigation)).toContain('配置发布')
+    expect(JSON.stringify(navigation)).toContain('权限检查')
+    expect(JSON.stringify(navigation)).toContain('配置变更')
   })
 
   it('selects the correct navigation item for nested routes', () => {

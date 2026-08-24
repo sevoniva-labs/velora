@@ -37,7 +37,7 @@ interface TaxonomyForm {
 }
 
 export default function Taxonomy() {
-  usePageTitle('分类与标签')
+  usePageTitle('应用分类')
   const { message } = App.useApp()
   const queryClient = useQueryClient()
   const [tab, setTab] = useState<TaxonomyTab>('categories')
@@ -119,7 +119,7 @@ export default function Taxonomy() {
 
   return (
     <PageContainer
-      title="分类与标签"
+      title="应用分类"
       tabList={[{ key: 'categories', tab: '分类' }, { key: 'tags', tab: '标签' }]}
       tabActiveKey={tab}
       onTabChange={(key) => setTab(key as TaxonomyTab)}

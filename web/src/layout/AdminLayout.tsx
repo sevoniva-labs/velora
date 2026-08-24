@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { ModalForm, ProFormText, ProLayout, type MenuDataItem } from '@ant-design/pro-components'
-import { App as AntdApp, Avatar, Button, ConfigProvider, Dropdown, Space } from 'antd'
+import { App as AntdApp, Avatar, Button, Dropdown, Space } from 'antd'
 import { HomeOutlined, LogoutOutlined, UserOutlined } from '@ant-design/icons'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
@@ -10,7 +10,6 @@ import { useMe } from '../auth/useMe'
 import { adminNavItems, type AdminNavItem } from './menu'
 import { hasAnyPermission } from '../auth/permissions'
 import { portalConfig } from '../config/portal'
-import { scaffoldAdminTheme } from '../theme/tokens'
 
 export interface AdminLayoutProps { children: ReactNode }
 
@@ -57,7 +56,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
   })
 
   return (
-    <ConfigProvider theme={scaffoldAdminTheme}>
+    <>
       <ProLayout
       className="forge-layout"
       layout="side"
@@ -117,6 +116,6 @@ export function AdminLayout({ children }: AdminLayoutProps) {
         )}
         <Button type="link" size="small" style={{ paddingInline: 0 }} onClick={() => setRecoveryMode((value) => !value)}>{recoveryMode ? '使用验证码' : '使用恢复码'}</Button>
       </ModalForm>
-    </ConfigProvider>
+    </>
   )
 }

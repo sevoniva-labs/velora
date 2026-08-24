@@ -58,122 +58,11 @@ export const controlHeight = {
   small: 24,
 } as const
 
-/** Velora 主题：接近 AntD 默认，仅统一品牌色与少量布局。 */
-export const veloraTheme: ThemeConfig = {
-  cssVar: { prefix: 'ant' },
-  token: {
-    colorPrimary: brandColors.primary,
-    colorPrimaryHover: brandColors.primaryHover,
-    colorPrimaryActive: brandColors.primaryActive,
-    colorInfo: brandColors.primary,
-    colorSuccess: functionalColors.success,
-    colorWarning: functionalColors.warning,
-    colorError: functionalColors.error,
-    colorText: neutralColors.title,
-    colorTextSecondary: neutralColors.text,
-    colorTextTertiary: neutralColors.secondary,
-    colorTextQuaternary: neutralColors.disabled,
-    colorBorder: neutralColors.border,
-    colorBorderSecondary: neutralColors.borderLight,
-    colorBgLayout: neutralColors.bgLayout,
-    colorBgContainer: neutralColors.bgContainer,
-    colorBgElevated: neutralColors.bgContainer,
-    colorFillAlter: '#F7F8FA',
-    colorLink: brandColors.primary,
-    colorLinkHover: brandColors.primaryHover,
-    colorPrimaryBg: brandColors.primarySoft,
-    colorPrimaryBgHover: brandColors.primarySofter,
-    fontFamily:
-      '"PingFang SC", "Microsoft YaHei", "Source Han Sans SC", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
-    fontFamilyCode: 'ui-monospace, "SF Mono", Menlo, Monaco, Consolas, monospace',
-    fontSize: fontSize.body,
-    fontSizeHeading1: fontSize.pageTitle,
-    fontSizeHeading2: fontSize.pageTitle,
-    fontSizeHeading3: fontSize.sectionTitle,
-    fontSizeHeading4: fontSize.list,
-    fontSizeSM: fontSize.secondary,
-    fontSizeLG: fontSize.list,
-    lineHeight: 22 / 14,
-    controlHeight: controlHeight.middle,
-    controlHeightLG: controlHeight.large,
-    controlHeightSM: controlHeight.small,
-    borderRadius: 8,
-    borderRadiusLG: 10,
-    borderRadiusSM: 6,
-    motion: false,
-  },
-  components: {
-    Layout: {
-      headerHeight: layoutSize.headerHeight,
-      headerBg: brandColors.headerMid,
-      siderBg: neutralColors.bgSider,
-      bodyBg: neutralColors.bgLayout,
-    },
-    Menu: {
-      itemHeight: 38,
-      itemBorderRadius: 8,
-      itemMarginBlock: 2,
-      itemSelectedBg: brandColors.primarySoft,
-      itemSelectedColor: brandColors.primary,
-      itemHoverBg: brandColors.primarySofter,
-      itemColor: neutralColors.menuItem,
-      itemActiveBg: brandColors.primarySoft,
-    },
-    Button: {
-      controlHeight: controlHeight.middle,
-      controlHeightLG: controlHeight.large,
-      controlHeightSM: controlHeight.small,
-      paddingInline: 15,
-      paddingInlineLG: 20,
-      paddingInlineSM: 10,
-      primaryShadow: 'none',
-      defaultShadow: 'none',
-      dangerShadow: 'none',
-      fontWeight: 500,
-    },
-    Table: {
-      headerBg: neutralColors.bgContainer,
-      borderColor: neutralColors.borderLight,
-      rowHoverBg: '#F7F9FC',
-      cellPaddingBlock: 12,
-      cellPaddingInline: 14,
-      headerColor: neutralColors.text,
-    },
-    Card: {
-      paddingLG: 20,
-      headerBg: 'transparent',
-      colorBorderSecondary: neutralColors.border,
-      borderRadiusLG: 10,
-    },
-    Form: {
-      labelFontSize: fontSize.body,
-      itemMarginBottom: 20,
-    },
-    Input: {
-      controlHeight: controlHeight.middle,
-      controlHeightLG: controlHeight.large,
-      controlHeightSM: controlHeight.small,
-      activeBorderColor: brandColors.primary,
-      hoverBorderColor: brandColors.primary,
-      activeShadow: '0 0 0 2px rgba(22, 119, 255, 0.1)',
-    },
-    Tabs: {
-      itemSelectedColor: brandColors.primary,
-      inkBarColor: brandColors.primary,
-      itemHoverColor: brandColors.primaryHover,
-    },
-    Tag: {
-      defaultBg: '#F5F6F8',
-      defaultColor: neutralColors.text,
-    },
-  },
-}
-
 /**
- * 管理后台严格沿用 go-antd-fullstack 的 Forge 主题。
- * 门户可保留自己的品牌表达，后台不再维护第二套视觉 Token。
+ * 全站唯一主题，严格与 go-antd-fullstack 的 createForgeTheme('light') 对齐。
+ * 门户的品牌表达由页面 CSS 负责，Ant Design / ProComponents 不再维护第二套 token。
  */
-export const scaffoldAdminTheme: ThemeConfig = {
+export const veloraTheme: ThemeConfig = {
   token: {
     colorPrimary: '#1677FF',
     colorInfo: '#1677FF',
@@ -185,17 +74,31 @@ export const scaffoldAdminTheme: ThemeConfig = {
     borderRadiusLG: 12,
     controlHeight: 36,
     fontSize: 14,
-    fontFamily: 'Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif',
-    motion: true,
   },
   components: {
-    Layout: { bodyBg: '#F5F7FA', headerBg: '#FFFFFF', siderBg: '#FFFFFF' },
-    Menu: { itemBorderRadius: 8, itemMarginInline: 8 },
+    Layout: {
+      bodyBg: '#F5F7FA',
+      headerBg: '#FFFFFF',
+      siderBg: '#FFFFFF',
+    },
+    Menu: {
+      itemBorderRadius: 8,
+      itemMarginInline: 8,
+    },
     Table: { headerBg: '#FAFAFA', headerBorderRadius: 8 },
     Card: { borderRadiusLG: 12 },
-    Button: { borderRadius: 8, controlHeight: 36 },
-    Input: { borderRadius: 8, controlHeight: 38 },
-    Select: { borderRadius: 8, controlHeight: 38 },
+    Button: {
+      borderRadius: 8,
+      controlHeight: 36,
+    },
+    Input: {
+      borderRadius: 8,
+      controlHeight: 38,
+    },
+    Select: {
+      borderRadius: 8,
+      controlHeight: 38,
+    },
     Modal: { borderRadiusLG: 12 },
     Drawer: { borderRadiusLG: 12 },
     Tabs: { cardBg: '#FFFFFF' },

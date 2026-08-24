@@ -6,6 +6,7 @@
 .forge-layout .ant-pro-page-container-children-container { padding-inline: 24px; padding-block-end: 24px; }
 .forge-layout .ant-pro-layout-content { min-width: 0; }
 .forge-layout .ant-alert-description { max-width: 920px; }
+.forge-layout .ant-pro-sider-logo img { width: 30px; height: 30px; object-fit: contain; }
 .velora-admin-pro-table-card,
 .velora-admin-page-card { padding: 24px; background: #fff; border-radius: 12px; }
 .user-trigger { cursor: pointer; padding: 4px 8px; border-radius: 8px; transition: background .2s ease; }

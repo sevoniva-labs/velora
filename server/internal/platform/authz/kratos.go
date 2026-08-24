@@ -65,6 +65,7 @@ func allowedBeforePasswordChange(operation string) bool {
 func PlatformRules() map[string][]string {
 	return map[string][]string{
 		forgev1.OperationPlatformServiceListUsers:                          {"system.user.read"},
+		forgev1.OperationPlatformServiceGetUser:                            {"system.user.read"},
 		forgev1.OperationPlatformServiceCreateUser:                         {"system.user.create"},
 		forgev1.OperationPlatformServiceListDepartments:                    {"system.department.read"},
 		forgev1.OperationPlatformServiceCreateDepartment:                   {"system.department.manage"},

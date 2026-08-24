@@ -134,3 +134,13 @@ func TestPlatformRulesRegisterUserEntitlementMutation(t *testing.T) {
 		t.Fatalf("unexpected permissions: %v", permissions)
 	}
 }
+
+func TestPlatformRulesRegisterUserDetailRead(t *testing.T) {
+	permissions, ok := PlatformRules()[forgev1.OperationPlatformServiceGetUser]
+	if !ok {
+		t.Fatal("user detail read must have an authorization policy")
+	}
+	if len(permissions) != 1 || permissions[0] != "system.user.read" {
+		t.Fatalf("unexpected permissions: %v", permissions)
+	}
+}

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { ModalForm, ProFormText, ProLayout, type MenuDataItem } from '@ant-design/pro-components'
-import { App as AntdApp, Avatar, Button, Dropdown, Space } from 'antd'
+import { App as AntdApp, Avatar, Button, Dropdown } from 'antd'
 import { HomeOutlined, LogoutOutlined, UserOutlined } from '@ant-design/icons'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
@@ -58,9 +58,8 @@ export function AdminLayout({ children }: AdminLayoutProps) {
   return (
     <>
       <ProLayout
-      className="velora-admin-layout"
+      className="velora-admin-pro-layout"
       layout="side"
-      navTheme="light"
       title={portalName}
       logo="/sevoniva-mark.svg"
       location={{ pathname: location.pathname }}
@@ -68,24 +67,28 @@ export function AdminLayout({ children }: AdminLayoutProps) {
       menuItemRender={(item, dom) => item.path ? <Link to={item.path}>{dom}</Link> : dom}
       collapsed={collapsed}
       onCollapse={setCollapsed}
-      siderWidth={224}
-      contentWidth="Fluid"
+      siderWidth={208}
       fixedHeader
       fixSiderbar
       breakpoint="lg"
-      menu={{ type: 'group', autoClose: false }}
+      token={{
+        header: { colorBgHeader: 'var(--admin-bg-canvas)', colorHeaderTitle: 'var(--admin-text-primary)' },
+        sider: { colorMenuBackground: 'var(--admin-bg-canvas)', colorTextMenu: 'var(--admin-text-secondary)', colorTextMenuSelected: 'var(--admin-text-primary)', colorBgMenuItemSelected: 'var(--admin-menu-active)' },
+        pageContainer: { paddingInlinePageContainerContent: 0, paddingBlockPageContainerContent: 0 },
+      }}
       actionsRender={() => [<Button key="portal" type="text" icon={<HomeOutlined />} onClick={() => navigate('/home')}>返回门户</Button>]}
       avatarProps={{
-        src: undefined,
-        title: false,
-        render: () => <Dropdown trigger={['click']} menu={{ items: [
+        src: <Avatar size={28} icon={<UserOutlined />} />,
+        title: displayName,
+        render: (_, dom) => <Dropdown trigger={['click']} menu={{ items: [
           { key: 'role', label: roleLabel, disabled: true },
           { type: 'divider' },
           { key: 'logout', label: '退出登录', icon: <LogoutOutlined />, danger: true, onClick: () => logoutMutation.mutate() },
-        ] }}><Space className="user-trigger"><Avatar size={28} icon={<UserOutlined />} /><span className="user-name">{displayName}</span></Space></Dropdown>,
+        ] }}>{dom}</Dropdown>,
       }}
+      contentStyle={{ padding: 24, minHeight: 'calc(100vh - 56px)' }}
     >
-      <main id="main">{children}</main>
+      <main id="main" className="velora-admin-content">{children}</main>
       </ProLayout>
       <ModalForm<{ currentPassword: string; mfaCode?: string; recoveryCode?: string }>
         title="确认本人操作"

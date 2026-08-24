@@ -62,3 +62,28 @@ func TestDoctorRejectsWorldReadableDirectoryToken(t *testing.T) {
 		t.Fatalf("doctor error = %v", err)
 	}
 }
+
+func TestEnrollAndDoctorSupportSSOOnlyBundle(t *testing.T) {
+	client := &http.Client{Transport: roundTripper(func(req *http.Request) (*http.Response, error) {
+		body := `{"code":"000000","data":{"application_id":"app-1","application_code":"order-center","issuer":"https://auth.example.test","client_id":"client-1","client_secret":"0123456789abcdef0123456789abcdef","redirect_uris":["https://app.example.test/callback"],"scopes":["openid"]}}`
+		return &http.Response{StatusCode: 200, Body: io.NopCloser(strings.NewReader(body)), Header: make(http.Header)}, nil
+	})}
+	dir := t.TempDir()
+	if err := enroll([]string{"--portal", "https://home.example.test", "--output", dir}, strings.NewReader(strings.Repeat("t", 43)+"\n"), client); err != nil {
+		t.Fatal(err)
+	}
+	for _, name := range []string{"velora.env", "oidc-client-secret"} {
+		info, err := os.Stat(filepath.Join(dir, name))
+		if err != nil || info.Mode().Perm() != 0o600 {
+			t.Fatalf("%s: info=%v err=%v", name, info, err)
+		}
+	}
+	for _, name := range []string{"provisioning-secret", "directory-token"} {
+		if _, err := os.Stat(filepath.Join(dir, name)); !os.IsNotExist(err) {
+			t.Fatalf("%s should not exist: %v", name, err)
+		}
+	}
+	if err := doctor([]string{"--config", filepath.Join(dir, "velora.env")}); err != nil {
+		t.Fatalf("doctor rejected SSO-only bundle: %v", err)
+	}
+}

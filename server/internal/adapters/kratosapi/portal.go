@@ -1095,12 +1095,19 @@ func (s *PortalService) UpsertApplicationIdentityBinding(ctx context.Context, re
 				}
 				return nil, kratoserrors.Conflict("ENROLLMENT_CREDENTIAL_UNAVAILABLE", "new credentials must be generated before CLI enrollment can be issued")
 			}
+			bundle := credentialhandoff.Bundle{ApplicationID: app.ID, ApplicationCode: app.Code, Issuer: binding.Issuer, ClientID: binding.PublicClientID, ClientSecret: oneTimeClientSecret, RedirectURIs: binding.RedirectURIs, Scopes: binding.Scopes}
 			application, target, provisioningSecret, handoffErr := s.portal.ProvisioningCredentialForHandoff(ctx, principal, req.GetApplicationId())
-			if handoffErr != nil {
+			if handoffErr == nil {
+				bundle.ProvisioningEndpoint = target.EndpointURL
+				bundle.ProvisioningSecret = provisioningSecret
+				bundle.ProvisioningKeyVersion = target.ActiveKeyVersion
+				bundle.ProvisioningFingerprint = target.SecretFingerprint
+				bundle.DirectoryToken = appportal.DeriveDirectoryToken(provisioningSecret, application.ID)
+				bundle.DirectoryBasePath = "/api/v1/integrations/applications/" + application.ID + "/directory"
+			} else if !errors.Is(handoffErr, appportal.ErrNotFound) {
 				return nil, serviceError(handoffErr)
 			}
-			directoryBasePath := "/api/v1/integrations/applications/" + application.ID + "/directory"
-			enrollmentToken, enrollmentExpiresAt, handoffErr = s.handoff.Issue(ctx, credentialhandoff.Bundle{ApplicationID: application.ID, ApplicationCode: application.Code, Issuer: binding.Issuer, ClientID: binding.PublicClientID, ClientSecret: oneTimeClientSecret, RedirectURIs: binding.RedirectURIs, Scopes: binding.Scopes, ProvisioningEndpoint: target.EndpointURL, ProvisioningSecret: provisioningSecret, ProvisioningKeyVersion: target.ActiveKeyVersion, ProvisioningFingerprint: target.SecretFingerprint, DirectoryToken: appportal.DeriveDirectoryToken(provisioningSecret, application.ID), DirectoryBasePath: directoryBasePath})
+			enrollmentToken, enrollmentExpiresAt, handoffErr = s.handoff.Issue(ctx, bundle)
 			if handoffErr != nil {
 				if onboardingOperation.ID != "" {
 					next := time.Now().UTC().Add(time.Minute)

@@ -56,7 +56,12 @@ func New(c cache.Cache, cipher *appcrypto.EnvelopeCipher) (*Store, error) {
 }
 
 func (s *Store) Issue(ctx context.Context, bundle Bundle) (string, time.Time, error) {
-	if s == nil || s.cache == nil || s.cipher == nil || strings.TrimSpace(bundle.ApplicationID) == "" || strings.TrimSpace(bundle.ApplicationCode) == "" || strings.TrimSpace(bundle.ClientSecret) == "" || strings.TrimSpace(bundle.ProvisioningSecret) == "" || strings.TrimSpace(bundle.DirectoryToken) == "" {
+	if s == nil || s.cache == nil || s.cipher == nil || strings.TrimSpace(bundle.ApplicationID) == "" || strings.TrimSpace(bundle.ApplicationCode) == "" || strings.TrimSpace(bundle.ClientSecret) == "" {
+		return "", time.Time{}, ErrUnavailable
+	}
+	// Provisioning and directory credentials are an optional pair. This keeps
+	// SSO-only onboarding valid without ever issuing a partial sync bundle.
+	if (strings.TrimSpace(bundle.ProvisioningSecret) == "") != (strings.TrimSpace(bundle.DirectoryToken) == "") {
 		return "", time.Time{}, ErrUnavailable
 	}
 	bundle.IssuedAt = time.Now().UTC().Format(time.RFC3339Nano)
@@ -104,7 +109,7 @@ func (s *Store) Consume(ctx context.Context, token string) (Bundle, error) {
 		return Bundle{}, ErrInvalidToken
 	}
 	var bundle Bundle
-	if err := json.Unmarshal(raw, &bundle); err != nil || bundle.ApplicationID == "" || bundle.ApplicationCode == "" || bundle.ClientSecret == "" || bundle.ProvisioningSecret == "" || bundle.DirectoryToken == "" {
+	if err := json.Unmarshal(raw, &bundle); err != nil || bundle.ApplicationID == "" || bundle.ApplicationCode == "" || bundle.ClientSecret == "" || ((bundle.ProvisioningSecret == "") != (bundle.DirectoryToken == "")) {
 		return Bundle{}, ErrInvalidToken
 	}
 	return bundle, nil

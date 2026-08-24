@@ -121,24 +121,30 @@ func enroll(args []string, stdin io.Reader, client *http.Client) error {
 		return fmt.Errorf("领取失败: %s (request_id=%s)", safeMessage(wrapped.Message), wrapped.RequestID)
 	}
 	var bundle enrollment
-	if err := json.Unmarshal(wrapped.Data, &bundle); err != nil || bundle.ApplicationCode == "" || bundle.ApplicationID == "" || len(bundle.ClientSecret) < 16 || len(bundle.ProvisioningSecret) < 32 || len(bundle.DirectoryToken) < 32 {
+	if err := json.Unmarshal(wrapped.Data, &bundle); err != nil || bundle.ApplicationCode == "" || bundle.ApplicationID == "" || len(bundle.ClientSecret) < 16 || ((bundle.ProvisioningSecret == "") != (bundle.DirectoryToken == "")) {
 		return errors.New("接入包不完整，未写入任何文件")
 	}
 	clientSecretPath := filepath.Join(dir, "oidc-client-secret")
 	provisioningSecretPath := filepath.Join(dir, "provisioning-secret")
 	directoryTokenPath := filepath.Join(dir, "directory-token")
 	configPath := filepath.Join(dir, "velora.env")
+	if bundle.ProvisioningSecret != "" && (len(bundle.ProvisioningSecret) < 32 || len(bundle.DirectoryToken) < 32 || bundle.DirectoryBasePath == "") {
+		return errors.New("接入包中的账号同步配置无效，未写入任何文件")
+	}
 	if err := atomicWrite(clientSecretPath, []byte(bundle.ClientSecret+"\n"), 0o600); err != nil {
 		return err
 	}
-	if err := atomicWrite(provisioningSecretPath, []byte(bundle.ProvisioningSecret+"\n"), 0o600); err != nil {
-		return err
+	config := fmt.Sprintf("VELORA_APPLICATION_ID=%s\nVELORA_APPLICATION_CODE=%s\nVELORA_OIDC_ISSUER=%s\nVELORA_OIDC_CLIENT_ID=%s\nVELORA_OIDC_CLIENT_SECRET_FILE=%s\nVELORA_OIDC_REDIRECT_URI=%s\nVELORA_OIDC_SCOPES=%s\n", shellValue(bundle.ApplicationID), shellValue(bundle.ApplicationCode), shellValue(bundle.Issuer), shellValue(bundle.ClientID), shellValue(clientSecretPath), shellValue(first(bundle.RedirectURIs)), shellValue(strings.Join(bundle.Scopes, " ")))
+	if bundle.ProvisioningSecret != "" {
+		if err := atomicWrite(provisioningSecretPath, []byte(bundle.ProvisioningSecret+"\n"), 0o600); err != nil {
+			return err
+		}
+		if err := atomicWrite(directoryTokenPath, []byte(bundle.DirectoryToken+"\n"), 0o600); err != nil {
+			return err
+		}
+		directoryBaseURL := strings.TrimRight(u.String(), "/") + bundle.DirectoryBasePath
+		config += fmt.Sprintf("VELORA_PROVISIONING_ENDPOINT=%s\nVELORA_PROVISIONING_SECRET_FILE=%s\nVELORA_PROVISIONING_KEY_VERSION=%d\nVELORA_PROVISIONING_FINGERPRINT=%s\nVELORA_DIRECTORY_BASE_URL=%s\nVELORA_DIRECTORY_TOKEN_FILE=%s\n", shellValue(bundle.ProvisioningEndpoint), shellValue(provisioningSecretPath), bundle.ProvisioningKeyVersion, shellValue(bundle.ProvisioningFingerprint), shellValue(directoryBaseURL), shellValue(directoryTokenPath))
 	}
-	if err := atomicWrite(directoryTokenPath, []byte(bundle.DirectoryToken+"\n"), 0o600); err != nil {
-		return err
-	}
-	directoryBaseURL := strings.TrimRight(u.String(), "/") + bundle.DirectoryBasePath
-	config := fmt.Sprintf("VELORA_APPLICATION_ID=%s\nVELORA_APPLICATION_CODE=%s\nVELORA_OIDC_ISSUER=%s\nVELORA_OIDC_CLIENT_ID=%s\nVELORA_OIDC_CLIENT_SECRET_FILE=%s\nVELORA_OIDC_REDIRECT_URI=%s\nVELORA_OIDC_SCOPES=%s\nVELORA_PROVISIONING_ENDPOINT=%s\nVELORA_PROVISIONING_SECRET_FILE=%s\nVELORA_PROVISIONING_KEY_VERSION=%d\nVELORA_PROVISIONING_FINGERPRINT=%s\nVELORA_DIRECTORY_BASE_URL=%s\nVELORA_DIRECTORY_TOKEN_FILE=%s\n", shellValue(bundle.ApplicationID), shellValue(bundle.ApplicationCode), shellValue(bundle.Issuer), shellValue(bundle.ClientID), shellValue(clientSecretPath), shellValue(first(bundle.RedirectURIs)), shellValue(strings.Join(bundle.Scopes, " ")), shellValue(bundle.ProvisioningEndpoint), shellValue(provisioningSecretPath), bundle.ProvisioningKeyVersion, shellValue(bundle.ProvisioningFingerprint), shellValue(directoryBaseURL), shellValue(directoryTokenPath))
 	if err := atomicWrite(configPath, []byte(config), 0o600); err != nil {
 		return err
 	}
@@ -173,7 +179,7 @@ func doctor(args []string) error {
 	if err != nil {
 		return err
 	}
-	for _, key := range []string{"VELORA_APPLICATION_ID", "VELORA_APPLICATION_CODE", "VELORA_OIDC_ISSUER", "VELORA_OIDC_CLIENT_ID", "VELORA_DIRECTORY_BASE_URL"} {
+	for _, key := range []string{"VELORA_APPLICATION_ID", "VELORA_APPLICATION_CODE", "VELORA_OIDC_ISSUER", "VELORA_OIDC_CLIENT_ID"} {
 		if strings.TrimSpace(values[key]) == "" {
 			return fmt.Errorf("配置缺少 %s", key)
 		}
@@ -181,11 +187,15 @@ func doctor(args []string) error {
 	if _, err := validatedPortal(values["VELORA_OIDC_ISSUER"]); err != nil {
 		return errors.New("VELORA_OIDC_ISSUER 必须是 HTTPS 地址")
 	}
-	directoryURL, err := url.Parse(values["VELORA_DIRECTORY_BASE_URL"])
-	if err != nil || directoryURL.Scheme != "https" || directoryURL.Host == "" || !strings.HasSuffix(directoryURL.Path, "/directory") {
-		return errors.New("VELORA_DIRECTORY_BASE_URL 格式无效")
+	secretKeys := []string{"VELORA_OIDC_CLIENT_SECRET_FILE"}
+	if values["VELORA_DIRECTORY_BASE_URL"] != "" || values["VELORA_PROVISIONING_SECRET_FILE"] != "" || values["VELORA_DIRECTORY_TOKEN_FILE"] != "" {
+		directoryURL, err := url.Parse(values["VELORA_DIRECTORY_BASE_URL"])
+		if err != nil || directoryURL.Scheme != "https" || directoryURL.Host == "" || !strings.HasSuffix(directoryURL.Path, "/directory") {
+			return errors.New("VELORA_DIRECTORY_BASE_URL 格式无效")
+		}
+		secretKeys = append(secretKeys, "VELORA_PROVISIONING_SECRET_FILE", "VELORA_DIRECTORY_TOKEN_FILE")
 	}
-	for _, key := range []string{"VELORA_OIDC_CLIENT_SECRET_FILE", "VELORA_PROVISIONING_SECRET_FILE", "VELORA_DIRECTORY_TOKEN_FILE"} {
+	for _, key := range secretKeys {
 		if err := validateSecretFile(values[key]); err != nil {
 			return fmt.Errorf("%s: %w", key, err)
 		}

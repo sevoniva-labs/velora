@@ -58,7 +58,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
   return (
     <>
       <ProLayout
-      className="forge-layout"
+      className="velora-admin-layout"
       layout="side"
       navTheme="light"
       title={portalName}

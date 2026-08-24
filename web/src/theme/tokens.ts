@@ -59,8 +59,8 @@ export const controlHeight = {
 } as const
 
 /**
- * 全站唯一主题，严格与 go-antd-fullstack 的 createForgeTheme('light') 对齐。
- * 门户的品牌表达由页面 CSS 负责，Ant Design / ProComponents 不再维护第二套 token。
+ * Velora 门户与管理后台共用的组件主题。
+ * 管理后台保留 ProComponents 信息架构，不再引用脚手架品牌或维护平行主题。
  */
 export const veloraTheme: ThemeConfig = {
   token: {

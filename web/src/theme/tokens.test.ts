@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { veloraTheme } from './tokens'
 
 describe('veloraTheme', () => {
-  it('keeps the Ant Design theme aligned with the Forge scaffold', () => {
+  it('keeps the shared Velora component theme stable', () => {
     expect(veloraTheme).toEqual({
       token: {
         colorPrimary: '#1677FF',

@@ -71,14 +71,14 @@ VITE_UI_SCALE
 
 - 生产备份服务执行成功，退出码为 0。
 - Server、Worker、Migrate 使用本机构建的 `linux/amd64` 制品；Web 在本机构建后上传。依赖使用 `goproxy.cn`，服务器未执行 Go 或前端编译。
-- Server 与 Migrate 基础制品版本：`ab0f83c`；Worker 最终版本：`7505112`；当前 Server 版本：`1326611`；当前 Web 版本：`943affd`。当前版本已包含分类与标签管理归位、旧访问策略写入退役、生产应用硬删除禁用、门户展示假 API 移除、用户和应用目录的服务端分页、检索和筛选、风险触发且不可见的 Turnstile，以及审计日志的服务端分页和多条件调查筛选。
+- Server 与 Migrate 基础制品版本：`ab0f83c`；Worker 最终版本：`7505112`；当前 Server 版本：`1326611`；当前 Web 版本：`0f999cf`。当前版本已包含分类与标签管理归位、旧访问策略写入退役、生产应用硬删除禁用、门户展示假 API 移除、用户和应用目录的服务端分页、检索和筛选、风险触发且不可见的 Turnstile、工作台精确应用状态总数，以及审计日志的服务端分页和多条件调查筛选。
 - PostgreSQL additive migration 成功，当前 Goose 版本为 `31`；`application_access_grants`、`application_access_grant_roles`、`user_application_entitlement_sources`、应用负责人字段、平台角色生命周期字段和 `user_role_exclusions` 均已存在。
 - 旧策略迁移后有 3 条访问规则、1 条权限来源，现有 2 个应用保留。
 - Server、Worker、Web、PostgreSQL、Redis、Casdoor、Edge 与 Demo 容器健康。
 - `home` 健康、API health、API readiness、OIDC Discovery 与 Demo health 均返回 HTTP 200；readiness 的 database、cache、messaging、search、storage 均为 `UP`。
 - 通过一次性生产验收令牌完成认证管理 API 验收：6 个平台角色、3 个用户、2 个应用均可读取；`carson` 的有效应用权限可解释；Spectra 账号下发重试保持 `HEALTHY`；旧单用户 entitlement 和旧访问策略写接口均返回 400，生产应用物理删除返回 400，确认旧写入面已退役。最终版本进一步验证 `/api/v1/admin/users?page=1&page_size=1&keyword=carson&status=ACTIVE` 返回唯一的 `carson`，并验证 `/api/v1/admin/portal/applications?page=1&page_size=1&keyword=spectra&status=ENABLED` 返回唯一的 `Spectra`；两者均返回 `total=1`、`page=1`、`page_size=1`。`1326611` 上线后再次验证新增的 `/api/v1/admin/users/{user_id}` 与 `/api/v1/admin/portal/applications` 均返回 HTTP 200；前者最初因漏注册授权策略返回 403，已补齐 `system.user.read` 策略和回归测试。所有验收令牌随后删除，数据库计数为 0，管理员强制改密标志恢复。
 - Server 发布后未发现 error、panic 或 fatal 日志。Worker 在未配置 WORM 归档时明确记录 `WARN` 并禁用清理，不会误报故障，也不会在没有不可变归档时删除审计数据。
-- 当前回滚标签为 Server `rollback-pre-1326611`、Web `rollback-pre-943affd`；更早的阶段性标签继续保留。当前 Server 制品位于 `/opt/velora/prod/releases/1326611/server`，二进制 SHA-256 为 `27b88f829a19157c20d56e6b61354971e03a7e046ea17b604059d7e8b606fe55`；当前 Web 制品位于 `/opt/velora/prod/releases/943affd/web`，入口文件 SHA-256 为 `1732e352524e8f00b2464b08737f00fb4bfba31900d419a5ee338787a29f1ad3`，生产入口加载 `assets/index-Bg2W06x-.js`。生产容器镜像 ID 分别为 Server `ff257ee5535d`、Web `9781cb9f845c`。
+- 当前回滚标签为 Server `rollback-pre-1326611`、Web `rollback-pre-0f999cf`；更早的阶段性标签继续保留。当前 Server 制品位于 `/opt/velora/prod/releases/1326611/server`，二进制 SHA-256 为 `27b88f829a19157c20d56e6b61354971e03a7e046ea17b604059d7e8b606fe55`；当前 Web 制品位于 `/opt/velora/prod/releases/0f999cf/web`，入口文件 SHA-256 为 `eee71eb59d4952622fe5ed1b6af1b24433f231bec89c160aa51a9d0bbc2a35a7`，生产入口加载 `assets/index-CDgvKMZF.js`。生产容器镜像 ID 分别为 Server `ff257ee5535d`、Web `8d4df3b31c95`。
 
 最终自动门禁已在 `92fdc4f` 发布前重新执行：Web lint、11 个测试文件共 54 项测试和生产构建通过；Server `go test ./...`、Proto、OpenAPI 与 127 条 HTTP 契约门禁通过，其中 76 条写操作受 CSRF 保护。操作审计使用 ProComponents `QueryFilter`，按操作人、动作、对象类型、对象、结果和时间范围查询；分页、总数和过滤均由服务端执行，应用变更记录不再只读取前 500 条后在浏览器中过滤。应用列表的关键词、运行状态、接入方式和接入状态筛选也由服务端执行。
 
@@ -89,7 +89,7 @@ VITE_UI_SCALE
 核验时间：2026-08-24（Asia/Shanghai）。
 
 - 公网 `/api/v1/system/health` 与 `/api/v1/system/ready` 均返回成功，database、cache、messaging、search、storage 全部为 `UP`。
-- Server、Web、Worker、OIDC Demo、Redis、Casdoor、Edge、PostgreSQL 全部健康；当前生产 Server 为 `1326611`，Web 为 `943affd`，Web 入口为 `assets/index-Bg2W06x-.js`；最新 Worker 日志仅包含预期的 WORM 未配置警告。
+- Server、Web、Worker、OIDC Demo、Redis、Casdoor、Edge、PostgreSQL 全部健康；当前生产 Server 为 `1326611`，Web 为 `0f999cf`，Web 入口为 `assets/index-CDgvKMZF.js`；最新 Worker 日志仅包含预期的 WORM 未配置警告。
 - 数据库迁移版本为 31；平台角色 6 个；最终分页验收后临时令牌 0 个；`admin.must_change_password=true` 已恢复。
 - `user_role_exclusions` 当前为 0 条是正常生产数据状态；迁移、外键和访问复核撤权代码路径已通过自动测试。
 - WORM 归档适配器属于已明确预留能力；在正式配置不可变归档前，审计清理保持关闭。这不是数据保留门禁失败，也不得手工开启清理。

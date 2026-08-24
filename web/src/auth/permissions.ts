@@ -17,6 +17,8 @@ export const SYSTEM_USER_READ = 'system.user.read'
 export const SYSTEM_USER_CREATE = 'system.user.create'
 export const SYSTEM_USER_UPDATE = 'system.user.update'
 export const SYSTEM_USER_ROLE_MANAGE = 'system.user.role.manage'
+export const SYSTEM_USER_ASSIGNMENT_READ = 'system.user.assignment.read'
+export const SYSTEM_USER_ASSIGNMENT_MANAGE = 'system.user.assignment.manage'
 export const SYSTEM_DEPARTMENT_READ = 'system.department.read'
 export const SYSTEM_DEPARTMENT_MANAGE = 'system.department.manage'
 export const SYSTEM_POSITION_READ = 'system.position.read'
@@ -36,12 +38,13 @@ export const APPROVAL_REQUEST_CREATE = 'approval.request.create'
 export const APPROVAL_TASK_DECIDE = 'approval.task.decide'
 export const SYSTEM_CONFIG_READ = 'system.config.read'
 export const SYSTEM_CONFIG_MANAGE = 'system.config.manage'
+export const SYSTEM_SECURITY_MANAGE = 'system.security.manage'
 
 /** Built-in system_admin has an explicit backend superuser boundary. */
 export function hasPermission(permissions: string[] | undefined, required: string, roles: string[] = []): boolean {
   if (permissions?.includes(required)) return true
   if (required === AUDIT_READ && permissions?.includes(SYSTEM_AUDIT_READ)) return true
-  return permissions?.length === 0 && roles.includes('system_admin')
+  return roles.includes('system_admin')
 }
 
 export function hasAnyPermission(

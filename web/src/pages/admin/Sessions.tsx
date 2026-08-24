@@ -5,10 +5,13 @@ import { listSessions, revokeSession } from '../../api/admin-platform'
 import type { AdminSession } from '../../types'
 import { usePageTitle } from '../../hooks/usePageTitle'
 import { formatDateTime } from '../../utils/format'
+import { SYSTEM_SESSION_REVOKE } from '../../auth/permissions'
+import { useAdminPermission } from '../../auth/useAdminPermission'
 
 export default function Sessions() {
   usePageTitle('在线会话')
   const { message } = App.useApp()
+  const canRevoke = useAdminPermission(SYSTEM_SESSION_REVOKE)
   const queryClient = useQueryClient()
   const sessions = useQuery({ queryKey: ['admin', 'sessions'], queryFn: listSessions, refetchInterval: 30_000 })
   const revoke = useMutation({ mutationFn: revokeSession, onSuccess: async () => { message.success('会话已撤销'); await queryClient.invalidateQueries({ queryKey: ['admin', 'sessions'] }) }, onError: (error) => message.error(error instanceof Error ? error.message : '会话撤销失败') })
@@ -19,7 +22,7 @@ export default function Sessions() {
     { title: '最近活动', dataIndex: 'lastSeenAt', valueType: 'dateTime', search: false, render: (_, row) => formatDateTime(row.lastSeenAt) },
     { title: '到期时间', dataIndex: 'expiresAt', valueType: 'dateTime', search: false, render: (_, row) => formatDateTime(row.expiresAt) },
     { title: '状态', dataIndex: 'current', valueType: 'select', valueEnum: { true: { text: '当前会话' }, false: { text: '其他会话' } }, render: (_, row) => row.current ? <Tag color="processing">当前会话</Tag> : <Tag color="success">在线</Tag> },
-    { title: '操作', valueType: 'option', width: 110, render: (_, row) => row.current ? <Typography.Text type="secondary">当前设备</Typography.Text> : <Popconfirm title="强制下线此会话？" description="该设备需要重新登录。" okText="强制下线" okButtonProps={{ danger: true }} onConfirm={() => revoke.mutate(row.id)}><Button type="link" danger>强制下线</Button></Popconfirm> },
+    { title: '操作', valueType: 'option', width: 110, render: (_, row) => row.current ? <Typography.Text type="secondary">当前设备</Typography.Text> : canRevoke ? <Popconfirm title="强制下线此会话？" description="该设备需要重新登录。" okText="强制下线" okButtonProps={{ danger: true }} onConfirm={() => revoke.mutate(row.id)}><Button type="link" danger>强制下线</Button></Popconfirm> : <Typography.Text type="secondary">—</Typography.Text> },
   ]
   return <PageContainer title="在线会话"><ProTable<AdminSession> rowKey="id" columns={columns} dataSource={sessions.data ?? []} loading={sessions.isLoading} search={{ labelWidth: 'auto' }} pagination={{ pageSize: 20 }} polling={30_000} /></PageContainer>
 }

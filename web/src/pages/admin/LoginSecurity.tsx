@@ -7,6 +7,8 @@ import type { ApprovalRequest, SecurityPolicy } from '../../types'
 import { useMe } from '../../auth/useMe'
 import { usePageTitle } from '../../hooks/usePageTitle'
 import AdminUserSelect from '../../components/AdminUserSelect'
+import { SYSTEM_SECURITY_MANAGE } from '../../auth/permissions'
+import { useAdminPermission } from '../../auth/useAdminPermission'
 
 type PolicyForm = SecurityPolicy & { approverId: string }
 
@@ -15,16 +17,17 @@ export default function LoginSecurity() {
   const { message } = App.useApp()
   const queryClient = useQueryClient()
   const me = useMe()
+  const canManage = useAdminPermission(SYSTEM_SECURITY_MANAGE)
   const [open, setOpen] = useState(false)
   const policy = useQuery({ queryKey: ['admin', 'security-policy'], queryFn: getSecurityPolicy })
-  const approvals = useQuery({ queryKey: ['admin', 'approvals'], queryFn: listApprovals })
+  const approvals = useQuery({ queryKey: ['admin', 'approvals'], queryFn: listApprovals, enabled: canManage })
   const refresh = async () => Promise.all([queryClient.invalidateQueries({ queryKey: ['admin', 'security-policy'] }), queryClient.invalidateQueries({ queryKey: ['admin', 'approvals'] })])
   const request = useMutation({ mutationFn: (values: PolicyForm) => { const { approverId, ...next } = values; return createApproval({ requestType: 'SECURITY_POLICY_CHANGE', action: 'security.config.update', resource: 'security', resourceId: 'policy', summary: '更新登录安全策略', payloadJson: JSON.stringify(policyPayload(next)), approverIds: [approverId] }) }, onSuccess: async () => { message.success('安全策略变更已提交审批'); setOpen(false); await refresh() }, onError: (error) => message.error(error instanceof Error ? error.message : '审批提交失败') })
   const approved = (approvals.data ?? []).find((item) => item.action === 'security.config.update' && item.resourceId === 'policy' && item.status === 'APPROVED')
   const execute = useMutation({ mutationFn: (approval: ApprovalRequest) => updateSecurityPolicy(policyFromPayload(JSON.parse(approval.payloadJson) as Record<string, unknown>), approval.id), onSuccess: async () => { message.success('登录安全策略已生效'); await refresh() }, onError: (error) => message.error(error instanceof Error ? error.message : '策略执行失败') })
   const value = policy.data
 
-  return <PageContainer title="登录安全" extra={approved ? [<Button key="execute" type="primary" loading={execute.isPending} onClick={() => execute.mutate(approved)}>执行已批准变更</Button>] : [<Button key="edit" type="primary" onClick={() => setOpen(true)}>修改策略</Button>]}>
+  return <PageContainer title="登录安全" extra={!canManage ? [] : approved ? [<Button key="execute" type="primary" loading={execute.isPending} onClick={() => execute.mutate(approved)}>执行已批准变更</Button>] : [<Button key="edit" type="primary" onClick={() => setOpen(true)}>修改策略</Button>]}>
     <ProDescriptions column={2} loading={policy.isLoading} dataSource={value ?? {}} columns={[
       { title: '密码最小长度', render: () => value ? `${value.passwordMinLength} 位` : '—' },
       { title: '密码复杂度', render: () => value ? complexity(value) : '—' },

@@ -11,6 +11,8 @@ import { useMe } from '../../auth/useMe'
 import { usePageTitle } from '../../hooks/usePageTitle'
 import { formatDateTime } from '../../utils/format'
 import AdminUserSelect from '../../components/AdminUserSelect'
+import { SYSTEM_TEMPORARY_GRANT_MANAGE } from '../../auth/permissions'
+import { useAdminPermission } from '../../auth/useAdminPermission'
 
 interface RequestForm { userId: string; roleKey: string; reason: string; validUntil: Dayjs; approverId: string }
 interface RevokeForm { reason: string }
@@ -20,13 +22,14 @@ export default function TemporaryGrants() {
   usePageTitle('临时授权')
   const { message } = App.useApp()
   const me = useMe()
+  const canManage = useAdminPermission(SYSTEM_TEMPORARY_GRANT_MANAGE)
   const queryClient = useQueryClient()
   const [requestOpen, setRequestOpen] = useState(false)
   const [revoking, setRevoking] = useState<TemporaryRoleGrant>()
   const users = useQuery({ queryKey: ['admin', 'users'], queryFn: adminListUsers })
   const roles = useQuery({ queryKey: ['admin', 'roles'], queryFn: listPlatformRoles })
   const grants = useQuery({ queryKey: ['admin', 'temporary-grants'], queryFn: listTemporaryRoleGrants })
-  const approvals = useQuery({ queryKey: ['admin', 'approvals'], queryFn: listApprovals })
+  const approvals = useQuery({ queryKey: ['admin', 'approvals'], queryFn: listApprovals, enabled: canManage })
   const userNames = useMemo(() => new Map((users.data ?? []).map((item) => [item.id, item.displayName || item.loginName])), [users.data])
   const roleNames = useMemo(() => new Map((roles.data ?? []).map((item) => [item.key, item.name])), [roles.data])
   const executed = new Set((grants.data ?? []).map((item) => item.approvalId))
@@ -41,8 +44,8 @@ export default function TemporaryGrants() {
     { title: '有效期', search: false, render: (_, row) => `${formatDateTime(row.validFrom)} 至 ${formatDateTime(row.validUntil)}` },
     { title: '原因', dataIndex: 'reason', search: false, ellipsis: true },
     { title: '状态', dataIndex: 'status', valueType: 'select', valueEnum: Object.fromEntries(Object.entries(STATUS_LABELS).map(([key, text]) => [key, { text }])), render: (_, row) => <Tag color={row.status === 'ACTIVE' ? 'success' : 'default'}>{STATUS_LABELS[row.status] ?? '已结束'}</Tag> },
-    { title: '操作', valueType: 'option', width: 90, render: (_, row) => row.status === 'ACTIVE' || row.status === 'SCHEDULED' ? <Button type="link" danger onClick={() => setRevoking(row)}>撤销</Button> : <Typography.Text type="secondary">—</Typography.Text> },
   ]
+  if (canManage) columns.push({ title: '操作', valueType: 'option', width: 90, render: (_, row) => row.status === 'ACTIVE' || row.status === 'SCHEDULED' ? <Button type="link" danger onClick={() => setRevoking(row)}>撤销</Button> : <Typography.Text type="secondary">—</Typography.Text> })
   const approvedColumns: ProColumns<ApprovalRequest>[] = [
     { title: '已批准事项', dataIndex: 'summary' },
     { title: '批准时间', dataIndex: 'createdAt', render: (_, row) => formatDateTime(row.createdAt) },
@@ -50,8 +53,8 @@ export default function TemporaryGrants() {
   ]
   return <PageContainer title="临时授权">
     <Space direction="vertical" size={16} style={{ width: '100%' }}>
-      <ProTable<TemporaryRoleGrant> headerTitle="授权记录" rowKey="id" columns={columns} dataSource={grants.data ?? []} loading={grants.isLoading} search={{ labelWidth: 'auto' }} pagination={{ pageSize: 20 }} toolBarRender={() => [<Button key="request" type="primary" icon={<PlusOutlined />} onClick={() => setRequestOpen(true)}>申请临时授权</Button>]} />
-      {approved.length > 0 && <ProTable<ApprovalRequest> headerTitle="待执行" rowKey="id" columns={approvedColumns} dataSource={approved} search={false} pagination={false} options={false} />}
+      <ProTable<TemporaryRoleGrant> headerTitle="授权记录" rowKey="id" columns={columns} dataSource={grants.data ?? []} loading={grants.isLoading} search={{ labelWidth: 'auto' }} pagination={{ pageSize: 20 }} toolBarRender={canManage ? () => [<Button key="request" type="primary" icon={<PlusOutlined />} onClick={() => setRequestOpen(true)}>申请临时授权</Button>] : false} />
+      {canManage && approved.length > 0 && <ProTable<ApprovalRequest> headerTitle="待执行" rowKey="id" columns={approvedColumns} dataSource={approved} search={false} pagination={false} options={false} />}
     </Space>
     <ModalForm<RequestForm> title="申请临时授权" open={requestOpen} onOpenChange={setRequestOpen} width={600} initialValues={{ validUntil: dayjs().add(8, 'hour') }} submitter={{ searchConfig: { submitText: '提交申请', resetText: '取消' } }} onFinish={async (values) => { await request.mutateAsync(values); return true }}>
       <ProForm.Item name="userId" label="用户" rules={[{ required: true, message: '请选择用户' }]}><AdminUserSelect /></ProForm.Item>

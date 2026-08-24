@@ -7,6 +7,8 @@ import type { ApprovalRequest, PlatformRole } from '../../types'
 import { usePageTitle } from '../../hooks/usePageTitle'
 import { useMe } from '../../auth/useMe'
 import AdminUserSelect from '../../components/AdminUserSelect'
+import { SYSTEM_ROLE_MANAGE } from '../../auth/permissions'
+import { useAdminPermission } from '../../auth/useAdminPermission'
 
 const DATA_SCOPE_LABELS: Record<string, string> = { ALL: '全部数据', DEPARTMENT: '指定部门', SELF_DEPARTMENT: '本部门', SELF: '仅本人' }
 interface RoleForm { roleKey: string; name: string; description?: string }
@@ -16,6 +18,7 @@ export default function Roles() {
   const { message } = App.useApp()
   const queryClient = useQueryClient()
   const me = useMe()
+  const canManage = useAdminPermission(SYSTEM_ROLE_MANAGE)
   const [permissionRole, setPermissionRole] = useState<PlatformRole>()
   const [scopeRole, setScopeRole] = useState<PlatformRole>()
   const [createOpen, setCreateOpen] = useState(false)
@@ -24,7 +27,7 @@ export default function Roles() {
   const roles = useQuery({ queryKey: ['admin', 'roles'], queryFn: listPlatformRoles })
   const permissions = useQuery({ queryKey: ['admin', 'permissions'], queryFn: listPlatformPermissions })
   const departments = useQuery({ queryKey: ['admin', 'departments'], queryFn: listDepartments })
-  const approvals = useQuery({ queryKey: ['admin', 'approvals'], queryFn: listApprovals })
+  const approvals = useQuery({ queryKey: ['admin', 'approvals'], queryFn: listApprovals, enabled: canManage })
   const refresh = () => queryClient.invalidateQueries({ queryKey: ['admin', 'roles'] })
   const refreshAll = async () => { await Promise.all([refresh(), queryClient.invalidateQueries({ queryKey: ['admin', 'approvals'] })]) }
   const permissionRequest = useMutation({ mutationFn: (values: { permissions: string[]; approverId: string }) => { const permissions = normalized(values.permissions); return createApproval({ requestType: 'ROLE_PERMISSION_CHANGE', action: 'role.permissions.update', resource: 'role', resourceId: permissionRole!.key, summary: `更新平台角色“${permissionRole!.name}”的权限`, payloadJson: JSON.stringify({ permissions }), approverIds: [values.approverId] }) }, onSuccess: async () => { message.success('角色权限变更已提交审批'); setPermissionRole(undefined); await refreshAll() }, onError: (error) => message.error(error instanceof Error ? error.message : '审批提交失败') })
@@ -39,12 +42,12 @@ export default function Roles() {
     { title: '权限数', dataIndex: 'permissions', search: false, width: 100, render: (_, row) => `${row.permissions.length} 项` },
     { title: '数据范围', dataIndex: 'dataScope', valueType: 'select', valueEnum: Object.fromEntries(Object.entries(DATA_SCOPE_LABELS).map(([key, text]) => [key, { text }])), render: (_, row) => <Tag>{DATA_SCOPE_LABELS[row.dataScope] ?? '自定义'}</Tag> },
     { title: '状态', dataIndex: 'status', valueType: 'select', valueEnum: { ACTIVE: { text: '启用', status: 'Success' }, DISABLED: { text: '停用', status: 'Default' } }, width: 90 },
-    { title: '操作', valueType: 'option', width: 320, render: (_, row) => <Space className="table-action-cell"><Button type="link" onClick={() => setPermissionRole(row)}>配置权限</Button><Button type="link" onClick={() => setScopeRole(row)}>数据范围</Button><Button type="link" onClick={() => setEditRole(row)}>编辑</Button><Button type="link" onClick={() => setCopyRole(row)}>复制</Button></Space> },
   ]
+  if (canManage) columns.push({ title: '操作', valueType: 'option', width: 320, render: (_, row) => <Space className="table-action-cell"><Button type="link" onClick={() => setPermissionRole(row)}>配置权限</Button><Button type="link" onClick={() => setScopeRole(row)}>数据范围</Button><Button type="link" onClick={() => setEditRole(row)}>编辑</Button><Button type="link" onClick={() => setCopyRole(row)}>复制</Button></Space> })
 
   return <PageContainer title="平台角色">
-    <ProTable<PlatformRole> rowKey="key" columns={columns} dataSource={roles.data ?? []} loading={roles.isLoading} search={{ labelWidth: 'auto' }} pagination={false} options={{ density: false }} toolBarRender={() => [<Button key="create" type="primary" onClick={() => setCreateOpen(true)}>新建角色</Button>]} />
-    {approved.length > 0 && <ProTable<ApprovalRequest> headerTitle="待执行变更" rowKey="id" dataSource={approved} search={false} pagination={false} options={false} columns={[{ title: '事项', dataIndex: 'summary' }, { title: '操作', valueType: 'option', width: 100, render: (_, row) => <Button type="link" loading={execute.isPending} onClick={() => execute.mutate(row)}>执行变更</Button> }]} />}
+    <ProTable<PlatformRole> rowKey="key" columns={columns} dataSource={roles.data ?? []} loading={roles.isLoading} search={{ labelWidth: 'auto' }} pagination={false} options={{ density: false }} toolBarRender={canManage ? () => [<Button key="create" type="primary" onClick={() => setCreateOpen(true)}>新建角色</Button>] : false} />
+    {canManage && approved.length > 0 && <ProTable<ApprovalRequest> headerTitle="待执行变更" rowKey="id" dataSource={approved} search={false} pagination={false} options={false} columns={[{ title: '事项', dataIndex: 'summary' }, { title: '操作', valueType: 'option', width: 100, render: (_, row) => <Button type="link" loading={execute.isPending} onClick={() => execute.mutate(row)}>执行变更</Button> }]} />}
     <ModalForm<{ permissions: string[]; approverId: string }> key={permissionRole?.key ?? 'permissions'} title={permissionRole ? `配置权限 · ${permissionRole.name}` : '配置权限'} open={Boolean(permissionRole)} onOpenChange={(value) => !value && setPermissionRole(undefined)} width={720} initialValues={{ permissions: permissionRole?.permissions ?? [] }} submitter={{ searchConfig: { submitText: '提交审批', resetText: '取消' } }} onFinish={async (values) => { await permissionRequest.mutateAsync(values); return true }}>
       <ProFormCheckbox.Group name="permissions" label="权限" options={(permissions.data ?? []).map((item) => ({ label: `${item.resource || '其他'} · ${item.name || item.description || item.key}`, value: item.key }))} />
       <ProForm.Item name="approverId" label="审批人" rules={[{ required: true, message: '请选择审批人' }]}><AdminUserSelect excludeIds={me.data?.id ? [me.data.id] : []} /></ProForm.Item>

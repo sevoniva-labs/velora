@@ -7,6 +7,8 @@ import { createUserGroup, listPlatformRoles, listUserGroups, replaceUserGroupMem
 import type { UserGroup } from '../../types'
 import { usePageTitle } from '../../hooks/usePageTitle'
 import AdminUserSelect from '../../components/AdminUserSelect'
+import { SYSTEM_USER_GROUP_MANAGE } from '../../auth/permissions'
+import { useAdminPermission } from '../../auth/useAdminPermission'
 
 interface GroupForm extends UserGroupInput { memberIds: string[]; roles: string[] }
 
@@ -14,6 +16,7 @@ export default function UserGroups() {
   usePageTitle('用户组')
   const { message } = App.useApp()
   const queryClient = useQueryClient()
+  const canManage = useAdminPermission(SYSTEM_USER_GROUP_MANAGE)
   const [open, setOpen] = useState(false)
   const [editing, setEditing] = useState<UserGroup>()
   const groups = useQuery({ queryKey: ['admin', 'user-groups'], queryFn: listUserGroups })
@@ -34,11 +37,11 @@ export default function UserGroups() {
     { title: '平台角色', dataIndex: 'roles', search: false, render: (_, row) => row.roles.length ? row.roles.map((role) => <Tag key={role}>{roles.data?.find((item) => item.key === role)?.name ?? role}</Tag>) : '—' },
     { title: '说明', dataIndex: 'description', search: false, ellipsis: true },
     { title: '状态', dataIndex: 'status', valueType: 'select', valueEnum: { ACTIVE: { text: '启用' }, DISABLED: { text: '停用' } }, render: (_, row) => row.status === 'ACTIVE' ? <Tag color="success">启用</Tag> : <Tag>停用</Tag> },
-    { title: '操作', valueType: 'option', width: 90, render: (_, row) => <Button type="link" onClick={() => { setEditing(row); setOpen(true) }}>编辑</Button> },
   ]
+  if (canManage) columns.push({ title: '操作', valueType: 'option', width: 90, render: (_, row) => <Button type="link" onClick={() => { setEditing(row); setOpen(true) }}>编辑</Button> })
 
   return <PageContainer title="用户组">
-    <ProTable<UserGroup> rowKey="id" columns={columns} dataSource={groups.data ?? []} loading={groups.isLoading} search={{ labelWidth: 'auto' }} pagination={{ pageSize: 20 }} toolBarRender={() => [<Button key="create" type="primary" icon={<PlusOutlined />} onClick={() => { setEditing(undefined); setOpen(true) }}>新建用户组</Button>]} />
+    <ProTable<UserGroup> rowKey="id" columns={columns} dataSource={groups.data ?? []} loading={groups.isLoading} search={{ labelWidth: 'auto' }} pagination={{ pageSize: 20 }} toolBarRender={canManage ? () => [<Button key="create" type="primary" icon={<PlusOutlined />} onClick={() => { setEditing(undefined); setOpen(true) }}>新建用户组</Button>] : false} />
     <DrawerForm<GroupForm> key={editing?.id ?? 'new'} title={editing ? '编辑用户组' : '新建用户组'} open={open} onOpenChange={setOpen} width={560} initialValues={editing ?? { status: 'ACTIVE', memberIds: [], roles: [] }} submitter={{ searchConfig: { submitText: '保存', resetText: '取消' } }} onFinish={async (values) => { await mutation.mutateAsync(values); return true }}>
       {!editing && <ProFormText name="groupKey" label="用户组编码" rules={[{ required: true, message: '请输入用户组编码' }, { pattern: /^[a-z][a-z0-9_-]{1,63}$/, message: '使用小写字母、数字、短横线或下划线' }]} />}
       <ProFormText name="name" label="用户组名称" rules={[{ required: true, message: '请输入用户组名称' }]} />

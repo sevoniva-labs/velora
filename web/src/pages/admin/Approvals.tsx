@@ -8,6 +8,7 @@ import { useMe } from '../../auth/useMe'
 import { usePageTitle } from '../../hooks/usePageTitle'
 import { formatDateTime } from '../../utils/format'
 import { approvalTypeLabel } from '../../labels'
+import { APPROVAL_TASK_DECIDE, hasPermission } from '../../auth/permissions'
 
 interface DecisionForm { decision: 'APPROVE' | 'REJECT'; comment: string }
 const STATUS_LABELS: Record<string, string> = { PENDING: '待审批', APPROVED: '已批准', REJECTED: '已拒绝', WITHDRAWN: '已撤回', EXPIRED: '已过期', EXECUTED: '已执行' }
@@ -16,6 +17,7 @@ export default function Approvals() {
   usePageTitle('审批')
   const { message } = App.useApp()
   const me = useMe()
+  const canDecide = hasPermission(me.data?.permissions, APPROVAL_TASK_DECIDE, me.data?.roles)
   const queryClient = useQueryClient()
   const [selected, setSelected] = useState<ApprovalRequest>()
   const approvals = useQuery({ queryKey: ['admin', 'approvals'], queryFn: listApprovals, refetchInterval: 30_000 })
@@ -25,7 +27,7 @@ export default function Approvals() {
     { title: '申请时间', dataIndex: 'createdAt', valueType: 'dateTime', render: (_, row) => formatDateTime(row.createdAt) },
     { title: '到期时间', dataIndex: 'expiresAt', valueType: 'dateTime', search: false, render: (_, row) => formatDateTime(row.expiresAt) },
     { title: '状态', dataIndex: 'status', valueType: 'select', valueEnum: Object.fromEntries(Object.entries(STATUS_LABELS).map(([key, text]) => [key, { text }])), render: (_, row) => <Tag color={row.status === 'PENDING' ? 'processing' : row.status === 'APPROVED' ? 'success' : 'default'}>{STATUS_LABELS[row.status] ?? '已结束'}</Tag> },
-    { title: '操作', valueType: 'option', width: 100, render: (_, row) => row.status === 'PENDING' && row.tasks.some((task) => task.assigneeId === me.data?.id && task.status === 'PENDING') ? <Button type="link" onClick={() => setSelected(row)}>处理</Button> : <Typography.Text type="secondary">—</Typography.Text> },
+    { title: '操作', valueType: 'option', width: 100, render: (_, row) => canDecide && row.status === 'PENDING' && row.tasks.some((task) => task.assigneeId === me.data?.id && task.status === 'PENDING') ? <Button type="link" onClick={() => setSelected(row)}>处理</Button> : <Typography.Text type="secondary">—</Typography.Text> },
   ]
   return <PageContainer title="审批"><ProTable<ApprovalRequest> rowKey="id" columns={columns} dataSource={approvals.data ?? []} loading={approvals.isLoading} search={{ labelWidth: 'auto' }} pagination={{ pageSize: 20 }} />
     <ModalForm<DecisionForm> key={selected?.id ?? 'decision'} title="处理审批" open={Boolean(selected)} onOpenChange={(value) => !value && setSelected(undefined)} initialValues={{ decision: 'APPROVE' }} submitter={{ searchConfig: { submitText: '提交', resetText: '取消' } }} onFinish={async (values) => { await decide.mutateAsync(values); return true }}>

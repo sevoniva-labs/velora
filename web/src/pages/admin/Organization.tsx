@@ -6,6 +6,8 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { createDepartment, createPosition, listDepartments, listPositions, updateDepartment, updatePosition, type DepartmentInput, type PositionInput } from '../../api/admin-platform'
 import type { Department, Position } from '../../types'
 import { usePageTitle } from '../../hooks/usePageTitle'
+import { SYSTEM_DEPARTMENT_MANAGE, SYSTEM_POSITION_MANAGE } from '../../auth/permissions'
+import { useAdminPermission } from '../../auth/useAdminPermission'
 
 const ACTIVE_OPTIONS = [{ label: '启用', value: 'ACTIVE' }, { label: '停用', value: 'DISABLED' }]
 
@@ -17,6 +19,8 @@ export default function Organization() {
   usePageTitle('部门与岗位')
   const { message } = App.useApp()
   const queryClient = useQueryClient()
+  const canManageDepartments = useAdminPermission(SYSTEM_DEPARTMENT_MANAGE)
+  const canManagePositions = useAdminPermission(SYSTEM_POSITION_MANAGE)
   const [tab, setTab] = useState('departments')
   const [departmentOpen, setDepartmentOpen] = useState(false)
   const [positionOpen, setPositionOpen] = useState(false)
@@ -43,18 +47,18 @@ export default function Organization() {
     { title: '上级部门', dataIndex: 'parentId', search: false, render: (_, row) => row.parentId ? departmentById.get(row.parentId)?.name ?? '—' : '根部门' },
     { title: '状态', dataIndex: 'status', valueType: 'select', valueEnum: { ACTIVE: { text: '启用' }, DISABLED: { text: '停用' } }, render: (_, row) => statusTag(row.status) },
     { title: '排序', dataIndex: 'sortOrder', search: false, width: 90 },
-    { title: '操作', valueType: 'option', width: 90, render: (_, row) => <Button type="link" onClick={() => { setEditingDepartment(row); setDepartmentOpen(true) }}>编辑</Button> },
   ]
+  if (canManageDepartments) departmentColumns.push({ title: '操作', valueType: 'option', width: 90, render: (_, row) => <Button type="link" onClick={() => { setEditingDepartment(row); setDepartmentOpen(true) }}>编辑</Button> })
   const positionColumns: ProColumns<Position>[] = [
     { title: '岗位', dataIndex: 'name', render: (_, row) => <Space direction="vertical" size={0}><Typography.Text strong>{row.name}</Typography.Text><Typography.Text type="secondary">{row.positionKey}</Typography.Text></Space> },
     { title: '所属部门', dataIndex: 'departmentId', valueType: 'select', valueEnum: Object.fromEntries((departments.data ?? []).map((item) => [item.id, item.name])), render: (_, row) => departmentById.get(row.departmentId)?.name ?? '—' },
     { title: '说明', dataIndex: 'description', search: false, ellipsis: true },
     { title: '状态', dataIndex: 'status', valueType: 'select', valueEnum: { ACTIVE: { text: '启用' }, DISABLED: { text: '停用' } }, render: (_, row) => statusTag(row.status) },
-    { title: '操作', valueType: 'option', width: 90, render: (_, row) => <Button type="link" onClick={() => { setEditingPosition(row); setPositionOpen(true) }}>编辑</Button> },
   ]
+  if (canManagePositions) positionColumns.push({ title: '操作', valueType: 'option', width: 90, render: (_, row) => <Button type="link" onClick={() => { setEditingPosition(row); setPositionOpen(true) }}>编辑</Button> })
 
   return <PageContainer title="部门与岗位" tabList={[{ key: 'departments', tab: '部门' }, { key: 'positions', tab: '岗位' }]} tabActiveKey={tab} onTabChange={setTab}>
-    {tab === 'departments' ? <ProTable<Department> rowKey="id" loading={departments.isLoading} dataSource={departments.data ?? []} columns={departmentColumns} search={{ labelWidth: 'auto' }} pagination={false} toolBarRender={() => [<Button key="create" type="primary" icon={<PlusOutlined />} onClick={() => { setEditingDepartment(undefined); setDepartmentOpen(true) }}>新建部门</Button>]} /> : <ProTable<Position> rowKey="id" loading={positions.isLoading || departments.isLoading} dataSource={positions.data ?? []} columns={positionColumns} search={{ labelWidth: 'auto' }} pagination={false} toolBarRender={() => [<Button key="create" type="primary" icon={<PlusOutlined />} onClick={() => { setEditingPosition(undefined); setPositionOpen(true) }}>新建岗位</Button>]} />}
+    {tab === 'departments' ? <ProTable<Department> rowKey="id" loading={departments.isLoading} dataSource={departments.data ?? []} columns={departmentColumns} search={{ labelWidth: 'auto' }} pagination={false} toolBarRender={canManageDepartments ? () => [<Button key="create" type="primary" icon={<PlusOutlined />} onClick={() => { setEditingDepartment(undefined); setDepartmentOpen(true) }}>新建部门</Button>] : false} /> : <ProTable<Position> rowKey="id" loading={positions.isLoading || departments.isLoading} dataSource={positions.data ?? []} columns={positionColumns} search={{ labelWidth: 'auto' }} pagination={false} toolBarRender={canManagePositions ? () => [<Button key="create" type="primary" icon={<PlusOutlined />} onClick={() => { setEditingPosition(undefined); setPositionOpen(true) }}>新建岗位</Button>] : false} />}
 
     <DrawerForm<DepartmentInput> key={editingDepartment?.id ?? 'new-department'} title={editingDepartment ? '编辑部门' : '新建部门'} open={departmentOpen} onOpenChange={setDepartmentOpen} width={520} initialValues={editingDepartment ?? { status: 'ACTIVE', sortOrder: 0, parentId: '' }} submitter={{ searchConfig: { submitText: '保存', resetText: '取消' } }} onFinish={async (values) => { await departmentMutation.mutateAsync(values); return true }}>
       {!editingDepartment && <ProFormText name="departmentKey" label="部门编码" rules={[{ required: true, message: '请输入部门编码' }, { pattern: /^[a-z][a-z0-9_-]{1,63}$/, message: '使用小写字母、数字、短横线或下划线' }]} />}

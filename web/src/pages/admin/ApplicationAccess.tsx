@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { App, Button, Modal, Popconfirm, Space, Statistic, Tag, Typography } from 'antd'
 import { DeleteOutlined, EditOutlined, PlusOutlined } from '@ant-design/icons'
-import { EditableProTable, ModalForm, ProCard, ProForm, ProFormCheckbox, ProFormDateTimePicker, ProFormSelect, ProFormText, ProTable, type ProColumns } from '@ant-design/pro-components'
+import { EditableProTable, ModalForm, ProCard, ProForm, ProFormCheckbox, ProFormDateTimePicker, ProFormSelect, ProFormText, ProTable, type ProColumns, type ProFormInstance } from '@ant-design/pro-components'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import dayjs from 'dayjs'
 import { adminListApplicationRoles, adminReplaceApplicationRoles, type ApplicationRole } from '../../api/api'
@@ -9,6 +9,7 @@ import { createApproval, listApprovals, listApplicationAccessGrants, listApplica
 import type { ApplicationAccessGrant, ApplicationAccessImpact, ApplicationEffectiveAccess, ApprovalRequest } from '../../types'
 import { useMe } from '../../auth/useMe'
 import AdminUserSelect from '../../components/AdminUserSelect'
+import { APPROVAL_REQUEST_CREATE, APPROVAL_REQUEST_READ, hasPermission } from '../../auth/permissions'
 
 const SUBJECT_LABELS: Record<ApplicationAccessGrant['subjectType'], string> = { EVERYONE: '全体成员', DEPARTMENT: '部门', USER_GROUP: '用户组', PLATFORM_ROLE: '平台角色', USER: '指定人员' }
 const RISK_LABELS = { NORMAL: '普通', PRIVILEGED: '高权限', CRITICAL: '关键权限' }
@@ -19,6 +20,9 @@ export default function ApplicationAccess({ applicationId }: Props) {
   const { message } = App.useApp()
   const queryClient = useQueryClient()
   const me = useMe()
+  const grantFormRef = useRef<ProFormInstance<ApplicationAccessGrant> | undefined>(undefined)
+  const canReadApprovals = hasPermission(me.data?.permissions, APPROVAL_REQUEST_READ, me.data?.roles)
+  const canRequestApproval = hasPermission(me.data?.permissions, APPROVAL_REQUEST_CREATE, me.data?.roles)
   const [drafts, setDrafts] = useState<ApplicationAccessGrant[]>([])
   const [dirty, setDirty] = useState(false)
   const [editing, setEditing] = useState<ApplicationAccessGrant>()
@@ -36,7 +40,7 @@ export default function ApplicationAccess({ applicationId }: Props) {
   const departments = useQuery({ queryKey: ['admin', 'departments'], queryFn: listDepartments })
   const groups = useQuery({ queryKey: ['admin', 'user-groups'], queryFn: listUserGroups })
   const platformRoles = useQuery({ queryKey: ['admin', 'roles'], queryFn: listPlatformRoles })
-  const approvals = useQuery({ queryKey: ['admin', 'approvals'], queryFn: listApprovals })
+  const approvals = useQuery({ queryKey: ['admin', 'approvals'], queryFn: listApprovals, enabled: canReadApprovals })
   useEffect(() => { if (grants.data && !dirty) setDrafts(grants.data) }, [grants.data, dirty])
   useEffect(() => { if (roles.data && !roleDirty) setRoleDrafts(roles.data) }, [roleDirty, roles.data])
 
@@ -93,8 +97,8 @@ export default function ApplicationAccess({ applicationId }: Props) {
     {approvedChanges.length > 0 && <ProTable<ApprovalRequest> headerTitle="待执行变更" rowKey="id" dataSource={approvedChanges} search={false} pagination={false} options={false} columns={[{ title: '事项', dataIndex: 'summary' }, { title: '操作', valueType: 'option', width: 110, render: (_, row) => <Button type="link" loading={saveMutation.isPending} onClick={() => executeApproved(row)}>执行变更</Button> }]} />}
     <ProTable<ApplicationEffectiveAccess> headerTitle="有效权限" rowKey="userId" columns={effectiveColumns} dataSource={effective.data ?? []} loading={effective.isLoading} search={{ labelWidth: 'auto' }} pagination={{ pageSize: 20 }} />
 
-    <ModalForm<ApplicationAccessGrant> key={editing?.id ?? 'new'} title={editing ? '编辑访问规则' : '添加访问规则'} open={grantOpen} onOpenChange={setGrantOpen} width={560} initialValues={editing ? { ...editing, validFrom: editing.validFrom ? dayjs(editing.validFrom) : undefined, validUntil: editing.validUntil ? dayjs(editing.validUntil) : undefined } : { subjectType: 'DEPARTMENT', effect: 'ALLOW', roles: [], status: 'ACTIVE', includeDescendants: true }} submitter={{ searchConfig: { submitText: '确定', resetText: '取消' } }} onFinish={async (values) => saveGrant(values)}>
-      <ProFormSelect name="subjectType" label="访问对象类型" options={Object.entries(SUBJECT_LABELS).map(([value, label]) => ({ value, label }))} fieldProps={{ onChange: (value) => setSubjectType(value as ApplicationAccessGrant['subjectType']) }} rules={[{ required: true }]} />
+    <ModalForm<ApplicationAccessGrant> formRef={grantFormRef} key={editing?.id ?? 'new'} title={editing ? '编辑访问规则' : '添加访问规则'} open={grantOpen} onOpenChange={setGrantOpen} width={560} initialValues={editing ? { ...editing, validFrom: editing.validFrom ? dayjs(editing.validFrom) : undefined, validUntil: editing.validUntil ? dayjs(editing.validUntil) : undefined } : { subjectType: 'DEPARTMENT', effect: 'ALLOW', roles: [], status: 'ACTIVE', includeDescendants: true }} submitter={{ searchConfig: { submitText: '确定', resetText: '取消' } }} onFinish={async (values) => saveGrant(values)}>
+      <ProFormSelect name="subjectType" label="访问对象类型" options={Object.entries(SUBJECT_LABELS).map(([value, label]) => ({ value, label }))} fieldProps={{ onChange: (value) => { setSubjectType(value as ApplicationAccessGrant['subjectType']); grantFormRef.current?.setFieldValue('subjectId', undefined); setSelectedSubjectName('') } }} rules={[{ required: true }]} />
       {subjectType === 'USER' && <ProForm.Item name="subjectId" label="访问对象" rules={[{ required: true, message: '请选择访问对象' }]}><AdminUserSelect onUserSelect={(user) => setSelectedSubjectName(user.displayName || user.loginName)} /></ProForm.Item>}
       {subjectType !== 'EVERYONE' && subjectType !== 'USER' && <ProFormSelect name="subjectId" label="访问对象" showSearch fieldProps={{ optionFilterProp: 'label' }} options={subjectOptions} rules={[{ required: true, message: '请选择访问对象' }]} />}
       {subjectType === 'DEPARTMENT' && <ProFormCheckbox name="includeDescendants">包含下级部门</ProFormCheckbox>}
@@ -105,9 +109,9 @@ export default function ApplicationAccess({ applicationId }: Props) {
       <ProFormSelect name="status" label="状态" options={[{ label: '启用', value: 'ACTIVE' }, { label: '停用', value: 'DISABLED' }]} rules={[{ required: true }]} />
       <ProFormText name="reason" label="变更原因" fieldProps={{ maxLength: 200 }} />
     </ModalForm>
-    <Modal title="访问变更" open={Boolean(preview)} onCancel={() => { setPreview(undefined); setApproverId(undefined) }} okText={preview && requiresApproval(preview) ? '提交审批' : '确认生效'} cancelText="返回修改" confirmLoading={saveMutation.isPending || requestApproval.isPending} okButtonProps={{ disabled: Boolean(preview && requiresApproval(preview) && !approverId) }} onOk={() => preview && requiresApproval(preview) ? requestApproval.mutate() : saveMutation.mutate(undefined)}>
+    <Modal title="访问变更" open={Boolean(preview)} onCancel={() => { setPreview(undefined); setApproverId(undefined) }} okText={preview && requiresApproval(preview) ? '提交审批' : '确认生效'} cancelText="返回修改" confirmLoading={saveMutation.isPending || requestApproval.isPending} okButtonProps={{ disabled: Boolean(preview && requiresApproval(preview) && (!canRequestApproval || !approverId)) }} onOk={() => preview && requiresApproval(preview) ? requestApproval.mutate() : saveMutation.mutate(undefined)}>
       <ProCard ghost gutter={12} wrap>{preview && <><ProCard><Statistic title="生效用户" value={preview.effectiveUsers} /></ProCard><ProCard><Statistic title="新增" value={preview.addedUsers} /></ProCard><ProCard><Statistic title="撤销" value={preview.revokedUsers} /></ProCard><ProCard><Statistic title="角色变化" value={preview.roleChangedUsers} /></ProCard></>}</ProCard>
-      {preview && requiresApproval(preview) && <Space direction="vertical" style={{ width: '100%', marginTop: 16 }}><Typography.Text type="warning">该变更需要审批。</Typography.Text><AdminUserSelect value={approverId} onChange={(value) => setApproverId(Array.isArray(value) ? value[0] : value)} excludeIds={me.data?.id ? [me.data.id] : []} placeholder="选择审批人" /></Space>}
+      {preview && requiresApproval(preview) && <Space direction="vertical" style={{ width: '100%', marginTop: 16 }}><Typography.Text type="warning">{canRequestApproval ? '该变更需要审批。' : '该变更需要审批，请联系有审批申请权限的管理员。'}</Typography.Text>{canRequestApproval && <AdminUserSelect value={approverId} onChange={(value) => setApproverId(Array.isArray(value) ? value[0] : value)} excludeIds={me.data?.id ? [me.data.id] : []} placeholder="选择审批人" />}</Space>}
     </Modal>
   </Space>
 }

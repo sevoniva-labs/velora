@@ -26,6 +26,7 @@ describe('permission-driven administration gates', () => {
 
   it('keeps the built-in superuser compatibility boundary explicit', () => {
     expect(canAccessAdmin([], ['system_admin'])).toBe(true)
+    expect(hasPermission([IDENTITY_READ], PORTAL_MANAGE, ['system_admin'])).toBe(true)
     expect(canAccessAdmin([], ['operator'])).toBe(false)
   })
 })

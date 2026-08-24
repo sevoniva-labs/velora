@@ -1,10 +1,11 @@
-import { useMemo, useState, type ReactNode } from 'react'
-import { ProLayout, type MenuDataItem } from '@ant-design/pro-components'
-import { Avatar, Button, Dropdown } from 'antd'
+import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import { ModalForm, ProFormText, ProLayout, type MenuDataItem } from '@ant-design/pro-components'
+import { App as AntdApp, Avatar, Button, Dropdown } from 'antd'
 import { HomeOutlined, LogoutOutlined, UserOutlined } from '@ant-design/icons'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { logout } from '../api/api'
+import { logout, stepUpAuthentication } from '../api/api'
+import { ApiError, STEP_UP_REQUIRED_EVENT } from '../api/client'
 import { useMe } from '../auth/useMe'
 import { adminNavItems, type AdminNavItem } from './menu'
 import { hasAnyPermission } from '../auth/permissions'
@@ -31,6 +32,9 @@ function toMenuData(items: AdminNavItem[]): MenuDataItem[] {
 
 export function AdminLayout({ children }: AdminLayoutProps) {
   const [collapsed, setCollapsed] = useState(false)
+  const [stepUpOpen, setStepUpOpen] = useState(false)
+  const [recoveryMode, setRecoveryMode] = useState(false)
+  const { message } = AntdApp.useApp()
   const location = useLocation()
   const navigate = useNavigate()
   const me = useMe()
@@ -40,13 +44,20 @@ export function AdminLayout({ children }: AdminLayoutProps) {
   const roleLabel = me.data?.roles.map((role) => ROLE_LABELS[role]).find(Boolean) || '管理成员'
   const menuData = useMemo(() => toMenuData(visibleNavigation(adminNavItems, me.data?.permissions ?? [], me.data?.roles ?? [])), [me.data?.permissions, me.data?.roles])
 
+  useEffect(() => {
+    const requireStepUp = () => setStepUpOpen(true)
+    window.addEventListener(STEP_UP_REQUIRED_EVENT, requireStepUp)
+    return () => window.removeEventListener(STEP_UP_REQUIRED_EVENT, requireStepUp)
+  }, [])
+
   const logoutMutation = useMutation({
     mutationFn: logout,
     onSuccess: (result) => { queryClient.clear(); window.location.assign(result.federatedLogoutUrl || '/login') },
   })
 
   return (
-    <ProLayout
+    <>
+      <ProLayout
       className="velora-admin-pro-layout"
       layout="side"
       title={portalName}
@@ -78,6 +89,36 @@ export function AdminLayout({ children }: AdminLayoutProps) {
       contentStyle={{ padding: 24, minHeight: 'calc(100vh - 56px)' }}
     >
       <main id="main" className="velora-admin-content">{children}</main>
-    </ProLayout>
+      </ProLayout>
+      <ModalForm<{ currentPassword: string; mfaCode?: string; recoveryCode?: string }>
+        title="确认本人操作"
+        open={stepUpOpen}
+        modalProps={{ destroyOnHidden: true, maskClosable: false, onCancel: () => setStepUpOpen(false) }}
+        submitter={{ searchConfig: { submitText: '确认', resetText: '取消' } }}
+        onFinish={async (values) => {
+          try {
+            await stepUpAuthentication(values.currentPassword, values.mfaCode, values.recoveryCode)
+            setStepUpOpen(false)
+            message.success('身份确认完成，请重新执行刚才的操作。')
+            return true
+          } catch (error) {
+            if (error instanceof ApiError && error.code === '200026') {
+              message.warning('请先在个人中心启用多因素认证。')
+            } else {
+              message.error('密码或验证码不正确。')
+            }
+            return false
+          }
+        }}
+      >
+        <ProFormText.Password name="currentPassword" label="当前密码" rules={[{ required: true, message: '请输入当前密码' }]} fieldProps={{ autoComplete: 'current-password' }} />
+        {recoveryMode ? (
+          <ProFormText name="recoveryCode" label="恢复码" rules={[{ required: true, message: '请输入恢复码' }]} fieldProps={{ autoComplete: 'one-time-code' }} />
+        ) : (
+          <ProFormText name="mfaCode" label="验证码" rules={[{ required: true, message: '请输入 6 位验证码' }, { pattern: /^\d{6}$/, message: '请输入 6 位数字验证码' }]} fieldProps={{ inputMode: 'numeric', maxLength: 6, autoComplete: 'one-time-code' }} />
+        )}
+        <Button type="link" size="small" style={{ paddingInline: 0 }} onClick={() => setRecoveryMode((value) => !value)}>{recoveryMode ? '使用验证码' : '使用恢复码'}</Button>
+      </ModalForm>
+    </>
   )
 }

@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest'
-import { ApiError, buildQuery, apiFetch, publicErrorMessage } from './client'
+import { ApiError, STEP_UP_REQUIRED_EVENT, buildQuery, apiFetch, publicErrorMessage } from './client'
 
 describe('buildQuery', () => {
   it('过滤空值', () => {
@@ -81,5 +81,17 @@ describe('apiFetch', () => {
     expect(url).toBe('/api/v1/favorites/1')
     const headers = (init as RequestInit).headers as Record<string, string>
     expect(headers['X-CSRF-Token']).toBe('csrf-token-123')
+  })
+
+  it('需要提升认证时通知管理端打开确认窗口', async () => {
+    const listener = vi.fn()
+    window.addEventListener(STEP_UP_REQUIRED_EVENT, listener)
+    vi.mocked(globalThis.fetch).mockResolvedValue(
+      new Response(JSON.stringify({ code: '200027', message: 'recent MFA required' }), { status: 403 }),
+    )
+
+    await expect(apiFetch('/admin/security-sensitive-action', { method: 'POST' })).rejects.toMatchObject({ code: '200027' })
+    expect(listener).toHaveBeenCalledOnce()
+    window.removeEventListener(STEP_UP_REQUIRED_EVENT, listener)
   })
 })

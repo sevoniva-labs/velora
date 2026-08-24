@@ -253,6 +253,10 @@ export function disableMFA(currentPassword: string, code?: string, recoveryCode?
   return apiFetch('/mfa/totp/disable', { method: 'POST', body: { currentPassword, code: code || undefined, recoveryCode: recoveryCode || undefined } })
 }
 
+export function stepUpAuthentication(currentPassword: string, mfaCode?: string, recoveryCode?: string): Promise<{ verifiedAt: string }> {
+  return apiFetch('/auth/step-up', { method: 'POST', body: { currentPassword, mfaCode: mfaCode || undefined, recoveryCode: recoveryCode || undefined } })
+}
+
 export function sessionBridgeFallbackURL(action: string, returnPath: string, portalOrigin = window.location.origin): string {
 	const bridge = new URL(action)
 	if (bridge.protocol !== 'https:' || bridge.username || bridge.password || bridge.pathname !== '/_velora/session/bridge' || bridge.search || bridge.hash) {

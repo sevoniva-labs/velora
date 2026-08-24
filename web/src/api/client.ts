@@ -57,12 +57,13 @@ const WRITE_METHODS: ReadonlySet<string> = new Set(['POST', 'PATCH', 'PUT', 'DEL
 // 会话过期（401）处理：自动跳登录页并携带回跳地址。
 // 模块级标志防止多个并发请求同时触发多次跳转。
 let redirectingToLogin = false
+export const STEP_UP_REQUIRED_EVENT = 'velora:step-up-required'
 
 function handleUnauthorized(path: string): void {
   // 已在登录页 / 登录相关端点自身的 401（账号/密码错误）不触发跳转，避免死循环与闪烁。
   if (redirectingToLogin) return
   if (window.location.pathname.startsWith('/login')) return
-  if (path.startsWith('/auth/login') || path === '/auth/oidc/login') return
+  if (path.startsWith('/auth/login') || path === '/auth/oidc/login' || path === '/auth/step-up') return
   redirectingToLogin = true
   const current = window.location.pathname + window.location.search
   const target = `/login?redirect=${encodeURIComponent(current === '/' ? '' : current)}`
@@ -95,6 +96,9 @@ export async function apiFetch<T>(path: string, options: RequestOptions = {}): P
 
   const data = await parseBody<VeloraEnvelope>(res)
   if (!res.ok) {
+    if (data?.code === '200027' && path !== '/auth/step-up') {
+      window.dispatchEvent(new CustomEvent(STEP_UP_REQUIRED_EVENT))
+    }
     throw new ApiError(res.status, data?.code ?? 'A05001', data?.message ?? '', data?.requestId ?? data?.request_id)
   }
   // 统一返回结构取 data 字段。

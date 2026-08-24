@@ -17,6 +17,10 @@ interface TurnstileRenderOptions {
   'error-callback'?: (errorCode?: string) => void
   'expired-callback'?: () => void
   'timeout-callback'?: () => void
+  retry?: 'auto' | 'never'
+  'retry-interval'?: number
+  'refresh-expired'?: 'auto' | 'manual' | 'never'
+  'refresh-timeout'?: 'auto' | 'manual' | 'never'
   theme?: 'light' | 'dark' | 'auto'
   size?: 'normal' | 'compact' | 'flexible'
   appearance?: 'always' | 'execute' | 'interaction-only'
@@ -90,23 +94,13 @@ export default function TurnstileWidget({ siteKey, action = 'login', onVerify, o
     setFailed(false)
     onVerify('')
 
-    const failVerification = () => {
-      onVerify('')
-      setFailed(true)
-    }
-
-    const resetTimedOutChallenge = () => {
+    const clearTimedOutChallenge = () => {
       onExpire?.()
       onVerify('')
-      if (!widgetId || !window.turnstile) {
-        setRetryAttempt((attempt) => attempt + 1)
-        return
-      }
-      try {
-        window.turnstile.reset(widgetId)
-      } catch {
-        setRetryAttempt((attempt) => attempt + 1)
-      }
+    }
+
+    const clearFailedChallenge = () => {
+      onVerify('')
     }
 
     loadTurnstileScript()
@@ -122,10 +116,14 @@ export default function TurnstileWidget({ siteKey, action = 'login', onVerify, o
             onExpire?.()
             onVerify('')
           },
-          'error-callback': failVerification,
-          // A challenge timeout is recoverable. Reset it in place instead of
-          // hiding the widget and leaving the login button permanently disabled.
-          'timeout-callback': resetTimedOutChallenge,
+          // Let Turnstile own transient failure recovery. Hiding the widget from
+          // error/timeout callbacks can permanently lock a legitimate user out.
+          retry: 'auto',
+          'retry-interval': 8_000,
+          'refresh-expired': 'auto',
+          'refresh-timeout': 'auto',
+          'error-callback': clearFailedChallenge,
+          'timeout-callback': clearTimedOutChallenge,
           theme,
           size: 'flexible',
           appearance: 'interaction-only',

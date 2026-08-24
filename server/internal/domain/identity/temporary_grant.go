@@ -6,6 +6,8 @@ type TemporaryRoleGrant struct {
 	ID             string     `json:"id"`
 	OrganizationID string     `json:"organization_id"`
 	UserID         string     `json:"user_id"`
+	LoginName      string     `json:"login_name"`
+	DisplayName    string     `json:"display_name"`
 	RoleKey        string     `json:"role_key"`
 	RequestedBy    string     `json:"requested_by"`
 	ApprovalID     string     `json:"approval_id"`

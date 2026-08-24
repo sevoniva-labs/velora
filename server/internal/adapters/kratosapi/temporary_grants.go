@@ -98,7 +98,7 @@ func temporaryRoleGrantProto(grant domain.TemporaryRoleGrant) *forgev1.Temporary
 		status = "ACTIVE"
 	}
 	return &forgev1.TemporaryRoleGrant{
-		Id: grant.ID, OrganizationId: grant.OrganizationID, UserId: grant.UserID, RoleKey: grant.RoleKey,
+		Id: grant.ID, OrganizationId: grant.OrganizationID, UserId: grant.UserID, LoginName: grant.LoginName, DisplayName: grant.DisplayName, RoleKey: grant.RoleKey,
 		RequestedBy: grant.RequestedBy, ApprovalId: grant.ApprovalID, Reason: grant.Reason, Status: status,
 		ValidFrom: timestamp(grant.ValidFrom), ValidUntil: timestamp(grant.ValidUntil), RevokedAt: optionalTimestamp(grant.RevokedAt),
 		RevokedBy: grant.RevokedBy, RevokeReason: grant.RevokeReason, CreatedAt: timestamp(grant.CreatedAt),

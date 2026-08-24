@@ -5163,6 +5163,10 @@ components:
                 createdAt:
                     type: string
                     format: date-time
+                loginName:
+                    type: string
+                displayName:
+                    type: string
         forge.v1.TransferApprovalRequest:
             type: object
             properties:

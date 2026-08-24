@@ -36,6 +36,10 @@ func TestPlatformProtoMappings(t *testing.T) {
 	if assignment.Id != "assignment-1" || assignment.DepartmentId != "dept-1" || assignment.PositionId != "position-1" || !assignment.Primary {
 		t.Fatalf("unexpected user assignment mapping: %+v", assignment)
 	}
+	grant := temporaryRoleGrantProto(domain.TemporaryRoleGrant{ID: "grant-1", OrganizationID: "org-1", UserID: "user-1", LoginName: "alice", DisplayName: "Alice", RoleKey: "auditor", ValidFrom: now, ValidUntil: now.Add(time.Hour), CreatedAt: now})
+	if grant.UserId != "user-1" || grant.LoginName != "alice" || grant.DisplayName != "Alice" {
+		t.Fatalf("unexpected temporary grant user mapping: %+v", grant)
+	}
 	policy := securityPolicyProto(domain.SecurityPolicy{PasswordMinLength: 14, SessionTTLSeconds: 3600, MaxConcurrentSessions: 2})
 	if policy.PasswordMinLength != 14 || policy.SessionTtlSeconds != 3600 || policy.MaxActiveSessions != 2 {
 		t.Fatalf("unexpected policy mapping: %+v", policy)

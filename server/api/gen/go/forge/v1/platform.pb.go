@@ -6000,6 +6000,8 @@ type TemporaryRoleGrant struct {
 	RevokedBy      string                 `protobuf:"bytes,12,opt,name=revoked_by,json=revokedBy,proto3" json:"revoked_by,omitempty"`
 	RevokeReason   string                 `protobuf:"bytes,13,opt,name=revoke_reason,json=revokeReason,proto3" json:"revoke_reason,omitempty"`
 	CreatedAt      *timestamppb.Timestamp `protobuf:"bytes,14,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	LoginName      string                 `protobuf:"bytes,15,opt,name=login_name,json=loginName,proto3" json:"login_name,omitempty"`
+	DisplayName    string                 `protobuf:"bytes,16,opt,name=display_name,json=displayName,proto3" json:"display_name,omitempty"`
 	unknownFields  protoimpl.UnknownFields
 	sizeCache      protoimpl.SizeCache
 }
@@ -6130,6 +6132,20 @@ func (x *TemporaryRoleGrant) GetCreatedAt() *timestamppb.Timestamp {
 		return x.CreatedAt
 	}
 	return nil
+}
+
+func (x *TemporaryRoleGrant) GetLoginName() string {
+	if x != nil {
+		return x.LoginName
+	}
+	return ""
+}
+
+func (x *TemporaryRoleGrant) GetDisplayName() string {
+	if x != nil {
+		return x.DisplayName
+	}
+	return ""
 }
 
 type ListTemporaryRoleGrantsRequest struct {
@@ -7841,7 +7857,7 @@ const file_forge_v1_platform_proto_rawDesc = "" +
 	"\x17ExportAuditLogsResponse\x12\x18\n" +
 	"\acontent\x18\x01 \x01(\fR\acontent\x12!\n" +
 	"\fcontent_type\x18\x02 \x01(\tR\vcontentType\x12\x1a\n" +
-	"\bfilename\x18\x03 \x01(\tR\bfilename\"\xa7\x04\n" +
+	"\bfilename\x18\x03 \x01(\tR\bfilename\"\xe9\x04\n" +
 	"\x12TemporaryRoleGrant\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12'\n" +
 	"\x0forganization_id\x18\x02 \x01(\tR\x0eorganizationId\x12\x17\n" +
@@ -7863,7 +7879,10 @@ const file_forge_v1_platform_proto_rawDesc = "" +
 	"revoked_by\x18\f \x01(\tR\trevokedBy\x12#\n" +
 	"\rrevoke_reason\x18\r \x01(\tR\frevokeReason\x129\n" +
 	"\n" +
-	"created_at\x18\x0e \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\" \n" +
+	"created_at\x18\x0e \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x12\x1d\n" +
+	"\n" +
+	"login_name\x18\x0f \x01(\tR\tloginName\x12!\n" +
+	"\fdisplay_name\x18\x10 \x01(\tR\vdisplayName\" \n" +
 	"\x1eListTemporaryRoleGrantsRequest\"W\n" +
 	"\x1fListTemporaryRoleGrantsResponse\x124\n" +
 	"\x06grants\x18\x01 \x03(\v2\x1c.forge.v1.TemporaryRoleGrantR\x06grants\"\x86\x02\n" +

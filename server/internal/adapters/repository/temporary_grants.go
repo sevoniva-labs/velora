@@ -26,7 +26,7 @@ func (r *IdentityRepo) CreateTemporaryRoleGrant(ctx context.Context, grant ident
 }
 
 func (r *IdentityRepo) ListTemporaryRoleGrants(ctx context.Context, organizationID string) ([]identity.TemporaryRoleGrant, error) {
-	rows, err := r.db.QueryContext(ctx, r.db.Rebind(`SELECT g.id,g.organization_id,g.user_id,r.role_key,g.requested_by,g.approval_id,g.reason,g.valid_from,g.valid_until,g.revoked_at,g.revoked_by,g.revoke_reason,g.created_at FROM temporary_role_grants g JOIN roles r ON r.id=g.role_id WHERE g.organization_id=? ORDER BY g.created_at DESC LIMIT 1000`), organizationID)
+	rows, err := r.db.QueryContext(ctx, r.db.Rebind(`SELECT g.id,g.organization_id,g.user_id,u.login_name,u.display_name,r.role_key,g.requested_by,g.approval_id,g.reason,g.valid_from,g.valid_until,g.revoked_at,g.revoked_by,g.revoke_reason,g.created_at FROM temporary_role_grants g JOIN users u ON u.id=g.user_id AND u.organization_id=g.organization_id JOIN roles r ON r.id=g.role_id WHERE g.organization_id=? ORDER BY g.created_at DESC LIMIT 1000`), organizationID)
 	if err != nil {
 		return nil, err
 	}
@@ -36,7 +36,7 @@ func (r *IdentityRepo) ListTemporaryRoleGrants(ctx context.Context, organization
 		var grant identity.TemporaryRoleGrant
 		var revokedAt sql.NullTime
 		var revokedBy, revokeReason sql.NullString
-		if err := rows.Scan(&grant.ID, &grant.OrganizationID, &grant.UserID, &grant.RoleKey, &grant.RequestedBy, &grant.ApprovalID, &grant.Reason, &grant.ValidFrom, &grant.ValidUntil, &revokedAt, &revokedBy, &revokeReason, &grant.CreatedAt); err != nil {
+		if err := rows.Scan(&grant.ID, &grant.OrganizationID, &grant.UserID, &grant.LoginName, &grant.DisplayName, &grant.RoleKey, &grant.RequestedBy, &grant.ApprovalID, &grant.Reason, &grant.ValidFrom, &grant.ValidUntil, &revokedAt, &revokedBy, &revokeReason, &grant.CreatedAt); err != nil {
 			return nil, err
 		}
 		if revokedAt.Valid {

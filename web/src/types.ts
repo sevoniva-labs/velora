@@ -113,6 +113,7 @@ export interface AdminSession {
   id: string
   userId: string
   loginName: string
+  displayName: string
   clientIp: string
   userAgent: string
   createdAt: string
@@ -210,6 +211,8 @@ export interface ApprovalRequest {
 export interface TemporaryRoleGrant {
   id: string
   userId: string
+  loginName: string
+  displayName: string
   roleKey: string
   requestedBy: string
   approvalId: string

@@ -1391,6 +1391,8 @@ message TemporaryRoleGrant {
   string revoked_by = 12;
   string revoke_reason = 13;
   google.protobuf.Timestamp created_at = 14;
+  string login_name = 15;
+  string display_name = 16;
 }
 
 message ListTemporaryRoleGrantsRequest {}

@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest'
-import { ApiError, buildQuery, apiFetch } from './client'
+import { ApiError, buildQuery, apiFetch, publicErrorMessage } from './client'
 
 describe('buildQuery', () => {
   it('过滤空值', () => {
@@ -24,6 +24,12 @@ describe('ApiError', () => {
   it('默认错误码', () => {
     const e = new ApiError(500, '', 'boom')
     expect(e.code).toBe('A05001')
+    expect(e.message).toBe('服务暂时不可用，请稍后重试。')
+  })
+  it('保留产品文案并隐藏实现细节', () => {
+    expect(publicErrorMessage(403, '没有权限')).toBe('没有权限')
+    expect(publicErrorMessage(409, 'optimistic lock conflict')).toBe('数据已发生变化，请刷新后重试。')
+    expect(publicErrorMessage(500, 'dial tcp: connection refused')).toBe('服务暂时不可用，请稍后重试。')
   })
 })
 

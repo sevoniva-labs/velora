@@ -8,12 +8,29 @@ export class ApiError extends Error {
   readonly requestId?: string
 
   constructor(status: number, code: string, message: string, requestId?: string) {
-    super(message || `请求失败（HTTP ${status}）`)
+    super(publicErrorMessage(status, message))
     this.name = 'ApiError'
     this.status = status
     this.code = code || 'A05001'
     this.requestId = requestId
   }
+}
+
+/**
+ * 后端错误详情用于日志定位；界面只展示稳定、可操作的产品文案。
+ * 已经产品化的中文信息原样保留，英文实现细节不直接暴露给管理员。
+ */
+export function publicErrorMessage(status: number, message: string): string {
+  const normalized = message.trim()
+  if (/[\u3400-\u9fff]/u.test(normalized)) return normalized
+  if (status === 400 || status === 422) return '提交内容不符合要求，请检查后重试。'
+  if (status === 401) return '登录状态已失效，请重新登录。'
+  if (status === 403) return '当前账号无权执行此操作。'
+  if (status === 404) return '目标记录不存在或已被删除。'
+  if (status === 409) return '数据已发生变化，请刷新后重试。'
+  if (status === 412 || status === 423) return '当前状态不允许执行此操作，请刷新后重试。'
+  if (status === 429) return '操作过于频繁，请稍后重试。'
+  return status >= 500 ? '服务暂时不可用，请稍后重试。' : '操作失败，请稍后重试。'
 }
 
 /** 从 document.cookie 读取 velora_csrf（写请求双提交用）。 */

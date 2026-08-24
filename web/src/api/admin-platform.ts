@@ -5,18 +5,39 @@ export type DepartmentInput = Pick<Department, 'name' | 'parentId' | 'status' | 
 export type PositionInput = Pick<Position, 'name' | 'description' | 'departmentId' | 'status' | 'sortOrder'> & { positionKey?: string }
 export type UserGroupInput = Pick<UserGroup, 'name' | 'description' | 'status'> & { groupKey?: string }
 
+export function messageFromResponse<T>(value: T | Record<string, T>, field: string): T {
+  if (value && typeof value === 'object' && field in value) return (value as Record<string, T>)[field]
+  return value as T
+}
+
+function normalizeUserGroup(item: UserGroup): UserGroup {
+  return { ...item, roles: item.roles ?? [], memberIds: item.memberIds ?? [], memberCount: item.memberCount ?? item.memberIds?.length ?? 0 }
+}
+
+function normalizePlatformRole(item: PlatformRole): PlatformRole {
+  return { ...item, permissions: item.permissions ?? [], dataScopeDepartmentIds: item.dataScopeDepartmentIds ?? [] }
+}
+
+function normalizeAccessGrant(item: ApplicationAccessGrant): ApplicationAccessGrant {
+  return { ...item, roles: item.roles ?? [] }
+}
+
+function normalizeEffectiveAccess(item: ApplicationEffectiveAccess): ApplicationEffectiveAccess {
+  return { ...item, roles: item.roles ?? [], sourceGrantIds: item.sourceGrantIds ?? [] }
+}
+
 export async function listDepartments(): Promise<Department[]> {
   return (await apiFetch<{ departments?: Department[] }>('/admin/departments')).departments ?? []
 }
 
 export async function createDepartment(input: DepartmentInput): Promise<Department> {
   const data = await apiFetch<{ department: Department }>('/admin/departments', { method: 'POST', body: input })
-  return data.department
+  return messageFromResponse(data, 'department')
 }
 
 export async function updateDepartment(id: string, input: DepartmentInput): Promise<Department> {
   const data = await apiFetch<{ department: Department }>(`/admin/departments/${encodeURIComponent(id)}`, { method: 'PATCH', body: input })
-  return data.department
+  return messageFromResponse(data, 'department')
 }
 
 export async function listPositions(): Promise<Position[]> {
@@ -25,26 +46,26 @@ export async function listPositions(): Promise<Position[]> {
 
 export async function createPosition(input: PositionInput): Promise<Position> {
   const data = await apiFetch<{ position: Position }>('/admin/positions', { method: 'POST', body: input })
-  return data.position
+  return messageFromResponse(data, 'position')
 }
 
 export async function updatePosition(id: string, input: PositionInput): Promise<Position> {
   const data = await apiFetch<{ position: Position }>(`/admin/positions/${encodeURIComponent(id)}`, { method: 'PATCH', body: input })
-  return data.position
+  return messageFromResponse(data, 'position')
 }
 
 export async function listUserGroups(): Promise<UserGroup[]> {
-  return (await apiFetch<{ userGroups?: UserGroup[] }>('/admin/user-groups')).userGroups ?? []
+  return ((await apiFetch<{ userGroups?: UserGroup[] }>('/admin/user-groups')).userGroups ?? []).map(normalizeUserGroup)
 }
 
 export async function createUserGroup(input: UserGroupInput): Promise<UserGroup> {
   const data = await apiFetch<{ userGroup: UserGroup }>('/admin/user-groups', { method: 'POST', body: input })
-  return data.userGroup
+  return normalizeUserGroup(messageFromResponse(data, 'userGroup'))
 }
 
 export async function updateUserGroup(id: string, input: UserGroupInput): Promise<UserGroup> {
   const data = await apiFetch<{ userGroup: UserGroup }>(`/admin/user-groups/${encodeURIComponent(id)}`, { method: 'PATCH', body: input })
-  return data.userGroup
+  return normalizeUserGroup(messageFromResponse(data, 'userGroup'))
 }
 
 export function replaceUserGroupMembers(id: string, userIds: string[]): Promise<unknown> {
@@ -56,19 +77,19 @@ export function replaceUserGroupRoles(id: string, roles: string[]): Promise<unkn
 }
 
 export async function listPlatformRoles(): Promise<PlatformRole[]> {
-  return (await apiFetch<{ roles?: PlatformRole[] }>('/admin/roles')).roles ?? []
+  return ((await apiFetch<{ roles?: PlatformRole[] }>('/admin/roles')).roles ?? []).map(normalizePlatformRole)
 }
 
 export async function createPlatformRole(input: { roleKey: string; name: string; description?: string }): Promise<PlatformRole> {
-  return (await apiFetch<{ role: PlatformRole }>('/admin/roles', { method: 'POST', body: input })).role
+  return normalizePlatformRole(messageFromResponse(await apiFetch<{ role: PlatformRole }>('/admin/roles', { method: 'POST', body: input }), 'role'))
 }
 
 export async function updatePlatformRole(roleKey: string, input: { name: string; description?: string; status: 'ACTIVE' | 'DISABLED' }): Promise<PlatformRole> {
-  return (await apiFetch<{ role: PlatformRole }>(`/admin/roles/${encodeURIComponent(roleKey)}`, { method: 'PATCH', body: input })).role
+  return normalizePlatformRole(messageFromResponse(await apiFetch<{ role: PlatformRole }>(`/admin/roles/${encodeURIComponent(roleKey)}`, { method: 'PATCH', body: input }), 'role'))
 }
 
 export async function copyPlatformRole(sourceRoleKey: string, input: { roleKey: string; name: string; description?: string }): Promise<PlatformRole> {
-  return (await apiFetch<{ role: PlatformRole }>(`/admin/roles/${encodeURIComponent(sourceRoleKey)}:copy`, { method: 'POST', body: input })).role
+  return normalizePlatformRole(messageFromResponse(await apiFetch<{ role: PlatformRole }>(`/admin/roles/${encodeURIComponent(sourceRoleKey)}:copy`, { method: 'POST', body: input }), 'role'))
 }
 
 export async function listPlatformPermissions(): Promise<PlatformPermission[]> {
@@ -76,21 +97,21 @@ export async function listPlatformPermissions(): Promise<PlatformPermission[]> {
 }
 
 export async function getSecurityPolicy(): Promise<SecurityPolicy> {
-  return (await apiFetch<{ policy: SecurityPolicy }>('/admin/security-config')).policy
+  return messageFromResponse(await apiFetch<{ policy: SecurityPolicy }>('/admin/security-config'), 'policy')
 }
 
 export async function updateSecurityPolicy(policy: SecurityPolicy, approvalId: string): Promise<SecurityPolicy> {
-  return (await apiFetch<{ policy: SecurityPolicy }>('/admin/security-config', { method: 'PUT', body: { policy, approvalId } })).policy
+  return messageFromResponse(await apiFetch<{ policy: SecurityPolicy }>('/admin/security-config', { method: 'PUT', body: { policy, approvalId } }), 'policy')
 }
 
 export async function updateRolePermissions(roleKey: string, permissions: string[], approvalId?: string): Promise<PlatformRole> {
   const data = await apiFetch<{ role: PlatformRole }>(`/admin/roles/${encodeURIComponent(roleKey)}/permissions`, { method: 'PUT', body: { permissions, approvalId: approvalId ?? '' } })
-  return data.role
+  return normalizePlatformRole(messageFromResponse(data, 'role'))
 }
 
 export async function updateRoleDataScope(roleKey: string, dataScope: string, departmentIds: string[], approvalId?: string): Promise<PlatformRole> {
   const data = await apiFetch<{ role: PlatformRole }>(`/admin/roles/${encodeURIComponent(roleKey)}/data-scope`, { method: 'PUT', body: { dataScope, departmentIds, approvalId: approvalId ?? '' } })
-  return data.role
+  return normalizePlatformRole(messageFromResponse(data, 'role'))
 }
 
 export async function listSessions(): Promise<AdminSession[]> {
@@ -115,11 +136,11 @@ export async function listUserEffectiveApplicationAccess(userId: string): Promis
 
 export async function updateUserRoles(userId: string, roles: string[], approvalId?: string): Promise<AdminUser> {
   const data = await apiFetch<{ user: AdminUser }>(`/admin/users/${encodeURIComponent(userId)}/roles`, { method: 'PATCH', body: { roles, approvalId: approvalId ?? '' } })
-  return data.user
+  return messageFromResponse(data, 'user')
 }
 
 export async function listApplicationAccessGrants(applicationId: string): Promise<ApplicationAccessGrant[]> {
-  return (await apiFetch<{ grants?: ApplicationAccessGrant[] }>(`/admin/portal/applications/${encodeURIComponent(applicationId)}/access-grants`)).grants ?? []
+  return ((await apiFetch<{ grants?: ApplicationAccessGrant[] }>(`/admin/portal/applications/${encodeURIComponent(applicationId)}/access-grants`)).grants ?? []).map(normalizeAccessGrant)
 }
 
 export async function previewApplicationAccessGrants(applicationId: string, grants: ApplicationAccessGrant[]): Promise<{ impact: ApplicationAccessImpact; effectiveAccess: ApplicationEffectiveAccess[] }> {
@@ -131,7 +152,7 @@ export async function replaceApplicationAccessGrants(applicationId: string, gran
 }
 
 export async function listApplicationEffectiveAccess(applicationId: string): Promise<ApplicationEffectiveAccess[]> {
-  return (await apiFetch<{ effectiveAccess?: ApplicationEffectiveAccess[] }>(`/admin/portal/applications/${encodeURIComponent(applicationId)}/effective-access`)).effectiveAccess ?? []
+  return ((await apiFetch<{ effectiveAccess?: ApplicationEffectiveAccess[] }>(`/admin/portal/applications/${encodeURIComponent(applicationId)}/effective-access`)).effectiveAccess ?? []).map(normalizeEffectiveAccess)
 }
 
 export async function listApprovals(): Promise<ApprovalRequest[]> {
@@ -139,11 +160,11 @@ export async function listApprovals(): Promise<ApprovalRequest[]> {
 }
 
 export async function createApproval(input: { requestType: string; action: string; resource: string; resourceId: string; summary: string; payloadJson: string; approverIds: string[]; expiresInSeconds?: number }): Promise<ApprovalRequest> {
-  return (await apiFetch<{ approval: ApprovalRequest }>('/approvals', { method: 'POST', body: { ...input, mode: 'ANY', requiredApprovals: 1, expiresInSeconds: input.expiresInSeconds ?? 86_400 } })).approval
+  return messageFromResponse(await apiFetch<{ approval: ApprovalRequest }>('/approvals', { method: 'POST', body: { ...input, mode: 'ANY', requiredApprovals: 1, expiresInSeconds: input.expiresInSeconds ?? 86_400 } }), 'approval')
 }
 
 export async function decideApproval(id: string, decision: 'APPROVE' | 'REJECT', comment: string): Promise<ApprovalRequest> {
-  return (await apiFetch<{ approval: ApprovalRequest }>(`/approvals/${encodeURIComponent(id)}/decisions`, { method: 'POST', body: { decision, comment } })).approval
+  return messageFromResponse(await apiFetch<{ approval: ApprovalRequest }>(`/approvals/${encodeURIComponent(id)}/decisions`, { method: 'POST', body: { decision, comment } }), 'approval')
 }
 
 export async function listTemporaryRoleGrants(): Promise<TemporaryRoleGrant[]> {
@@ -151,7 +172,7 @@ export async function listTemporaryRoleGrants(): Promise<TemporaryRoleGrant[]> {
 }
 
 export async function createTemporaryRoleGrant(input: { userId: string; roleKey: string; reason: string; validFrom: string; validUntil: string; approvalId: string }): Promise<TemporaryRoleGrant> {
-  return (await apiFetch<{ grant: TemporaryRoleGrant }>('/admin/temporary-role-grants', { method: 'POST', body: input })).grant
+  return messageFromResponse(await apiFetch<{ grant: TemporaryRoleGrant }>('/admin/temporary-role-grants', { method: 'POST', body: input }), 'grant')
 }
 
 export function revokeTemporaryRoleGrant(id: string, reason: string): Promise<unknown> {
@@ -163,7 +184,7 @@ export async function listAccessReviews(): Promise<AccessReview[]> {
 }
 
 export async function createAccessReview(reviewerId: string, dueAt: string): Promise<AccessReview> {
-  return (await apiFetch<{ review: AccessReview }>('/admin/access-reviews', { method: 'POST', body: { reviewerId, dueAt } })).review
+  return messageFromResponse(await apiFetch<{ review: AccessReview }>('/admin/access-reviews', { method: 'POST', body: { reviewerId, dueAt } }), 'review')
 }
 
 export async function listAccessReviewItems(reviewId: string): Promise<AccessReviewItem[]> {
@@ -179,10 +200,10 @@ export async function listConfigChanges(): Promise<ConfigChange[]> {
 }
 
 export async function createConfigChange(input: Omit<ConfigChange, 'id' | 'createdBy' | 'approvedBy' | 'approvalId' | 'state' | 'updatedAt'>): Promise<ConfigChange> {
-  return (await apiFetch<{ change: ConfigChange }>('/admin/config-changes', { method: 'POST', body: input })).change
+  return messageFromResponse(await apiFetch<{ change: ConfigChange }>('/admin/config-changes', { method: 'POST', body: input }), 'change')
 }
 
 export async function transitionConfigChange(id: string, action: 'APPROVE' | 'PUBLISH' | 'REQUEST_ROLLBACK' | 'ROLLBACK', approvalId: string): Promise<ConfigChange> {
   const path = action === 'APPROVE' ? 'approve' : action === 'PUBLISH' ? 'publish' : action === 'REQUEST_ROLLBACK' ? 'rollback-request' : 'rollback'
-  return (await apiFetch<{ change: ConfigChange }>(`/admin/config-changes/${encodeURIComponent(id)}/${path}`, { method: 'POST', body: { approvalId } })).change
+  return messageFromResponse(await apiFetch<{ change: ConfigChange }>(`/admin/config-changes/${encodeURIComponent(id)}/${path}`, { method: 'POST', body: { approvalId } }), 'change')
 }

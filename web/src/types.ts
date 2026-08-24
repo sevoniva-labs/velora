@@ -480,10 +480,6 @@ export interface AuditLog {
 
 export interface DashboardStats {
   applicationCount: number
-  categoryCount: number
-  tagCount: number
-  favoriteCount: number
-  totalLaunches: number
   enabledAppCount: number
   disabledAppCount: number
 }

@@ -436,7 +436,14 @@ export async function adminListAuditLogs(params: AuditLogQuery = {}): Promise<Pa
   const items = listFrom(data, 'events', 'items').map((item): AuditLog => ({ id: item.id ?? '', operator: String(item.actorName ?? item.actorId ?? ''), action: String(item.action ?? ''), result: String(item.result ?? ''), resource: String(item.resourceType ?? ''), resourceId: String(item.resourceId ?? ''), ip: String(item.clientIp ?? ''), userAgent: '', requestId: String(item.requestId ?? ''), detail: String(item.detailsJson ?? ''), createdAt: String(item.occurredAt ?? '') }))
   return pageOf(items, Number(data.page ?? params.page ?? 1), Number(data.pageSize ?? params.pageSize ?? 20), Number(data.total ?? items.length))
 }
-export async function adminDashboard(): Promise<DashboardStats> { const [apps, categories, tags] = await Promise.all([adminListApplications({ page: 1, pageSize: 500 }), listCategories(), listTags()]); return { applicationCount: apps.total, categoryCount: categories.length, tagCount: tags.length, favoriteCount: apps.items.filter((item) => item.isFavorite).length, totalLaunches: apps.items.reduce((sum, item) => sum + Number((item as any).visitCount ?? 0), 0), enabledAppCount: apps.items.filter((item) => item.status === 'ENABLED').length, disabledAppCount: apps.items.filter((item) => item.status !== 'ENABLED').length } }
+export async function adminDashboard(): Promise<DashboardStats> {
+  const [all, enabled, disabled] = await Promise.all([
+    adminListApplications({ page: 1, pageSize: 1 }),
+    adminListApplications({ page: 1, pageSize: 1, status: 'ENABLED' }),
+    adminListApplications({ page: 1, pageSize: 1, status: 'DISABLED' }),
+  ])
+  return { applicationCount: all.total, enabledAppCount: enabled.total, disabledAppCount: disabled.total }
+}
 
 export interface CreateAdminUserInput {
   loginName: string

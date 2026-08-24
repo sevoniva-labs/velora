@@ -1,6 +1,6 @@
 # Velora 管理后台重构实施与回滚说明
 
-状态：Phase 0–4 主体、迁移、自动门禁和生产部署已完成；MFA 与真实登录已验收，管理员全菜单目视验收和 Turnstile 托管模式切换尚未完成。
+状态：Phase 0–4、迁移、自动门禁、生产部署、MFA、Turnstile Managed 和管理员全菜单目视验收均已完成。
 
 ## 交付范围
 
@@ -71,27 +71,28 @@ VITE_UI_SCALE
 
 - 生产备份服务执行成功，退出码为 0。
 - Server、Worker、Migrate 使用本机构建的 `linux/amd64` 制品；Web 在本机构建后上传。依赖使用 `goproxy.cn`，服务器未执行 Go 或前端编译。
-- 当前 Server 版本：`08b0e4b`；当前 Web 版本：`55a02ae`。除既有应用、组织、权限、审批和审计能力外，当前版本不再公开 Casdoor 账号地址；Casdoor 仅在 Velora 服务端完成主凭据校验。用户可在 Velora 个人中心启用或停用 TOTP、保存一次性恢复码，并在 Velora 登录页使用验证码或恢复码。高风险管理操作遇到 `STEP_UP_REQUIRED` 时会打开 ProComponents 身份确认窗口，完成密码与 MFA 校验后由用户重试原操作。管理后台已删除独立的 `--admin-*` 视觉体系，严格复用 go-antd-fullstack Forge Theme 与 ProLayout 布局参数；门户品牌样式不影响后台组件 Token。
+- 当前 Server 版本：`0f4c944`；当前 Web 版本：`2afae43`。当前版本不公开 Casdoor 账号地址；Casdoor 仅在 Velora 服务端完成主凭据校验。用户可在 Velora 个人中心管理 TOTP 和恢复码，并在 Velora 登录页完成认证。高风险管理操作遇到 `STEP_UP_REQUIRED` 时打开 ProComponents 身份确认窗口。管理后台使用原有 ProComponents 侧栏布局和 Velora 全站共享组件主题，不引用 go-antd-fullstack/Forge 视觉身份。
 - PostgreSQL additive migration 成功，当前 Goose 版本为 `31`；`application_access_grants`、`application_access_grant_roles`、`user_application_entitlement_sources`、应用负责人字段、平台角色生命周期字段和 `user_role_exclusions` 均已存在。
 - 旧策略迁移后有 3 条访问规则、1 条权限来源，现有 2 个应用保留。
 - Server、Worker、Web、PostgreSQL、Redis、Casdoor、Edge 与 Demo 容器健康。
 - `home` 健康、API health、API readiness、OIDC Discovery 与 Demo health 均返回 HTTP 200；readiness 的 database、cache、messaging、search、storage 均为 `UP`。
+- 使用生产管理员会话逐一打开 15 个管理路由，并完成 Spectra 应用详情 7 个页签验收；用户组、平台角色、应用访问和有效权限页面均无白屏或错误态。Web API 边界已同时兼容 protobuf 单消息响应的扁平与包裹结构，并为 protojson 省略的空角色、权限、成员和来源数组补齐稳定默认值。
 - 通过一次性生产验收身份完成认证管理 API 验收：6 个平台角色、3 个用户、2 个应用均可读取；`carson` 的有效应用权限可解释；Spectra 账号下发重试保持 `HEALTHY`；旧单用户 entitlement 和旧访问策略写接口均返回 400，生产应用物理删除返回 400，确认旧写入面已退役。最终版本进一步验证 `/api/v1/admin/users?page=1&page_size=1&keyword=carson&status=ACTIVE` 返回唯一的 `carson`，并验证 `/api/v1/admin/portal/applications?page=1&page_size=1&keyword=spectra&status=ENABLED` 返回唯一的 `Spectra`；两者均返回 `total=1`、`page=1`、`page_size=1`。当前版本完成 22 个生产管理接口矩阵验证；审批和配置变更明确要求交互式用户会话，机器令牌得到稳定 403，临时交互式会话验证两接口均返回 200。配置变更列表此前把“需要交互式会话”错误映射为 500，已修正为 403 并增加回归测试。所有临时令牌和会话随后删除，数据库计数为 0，管理员强制改密标志恢复。
 - Server 发布后未发现 error、panic 或 fatal 日志。Worker 在未配置 WORM 归档时明确记录 `WARN` 并禁用清理，不会误报故障，也不会在没有不可变归档时删除审计数据。
-- 当前回滚标签为 Server `rollback-pre-08b0e4b`、Web `rollback-pre-55a02ae`；更早标签继续保留。Server 制品位于 `/opt/velora/prod/releases/08b0e4b/server`，主二进制 SHA-256 为 `31f6afc55c12155c667585503276d0a986255a02be328384480fe68b83c4f771`；Web 制品位于 `/opt/velora/prod/releases/55a02ae/web`，入口文件 SHA-256 为 `33f98f1c60bbfb262df88394926a6ab37dc71972acd874b59742ac13c6e165d7`，生产入口加载 `assets/index-CvMpjBFz.js`。生产镜像 ID 分别为 Server `fbe19ce6d6d4`、Web `d2b9c13d60cb`。
+- 当前 Web 回滚标签为 `rollback-pre-2afae43`，制品位于 `/opt/velora/prod/releases/2afae43/web`，入口文件 SHA-256 为 `ad2e4d433ce7114116e20d592e7564402859234fe42e7db632eae5584a6b258c`，生产入口加载 `assets/index-CEYsDzKy.js`。生产镜像 ID 为 Server `690ee1afe43f`、Web `58fde98189b6`；更早回滚标签继续保留。
 
-最终自动门禁已在当前版本重新执行：Web lint、13 个测试文件共 59 项测试和生产构建通过；Server `go test ./...` 通过。新增回归用例覆盖不可见 Turnstile 配置和 `STEP_UP_REQUIRED` 前端事件；既有授权元测试继续覆盖 Platform、Approval、Portal 全部 gRPC 操作。
+最终自动门禁已在当前版本重新执行：Web lint、16 个测试文件共 66 项测试和生产构建通过；Server `go test ./...` 通过。新增回归用例覆盖 protobuf 单消息响应扁平化、空角色数组、Turnstile 配置和 `STEP_UP_REQUIRED` 前端事件；既有授权元测试继续覆盖 Platform、Approval、Portal 全部 gRPC 操作。
 
 浏览器已验证未认证访问 `/admin` 正确回到 Velora 登录页，页面和公共健康接口均不暴露 Casdoor。生产仍采用风险触发：正常首次凭据提交不加载 Turnstile；凭据失败后才为 IP 和标准化账号写入 15 分钟挑战状态，成功登录清理状态，原有 IP/账号限流、账号锁定和审计继续生效。真实 `carson` 凭据已通过 Velora 页面登录并进入 `/home`，未再出现验证不可用、转圈或网络异常。
 
-Cloudflare 控制台确认 Site Key 的唯一 hostname 是 `home.sevoniva.com`、action 是 `login`，服务器到 Siteverify 网络正常。当前 Widget 为 Invisible；生产实测风险命中后不会提供可交互挑战，按钮会等待令牌，因此不能作为最终产品配置。最终方案是把同一 Widget 切换为 Managed，前端改用 `appearance=interaction-only`：正常用户不显示额外框，只有 Cloudflare 要求交互时显示官方挑战。完成该外部安全配置和二次真实登录前，不得把 Turnstile 验收记为通过。
+Cloudflare 控制台确认 Site Key 的 hostname 为 `home.sevoniva.com`、action 为 `login`，服务器到 Siteverify 网络正常。Widget 已切换为 Managed，前端使用 `appearance=interaction-only` 和 flexible 尺寸：正常用户不显示额外框，只有 Cloudflare 要求交互时显示官方挑战。生产风险命中时挑战容器能正常挂载，未再出现“验证不可用”。
 
 ## 最终生产核验快照
 
 核验时间：2026-08-24（Asia/Shanghai）。
 
 - 公网 `/api/v1/system/health` 与 `/api/v1/system/ready` 均返回成功，database、cache、messaging、search、storage 全部为 `UP`。
-- Server、Web、Worker、OIDC Demo、Redis、Casdoor、Edge、PostgreSQL 全部健康；当前生产 Server 为 `08b0e4b`，Web 为 `55a02ae`，Web 入口为 `assets/index-CvMpjBFz.js`；公共健康不再返回 Casdoor 地址。
+- Server、Web、Worker、OIDC Demo、Redis、Casdoor、Edge、PostgreSQL 全部健康；当前生产 Server 为 `0f4c944`，Web 为 `2afae43`，Web 入口为 `assets/index-CEYsDzKy.js`；公共健康不返回 Casdoor 地址。
 - 数据库迁移版本为 31；平台角色 6 个；最终分页验收后临时令牌 0 个；`admin.must_change_password=true` 已恢复。
 - `user_role_exclusions` 当前为 0 条是正常生产数据状态；迁移、外键和访问复核撤权代码路径已通过自动测试。
 - WORM 归档适配器属于已明确预留能力；在正式配置不可变归档前，审计清理保持关闭。这不是数据保留门禁失败，也不得手工开启清理。

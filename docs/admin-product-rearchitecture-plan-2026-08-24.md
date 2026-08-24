@@ -1,6 +1,6 @@
 # Velora 管理后台产品复盘与重构实施方案
 
-状态：Phase 0–4 已实现并部署，自动门禁与认证管理 API 已验收；等待登录后的浏览器目视验收（2026-08-24）
+状态：Phase 0–4 已实现、部署并完成生产浏览器验收（2026-08-24）
 日期：2026-08-24  
 适用范围：Velora 管理后台、管理 API、Velora 与 Casdoor 管理边界  
 技术约束：前端使用 `@ant-design/pro-components`；不修改 Casdoor；不建设 Velora 自有 OIDC Provider
@@ -437,9 +437,9 @@ OIDC 应用的“接入中”被列表显示成“停用”。`DRAFT / WAITING /
 
 ### Phase 4：治理与生产收口
 
-实施状态：代码、测试、文档、生产迁移、制品部署、认证 API 与真实门户登录已完成；等待 Turnstile Managed 配置和系统管理员全菜单目视验收。
+实施状态：已完成。代码、测试、文档、生产迁移、制品部署、认证 API、真实门户登录、Turnstile Managed 配置和系统管理员全菜单目视验收均已通过。
 
-生产收口版本：Server `08b0e4b`、Web `55a02ae`。后台视觉严格复用 go-antd-fullstack Forge Theme 和 ProComponents 布局参数，不维护平行的 Velora Admin Token。登录保护采用风险触发的 Turnstile，最终 Widget 必须使用 Managed + `interaction-only`，不能使用命中风险后无法交互的 Invisible 模式。IP/账号限流、账号锁定、Siteverify、action/hostname 校验和审计均保留。Velora 提供 TOTP 自助管理、恢复码登录和高风险操作 step-up，不向用户暴露 Casdoor。
+生产收口版本：Server `0f4c944`、Web `2afae43`。后台保留 ProComponents 标准信息架构和原有侧栏布局，组件主题与 Velora 门户共用；不引用 go-antd-fullstack/Forge 视觉身份，也不维护平行的 Admin Token。登录保护采用风险触发的 Turnstile Managed + `interaction-only`；IP/账号限流、账号锁定、Siteverify、action/hostname 校验和审计均保留。Velora 提供 TOTP 自助管理、恢复码登录和高风险操作 step-up，不向用户暴露 Casdoor。
 
 - 临时授权、访问复核、配置变更和回滚产品化；
 - 服务账号最小权限 Scope；
@@ -498,4 +498,4 @@ OIDC 应用的“接入中”被列表显示成“停用”。`DRAFT / WAITING /
 
 后端底座可复用，不需要推翻重写。真正必须重做的是管理端产品层，以及“访问范围 → 有效权限 → 账号下发”这一条统一授权链路。
 
-在本方案 Phase 0–4 完成前，不应再宣称 Velora 管理后台已达到产品级。继续修补当前向导只会增加认知负担和维护成本。
+本轮 Phase 0–4 已完成。后续新增能力必须继续遵守本文的信息架构、授权边界、ProComponents 组件规范和生产验收门槛，不得重新引入割裂向导或脚手架视觉身份。

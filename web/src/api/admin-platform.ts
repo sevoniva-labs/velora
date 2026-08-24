@@ -212,8 +212,8 @@ export async function listAccessReviews(): Promise<AccessReview[]> {
   return (await apiFetch<{ reviews?: AccessReview[] }>('/admin/access-reviews')).reviews ?? []
 }
 
-export async function createAccessReview(reviewerId: string, dueAt: string): Promise<AccessReview> {
-  return messageFromResponse(await apiFetch<{ review: AccessReview }>('/admin/access-reviews', { method: 'POST', body: { reviewerId, dueAt } }), 'review')
+export async function createAccessReview(input: { reviewerId: string; dueAt: string; scopeType: string; scopeId?: string }): Promise<AccessReview> {
+  return messageFromResponse(await apiFetch<{ review: AccessReview }>('/admin/access-reviews', { method: 'POST', body: input }), 'review')
 }
 
 export async function listAccessReviewItems(reviewId: string): Promise<AccessReviewItem[]> {

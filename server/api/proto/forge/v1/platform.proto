@@ -1446,6 +1446,11 @@ message AccessReview {
   string created_by = 7;
   google.protobuf.Timestamp created_at = 8;
   google.protobuf.Timestamp completed_at = 9;
+  string scope_type = 10;
+  string scope_id = 11;
+  string scope_name = 12;
+  int32 item_count = 13;
+  int32 pending_count = 14;
 }
 message AccessReviewItem {
   string id = 1;
@@ -1462,7 +1467,12 @@ message AccessReviewItem {
 }
 message ListAccessReviewsRequest {}
 message ListAccessReviewsResponse { repeated AccessReview reviews = 1; }
-message CreateAccessReviewRequest { string reviewer_id = 1; google.protobuf.Timestamp due_at = 2; }
+message CreateAccessReviewRequest {
+  string reviewer_id = 1;
+  google.protobuf.Timestamp due_at = 2;
+  string scope_type = 3;
+  string scope_id = 4;
+}
 message CreateAccessReviewResponse { AccessReview review = 1; }
 message ListAccessReviewItemsRequest { string review_id = 1; }
 message ListAccessReviewItemsResponse { repeated AccessReviewItem items = 1; }

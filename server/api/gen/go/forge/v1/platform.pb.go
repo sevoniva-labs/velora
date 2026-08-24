@@ -6843,6 +6843,11 @@ type AccessReview struct {
 	CreatedBy      string                 `protobuf:"bytes,7,opt,name=created_by,json=createdBy,proto3" json:"created_by,omitempty"`
 	CreatedAt      *timestamppb.Timestamp `protobuf:"bytes,8,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
 	CompletedAt    *timestamppb.Timestamp `protobuf:"bytes,9,opt,name=completed_at,json=completedAt,proto3" json:"completed_at,omitempty"`
+	ScopeType      string                 `protobuf:"bytes,10,opt,name=scope_type,json=scopeType,proto3" json:"scope_type,omitempty"`
+	ScopeId        string                 `protobuf:"bytes,11,opt,name=scope_id,json=scopeId,proto3" json:"scope_id,omitempty"`
+	ScopeName      string                 `protobuf:"bytes,12,opt,name=scope_name,json=scopeName,proto3" json:"scope_name,omitempty"`
+	ItemCount      int32                  `protobuf:"varint,13,opt,name=item_count,json=itemCount,proto3" json:"item_count,omitempty"`
+	PendingCount   int32                  `protobuf:"varint,14,opt,name=pending_count,json=pendingCount,proto3" json:"pending_count,omitempty"`
 	unknownFields  protoimpl.UnknownFields
 	sizeCache      protoimpl.SizeCache
 }
@@ -6938,6 +6943,41 @@ func (x *AccessReview) GetCompletedAt() *timestamppb.Timestamp {
 		return x.CompletedAt
 	}
 	return nil
+}
+
+func (x *AccessReview) GetScopeType() string {
+	if x != nil {
+		return x.ScopeType
+	}
+	return ""
+}
+
+func (x *AccessReview) GetScopeId() string {
+	if x != nil {
+		return x.ScopeId
+	}
+	return ""
+}
+
+func (x *AccessReview) GetScopeName() string {
+	if x != nil {
+		return x.ScopeName
+	}
+	return ""
+}
+
+func (x *AccessReview) GetItemCount() int32 {
+	if x != nil {
+		return x.ItemCount
+	}
+	return 0
+}
+
+func (x *AccessReview) GetPendingCount() int32 {
+	if x != nil {
+		return x.PendingCount
+	}
+	return 0
 }
 
 type AccessReviewItem struct {
@@ -7148,6 +7188,8 @@ type CreateAccessReviewRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	ReviewerId    string                 `protobuf:"bytes,1,opt,name=reviewer_id,json=reviewerId,proto3" json:"reviewer_id,omitempty"`
 	DueAt         *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=due_at,json=dueAt,proto3" json:"due_at,omitempty"`
+	ScopeType     string                 `protobuf:"bytes,3,opt,name=scope_type,json=scopeType,proto3" json:"scope_type,omitempty"`
+	ScopeId       string                 `protobuf:"bytes,4,opt,name=scope_id,json=scopeId,proto3" json:"scope_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -7194,6 +7236,20 @@ func (x *CreateAccessReviewRequest) GetDueAt() *timestamppb.Timestamp {
 		return x.DueAt
 	}
 	return nil
+}
+
+func (x *CreateAccessReviewRequest) GetScopeType() string {
+	if x != nil {
+		return x.ScopeType
+	}
+	return ""
+}
+
+func (x *CreateAccessReviewRequest) GetScopeId() string {
+	if x != nil {
+		return x.ScopeId
+	}
+	return ""
 }
 
 type CreateAccessReviewResponse struct {
@@ -7931,7 +7987,7 @@ const file_forge_v1_platform_proto_rawDesc = "" +
 	"\x04link\x18\x01 \x01(\v2\x1f.forge.v1.FederatedIdentityLinkR\x04link\"9\n" +
 	"\x1eUnlinkFederatedIdentityRequest\x12\x17\n" +
 	"\alink_id\x18\x01 \x01(\tR\x06linkId\"!\n" +
-	"\x1fUnlinkFederatedIdentityResponse\"\xf1\x02\n" +
+	"\x1fUnlinkFederatedIdentityResponse\"\x8e\x04\n" +
 	"\fAccessReview\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12'\n" +
 	"\x0forganization_id\x18\x02 \x01(\tR\x0eorganizationId\x12\x1f\n" +
@@ -7944,7 +8000,16 @@ const file_forge_v1_platform_proto_rawDesc = "" +
 	"created_by\x18\a \x01(\tR\tcreatedBy\x129\n" +
 	"\n" +
 	"created_at\x18\b \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x12=\n" +
-	"\fcompleted_at\x18\t \x01(\v2\x1a.google.protobuf.TimestampR\vcompletedAt\"\x84\x03\n" +
+	"\fcompleted_at\x18\t \x01(\v2\x1a.google.protobuf.TimestampR\vcompletedAt\x12\x1d\n" +
+	"\n" +
+	"scope_type\x18\n" +
+	" \x01(\tR\tscopeType\x12\x19\n" +
+	"\bscope_id\x18\v \x01(\tR\ascopeId\x12\x1d\n" +
+	"\n" +
+	"scope_name\x18\f \x01(\tR\tscopeName\x12\x1d\n" +
+	"\n" +
+	"item_count\x18\r \x01(\x05R\titemCount\x12#\n" +
+	"\rpending_count\x18\x0e \x01(\x05R\fpendingCount\"\x84\x03\n" +
 	"\x10AccessReviewItem\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1b\n" +
 	"\treview_id\x18\x02 \x01(\tR\breviewId\x12'\n" +
@@ -7964,11 +8029,14 @@ const file_forge_v1_platform_proto_rawDesc = "" +
 	"created_at\x18\v \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\"\x1a\n" +
 	"\x18ListAccessReviewsRequest\"M\n" +
 	"\x19ListAccessReviewsResponse\x120\n" +
-	"\areviews\x18\x01 \x03(\v2\x16.forge.v1.AccessReviewR\areviews\"o\n" +
+	"\areviews\x18\x01 \x03(\v2\x16.forge.v1.AccessReviewR\areviews\"\xa9\x01\n" +
 	"\x19CreateAccessReviewRequest\x12\x1f\n" +
 	"\vreviewer_id\x18\x01 \x01(\tR\n" +
 	"reviewerId\x121\n" +
-	"\x06due_at\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\x05dueAt\"L\n" +
+	"\x06due_at\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\x05dueAt\x12\x1d\n" +
+	"\n" +
+	"scope_type\x18\x03 \x01(\tR\tscopeType\x12\x19\n" +
+	"\bscope_id\x18\x04 \x01(\tR\ascopeId\"L\n" +
 	"\x1aCreateAccessReviewResponse\x12.\n" +
 	"\x06review\x18\x01 \x01(\v2\x16.forge.v1.AccessReviewR\x06review\";\n" +
 	"\x1cListAccessReviewItemsRequest\x12\x1b\n" +

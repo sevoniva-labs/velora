@@ -13,17 +13,31 @@ func (r *IdentityRepo) CreateAccessReview(ctx context.Context, review domain.Acc
 	review.ID = uuid.NewString()
 	review.CreatedAt = review.CreatedAt.UTC()
 	err := r.db.WithTx(ctx, func(tx *sql.Tx) error {
-		if _, err := tx.ExecContext(ctx, r.db.Rebind(`INSERT INTO access_reviews(id,organization_id,reviewer_id,status,due_at,created_by,created_at) VALUES(?,?,?,?,?,?,?)`), review.ID, review.OrganizationID, review.ReviewerID, review.Status, review.DueAt.UTC(), review.CreatedBy, review.CreatedAt); err != nil {
+		if _, err := tx.ExecContext(ctx, r.db.Rebind(`INSERT INTO access_reviews(id,organization_id,reviewer_id,scope_type,scope_id,scope_name,status,due_at,created_by,created_at) VALUES(?,?,?,?,?,?,?,?,?,?)`), review.ID, review.OrganizationID, review.ReviewerID, review.ScopeType, review.ScopeID, review.ScopeName, review.Status, review.DueAt.UTC(), review.CreatedBy, review.CreatedAt); err != nil {
 			return err
 		}
 		now := time.Now().UTC()
-		rows, err := tx.QueryContext(ctx, r.db.Rebind(`SELECT user_id,login_name,role_key FROM (
+		query := `SELECT user_id,login_name,role_key FROM (
 			SELECT u.id AS user_id,u.login_name,r.role_key AS role_key FROM users u JOIN user_roles ur ON ur.user_id=u.id JOIN roles r ON r.id=ur.role_id WHERE u.organization_id=? AND u.status='ACTIVE' AND r.status='ACTIVE' AND NOT EXISTS (SELECT 1 FROM user_role_exclusions x WHERE x.user_id=u.id AND x.role_id=r.id)
 			UNION
 			SELECT u.id AS user_id,u.login_name,r.role_key AS role_key FROM users u JOIN user_group_members ugm ON ugm.user_id=u.id JOIN user_groups ug ON ug.id=ugm.group_id AND ug.status='ACTIVE' JOIN user_group_roles ugr ON ugr.group_id=ug.id JOIN roles r ON r.id=ugr.role_id WHERE u.organization_id=? AND u.status='ACTIVE' AND r.status='ACTIVE' AND NOT EXISTS (SELECT 1 FROM user_role_exclusions x WHERE x.user_id=u.id AND x.role_id=r.id)
 			UNION
 			SELECT u.id AS user_id,u.login_name,r.role_key AS role_key FROM users u JOIN temporary_role_grants trg ON trg.user_id=u.id AND trg.revoked_at IS NULL AND trg.valid_from<=? AND trg.valid_until>? JOIN roles r ON r.id=trg.role_id WHERE u.organization_id=? AND u.status='ACTIVE' AND r.status='ACTIVE' AND NOT EXISTS (SELECT 1 FROM user_role_exclusions x WHERE x.user_id=u.id AND x.role_id=r.id)
-		) entitlement_snapshot ORDER BY login_name,role_key`), review.OrganizationID, review.OrganizationID, now, now, review.OrganizationID)
+		) entitlement_snapshot`
+		args := []any{review.OrganizationID, review.OrganizationID, now, now, review.OrganizationID}
+		switch review.ScopeType {
+		case domain.AccessReviewScopeRole:
+			query += ` WHERE role_key=?`
+			args = append(args, review.ScopeID)
+		case domain.AccessReviewScopeDepartment:
+			query += ` WHERE EXISTS (SELECT 1 FROM user_assignments ua WHERE ua.organization_id=? AND ua.user_id=entitlement_snapshot.user_id AND ua.department_id=? AND ua.valid_from<=? AND (ua.valid_until IS NULL OR ua.valid_until>?))`
+			args = append(args, review.OrganizationID, review.ScopeID, now, now)
+		case domain.AccessReviewScopeUser:
+			query += ` WHERE user_id=?`
+			args = append(args, review.ScopeID)
+		}
+		query += ` ORDER BY login_name,role_key`
+		rows, err := tx.QueryContext(ctx, r.db.Rebind(query), args...)
 		if err != nil {
 			return err
 		}
@@ -49,7 +63,7 @@ func (r *IdentityRepo) CreateAccessReview(ctx context.Context, review domain.Acc
 func (r *IdentityRepo) AccessReviewByID(ctx context.Context, organizationID, reviewID string) (domain.AccessReview, error) {
 	var review domain.AccessReview
 	var completed sql.NullTime
-	err := r.db.QueryRowContext(ctx, r.db.Rebind(`SELECT ar.id,ar.organization_id,ar.reviewer_id,u.login_name,ar.status,ar.due_at,ar.created_by,ar.created_at,ar.completed_at FROM access_reviews ar JOIN users u ON u.id=ar.reviewer_id WHERE ar.organization_id=? AND ar.id=?`), organizationID, reviewID).Scan(&review.ID, &review.OrganizationID, &review.ReviewerID, &review.ReviewerName, &review.Status, &review.DueAt, &review.CreatedBy, &review.CreatedAt, &completed)
+	err := r.db.QueryRowContext(ctx, r.db.Rebind(`SELECT ar.id,ar.organization_id,ar.reviewer_id,u.login_name,ar.scope_type,ar.scope_id,ar.scope_name,ar.status,ar.due_at,ar.created_by,ar.created_at,ar.completed_at,(SELECT COUNT(*) FROM access_review_items i WHERE i.review_id=ar.id),(SELECT COUNT(*) FROM access_review_items i WHERE i.review_id=ar.id AND i.decision='PENDING') FROM access_reviews ar JOIN users u ON u.id=ar.reviewer_id WHERE ar.organization_id=? AND ar.id=?`), organizationID, reviewID).Scan(&review.ID, &review.OrganizationID, &review.ReviewerID, &review.ReviewerName, &review.ScopeType, &review.ScopeID, &review.ScopeName, &review.Status, &review.DueAt, &review.CreatedBy, &review.CreatedAt, &completed, &review.ItemCount, &review.PendingCount)
 	if completed.Valid {
 		value := completed.Time
 		review.CompletedAt = &value
@@ -61,7 +75,7 @@ func (r *IdentityRepo) ListAccessReviews(ctx context.Context, organizationID str
 	if limit <= 0 || limit > 200 {
 		limit = 200
 	}
-	rows, err := r.db.QueryContext(ctx, r.db.Rebind(`SELECT ar.id,ar.organization_id,ar.reviewer_id,u.login_name,ar.status,ar.due_at,ar.created_by,ar.created_at,ar.completed_at FROM access_reviews ar JOIN users u ON u.id=ar.reviewer_id WHERE ar.organization_id=? ORDER BY ar.created_at DESC LIMIT ?`), organizationID, limit)
+	rows, err := r.db.QueryContext(ctx, r.db.Rebind(`SELECT ar.id,ar.organization_id,ar.reviewer_id,u.login_name,ar.scope_type,ar.scope_id,ar.scope_name,ar.status,ar.due_at,ar.created_by,ar.created_at,ar.completed_at,(SELECT COUNT(*) FROM access_review_items i WHERE i.review_id=ar.id),(SELECT COUNT(*) FROM access_review_items i WHERE i.review_id=ar.id AND i.decision='PENDING') FROM access_reviews ar JOIN users u ON u.id=ar.reviewer_id WHERE ar.organization_id=? ORDER BY ar.created_at DESC LIMIT ?`), organizationID, limit)
 	if err != nil {
 		return nil, err
 	}
@@ -70,7 +84,7 @@ func (r *IdentityRepo) ListAccessReviews(ctx context.Context, organizationID str
 	for rows.Next() {
 		var review domain.AccessReview
 		var completed sql.NullTime
-		if err := rows.Scan(&review.ID, &review.OrganizationID, &review.ReviewerID, &review.ReviewerName, &review.Status, &review.DueAt, &review.CreatedBy, &review.CreatedAt, &completed); err != nil {
+		if err := rows.Scan(&review.ID, &review.OrganizationID, &review.ReviewerID, &review.ReviewerName, &review.ScopeType, &review.ScopeID, &review.ScopeName, &review.Status, &review.DueAt, &review.CreatedBy, &review.CreatedAt, &completed, &review.ItemCount, &review.PendingCount); err != nil {
 			return nil, err
 		}
 		if completed.Valid {

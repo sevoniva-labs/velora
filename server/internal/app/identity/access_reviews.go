@@ -11,7 +11,7 @@ import (
 
 var ErrInvalidAccessReview = errors.New("invalid access review")
 
-func (s *Service) CreateAccessReview(ctx context.Context, actor domain.Principal, reviewerID string, dueAt time.Time) (domain.AccessReview, error) {
+func (s *Service) CreateAccessReview(ctx context.Context, actor domain.Principal, reviewerID, scopeType, scopeID string, dueAt time.Time) (domain.AccessReview, error) {
 	if actor.UserID == "" || actor.OrganizationID == "" {
 		return domain.AccessReview{}, ErrInteractiveSessionRequired
 	}
@@ -22,8 +22,13 @@ func (s *Service) CreateAccessReview(ctx context.Context, actor domain.Principal
 		return domain.AccessReview{}, err
 	}
 	reviewerID = strings.TrimSpace(reviewerID)
+	scopeType = strings.ToUpper(strings.TrimSpace(scopeType))
+	scopeID = strings.TrimSpace(scopeID)
+	if scopeType == "" {
+		scopeType = domain.AccessReviewScopeAll
+	}
 	dueAt = dueAt.UTC()
-	if reviewerID == "" || dueAt.Before(time.Now().UTC().Add(24*time.Hour)) || dueAt.After(time.Now().UTC().Add(90*24*time.Hour)) {
+	if reviewerID == "" || !validAccessReviewScope(scopeType, scopeID) || dueAt.Before(time.Now().UTC().Add(24*time.Hour)) || dueAt.After(time.Now().UTC().Add(90*24*time.Hour)) {
 		return domain.AccessReview{}, ErrInvalidAccessReview
 	}
 	reviewer, err := s.repo.UserByID(ctx, reviewerID)
@@ -33,7 +38,55 @@ func (s *Service) CreateAccessReview(ctx context.Context, actor domain.Principal
 	if reviewer.OrganizationID != actor.OrganizationID || strings.ToUpper(reviewer.Status) != "ACTIVE" {
 		return domain.AccessReview{}, ErrInvalidAccessReview
 	}
-	return s.repo.CreateAccessReview(ctx, domain.AccessReview{OrganizationID: actor.OrganizationID, ReviewerID: reviewerID, Status: domain.AccessReviewOpen, DueAt: dueAt, CreatedBy: actor.UserID, CreatedAt: time.Now().UTC()})
+	scopeName, err := s.accessReviewScopeName(ctx, actor.OrganizationID, scopeType, scopeID)
+	if err != nil {
+		return domain.AccessReview{}, ErrInvalidAccessReview
+	}
+	return s.repo.CreateAccessReview(ctx, domain.AccessReview{OrganizationID: actor.OrganizationID, ReviewerID: reviewerID, ScopeType: scopeType, ScopeID: scopeID, ScopeName: scopeName, Status: domain.AccessReviewOpen, DueAt: dueAt, CreatedBy: actor.UserID, CreatedAt: time.Now().UTC()})
+}
+
+func validAccessReviewScope(scopeType, scopeID string) bool {
+	switch scopeType {
+	case domain.AccessReviewScopeAll:
+		return scopeID == ""
+	case domain.AccessReviewScopeRole, domain.AccessReviewScopeDepartment, domain.AccessReviewScopeUser:
+		return scopeID != ""
+	default:
+		return false
+	}
+}
+
+func (s *Service) accessReviewScopeName(ctx context.Context, organizationID, scopeType, scopeID string) (string, error) {
+	switch scopeType {
+	case domain.AccessReviewScopeAll:
+		return "全部用户", nil
+	case domain.AccessReviewScopeUser:
+		user, err := s.repo.UserByID(ctx, scopeID)
+		if err != nil || user.OrganizationID != organizationID || strings.ToUpper(user.Status) != "ACTIVE" {
+			return "", ErrInvalidAccessReview
+		}
+		if strings.TrimSpace(user.DisplayName) != "" {
+			return user.DisplayName, nil
+		}
+		return user.LoginName, nil
+	case domain.AccessReviewScopeDepartment:
+		department, err := s.repo.DepartmentByID(ctx, organizationID, scopeID)
+		if err != nil || strings.ToUpper(department.Status) != "ACTIVE" {
+			return "", ErrInvalidAccessReview
+		}
+		return department.Name, nil
+	case domain.AccessReviewScopeRole:
+		roles, err := s.repo.ListRoles(ctx, organizationID)
+		if err != nil {
+			return "", err
+		}
+		for _, role := range roles {
+			if role.Key == scopeID && strings.ToUpper(role.Status) == "ACTIVE" {
+				return role.Name, nil
+			}
+		}
+	}
+	return "", ErrInvalidAccessReview
 }
 
 func (s *Service) ListAccessReviews(ctx context.Context, actor domain.Principal) ([]domain.AccessReview, error) {

@@ -32,11 +32,11 @@ func (s *PlatformService) CreateAccessReview(ctx context.Context, req *forgev1.C
 	if req.GetDueAt() == nil {
 		return nil, serviceError(appidentity.ErrInvalidAccessReview)
 	}
-	event := newAuditEvent(ctx, principal, "access_review.create", "access_review", "", map[string]any{"reviewer_id": req.GetReviewerId(), "due_at": req.GetDueAt().AsTime()})
+	event := newAuditEvent(ctx, principal, "access_review.create", "access_review", "", map[string]any{"reviewer_id": req.GetReviewerId(), "due_at": req.GetDueAt().AsTime(), "scope_type": req.GetScopeType(), "scope_id": req.GetScopeId()})
 	var review domain.AccessReview
 	err = s.audited(ctx, event, func(txCtx context.Context) error {
 		var createErr error
-		review, createErr = s.identity.CreateAccessReview(txCtx, principal, req.GetReviewerId(), req.GetDueAt().AsTime())
+		review, createErr = s.identity.CreateAccessReview(txCtx, principal, req.GetReviewerId(), req.GetScopeType(), req.GetScopeId(), req.GetDueAt().AsTime())
 		if createErr == nil {
 			event.ResourceID = review.ID
 		}
@@ -86,7 +86,7 @@ func (s *PlatformService) DecideAccessReviewItem(ctx context.Context, req *forge
 }
 
 func accessReviewProto(review domain.AccessReview) *forgev1.AccessReview {
-	return &forgev1.AccessReview{Id: review.ID, OrganizationId: review.OrganizationID, ReviewerId: review.ReviewerID, ReviewerName: review.ReviewerName, Status: review.Status, DueAt: timestamp(review.DueAt), CreatedBy: review.CreatedBy, CreatedAt: timestamp(review.CreatedAt), CompletedAt: optionalTimestamp(review.CompletedAt)}
+	return &forgev1.AccessReview{Id: review.ID, OrganizationId: review.OrganizationID, ReviewerId: review.ReviewerID, ReviewerName: review.ReviewerName, Status: review.Status, DueAt: timestamp(review.DueAt), CreatedBy: review.CreatedBy, CreatedAt: timestamp(review.CreatedAt), CompletedAt: optionalTimestamp(review.CompletedAt), ScopeType: review.ScopeType, ScopeId: review.ScopeID, ScopeName: review.ScopeName, ItemCount: int32(review.ItemCount), PendingCount: int32(review.PendingCount)}
 }
 
 func accessReviewItemProto(item domain.AccessReviewItem) *forgev1.AccessReviewItem {

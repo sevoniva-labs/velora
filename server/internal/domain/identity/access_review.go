@@ -3,12 +3,16 @@ package identity
 import "time"
 
 const (
-	AccessReviewOpen      = "OPEN"
-	AccessReviewCompleted = "COMPLETED"
-	AccessReviewExpired   = "EXPIRED"
-	AccessReviewApprove   = "APPROVE"
-	AccessReviewRevoke    = "REVOKE"
-	AccessReviewException = "EXCEPTION"
+	AccessReviewOpen            = "OPEN"
+	AccessReviewCompleted       = "COMPLETED"
+	AccessReviewExpired         = "EXPIRED"
+	AccessReviewApprove         = "APPROVE"
+	AccessReviewRevoke          = "REVOKE"
+	AccessReviewException       = "EXCEPTION"
+	AccessReviewScopeAll        = "ALL"
+	AccessReviewScopeRole       = "ROLE"
+	AccessReviewScopeDepartment = "DEPARTMENT"
+	AccessReviewScopeUser       = "USER"
 )
 
 type AccessReview struct {
@@ -16,6 +20,11 @@ type AccessReview struct {
 	OrganizationID string     `json:"organization_id"`
 	ReviewerID     string     `json:"reviewer_id"`
 	ReviewerName   string     `json:"reviewer_name"`
+	ScopeType      string     `json:"scope_type"`
+	ScopeID        string     `json:"scope_id"`
+	ScopeName      string     `json:"scope_name"`
+	ItemCount      int        `json:"item_count"`
+	PendingCount   int        `json:"pending_count"`
 	Status         string     `json:"status"`
 	DueAt          time.Time  `json:"due_at"`
 	CreatedBy      string     `json:"created_by"`

@@ -245,6 +245,11 @@ export interface AccessReview {
   createdBy: string
   createdAt: string
   completedAt?: string
+  scopeType: 'ALL' | 'ROLE' | 'DEPARTMENT' | 'USER'
+  scopeId: string
+  scopeName: string
+  itemCount: number
+  pendingCount: number
 }
 
 export interface AccessReviewItem {

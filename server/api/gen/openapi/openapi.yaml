@@ -2996,6 +2996,18 @@ components:
                 completedAt:
                     type: string
                     format: date-time
+                scopeType:
+                    type: string
+                scopeId:
+                    type: string
+                scopeName:
+                    type: string
+                itemCount:
+                    type: integer
+                    format: int32
+                pendingCount:
+                    type: integer
+                    format: int32
         forge.v1.AccessReviewItem:
             type: object
             properties:
@@ -3357,6 +3369,10 @@ components:
                 dueAt:
                     type: string
                     format: date-time
+                scopeType:
+                    type: string
+                scopeId:
+                    type: string
         forge.v1.CreateAccessReviewResponse:
             type: object
             properties:

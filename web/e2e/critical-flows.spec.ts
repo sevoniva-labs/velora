@@ -52,6 +52,7 @@ interface CriticalState {
   provisioningBodies: Array<Record<string, unknown>>
   mfaEnabled: boolean
   mfaBodies: Array<Record<string, unknown>>
+  failApprovals: boolean
 }
 
 function newState(overrides: Partial<CriticalState> = {}): CriticalState {
@@ -69,6 +70,7 @@ function newState(overrides: Partial<CriticalState> = {}): CriticalState {
     provisioningBodies: [],
     mfaEnabled: false,
     mfaBodies: [],
+    failApprovals: false,
     ...overrides,
   }
 }
@@ -182,6 +184,7 @@ async function installCriticalMock(page: Page, state: CriticalState) {
     if (path === '/admin/portal/tags') return fulfill(route, 200, ok({ tags: [] }))
 
     if (path === '/approvals' && method === 'GET') {
+      if (state.failApprovals) return fulfill(route, 503, error('500001', 'service unavailable'))
       const closed = { ...approval(state), id: 'approval-closed', summary: '已拒绝的历史申请', status: 'REJECTED', tasks: [] }
       return fulfill(route, 200, ok({ approvals: [approval(state), closed] }))
     }
@@ -252,6 +255,15 @@ test('后台列表查询会真实过滤当前数据', async ({ page }, testInfo)
   await expect(page.getByText('已拒绝的历史申请', { exact: true })).toHaveCount(0)
   await expect(page.getByText('变更 Spectra 使用范围', { exact: true })).toBeVisible()
   await captureAudit(page, '04-approvals-filtered')
+})
+
+test('后台接口失败显示可重试错误而不是空数据', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop-chromium', '错误态只在桌面执行一次')
+  await installCriticalMock(page, newState({ failApprovals: true }))
+  await page.goto('/admin/approvals')
+  await expect(page.getByText('数据加载失败', { exact: true })).toBeVisible()
+  await expect(page.getByRole('button', { name: /重\s*试/ })).toBeVisible()
+  await expect(page.getByText('暂无数据', { exact: true })).toHaveCount(0)
 })
 
 test('应用管理全部页签均加载对应的可操作内容', async ({ page }, testInfo) => {

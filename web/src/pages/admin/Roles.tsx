@@ -10,6 +10,7 @@ import AdminUserSelect from '../../components/AdminUserSelect'
 import { SYSTEM_ROLE_MANAGE } from '../../auth/permissions'
 import { useAdminPermission } from '../../auth/useAdminPermission'
 import { useClientTableSearch } from '../../utils/tableSearch'
+import QueryErrorState from '../../components/QueryErrorState'
 
 const DATA_SCOPE_LABELS: Record<string, string> = { ALL: '全部数据', DEPARTMENT: '指定部门', SELF_DEPARTMENT: '本部门', SELF: '仅本人' }
 interface RoleForm { roleKey: string; name: string; description?: string }
@@ -48,7 +49,7 @@ export default function Roles() {
   if (canManage) columns.push({ title: '操作', valueType: 'option', width: 340, render: (_, row) => <Space className="table-action-cell"><Button type="link" onClick={() => setPermissionRole(row)}>管理权限</Button><Button type="link" onClick={() => setScopeRole(row)}>设置管理范围</Button><Button type="link" onClick={() => setEditRole(row)}>编辑</Button><Button type="link" onClick={() => setCopyRole(row)}>复制</Button></Space> })
 
   return <PageContainer title="平台角色">
-    <ProTable<PlatformRole> rowKey="key" columns={columns} {...roleTable} loading={roles.isLoading} search={{ labelWidth: 'auto' }} pagination={false} options={{ density: false }} toolBarRender={canManage ? () => [<Button key="create" type="primary" onClick={() => setCreateOpen(true)}>新建角色</Button>] : false} />
+    {roles.isError ? <QueryErrorState refetch={roles.refetch} /> : <ProTable<PlatformRole> rowKey="key" columns={columns} {...roleTable} loading={roles.isLoading} search={{ labelWidth: 'auto' }} pagination={false} options={{ density: false }} toolBarRender={canManage ? () => [<Button key="create" type="primary" onClick={() => setCreateOpen(true)}>新建角色</Button>] : false} />}
     {canManage && approved.length > 0 && <ProTable<ApprovalRequest> headerTitle="待执行变更" rowKey="id" dataSource={approved} search={false} pagination={false} options={false} columns={[{ title: '事项', dataIndex: 'summary' }, { title: '操作', valueType: 'option', width: 100, render: (_, row) => <Button type="link" loading={execute.isPending} onClick={() => execute.mutate(row)}>执行变更</Button> }]} />}
     <ModalForm<{ permissions: string[]; approverId: string }> key={permissionRole?.key ?? 'permissions'} title={permissionRole ? `配置权限 · ${permissionRole.name}` : '配置权限'} open={Boolean(permissionRole)} onOpenChange={(value) => !value && setPermissionRole(undefined)} width={720} initialValues={{ permissions: permissionRole?.permissions ?? [] }} submitter={{ searchConfig: { submitText: '提交审批', resetText: '取消' } }} onFinish={async (values) => { await permissionRequest.mutateAsync(values); return true }}>
       <ProFormCheckbox.Group name="permissions" label="权限" options={(permissions.data ?? []).map((item) => ({ label: `${item.resource || '其他'} · ${item.name || item.description || item.key}`, value: item.key }))} />

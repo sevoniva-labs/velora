@@ -10,6 +10,7 @@ import AdminUserSelect from '../../components/AdminUserSelect'
 import { SYSTEM_USER_GROUP_MANAGE } from '../../auth/permissions'
 import { useAdminPermission } from '../../auth/useAdminPermission'
 import { useClientTableSearch } from '../../utils/tableSearch'
+import QueryErrorState from '../../components/QueryErrorState'
 
 interface GroupForm extends UserGroupInput { memberIds: string[]; roles: string[] }
 
@@ -43,7 +44,7 @@ export default function UserGroups() {
   if (canManage) columns.push({ title: '操作', valueType: 'option', width: 90, render: (_, row) => <Button type="link" onClick={() => { setEditing(row); setOpen(true) }}>编辑</Button> })
 
   return <PageContainer title="用户组">
-    <ProTable<UserGroup> className="velora-admin-primary-table" rowKey="id" columns={columns} {...groupTable} loading={groups.isLoading} search={{ labelWidth: 'auto' }} pagination={{ pageSize: 20 }} toolBarRender={canManage ? () => [<Button key="create" type="primary" icon={<PlusOutlined />} onClick={() => { setEditing(undefined); setOpen(true) }}>新建用户组</Button>] : false} />
+    {groups.isError ? <QueryErrorState refetch={groups.refetch} /> : <ProTable<UserGroup> className="velora-admin-primary-table" rowKey="id" columns={columns} {...groupTable} loading={groups.isLoading} search={{ labelWidth: 'auto' }} pagination={{ pageSize: 20 }} toolBarRender={canManage ? () => [<Button key="create" type="primary" icon={<PlusOutlined />} onClick={() => { setEditing(undefined); setOpen(true) }}>新建用户组</Button>] : false} />}
     <DrawerForm<GroupForm> key={editing?.id ?? 'new'} title={editing ? '编辑用户组' : '新建用户组'} open={open} onOpenChange={setOpen} width={560} initialValues={editing ?? { status: 'ACTIVE', memberIds: [], roles: [] }} submitter={{ searchConfig: { submitText: '保存', resetText: '取消' } }} onFinish={async (values) => { await mutation.mutateAsync(values); return true }}>
       {!editing && <ProFormText name="groupKey" label="用户组编码" rules={[{ required: true, message: '请输入用户组编码' }, { pattern: /^[a-z][a-z0-9_-]{1,63}$/, message: '使用小写字母、数字、短横线或下划线' }]} />}
       <ProFormText name="name" label="用户组名称" rules={[{ required: true, message: '请输入用户组名称' }]} />

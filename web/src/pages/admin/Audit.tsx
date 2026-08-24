@@ -12,6 +12,7 @@ import { formatDateTime } from '../../utils/format'
 import { createApproval, exportAuditLogs, listApprovals, verifyAuditIntegrity } from '../../api/admin-platform'
 import AdminUserSelect from '../../components/AdminUserSelect'
 import { useMe } from '../../auth/useMe'
+import QueryErrorState from '../../components/QueryErrorState'
 
 interface ExportForm { format: 'json' | 'csv'; limit: number; approverId: string }
 
@@ -52,7 +53,7 @@ export default function AdminAudit() {
       <ProFormSelect name="result" label="结果" options={[{ value: 'SUCCESS', label: '成功' }, { value: 'FAILED', label: '失败' }]} />
       <ProFormDateTimeRangePicker name="occurredAt" label="操作时间" />
     </QueryFilter>
-    <ProTable<AuditLog> className="velora-admin-primary-table velora-admin-table-after-filter" rowKey="id" columns={columns} dataSource={logs.data?.items ?? []} loading={logs.isLoading} search={false} options={false} pagination={{ current: page, pageSize: 20, total: logs.data?.total ?? 0, showSizeChanger: false, onChange: setPage }} />
+    {logs.isError ? <QueryErrorState refetch={logs.refetch} /> : <ProTable<AuditLog> className="velora-admin-primary-table velora-admin-table-after-filter" rowKey="id" columns={columns} dataSource={logs.data?.items ?? []} loading={logs.isLoading} search={false} options={false} pagination={{ current: page, pageSize: 20, total: logs.data?.total ?? 0, showSizeChanger: false, onChange: setPage }} />}
     <Drawer title="操作详情" open={Boolean(selected)} onClose={() => setSelected(undefined)} width={640}>
       {selected && <AuditDetail log={selected} />}
     </Drawer>

@@ -6,6 +6,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { adminGetApplicationProvisioningTarget, adminRetryApplicationProvisioning, adminUpsertApplicationProvisioningTarget, queryKeys } from '../../api/api'
 import type { Application } from '../../types'
 import { formatDateTime } from '../../utils/format'
+import QueryErrorState from '../../components/QueryErrorState'
 
 interface Props { application: Application; canManage: boolean }
 interface ProvisioningForm { endpointUrl: string }
@@ -24,13 +25,13 @@ export default function ApplicationProvisioning({ application, canManage }: Prop
   const retry = useMutation({ mutationFn: () => adminRetryApplicationProvisioning(application.id), onSuccess: async (result) => { message.success(result.retriedMessages > 0 ? `已重新提交 ${result.retriedMessages} 项下发任务` : '当前没有需要重试的任务'); await refresh() }, onError: (error) => message.error(error instanceof Error ? error.message : '重新下发失败') })
   const rotateConfirm = () => Modal.confirm({ title: '轮换同步密钥？', content: '目标应用需要更新密钥。', okText: '确认轮换', okButtonProps: { danger: true }, onOk: () => rotate.mutateAsync() })
   return <>
-    <ProDescriptions className="velora-admin-section-card" column={2} loading={target.isLoading} dataSource={target.data ?? {}} extra={canManage ? <Space>{['DEGRADED', 'FAILED'].includes(target.data?.deliveryStatus ?? '') && <Button type="primary" loading={retry.isPending} onClick={() => retry.mutate()}>重新下发</Button>}<Button type={target.data ? 'default' : 'primary'} onClick={() => setOpen(true)}>{target.data ? '修改接收地址' : '配置账号下发'}</Button>{target.data && <Dropdown menu={{ items: [{ key: 'rotate', label: '轮换密钥', danger: true, onClick: rotateConfirm }] }}><Button icon={<MoreOutlined />} aria-label="更多操作" /></Dropdown>}</Space> : undefined} columns={[
+    {target.isError ? <QueryErrorState compact refetch={target.refetch} /> : <ProDescriptions className="velora-admin-section-card" column={2} loading={target.isLoading} dataSource={target.data ?? {}} extra={canManage ? <Space>{['DEGRADED', 'FAILED'].includes(target.data?.deliveryStatus ?? '') && <Button type="primary" loading={retry.isPending} onClick={() => retry.mutate()}>重新下发</Button>}<Button type={target.data ? 'default' : 'primary'} onClick={() => setOpen(true)}>{target.data ? '修改接收地址' : '配置账号下发'}</Button>{target.data && <Dropdown menu={{ items: [{ key: 'rotate', label: '轮换密钥', danger: true, onClick: rotateConfirm }] }}><Button icon={<MoreOutlined />} aria-label="更多操作" /></Dropdown>}</Space> : undefined} columns={[
       { title: '下发状态', render: () => <Tag color={['DEGRADED', 'FAILED'].includes(target.data?.deliveryStatus ?? '') ? 'error' : target.data?.deliveryStatus === 'PENDING' ? 'processing' : target.data ? 'success' : 'default'}>{DELIVERY_LABELS[target.data?.deliveryStatus ?? 'DISABLED'] ?? '等待下发'}</Tag> },
       { title: '接收地址', render: () => target.data?.endpointUrl || '—' },
       { title: '最近下发成功', render: () => formatDateTime(target.data?.lastSuccessAt) },
       { title: '最近失败', render: () => formatDateTime(target.data?.lastFailureAt) },
       { title: '最近失败原因', render: () => target.data?.lastErrorCode ? provisioningErrorLabel(target.data.lastErrorCode) : '—' },
-    ]} />
+    ]} />}
     <DrawerForm<ProvisioningForm> key={`${application.id}-${target.data?.configVersion ?? 0}`} title="账号下发" open={open} onOpenChange={setOpen} width={600} initialValues={{ endpointUrl: target.data?.endpointUrl ?? '' }} submitter={{ searchConfig: { submitText: '保存', resetText: '取消' } }} onFinish={async (values) => { await save.mutateAsync(values); return true }}>
       <ProFormText name="endpointUrl" label="接收地址" rules={[{ required: true, message: '请输入接收地址' }, { type: 'url', message: '请输入完整 HTTPS 地址' }, { pattern: /^https:\/\//i, message: '生产环境只允许 HTTPS' }]} />
     </DrawerForm>

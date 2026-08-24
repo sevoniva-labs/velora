@@ -11,6 +11,7 @@ import { useMe } from '../../auth/useMe'
 import AdminUserSelect from '../../components/AdminUserSelect'
 import { APPROVAL_REQUEST_CREATE, APPROVAL_REQUEST_READ, hasPermission } from '../../auth/permissions'
 import { useClientTableSearch } from '../../utils/tableSearch'
+import QueryErrorState from '../../components/QueryErrorState'
 
 const SUBJECT_LABELS: Record<ApplicationAccessGrant['subjectType'], string> = { EVERYONE: '全体成员', DEPARTMENT: '部门', USER_GROUP: '用户组', PLATFORM_ROLE: '平台角色', USER: '指定人员' }
 const RISK_LABELS = { NORMAL: '普通', PRIVILEGED: '高权限', CRITICAL: '关键权限' }
@@ -92,10 +93,10 @@ export default function ApplicationAccess({ applicationId, view }: Props) {
   ]
 
   return <Space direction="vertical" size={16} style={{ width: '100%' }}>
-    {view === 'roles' && <ProCard className="velora-admin-section-card" title="应用角色" extra={<Button type="primary" disabled={!roleDirty} loading={roleMutation.isPending} onClick={() => roleMutation.mutate(roleDrafts)}>保存角色</Button>}>
+    {view === 'roles' && (roles.isError ? <QueryErrorState compact refetch={roles.refetch} /> : <ProCard className="velora-admin-section-card" title="应用角色" extra={<Button type="primary" disabled={!roleDirty} loading={roleMutation.isPending} onClick={() => roleMutation.mutate(roleDrafts)}>保存角色</Button>}>
       <EditableProTable<ApplicationRole> rowKey="id" columns={roleColumns} value={roleDrafts} loading={roles.isLoading} recordCreatorProps={{ newRecordType: 'dataSource', record: () => ({ id: crypto.randomUUID(), applicationId, roleKey: '', name: '', description: '', riskLevel: 'NORMAL', status: 'ACTIVE', configVersion: 0 }) }} editable={{ type: 'multiple' }} onChange={(values) => { setRoleDrafts([...values]); setRoleDirty(true) }} controlled={false} />
-    </ProCard>}
-    {view === 'access' && <>
+    </ProCard>)}
+    {view === 'access' && (grants.isError || effective.isError ? <QueryErrorState compact refetch={() => Promise.all([grants.refetch(), effective.refetch()])} /> : <>
     <ProTable<ApplicationAccessGrant> headerTitle="谁可以使用" rowKey="id" columns={grantColumns} dataSource={drafts} loading={grants.isLoading} search={false} pagination={false} options={false} toolBarRender={() => [dirty ? <Tag key="dirty" color="warning">待保存</Tag> : null, <Button key="add" icon={<PlusOutlined />} onClick={() => { setEditing(undefined); setSelectedSubjectName(''); setSubjectType('DEPARTMENT'); setEffect('ALLOW'); setGrantOpen(true) }}>添加使用范围</Button>, <Button key="save" type="primary" disabled={!dirty} loading={previewMutation.isPending} onClick={() => previewMutation.mutate()}>预览并保存</Button>].filter(Boolean)} />
     {approvedChanges.length > 0 && <ProTable<ApprovalRequest> headerTitle="待执行变更" rowKey="id" dataSource={approvedChanges} search={false} pagination={false} options={false} columns={[{ title: '事项', dataIndex: 'summary' }, { title: '操作', valueType: 'option', width: 110, render: (_, row) => <Button type="link" loading={saveMutation.isPending} onClick={() => executeApproved(row)}>执行变更</Button> }]} />}
     <ProTable<ApplicationEffectiveAccess> className="velora-admin-secondary-table" headerTitle="当前可使用人员" rowKey="userId" columns={effectiveColumns} {...effectiveTable} loading={effective.isLoading} search={{ labelWidth: 'auto' }} pagination={{ pageSize: 20 }} />
@@ -116,7 +117,7 @@ export default function ApplicationAccess({ applicationId, view }: Props) {
       <ProCard ghost gutter={12} wrap>{preview && <><ProCard><Statistic title="可使用人数" value={preview.effectiveUsers} /></ProCard><ProCard><Statistic title="新增人员" value={preview.addedUsers} /></ProCard><ProCard><Statistic title="移除人员" value={preview.revokedUsers} /></ProCard><ProCard><Statistic title="角色变化" value={preview.roleChangedUsers} /></ProCard></>}</ProCard>
       {preview && requiresApproval(preview) && <Space direction="vertical" style={{ width: '100%', marginTop: 16 }}><Typography.Text type="warning">{canRequestApproval ? '该变更需要审批。' : '该变更需要审批，请联系有审批申请权限的管理员。'}</Typography.Text>{canRequestApproval && <AdminUserSelect value={approverId} onChange={(value) => setApproverId(Array.isArray(value) ? value[0] : value)} excludeIds={me.data?.id ? [me.data.id] : []} placeholder="选择审批人" />}</Space>}
     </Modal>
-    </>}
+    </>)}
   </Space>
 }
 

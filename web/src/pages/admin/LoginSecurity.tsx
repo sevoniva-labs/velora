@@ -9,6 +9,7 @@ import { usePageTitle } from '../../hooks/usePageTitle'
 import AdminUserSelect from '../../components/AdminUserSelect'
 import { SYSTEM_SECURITY_MANAGE } from '../../auth/permissions'
 import { useAdminPermission } from '../../auth/useAdminPermission'
+import QueryErrorState from '../../components/QueryErrorState'
 
 type PolicyForm = Omit<SecurityPolicy, 'loginLockDurationSeconds' | 'sessionTtlSeconds'> & { loginLockDurationMinutes: number; sessionTtlMinutes: number; approverId: string }
 
@@ -29,7 +30,7 @@ export default function LoginSecurity() {
 
   const formValue = value ? { ...value, loginLockDurationMinutes: Math.round(value.loginLockDurationSeconds / 60), sessionTtlMinutes: Math.round(value.sessionTtlSeconds / 60) } : undefined
   return <PageContainer title="登录安全" extra={!canManage ? [] : approved ? [<Button key="execute" type="primary" loading={execute.isPending} onClick={() => execute.mutate(approved)}>应用已批准设置</Button>] : [<Button key="edit" type="primary" onClick={() => setOpen(true)}>修改设置</Button>]}>
-    <ProDescriptions column={2} loading={policy.isLoading} dataSource={value ?? {}} columns={[
+    {policy.isError ? <QueryErrorState refetch={policy.refetch} /> : <ProDescriptions column={2} loading={policy.isLoading} dataSource={value ?? {}} columns={[
       { title: '密码最小长度', render: () => value ? `${value.passwordMinLength} 位` : '—' },
       { title: '密码复杂度', render: () => value ? complexity(value) : '—' },
       { title: '不可重复使用', render: () => value ? `最近 ${value.passwordHistory} 个密码` : '—' },
@@ -38,7 +39,7 @@ export default function LoginSecurity() {
       { title: '会话有效期', render: () => value ? `${Math.round(value.sessionTtlSeconds / 3600)} 小时` : '—' },
       { title: '最多同时登录', render: () => value ? `${value.maxActiveSessions} 个设备` : '—' },
       { title: '多因素认证', render: () => '用户可在个人中心启用' },
-    ]} />
+    ]} />}
     <ModalForm<PolicyForm> key={JSON.stringify(value)} title="修改登录安全设置" open={open} onOpenChange={setOpen} initialValues={formValue} width={680} grid submitter={{ searchConfig: { submitText: '提交审批', resetText: '取消' } }} onFinish={async (values) => { await request.mutateAsync(values); return true }}>
       <ProFormDigit name="passwordMinLength" label="密码最小长度" min={12} max={128} colProps={{ span: 12 }} rules={[{ required: true }]} />
       <ProFormDigit name="passwordHistory" label="记住最近密码数" min={5} max={50} colProps={{ span: 12 }} rules={[{ required: true }]} />

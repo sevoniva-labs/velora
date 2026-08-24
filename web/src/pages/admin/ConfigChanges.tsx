@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { App, Button, Space, Tag, Typography } from 'antd'
 import { PlusOutlined } from '@ant-design/icons'
-import { ModalForm, PageContainer, ProForm, ProFormCheckbox, ProFormText, ProTable, type ProColumns } from '@ant-design/pro-components'
+import { ModalForm, PageContainer, ProForm, ProFormCheckbox, ProFormSelect, ProFormText, ProTable, type ProColumns } from '@ant-design/pro-components'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { createApproval, createConfigChange, listApprovals, listConfigChanges, transitionConfigChange } from '../../api/admin-platform'
 import type { ApprovalRequest, ConfigChange } from '../../types'
@@ -12,6 +12,7 @@ import AdminUserSelect from '../../components/AdminUserSelect'
 import { SYSTEM_CONFIG_MANAGE } from '../../auth/permissions'
 import { useAdminPermission } from '../../auth/useAdminPermission'
 import { useClientTableSearch } from '../../utils/tableSearch'
+import QueryErrorState from '../../components/QueryErrorState'
 
 interface CreateForm { namespace: string; group: string; dataId: string; valueDigest: string; valueRef: string; sensitive: boolean }
 interface ApprovalForm { approverId: string }
@@ -55,14 +56,14 @@ export default function ConfigChanges() {
   ]
   if (canManage) columns.push({ title: '操作', valueType: 'option', width: 120, render: (_, row) => { const config = ACTIONS[row.state]; if (!config) return <Typography.Text type="secondary">—</Typography.Text>; const approved = approvedByResource.get(`${row.id}:${config.auditAction}`); return approved ? <Button type="link" loading={execute.isPending} onClick={() => execute.mutate({ change: row, approval: approved })}>执行</Button> : <Button type="link" onClick={() => setRequesting(row)}>{config.label}</Button> } })
   return <PageContainer title="配置发布">
-    <ProTable<ConfigChange> className="velora-admin-primary-table" rowKey="id" columns={columns} {...changeTable} loading={changes.isLoading} search={{ labelWidth: 'auto' }} pagination={{ pageSize: 20 }} toolBarRender={canManage ? () => [<Button key="create" type="primary" icon={<PlusOutlined />} onClick={() => setCreateOpen(true)}>新建变更</Button>] : false} />
+    {changes.isError ? <QueryErrorState refetch={changes.refetch} /> : <ProTable<ConfigChange> className="velora-admin-primary-table" rowKey="id" columns={columns} {...changeTable} loading={changes.isLoading} search={{ labelWidth: 'auto' }} pagination={{ pageSize: 20 }} toolBarRender={canManage ? () => [<Button key="create" type="primary" icon={<PlusOutlined />} onClick={() => setCreateOpen(true)}>新建变更</Button>] : false} />}
     <ModalForm<CreateForm> title="新建配置发布单" open={createOpen} onOpenChange={setCreateOpen} width={640} modalProps={{ centered: true }} initialValues={{ sensitive: false }} submitter={{ searchConfig: { submitText: '创建发布单', resetText: '取消' } }} onFinish={async (values) => { await create.mutateAsync(createInput(values)); return true }}>
-      <ProFormText name="namespace" label="运行环境" width="md" rules={[{ required: true, message: '请输入运行环境' }]} />
-      <ProFormText name="group" label="配置分组" width="md" rules={[{ required: true, message: '请输入配置分组' }]} />
-      <ProFormText name="dataId" label="配置项标识" width="md" rules={[{ required: true, message: '请输入配置项标识' }]} />
-      <ProFormText name="valueRef" label="受控文件地址" width="lg" rules={[{ required: true, message: '请输入受控存储中的配置文件地址' }]} />
-      <ProFormText name="valueDigest" label="SHA-256 校验值" width="lg" rules={[{ required: true, pattern: /^[a-fA-F0-9]{64}$/, message: '请输入 64 位 SHA-256 校验值' }]} />
-      <ProFormCheckbox name="sensitive">包含密码或密钥</ProFormCheckbox>
+      <ProFormSelect name="namespace" label="发布环境" width="md" options={[{ label: '生产环境', value: 'production' }, { label: '测试环境', value: 'testing' }, { label: '开发环境', value: 'development' }]} rules={[{ required: true, message: '请选择发布环境' }]} />
+      <ProFormSelect name="group" label="配置领域" width="md" options={[{ label: '门户与应用', value: 'portal' }, { label: '组织与权限', value: 'identity' }, { label: '登录与安全', value: 'security' }, { label: '系统集成', value: 'integration' }]} rules={[{ required: true, message: '请选择配置领域' }]} />
+      <ProFormText name="dataId" label="变更名称" width="md" fieldProps={{ maxLength: 100 }} rules={[{ required: true, message: '请输入便于识别的变更名称' }]} />
+      <ProFormText name="valueRef" label="配置文件" tooltip="填写已上传到受控存储的文件地址" width="lg" rules={[{ required: true, message: '请输入受控存储中的配置文件地址' }]} />
+      <ProFormText name="valueDigest" label="文件校验值" tooltip="用于确认发布文件未被篡改，由配置文件交付流程生成" width="lg" rules={[{ required: true, pattern: /^[a-fA-F0-9]{64}$/, message: '请输入 64 位 SHA-256 校验值' }]} />
+      <ProFormCheckbox name="sensitive">文件包含密码或密钥</ProFormCheckbox>
     </ModalForm>
     <ModalForm<ApprovalForm> key={requesting?.id ?? 'approval'} title={requesting ? ACTIONS[requesting.state]?.label : '提交申请'} open={Boolean(requesting)} onOpenChange={(value) => !value && setRequesting(undefined)} submitter={{ searchConfig: { submitText: '提交申请', resetText: '取消' } }} onFinish={async (values) => { await request.mutateAsync(values); return true }}>
       <ProForm.Item name="approverId" label="审批人" rules={[{ required: true, message: '请选择审批人' }]}><AdminUserSelect excludeIds={me.data?.id ? [me.data.id] : []} /></ProForm.Item>

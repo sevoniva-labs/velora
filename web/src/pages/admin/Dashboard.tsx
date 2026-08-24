@@ -8,6 +8,14 @@ import { getSystemReadiness, listAccessReviews, listApprovals, listTemporaryRole
 import { useMe } from '../../auth/useMe'
 import { APPROVAL_REQUEST_READ, APPROVAL_TASK_DECIDE, AUDIT_READ, PORTAL_MANAGE, SYSTEM_ACCESS_REVIEW_READ, SYSTEM_TEMPORARY_GRANT_READ, SYSTEM_USER_READ, hasAnyPermission, hasPermission } from '../../auth/permissions'
 import { usePageTitle } from '../../hooks/usePageTitle'
+import QueryErrorState from '../../components/QueryErrorState'
+
+interface MetricQuery { isError: boolean; isLoading: boolean; refetch: () => unknown }
+
+function MetricValue({ query, value }: { query: MetricQuery; value: number }) {
+  if (query.isError) return <Button type="link" danger onClick={() => void query.refetch()}>重试</Button>
+  return <Typography.Title level={3}>{query.isLoading ? '—' : value}</Typography.Title>
+}
 
 export default function AdminDashboard() {
   usePageTitle('工作台')
@@ -34,18 +42,18 @@ export default function AdminDashboard() {
   const openReviews = (reviews.data ?? []).filter((item) => item.status === 'OPEN')
 
   return <PageContainer title="工作台">
-    {canManagePortal && <div className="velora-dashboard-stat-grid">
+    {canManagePortal && (dashboard.isError ? <QueryErrorState compact description="应用统计加载失败，请重试。" refetch={dashboard.refetch} /> : <div className="velora-dashboard-stat-grid">
       <StatisticCard className="velora-dashboard-stat-card" statistic={{ title: '应用', value: dashboard.data?.applicationCount ?? 0 }} loading={dashboard.isLoading} />
       <StatisticCard className="velora-dashboard-stat-card" statistic={{ title: '已启用', value: dashboard.data?.enabledAppCount ?? 0 }} loading={dashboard.isLoading} />
       <StatisticCard className="velora-dashboard-stat-card" statistic={{ title: '已停用', value: dashboard.data?.disabledAppCount ?? 0 }} loading={dashboard.isLoading} />
-    </div>}
+    </div>)}
     <div className="velora-dashboard-action-grid" style={{ marginTop: canManagePortal ? 16 : 0 }}>
-      {canReadApprovals && <ProCard className="velora-dashboard-action-card" title="待审批" extra={<Button type="link" onClick={() => navigate('/admin/approvals')}>查看</Button>}><Space align="center"><CheckSquareOutlined className="velora-dashboard-action-icon is-primary" /><Typography.Title level={3}>{pendingApprovals.length}</Typography.Title></Space></ProCard>}
-      {canReadApprovals && <ProCard className="velora-dashboard-action-card" title="待执行变更" extra={<Button type="link" onClick={() => navigate('/admin/approvals')}>查看</Button>}><Space align="center"><SyncOutlined className="velora-dashboard-action-icon is-primary" /><Typography.Title level={3}>{pendingExecutions.length}</Typography.Title></Space></ProCard>}
-      {canReadTemporaryGrants && <ProCard className="velora-dashboard-action-card" title="正在使用的临时权限" extra={<Button type="link" onClick={() => navigate('/admin/temporary-grants')}>查看</Button>}><Space align="center"><ClockCircleOutlined className="velora-dashboard-action-icon is-warning" /><Typography.Title level={3}>{activeGrants.length}</Typography.Title></Space></ProCard>}
-      {canReadReviews && <ProCard className="velora-dashboard-action-card" title="待完成权限复核" extra={<Button type="link" onClick={() => navigate('/admin/access-reviews')}>查看</Button>}><Space align="center"><SafetyCertificateOutlined className="velora-dashboard-action-icon is-success" /><Typography.Title level={3}>{openReviews.length}</Typography.Title></Space></ProCard>}
-      {canReadUsers && <ProCard className="velora-dashboard-action-card" title="已锁定用户" extra={<Button type="link" onClick={() => navigate('/admin/users')}>查看</Button>}><Space align="center"><UserDeleteOutlined className="velora-dashboard-action-icon is-warning" /><Typography.Title level={3}>{lockedUsers.data?.total ?? 0}</Typography.Title></Space></ProCard>}
-      {canReadAudit && <ProCard className="velora-dashboard-action-card" title="失败操作" extra={<Button type="link" onClick={() => navigate('/admin/audit')}>查看</Button>}><Space align="center"><ExclamationCircleOutlined className="velora-dashboard-action-icon is-warning" /><Typography.Title level={3}>{failedOperations.data?.total ?? 0}</Typography.Title></Space></ProCard>}
+      {canReadApprovals && <ProCard className="velora-dashboard-action-card" title="待审批" extra={<Button type="link" onClick={() => navigate('/admin/approvals')}>查看</Button>}><Space align="center"><CheckSquareOutlined className="velora-dashboard-action-icon is-primary" /><MetricValue query={approvals} value={pendingApprovals.length} /></Space></ProCard>}
+      {canReadApprovals && <ProCard className="velora-dashboard-action-card" title="待执行变更" extra={<Button type="link" onClick={() => navigate('/admin/approvals')}>查看</Button>}><Space align="center"><SyncOutlined className="velora-dashboard-action-icon is-primary" /><MetricValue query={approvals} value={pendingExecutions.length} /></Space></ProCard>}
+      {canReadTemporaryGrants && <ProCard className="velora-dashboard-action-card" title="正在使用的临时权限" extra={<Button type="link" onClick={() => navigate('/admin/temporary-grants')}>查看</Button>}><Space align="center"><ClockCircleOutlined className="velora-dashboard-action-icon is-warning" /><MetricValue query={grants} value={activeGrants.length} /></Space></ProCard>}
+      {canReadReviews && <ProCard className="velora-dashboard-action-card" title="待完成权限复核" extra={<Button type="link" onClick={() => navigate('/admin/access-reviews')}>查看</Button>}><Space align="center"><SafetyCertificateOutlined className="velora-dashboard-action-icon is-success" /><MetricValue query={reviews} value={openReviews.length} /></Space></ProCard>}
+      {canReadUsers && <ProCard className="velora-dashboard-action-card" title="已锁定用户" extra={<Button type="link" onClick={() => navigate('/admin/users')}>查看</Button>}><Space align="center"><UserDeleteOutlined className="velora-dashboard-action-icon is-warning" /><MetricValue query={lockedUsers} value={lockedUsers.data?.total ?? 0} /></Space></ProCard>}
+      {canReadAudit && <ProCard className="velora-dashboard-action-card" title="失败操作" extra={<Button type="link" onClick={() => navigate('/admin/audit')}>查看</Button>}><Space align="center"><ExclamationCircleOutlined className="velora-dashboard-action-icon is-warning" /><MetricValue query={failedOperations} value={failedOperations.data?.total ?? 0} /></Space></ProCard>}
       <ProCard className="velora-dashboard-action-card" title="系统状态"><Space align="center"><SafetyCertificateOutlined className={`velora-dashboard-action-icon ${readiness.data?.status === 'UP' ? 'is-success' : 'is-warning'}`} /><Typography.Title level={3}>{readiness.isError ? '异常' : readiness.isLoading ? '检查中' : readiness.data?.status === 'UP' ? '正常' : '异常'}</Typography.Title></Space></ProCard>
     </div>
     {canReadApprovals && pendingApprovals.length > 0 && <ProCard title="待处理事项" style={{ marginTop: 16 }}>

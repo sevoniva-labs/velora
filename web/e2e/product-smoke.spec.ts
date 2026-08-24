@@ -102,6 +102,21 @@ test('应用详情使用标准页签且信息卡片不重叠', async ({ page }, 
   await captureAudit(page, '03-application-detail')
 })
 
+test('配置发布使用业务化字段而不是底层参数向导', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop-chromium', '配置表单只在桌面执行一次')
+  await mockVelora(page, 'admin')
+  await page.goto('/admin/config-changes')
+  await page.getByRole('button', { name: /新建变更/ }).click()
+  await expect(page.getByLabel('发布环境')).toBeVisible()
+  await expect(page.getByLabel('配置领域')).toBeVisible()
+  await expect(page.getByLabel('变更名称')).toBeVisible()
+  await expect(page.getByLabel('配置文件')).toBeVisible()
+  await expect(page.getByLabel('文件校验值')).toBeVisible()
+  await expect(page.getByText('namespace', { exact: true })).toHaveCount(0)
+  await expect(page.getByText('dataId', { exact: true })).toHaveCount(0)
+  await captureAudit(page, '05-config-change')
+})
+
 test('关键操作可通过键盘到达且页面放大后不横向溢出', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-chromium', '桌面键盘与缩放检查')
   await mockVelora(page, 'anonymous')

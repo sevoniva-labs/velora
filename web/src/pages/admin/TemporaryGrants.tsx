@@ -13,6 +13,7 @@ import AdminUserSelect from '../../components/AdminUserSelect'
 import { SYSTEM_TEMPORARY_GRANT_MANAGE } from '../../auth/permissions'
 import { useAdminPermission } from '../../auth/useAdminPermission'
 import { useClientTableSearch } from '../../utils/tableSearch'
+import QueryErrorState from '../../components/QueryErrorState'
 
 interface RequestForm { userId: string; roleKey: string; reason: string; validUntil: Dayjs; approverId: string }
 interface RevokeForm { reason: string }
@@ -53,7 +54,7 @@ export default function TemporaryGrants() {
   ]
   return <PageContainer title="临时授权">
     <Space direction="vertical" size={16} style={{ width: '100%' }}>
-      <ProTable<TemporaryRoleGrant> className="velora-admin-primary-table" headerTitle="授权记录" rowKey="id" columns={columns} {...grantTable} loading={grants.isLoading} search={{ labelWidth: 'auto' }} pagination={{ pageSize: 20 }} toolBarRender={canManage ? () => [<Button key="request" type="primary" icon={<PlusOutlined />} onClick={() => setRequestOpen(true)}>申请临时授权</Button>] : false} />
+      {grants.isError ? <QueryErrorState refetch={grants.refetch} /> : <ProTable<TemporaryRoleGrant> className="velora-admin-primary-table" headerTitle="授权记录" rowKey="id" columns={columns} {...grantTable} loading={grants.isLoading} search={{ labelWidth: 'auto' }} pagination={{ pageSize: 20 }} toolBarRender={canManage ? () => [<Button key="request" type="primary" icon={<PlusOutlined />} onClick={() => setRequestOpen(true)}>申请临时授权</Button>] : false} />}
       {canManage && approved.length > 0 && <ProTable<ApprovalRequest> headerTitle="待执行" rowKey="id" columns={approvedColumns} dataSource={approved} search={false} pagination={false} options={false} />}
     </Space>
     <ModalForm<RequestForm> title="申请临时授权" open={requestOpen} onOpenChange={setRequestOpen} width={600} initialValues={{ validUntil: dayjs().add(8, 'hour') }} submitter={{ searchConfig: { submitText: '提交申请', resetText: '取消' } }} onFinish={async (values) => { await request.mutateAsync(values); return true }}>

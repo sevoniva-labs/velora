@@ -10,6 +10,7 @@ import type { AdminUser } from '../../types'
 import { usePageTitle } from '../../hooks/usePageTitle'
 import { SYSTEM_USER_CREATE, SYSTEM_USER_UPDATE } from '../../auth/permissions'
 import { useAdminPermission } from '../../auth/useAdminPermission'
+import QueryErrorState from '../../components/QueryErrorState'
 
 type CreateForm = Omit<CreateAdminUserInput, 'entitlements'>
 
@@ -27,6 +28,7 @@ export default function Users() {
   const canCreate = useAdminPermission(SYSTEM_USER_CREATE)
   const canUpdate = useAdminPermission(SYSTEM_USER_UPDATE)
   const [createOpen, setCreateOpen] = useState(false)
+  const [loadError, setLoadError] = useState(false)
   const roles = useQuery({ queryKey: ['admin', 'roles'], queryFn: listPlatformRoles })
   const roleNames = useMemo(() => new Map((roles.data ?? []).map((role) => [role.key, role.name])), [roles.data])
   const create = useMutation({
@@ -49,7 +51,7 @@ export default function Users() {
   ]
 
   return <PageContainer title="用户">
-    <ProTable<AdminUser> className="velora-admin-primary-table" actionRef={actionRef} rowKey="id" columns={columns} request={async (params) => { const data = await adminPageUsers({ page: params.current, pageSize: params.pageSize, keyword: String(params.keyword ?? '') || undefined, status: String(params.status ?? '') || undefined, roleKey: String(params.roleKey ?? '') || undefined }); return { data: data.items, total: data.total, success: true } }} search={{ labelWidth: 'auto' }} pagination={{ defaultPageSize: 20, showSizeChanger: true }} toolBarRender={canCreate ? () => [<Button key="create" type="primary" icon={<PlusOutlined />} onClick={() => setCreateOpen(true)}>新建用户</Button>] : false} />
+    {loadError ? <QueryErrorState refetch={() => setLoadError(false)} /> : <ProTable<AdminUser> className="velora-admin-primary-table" actionRef={actionRef} rowKey="id" columns={columns} request={async (params) => { try { const data = await adminPageUsers({ page: params.current, pageSize: params.pageSize, keyword: String(params.keyword ?? '') || undefined, status: String(params.status ?? '') || undefined, roleKey: String(params.roleKey ?? '') || undefined }); return { data: data.items, total: data.total, success: true } } catch { setLoadError(true); return { data: [], total: 0, success: false } } }} search={{ labelWidth: 'auto' }} pagination={{ defaultPageSize: 20, showSizeChanger: true }} toolBarRender={canCreate ? () => [<Button key="create" type="primary" icon={<PlusOutlined />} onClick={() => setCreateOpen(true)}>新建用户</Button>] : false} />}
     <ModalForm<CreateForm> title="新建用户" open={createOpen} onOpenChange={setCreateOpen} width={620} initialValues={{ roles: ['user'] }} submitter={{ searchConfig: { submitText: '创建用户', resetText: '取消' } }} onFinish={async (values) => { await create.mutateAsync(values); return true }}>
       <ProFormText name="loginName" label="登录账号" rules={[{ required: true, message: '请输入登录账号' }, { pattern: /^[a-zA-Z][a-zA-Z0-9._-]{2,63}$/, message: '3–64 位，以字母开头' }]} />
       <ProFormText name="displayName" label="姓名" rules={[{ required: true, message: '请输入姓名' }]} />

@@ -11,6 +11,7 @@ import type { Application } from '../../types'
 import { usePageTitle } from '../../hooks/usePageTitle'
 import { PORTAL_MANAGE } from '../../auth/permissions'
 import { useAdminPermission } from '../../auth/useAdminPermission'
+import QueryErrorState from '../../components/QueryErrorState'
 
 type CreateApplication = Pick<AdminApplicationInput, 'code' | 'name' | 'description' | 'homeUrl' | 'ssoType'>
 
@@ -22,6 +23,7 @@ export default function Applications() {
   const actionRef = useRef<ActionType>(null)
   const canCreate = useAdminPermission(PORTAL_MANAGE)
   const [open, setOpen] = useState(false)
+  const [loadError, setLoadError] = useState(false)
   const create = useMutation({
     mutationFn: (values: CreateApplication) => adminCreateApplication({ ...values, status: 'ENABLED', sort: 0, isFeatured: false }),
     onSuccess: async (application) => { message.success('应用已创建'); setOpen(false); await queryClient.invalidateQueries({ queryKey: ['admin', 'applications'] }); navigate(`/admin/applications/${application.id}`) },
@@ -35,7 +37,7 @@ export default function Applications() {
     { title: '操作', valueType: 'option', width: 90, render: (_, row) => <Link to={`/admin/applications/${row.id}`}>{canCreate ? '管理' : '查看'}</Link> },
   ]
   return <PageContainer title="应用管理">
-    <ProTable<Application> className="velora-admin-primary-table" actionRef={actionRef} rowKey="id" columns={columns} search={{ labelWidth: 'auto' }} request={async (params) => { const data = await adminListApplications({ page: params.current, pageSize: params.pageSize, keyword: String(params.keyword ?? '') || undefined, status: String(params.status ?? '') || undefined, ssoType: String(params.ssoType ?? '') || undefined, lifecycleStatus: String(params.lifecycleStatus ?? '') || undefined }); return { data: data.items, total: data.total, success: true } }} pagination={{ defaultPageSize: 20, showSizeChanger: true }} toolBarRender={canCreate ? () => [<Button key="create" type="primary" icon={<PlusOutlined />} onClick={() => setOpen(true)}>新建应用</Button>] : false} />
+    {loadError ? <QueryErrorState refetch={() => setLoadError(false)} /> : <ProTable<Application> className="velora-admin-primary-table" actionRef={actionRef} rowKey="id" columns={columns} search={{ labelWidth: 'auto' }} request={async (params) => { try { const data = await adminListApplications({ page: params.current, pageSize: params.pageSize, keyword: String(params.keyword ?? '') || undefined, status: String(params.status ?? '') || undefined, ssoType: String(params.ssoType ?? '') || undefined, lifecycleStatus: String(params.lifecycleStatus ?? '') || undefined }); return { data: data.items, total: data.total, success: true } } catch { setLoadError(true); return { data: [], total: 0, success: false } } }} pagination={{ defaultPageSize: 20, showSizeChanger: true }} toolBarRender={canCreate ? () => [<Button key="create" type="primary" icon={<PlusOutlined />} onClick={() => setOpen(true)}>新建应用</Button>] : false} />}
     <ModalForm<CreateApplication> title="新建应用" open={open} onOpenChange={setOpen} width={600} initialValues={{ ssoType: 'OIDC' }} submitter={{ searchConfig: { submitText: '创建应用', resetText: '取消' } }} onFinish={async (values) => { await create.mutateAsync(values); return true }}>
       <ProFormText name="name" label="应用名称" rules={[{ required: true, message: '请输入应用名称' }]} />
       <ProFormText name="code" label="应用编码" rules={[{ required: true, message: '请输入应用编码' }, { pattern: /^[a-z][a-z0-9_-]{1,63}$/, message: '使用小写字母、数字、短横线或下划线' }]} />

@@ -20,7 +20,7 @@ export default function ApplicationInformation({ application }: Props) {
   const initialValues: AdminApplicationInput = { code: application.code, name: application.name, description: application.description, icon: application.icon, categoryId: application.categoryId, homeUrl: application.homeUrl, launchUrl: application.launchUrl, ssoType: application.ssoType, ownerUserId: application.ownerUserId, ownerDepartmentId: application.ownerDepartmentId, status: application.status, sort: application.sort, isFeatured: application.isFeatured, tagIds: application.tags.map((item) => item.id) }
   const update = useMutation({ mutationFn: (values: AdminApplicationInput) => adminUpdateApplication(application.id, { ...initialValues, ...values, code: application.code }), onSuccess: async () => { message.success('应用信息已更新'); setOpen(false); await queryClient.invalidateQueries({ queryKey: ['admin', 'applications'] }) }, onError: (error) => message.error(error instanceof Error ? error.message : '应用信息保存失败') })
   return <>
-    <ProDescriptions<Application> dataSource={application} column={2} extra={<Button type="primary" onClick={() => setOpen(true)}>编辑信息</Button>} columns={[
+    <ProDescriptions<Application> className="velora-admin-section-card" dataSource={application} column={2} extra={<Button type="primary" onClick={() => setOpen(true)}>编辑信息</Button>} columns={[
       { title: '应用名称', dataIndex: 'name' },
       { title: '应用编码', dataIndex: 'code' },
       { title: '负责人', dataIndex: 'owner', render: (_, row) => row.owner || '未设置' },

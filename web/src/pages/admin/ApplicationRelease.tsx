@@ -27,8 +27,8 @@ export default function ApplicationRelease({ application, canVerify, canPublish 
   else if (allChecksPassed && application.lifecycleStatus !== 'READY' && application.lifecycleStatus !== 'PUBLISHED') action = { label: '提交上线', run: () => submit.mutate(), loading: submit.isPending, disabled: !canPublish || !data?.canPublish }
   else if (application.lifecycleStatus === 'READY') action = { label: '确认上线', run: () => publish.mutate(), loading: publish.isPending, disabled: !canPublish || !data?.canPublish }
   return <Space direction="vertical" size={16} style={{ width: '100%' }}>
-    <ProDescriptions column={2} loading={onboarding.isLoading} dataSource={data ?? {}} columns={[
-      { title: '配置进度', render: () => enumLabel(APP_LIFECYCLE_LABEL, application.lifecycleStatus, '草稿') },
+    <ProDescriptions className="velora-admin-section-card" column={2} loading={onboarding.isLoading} dataSource={data ?? {}} columns={[
+      { title: '接入状态', render: () => enumLabel(APP_LIFECYCLE_LABEL, application.lifecycleStatus, '草稿') },
       { title: '最近检查', render: () => formatDateTime(data?.onboardingChecks[0]?.occurredAt) },
       { title: '检查结果', render: () => allChecksPassed ? <Tag color="success">通过</Tag> : <Tag>待检查</Tag> },
       { title: '是否可上线', render: () => data?.canPublish ? <Tag color="success">可上线</Tag> : <Tag>暂不可上线</Tag> },

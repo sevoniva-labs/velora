@@ -10,7 +10,7 @@ import { formatDateTime } from '../../utils/format'
 
 interface CreateForm { name: string; scopes: string[]; expiresInDays: number }
 
-const PERMISSION_OBJECTS: Record<string, string> = { application: '应用', integration: '统一登录', console: '身份管理入口', audit: '操作记录', api_token: '系统对接', user: '用户', assignment: '任职', department: '部门', position: '岗位', user_group: '用户组', role: '平台角色', session: '登录会话', temporary_grant: '临时权限', access_review: '权限检查', request: '审批申请', task: '审批任务', config: '平台配置', security: '登录安全' }
+const PERMISSION_OBJECTS: Record<string, string> = { application: '应用', integration: '统一登录', console: '身份管理入口', audit: '操作记录', api_token: '接口凭据', user: '用户', assignment: '任职', department: '部门', position: '岗位', user_group: '用户组', role: '平台角色', session: '登录会话', temporary_grant: '临时权限', access_review: '权限复核', request: '审批申请', task: '审批任务', config: '平台配置', security: '登录安全' }
 const PERMISSION_ACTIONS: Record<string, string> = { read: '查看', create: '新建', update: '编辑', manage: '管理', publish: '上线', verify: '检查', open: '打开', revoke: '退出', decide: '审批' }
 function permissionLabel(permission: string): string {
   if (permission === '*') return '全部权限'
@@ -21,7 +21,7 @@ function permissionLabel(permission: string): string {
 }
 
 export default function AdminIntegrationTokens() {
-  usePageTitle('系统对接')
+  usePageTitle('接口凭据')
   const { message } = App.useApp()
   const me = useMe()
   const queryClient = useQueryClient()
@@ -44,7 +44,7 @@ export default function AdminIntegrationTokens() {
     { title: '状态', dataIndex: 'revoked', valueType: 'select', valueEnum: { false: { text: '可用' }, true: { text: '已停用' } }, render: (_, row) => row.revoked ? <Tag>已停用</Tag> : <Tag color="success">可用</Tag> },
     { title: '操作', valueType: 'option', width: 90, render: (_, row) => row.revoked ? null : <Popconfirm title="停用此对接账号？" description="停用后，使用该密钥的系统将无法访问平台。" okText="停用" okButtonProps={{ danger: true }} onConfirm={() => revoke.mutate(row.id)}><Button type="link" danger>停用</Button></Popconfirm> },
   ]
-  return <PageContainer title="系统对接">
+  return <PageContainer title="接口凭据">
     <ProTable<IntegrationToken> rowKey="id" columns={columns} dataSource={tokens.data ?? []} loading={tokens.isLoading} search={{ labelWidth: 'auto' }} pagination={false} toolBarRender={() => [<Button key="create" type="primary" icon={<PlusOutlined />} onClick={() => setOpen(true)}>新建对接账号</Button>]} />
     <ModalForm<CreateForm> title="新建对接账号" open={open} onOpenChange={setOpen} initialValues={{ expiresInDays: 90 }} submitter={{ searchConfig: { submitText: '创建', resetText: '取消' } }} onFinish={async (values) => { await create.mutateAsync(values); return true }}>
       <ProFormText name="name" label="名称" fieldProps={{ prefix: <KeyOutlined />, maxLength: 100 }} rules={[{ required: true, message: '请输入名称' }]} />

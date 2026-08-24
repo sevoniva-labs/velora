@@ -54,7 +54,8 @@
 }
 
 .velora-admin-page-card,
-.velora-admin-pro-table-card {
+.velora-admin-pro-table-card,
+.velora-admin-section-card {
   padding: 20px 24px;
   border: 1px solid var(--admin-surface-border);
   border-radius: var(--admin-surface-radius);
@@ -127,34 +128,10 @@
   box-shadow: var(--admin-surface-shadow);
 }
 
-/* Application detail tabs: keep the PageContainer Tabs component, refine its visual hierarchy. */
-.velora-application-management .ant-pro-page-container-tabs .ant-tabs-nav { margin: 12px 0 0; }
-.velora-application-management .ant-pro-page-container-tabs .ant-tabs-nav::before { border-bottom: 0; }
-
-.velora-application-management .ant-pro-page-container-tabs .ant-tabs-nav-list {
-  gap: 4px;
-  padding: 4px;
-  border: 1px solid var(--admin-surface-border);
-  border-radius: 10px;
-  background: rgba(255, 255, 255, 0.7);
-}
-
-.velora-application-management .ant-pro-page-container-tabs .ant-tabs-tab {
-  margin: 0 !important;
-  padding: 7px 12px;
-  border-radius: 7px;
-  color: var(--velora-secondary);
-  transition: color 0.16s ease, background 0.16s ease;
-}
-
-.velora-application-management .ant-pro-page-container-tabs .ant-tabs-tab:hover {
-  color: var(--velora-primary);
-  background: var(--velora-primary-softer);
-}
-
-.velora-application-management .ant-pro-page-container-tabs .ant-tabs-tab-active { background: var(--velora-primary-soft); }
-.velora-application-management .ant-pro-page-container-tabs .ant-tabs-tab-active .ant-tabs-tab-btn { color: var(--velora-primary); font-weight: 600; }
-.velora-application-management .ant-pro-page-container-tabs .ant-tabs-ink-bar { display: none; }
+/* Keep application navigation as the standard PageContainer Tabs pattern. */
+.velora-application-management .ant-pro-page-container-tabs .ant-tabs-nav { margin: 8px 0 0; }
+.velora-application-management .ant-pro-page-container-tabs .ant-tabs-tab { padding-block: 10px; }
+.velora-application-management .ant-pro-page-container-tabs .ant-tabs-tab-active .ant-tabs-tab-btn { font-weight: 600; }
 
 /* Full-page tables reserve a stable body, keeping pagination at the page bottom. */
 .velora-admin-primary-table > .ant-pro-card:not(.ant-pro-table-search) {

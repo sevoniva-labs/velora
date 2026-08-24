@@ -24,7 +24,7 @@ const ACTIONS: Record<string, { action: ChangeAction; label: string; requestType
 }
 
 export default function ConfigChanges() {
-  usePageTitle('配置变更')
+  usePageTitle('配置发布')
   const { message } = App.useApp()
   const me = useMe()
   const canManage = useAdminPermission(SYSTEM_CONFIG_MANAGE)
@@ -41,7 +41,7 @@ export default function ConfigChanges() {
     return { ...values, namespace, group, dataId, expectedPreviousVersion: 0, version: 0, valueDigest: values.valueDigest.trim().toLowerCase(), valueRef: values.valueRef.trim() }
   }
   const refresh = async () => { await Promise.all([queryClient.invalidateQueries({ queryKey: ['admin', 'config-changes'] }), queryClient.invalidateQueries({ queryKey: ['admin', 'approvals'] })]) }
-  const create = useMutation({ mutationFn: createConfigChange, onSuccess: async () => { message.success('配置变更已创建'); setCreateOpen(false); await refresh() }, onError: (error) => message.error(error instanceof Error ? error.message : '配置变更创建失败') })
+  const create = useMutation({ mutationFn: createConfigChange, onSuccess: async () => { message.success('配置发布单已创建'); setCreateOpen(false); await refresh() }, onError: (error) => message.error(error instanceof Error ? error.message : '配置发布单创建失败') })
   const request = useMutation({ mutationFn: (values: ApprovalForm) => { const config = ACTIONS[requesting!.state]; return createApproval({ requestType: config.requestType, action: config.auditAction, resource: 'config_change', resourceId: requesting!.id, summary: `${config.label}：${requesting!.dataId} v${requesting!.version}`, payloadJson: JSON.stringify({ change_id: requesting!.id, action: config.action }), approverIds: [values.approverId] }) }, onSuccess: async () => { message.success('申请已提交'); setRequesting(undefined); await refresh() }, onError: (error) => message.error(error instanceof Error ? error.message : '申请提交失败') })
   const execute = useMutation({ mutationFn: ({ change, approval }: { change: ConfigChange; approval: ApprovalRequest }) => transitionConfigChange(change.id, ACTIONS[change.state].action, approval.id), onSuccess: async () => { message.success('配置状态已更新'); await refresh() }, onError: (error) => message.error(error instanceof Error ? error.message : '操作失败') })
   const columns: ProColumns<ConfigChange>[] = [
@@ -52,14 +52,14 @@ export default function ConfigChanges() {
     { title: '状态', dataIndex: 'state', valueType: 'select', valueEnum: Object.fromEntries(Object.entries(STATE_LABELS).map(([key, text]) => [key, { text }])), render: (_, row) => <Tag color={row.state === 'PUBLISHED' ? 'success' : row.state.includes('PENDING') || row.state === 'APPROVED' ? 'processing' : 'default'}>{STATE_LABELS[row.state] ?? '已结束'}</Tag> },
   ]
   if (canManage) columns.push({ title: '操作', valueType: 'option', width: 120, render: (_, row) => { const config = ACTIONS[row.state]; if (!config) return <Typography.Text type="secondary">—</Typography.Text>; const approved = approvedByResource.get(`${row.id}:${config.auditAction}`); return approved ? <Button type="link" loading={execute.isPending} onClick={() => execute.mutate({ change: row, approval: approved })}>执行</Button> : <Button type="link" onClick={() => setRequesting(row)}>{config.label}</Button> } })
-  return <PageContainer title="配置变更">
+  return <PageContainer title="配置发布">
     <ProTable<ConfigChange> className="velora-admin-primary-table" rowKey="id" columns={columns} dataSource={changes.data ?? []} loading={changes.isLoading} search={{ labelWidth: 'auto' }} pagination={{ pageSize: 20 }} toolBarRender={canManage ? () => [<Button key="create" type="primary" icon={<PlusOutlined />} onClick={() => setCreateOpen(true)}>新建变更</Button>] : false} />
-    <ModalForm<CreateForm> title="新建配置变更" open={createOpen} onOpenChange={setCreateOpen} width={640} modalProps={{ centered: true }} initialValues={{ sensitive: false }} submitter={{ searchConfig: { submitText: '创建变更', resetText: '取消' } }} onFinish={async (values) => { await create.mutateAsync(createInput(values)); return true }}>
-      <ProFormText name="namespace" label="所属环境" width="md" rules={[{ required: true, message: '请输入所属环境' }]} />
+    <ModalForm<CreateForm> title="新建配置发布单" open={createOpen} onOpenChange={setCreateOpen} width={640} modalProps={{ centered: true }} initialValues={{ sensitive: false }} submitter={{ searchConfig: { submitText: '创建发布单', resetText: '取消' } }} onFinish={async (values) => { await create.mutateAsync(createInput(values)); return true }}>
+      <ProFormText name="namespace" label="运行环境" width="md" rules={[{ required: true, message: '请输入运行环境' }]} />
       <ProFormText name="group" label="配置分组" width="md" rules={[{ required: true, message: '请输入配置分组' }]} />
-      <ProFormText name="dataId" label="配置项" width="md" rules={[{ required: true, message: '请输入配置项' }]} />
-      <ProFormText name="valueRef" label="配置文件地址" width="lg" rules={[{ required: true, message: '请输入受控存储中的配置文件地址' }]} />
-      <ProFormText name="valueDigest" label="文件校验值（SHA-256）" width="lg" rules={[{ required: true, pattern: /^[a-fA-F0-9]{64}$/, message: '请输入 64 位 SHA-256 校验值' }]} />
+      <ProFormText name="dataId" label="配置项标识" width="md" rules={[{ required: true, message: '请输入配置项标识' }]} />
+      <ProFormText name="valueRef" label="受控文件地址" width="lg" rules={[{ required: true, message: '请输入受控存储中的配置文件地址' }]} />
+      <ProFormText name="valueDigest" label="SHA-256 校验值" width="lg" rules={[{ required: true, pattern: /^[a-fA-F0-9]{64}$/, message: '请输入 64 位 SHA-256 校验值' }]} />
       <ProFormCheckbox name="sensitive">包含密码或密钥</ProFormCheckbox>
     </ModalForm>
     <ModalForm<ApprovalForm> key={requesting?.id ?? 'approval'} title={requesting ? ACTIONS[requesting.state]?.label : '提交申请'} open={Boolean(requesting)} onOpenChange={(value) => !value && setRequesting(undefined)} submitter={{ searchConfig: { submitText: '提交申请', resetText: '取消' } }} onFinish={async (values) => { await request.mutateAsync(values); return true }}>

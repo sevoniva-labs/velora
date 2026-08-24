@@ -27,8 +27,8 @@ describe('admin navigation', () => {
     const navigation = visibleNavigation(adminNavItems, [APPROVAL_REQUEST_READ, SYSTEM_TEMPORARY_GRANT_READ, SYSTEM_ACCESS_REVIEW_READ, SYSTEM_CONFIG_READ], [])
     expect(JSON.stringify(navigation)).toContain('审批')
     expect(JSON.stringify(navigation)).toContain('临时授权')
-    expect(JSON.stringify(navigation)).toContain('权限检查')
-    expect(JSON.stringify(navigation)).toContain('配置变更')
+    expect(JSON.stringify(navigation)).toContain('权限复核')
+    expect(JSON.stringify(navigation)).toContain('配置发布')
   })
 
   it('selects the correct navigation item for nested routes', () => {

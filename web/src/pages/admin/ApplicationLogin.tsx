@@ -60,12 +60,12 @@ export default function ApplicationLogin({ application, canManage }: Props) {
     onError: (error) => message.error(error instanceof Error ? error.message : '登录设置保存失败'),
   })
 
-  if (application.ssoType === 'URL') return <ProDescriptions column={1} dataSource={application} columns={[{ title: '登录方式', render: () => '普通链接' }, { title: '应用地址', render: () => application.launchUrl || application.homeUrl || '—' }]} />
+  if (application.ssoType === 'URL') return <ProDescriptions className="velora-admin-section-card" column={1} dataSource={application} columns={[{ title: '登录方式', render: () => '普通链接' }, { title: '应用地址', render: () => application.launchUrl || application.homeUrl || '—' }]} />
   if (onboarding.isError) return <QueryErrorState refetch={() => void onboarding.refetch()} />
   const binding = onboarding.data?.binding
   const environmentValues = Object.fromEntries(ENVIRONMENTS.map((environment) => [environment.field, binding?.environments.find((item) => item.key === environment.key)?.redirectUris.join('\n') ?? (environment.key === 'PRODUCTION' ? binding?.redirectUris.join('\n') ?? '' : '')])) as unknown as LoginForm
   return <>
-    <ProDescriptions column={2} loading={onboarding.isLoading} dataSource={binding ?? {}} extra={canManage ? <Button type="primary" onClick={() => setOpen(true)}>{binding ? '修改登录回调' : '配置登录'}</Button> : undefined} columns={[
+    <ProDescriptions className="velora-admin-section-card" column={2} loading={onboarding.isLoading} dataSource={binding ?? {}} extra={canManage ? <Button type="primary" onClick={() => setOpen(true)}>{binding ? '修改登录回调' : '配置登录'}</Button> : undefined} columns={[
       { title: '统一登录', render: () => binding ? <Tag color="success">已配置</Tag> : <Tag>未配置</Tag> },
       { title: '连接检查', render: () => verificationStatus(binding?.verificationStatus) },
       { title: '登录回调地址', span: 2, render: () => binding?.redirectUris?.length ? <Space direction="vertical" size={2}>{binding.redirectUris.map((uri) => <Typography.Text key={uri} copyable>{uri}</Typography.Text>)}</Space> : '—' },

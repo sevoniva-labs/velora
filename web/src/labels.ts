@@ -139,8 +139,8 @@ export const AUDIT_ACTION_LABEL: Record<string, string> = {
   'role.data_scope.update': '更新角色可管理范围',
   'temporary_role_grant.create': '创建临时授权',
   'temporary_role_grant.revoke': '撤销临时授权',
-  'access_review.create': '发起权限检查',
-  'access_review.item.decide': '提交权限检查结果',
+  'access_review.create': '发起权限复核',
+  'access_review.item.decide': '提交权限复核结果',
   'security.api_token.create': '创建对接账号',
   'security.api_token.revoke': '停用对接账号',
   'config_change.create': '创建配置变更',
@@ -183,7 +183,7 @@ export const AUDIT_RESOURCE_LABEL: Record<string, string> = {
   user: '用户', role: '平台角色', session: '登录会话', api_token: '对接账号',
   portal_application: '应用', portal_category: '应用分类', portal_tag: '应用标签',
   application_access: '应用使用范围', identity_integration: '统一登录设置',
-  approval: '审批', temporary_role_grant: '临时授权', access_review: '权限检查',
+  approval: '审批', temporary_role_grant: '临时授权', access_review: '权限复核',
   config_change: '配置变更', identity_console: '身份管理应急入口',
 }
 

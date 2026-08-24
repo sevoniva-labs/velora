@@ -40,6 +40,18 @@ type Writer struct {
 	forwarder Forwarder
 }
 
+type ListQuery struct {
+	Page         int
+	PageSize     int
+	Operator     string
+	Action       string
+	ResourceType string
+	ResourceID   string
+	Result       string
+	From         *time.Time
+	To           *time.Time
+}
+
 var ErrIntegrityViolation = errors.New("audit integrity violation")
 var ErrArchiveUnavailable = errors.New("audit WORM archive is unavailable")
 
@@ -118,12 +130,41 @@ func (w *Writer) List(ctx context.Context, orgID string, limit int) ([]Event, er
 	if limit > 5000 {
 		limit = 5000
 	}
-	rows, err := w.db.QueryContext(ctx, w.db.Rebind(`SELECT id,occurred_at,request_id,organization_id,actor_id,actor_name,action,resource_type,resource_id,result,client_ip,details_json,sequence_no,prev_hash,event_hash FROM audit_logs WHERE organization_id=? ORDER BY occurred_at DESC LIMIT ?`), orgID, limit)
+	rows, err := w.db.QueryContext(ctx, w.db.Rebind(`SELECT id,occurred_at,request_id,organization_id,actor_id,actor_name,action,resource_type,resource_id,result,client_ip,details_json,sequence_no,prev_hash,event_hash FROM audit_logs WHERE organization_id=? ORDER BY occurred_at DESC,id DESC LIMIT ?`), orgID, limit)
 	if err != nil {
 		return nil, err
 	}
 	defer func() { _ = rows.Close() }()
-	out := make([]Event, 0, limit)
+	return readAuditEvents(rows, limit)
+}
+
+func (w *Writer) ListPage(ctx context.Context, orgID string, query ListQuery) ([]Event, int64, error) {
+	if query.Page < 1 {
+		query.Page = 1
+	}
+	if query.PageSize < 1 {
+		query.PageSize = 20
+	}
+	if query.PageSize > 200 {
+		query.PageSize = 200
+	}
+	whereSQL, args := auditListWhere(orgID, query)
+	var total int64
+	if err := w.db.QueryRowContext(ctx, w.db.Rebind(`SELECT COUNT(*) FROM audit_logs WHERE `+whereSQL), args...).Scan(&total); err != nil {
+		return nil, 0, err
+	}
+	pageArgs := append(append([]any(nil), args...), query.PageSize, (query.Page-1)*query.PageSize)
+	rows, err := w.db.QueryContext(ctx, w.db.Rebind(`SELECT id,occurred_at,request_id,organization_id,actor_id,actor_name,action,resource_type,resource_id,result,client_ip,details_json,sequence_no,prev_hash,event_hash FROM audit_logs WHERE `+whereSQL+` ORDER BY occurred_at DESC,id DESC LIMIT ? OFFSET ?`), pageArgs...)
+	if err != nil {
+		return nil, 0, err
+	}
+	defer func() { _ = rows.Close() }()
+	out, err := readAuditEvents(rows, query.PageSize)
+	return out, total, err
+}
+
+func readAuditEvents(rows *sql.Rows, capacity int) ([]Event, error) {
+	out := make([]Event, 0, capacity)
 	for rows.Next() {
 		var e Event
 		var org, actor sql.NullString
@@ -147,6 +188,41 @@ func (w *Writer) List(ctx context.Context, orgID string, limit int) ([]Event, er
 		out = append(out, e)
 	}
 	return out, rows.Err()
+}
+
+func auditListWhere(orgID string, query ListQuery) (string, []any) {
+	where := []string{`organization_id=?`}
+	args := []any{orgID}
+	if value := strings.ToLower(strings.TrimSpace(query.Operator)); value != "" {
+		where = append(where, `(LOWER(actor_name) LIKE ? OR LOWER(actor_id) LIKE ?)`)
+		pattern := "%" + value + "%"
+		args = append(args, pattern, pattern)
+	}
+	if value := strings.TrimSpace(query.Action); value != "" {
+		where = append(where, `action=?`)
+		args = append(args, value)
+	}
+	if value := strings.TrimSpace(query.ResourceType); value != "" {
+		where = append(where, `resource_type=?`)
+		args = append(args, value)
+	}
+	if value := strings.TrimSpace(query.ResourceID); value != "" {
+		where = append(where, `resource_id=?`)
+		args = append(args, value)
+	}
+	if value := strings.ToUpper(strings.TrimSpace(query.Result)); value != "" {
+		where = append(where, `result=?`)
+		args = append(args, value)
+	}
+	if query.From != nil {
+		where = append(where, `occurred_at>=?`)
+		args = append(args, query.From.UTC())
+	}
+	if query.To != nil {
+		where = append(where, `occurred_at<=?`)
+		args = append(args, query.To.UTC())
+	}
+	return strings.Join(where, ` AND `), args
 }
 
 func (w *Writer) VerifyIntegrity(ctx context.Context, orgID string) error {

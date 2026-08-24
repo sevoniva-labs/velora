@@ -5515,6 +5515,15 @@ func (*RevokeSessionResponse) Descriptor() ([]byte, []int) {
 type ListAuditLogsRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Limit         int32                  `protobuf:"varint,1,opt,name=limit,proto3" json:"limit,omitempty"`
+	Page          int32                  `protobuf:"varint,2,opt,name=page,proto3" json:"page,omitempty"`
+	PageSize      int32                  `protobuf:"varint,3,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
+	Operator      string                 `protobuf:"bytes,4,opt,name=operator,proto3" json:"operator,omitempty"`
+	Action        string                 `protobuf:"bytes,5,opt,name=action,proto3" json:"action,omitempty"`
+	ResourceType  string                 `protobuf:"bytes,6,opt,name=resource_type,json=resourceType,proto3" json:"resource_type,omitempty"`
+	Result        string                 `protobuf:"bytes,7,opt,name=result,proto3" json:"result,omitempty"`
+	From          *timestamppb.Timestamp `protobuf:"bytes,8,opt,name=from,proto3" json:"from,omitempty"`
+	To            *timestamppb.Timestamp `protobuf:"bytes,9,opt,name=to,proto3" json:"to,omitempty"`
+	ResourceId    string                 `protobuf:"bytes,10,opt,name=resource_id,json=resourceId,proto3" json:"resource_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -5556,9 +5565,75 @@ func (x *ListAuditLogsRequest) GetLimit() int32 {
 	return 0
 }
 
+func (x *ListAuditLogsRequest) GetPage() int32 {
+	if x != nil {
+		return x.Page
+	}
+	return 0
+}
+
+func (x *ListAuditLogsRequest) GetPageSize() int32 {
+	if x != nil {
+		return x.PageSize
+	}
+	return 0
+}
+
+func (x *ListAuditLogsRequest) GetOperator() string {
+	if x != nil {
+		return x.Operator
+	}
+	return ""
+}
+
+func (x *ListAuditLogsRequest) GetAction() string {
+	if x != nil {
+		return x.Action
+	}
+	return ""
+}
+
+func (x *ListAuditLogsRequest) GetResourceType() string {
+	if x != nil {
+		return x.ResourceType
+	}
+	return ""
+}
+
+func (x *ListAuditLogsRequest) GetResult() string {
+	if x != nil {
+		return x.Result
+	}
+	return ""
+}
+
+func (x *ListAuditLogsRequest) GetFrom() *timestamppb.Timestamp {
+	if x != nil {
+		return x.From
+	}
+	return nil
+}
+
+func (x *ListAuditLogsRequest) GetTo() *timestamppb.Timestamp {
+	if x != nil {
+		return x.To
+	}
+	return nil
+}
+
+func (x *ListAuditLogsRequest) GetResourceId() string {
+	if x != nil {
+		return x.ResourceId
+	}
+	return ""
+}
+
 type ListAuditLogsResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Events        []*AuditEvent          `protobuf:"bytes,1,rep,name=events,proto3" json:"events,omitempty"`
+	Total         int64                  `protobuf:"varint,2,opt,name=total,proto3" json:"total,omitempty"`
+	Page          int32                  `protobuf:"varint,3,opt,name=page,proto3" json:"page,omitempty"`
+	PageSize      int32                  `protobuf:"varint,4,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -5598,6 +5673,27 @@ func (x *ListAuditLogsResponse) GetEvents() []*AuditEvent {
 		return x.Events
 	}
 	return nil
+}
+
+func (x *ListAuditLogsResponse) GetTotal() int64 {
+	if x != nil {
+		return x.Total
+	}
+	return 0
+}
+
+func (x *ListAuditLogsResponse) GetPage() int32 {
+	if x != nil {
+		return x.Page
+	}
+	return 0
+}
+
+func (x *ListAuditLogsResponse) GetPageSize() int32 {
+	if x != nil {
+		return x.PageSize
+	}
+	return 0
 }
 
 type VerifyAuditIntegrityRequest struct {
@@ -7623,11 +7719,25 @@ const file_forge_v1_platform_proto_rawDesc = "" +
 	"\x14RevokeSessionRequest\x12\x1d\n" +
 	"\n" +
 	"session_id\x18\x01 \x01(\tR\tsessionId\"\x17\n" +
-	"\x15RevokeSessionResponse\",\n" +
+	"\x15RevokeSessionResponse\"\xcb\x02\n" +
 	"\x14ListAuditLogsRequest\x12\x14\n" +
-	"\x05limit\x18\x01 \x01(\x05R\x05limit\"E\n" +
+	"\x05limit\x18\x01 \x01(\x05R\x05limit\x12\x12\n" +
+	"\x04page\x18\x02 \x01(\x05R\x04page\x12\x1b\n" +
+	"\tpage_size\x18\x03 \x01(\x05R\bpageSize\x12\x1a\n" +
+	"\boperator\x18\x04 \x01(\tR\boperator\x12\x16\n" +
+	"\x06action\x18\x05 \x01(\tR\x06action\x12#\n" +
+	"\rresource_type\x18\x06 \x01(\tR\fresourceType\x12\x16\n" +
+	"\x06result\x18\a \x01(\tR\x06result\x12.\n" +
+	"\x04from\x18\b \x01(\v2\x1a.google.protobuf.TimestampR\x04from\x12*\n" +
+	"\x02to\x18\t \x01(\v2\x1a.google.protobuf.TimestampR\x02to\x12\x1f\n" +
+	"\vresource_id\x18\n" +
+	" \x01(\tR\n" +
+	"resourceId\"\x8c\x01\n" +
 	"\x15ListAuditLogsResponse\x12,\n" +
-	"\x06events\x18\x01 \x03(\v2\x14.forge.v1.AuditEventR\x06events\"\x1d\n" +
+	"\x06events\x18\x01 \x03(\v2\x14.forge.v1.AuditEventR\x06events\x12\x14\n" +
+	"\x05total\x18\x02 \x01(\x03R\x05total\x12\x12\n" +
+	"\x04page\x18\x03 \x01(\x05R\x04page\x12\x1b\n" +
+	"\tpage_size\x18\x04 \x01(\x05R\bpageSize\"\x1d\n" +
 	"\x1bVerifyAuditIntegrityRequest\":\n" +
 	"\x1cVerifyAuditIntegrityResponse\x12\x1a\n" +
 	"\bverified\x18\x01 \x01(\bR\bverified\"g\n" +
@@ -8410,153 +8520,155 @@ var file_forge_v1_platform_proto_depIdxs = []int32{
 	130, // 49: forge.v1.UpdateUserEntitlementResponse.user:type_name -> forge.v1.User
 	130, // 50: forge.v1.UnlockUserResponse.user:type_name -> forge.v1.User
 	141, // 51: forge.v1.ListSessionsResponse.sessions:type_name -> forge.v1.Session
-	142, // 52: forge.v1.ListAuditLogsResponse.events:type_name -> forge.v1.AuditEvent
-	140, // 53: forge.v1.TemporaryRoleGrant.valid_from:type_name -> google.protobuf.Timestamp
-	140, // 54: forge.v1.TemporaryRoleGrant.valid_until:type_name -> google.protobuf.Timestamp
-	140, // 55: forge.v1.TemporaryRoleGrant.revoked_at:type_name -> google.protobuf.Timestamp
-	140, // 56: forge.v1.TemporaryRoleGrant.created_at:type_name -> google.protobuf.Timestamp
-	106, // 57: forge.v1.ListTemporaryRoleGrantsResponse.grants:type_name -> forge.v1.TemporaryRoleGrant
-	140, // 58: forge.v1.CreateTemporaryRoleGrantRequest.valid_from:type_name -> google.protobuf.Timestamp
-	140, // 59: forge.v1.CreateTemporaryRoleGrantRequest.valid_until:type_name -> google.protobuf.Timestamp
-	106, // 60: forge.v1.CreateTemporaryRoleGrantResponse.grant:type_name -> forge.v1.TemporaryRoleGrant
-	140, // 61: forge.v1.FederatedIdentityLink.created_at:type_name -> google.protobuf.Timestamp
-	140, // 62: forge.v1.FederatedIdentityLink.last_authenticated_at:type_name -> google.protobuf.Timestamp
-	113, // 63: forge.v1.ListFederatedIdentityLinksResponse.links:type_name -> forge.v1.FederatedIdentityLink
-	113, // 64: forge.v1.LinkFederatedIdentityResponse.link:type_name -> forge.v1.FederatedIdentityLink
-	140, // 65: forge.v1.AccessReview.due_at:type_name -> google.protobuf.Timestamp
-	140, // 66: forge.v1.AccessReview.created_at:type_name -> google.protobuf.Timestamp
-	140, // 67: forge.v1.AccessReview.completed_at:type_name -> google.protobuf.Timestamp
-	140, // 68: forge.v1.AccessReviewItem.decided_at:type_name -> google.protobuf.Timestamp
-	140, // 69: forge.v1.AccessReviewItem.created_at:type_name -> google.protobuf.Timestamp
-	120, // 70: forge.v1.ListAccessReviewsResponse.reviews:type_name -> forge.v1.AccessReview
-	140, // 71: forge.v1.CreateAccessReviewRequest.due_at:type_name -> google.protobuf.Timestamp
-	120, // 72: forge.v1.CreateAccessReviewResponse.review:type_name -> forge.v1.AccessReview
-	121, // 73: forge.v1.ListAccessReviewItemsResponse.items:type_name -> forge.v1.AccessReviewItem
-	0,   // 74: forge.v1.PlatformService.ListUsers:input_type -> forge.v1.ListUsersRequest
-	2,   // 75: forge.v1.PlatformService.CreateUser:input_type -> forge.v1.CreateUserRequest
-	4,   // 76: forge.v1.PlatformService.ListDepartments:input_type -> forge.v1.ListDepartmentsRequest
-	6,   // 77: forge.v1.PlatformService.CreateDepartment:input_type -> forge.v1.CreateDepartmentRequest
-	8,   // 78: forge.v1.PlatformService.UpdateDepartment:input_type -> forge.v1.UpdateDepartmentRequest
-	10,  // 79: forge.v1.PlatformService.ListPositions:input_type -> forge.v1.ListPositionsRequest
-	12,  // 80: forge.v1.PlatformService.CreatePosition:input_type -> forge.v1.CreatePositionRequest
-	14,  // 81: forge.v1.PlatformService.UpdatePosition:input_type -> forge.v1.UpdatePositionRequest
-	16,  // 82: forge.v1.PlatformService.ListUserGroups:input_type -> forge.v1.ListUserGroupsRequest
-	18,  // 83: forge.v1.PlatformService.CreateUserGroup:input_type -> forge.v1.CreateUserGroupRequest
-	20,  // 84: forge.v1.PlatformService.UpdateUserGroup:input_type -> forge.v1.UpdateUserGroupRequest
-	22,  // 85: forge.v1.PlatformService.UpdateUserGroupMembers:input_type -> forge.v1.UpdateUserGroupMembersRequest
-	24,  // 86: forge.v1.PlatformService.UpdateUserGroupRoles:input_type -> forge.v1.UpdateUserGroupRolesRequest
-	26,  // 87: forge.v1.PlatformService.ListUserAssignments:input_type -> forge.v1.ListUserAssignmentsRequest
-	28,  // 88: forge.v1.PlatformService.ReplaceUserAssignments:input_type -> forge.v1.ReplaceUserAssignmentsRequest
-	30,  // 89: forge.v1.PlatformService.ListUserEffectiveApplicationAccess:input_type -> forge.v1.ListUserEffectiveApplicationAccessRequest
-	34,  // 90: forge.v1.PlatformService.GetOrganization:input_type -> forge.v1.GetOrganizationRequest
-	36,  // 91: forge.v1.PlatformService.UpdateOrganization:input_type -> forge.v1.UpdateOrganizationRequest
-	38,  // 92: forge.v1.PlatformService.GetSecurityPolicy:input_type -> forge.v1.GetSecurityPolicyRequest
-	40,  // 93: forge.v1.PlatformService.UpdateSecurityPolicy:input_type -> forge.v1.UpdateSecurityPolicyRequest
-	42,  // 94: forge.v1.PlatformService.ListRoles:input_type -> forge.v1.ListRolesRequest
-	44,  // 95: forge.v1.PlatformService.CreateRole:input_type -> forge.v1.CreateRoleRequest
-	46,  // 96: forge.v1.PlatformService.UpdateRole:input_type -> forge.v1.UpdateRoleRequest
-	48,  // 97: forge.v1.PlatformService.CopyRole:input_type -> forge.v1.CopyRoleRequest
-	50,  // 98: forge.v1.PlatformService.ListPermissions:input_type -> forge.v1.ListPermissionsRequest
-	52,  // 99: forge.v1.PlatformService.ListMenus:input_type -> forge.v1.ListMenusRequest
-	55,  // 100: forge.v1.PlatformService.UpdateMenu:input_type -> forge.v1.UpdateMenuRequest
-	57,  // 101: forge.v1.PlatformService.ListDataFieldPolicies:input_type -> forge.v1.ListDataFieldPoliciesRequest
-	60,  // 102: forge.v1.PlatformService.UpsertDataFieldPolicy:input_type -> forge.v1.UpsertDataFieldPolicyRequest
-	62,  // 103: forge.v1.PlatformService.AuthorizeDataExport:input_type -> forge.v1.AuthorizeDataExportRequest
-	64,  // 104: forge.v1.PlatformService.ListDataDeletionEvidence:input_type -> forge.v1.ListDataDeletionEvidenceRequest
-	67,  // 105: forge.v1.PlatformService.RecordDataDeletionEvidence:input_type -> forge.v1.RecordDataDeletionEvidenceRequest
-	84,  // 106: forge.v1.PlatformService.UpdateRoleDataScope:input_type -> forge.v1.UpdateRoleDataScopeRequest
-	82,  // 107: forge.v1.PlatformService.UpdateRolePermissions:input_type -> forge.v1.UpdateRolePermissionsRequest
-	86,  // 108: forge.v1.PlatformService.UpdateUserRoles:input_type -> forge.v1.UpdateUserRolesRequest
-	88,  // 109: forge.v1.PlatformService.UpdateUserStatus:input_type -> forge.v1.UpdateUserStatusRequest
-	90,  // 110: forge.v1.PlatformService.UpdateUserEntitlement:input_type -> forge.v1.UpdateUserEntitlementRequest
-	92,  // 111: forge.v1.PlatformService.UnlockUser:input_type -> forge.v1.UnlockUserRequest
-	94,  // 112: forge.v1.PlatformService.ResetUserPassword:input_type -> forge.v1.ResetUserPasswordRequest
-	96,  // 113: forge.v1.PlatformService.ListSessions:input_type -> forge.v1.ListSessionsRequest
-	98,  // 114: forge.v1.PlatformService.RevokeSession:input_type -> forge.v1.RevokeSessionRequest
-	100, // 115: forge.v1.PlatformService.ListAuditLogs:input_type -> forge.v1.ListAuditLogsRequest
-	102, // 116: forge.v1.PlatformService.VerifyAuditIntegrity:input_type -> forge.v1.VerifyAuditIntegrityRequest
-	104, // 117: forge.v1.PlatformService.ExportAuditLogs:input_type -> forge.v1.ExportAuditLogsRequest
-	107, // 118: forge.v1.PlatformService.ListTemporaryRoleGrants:input_type -> forge.v1.ListTemporaryRoleGrantsRequest
-	109, // 119: forge.v1.PlatformService.CreateTemporaryRoleGrant:input_type -> forge.v1.CreateTemporaryRoleGrantRequest
-	111, // 120: forge.v1.PlatformService.RevokeTemporaryRoleGrant:input_type -> forge.v1.RevokeTemporaryRoleGrantRequest
-	114, // 121: forge.v1.PlatformService.ListFederatedIdentityLinks:input_type -> forge.v1.ListFederatedIdentityLinksRequest
-	116, // 122: forge.v1.PlatformService.LinkFederatedIdentity:input_type -> forge.v1.LinkFederatedIdentityRequest
-	118, // 123: forge.v1.PlatformService.UnlinkFederatedIdentity:input_type -> forge.v1.UnlinkFederatedIdentityRequest
-	122, // 124: forge.v1.PlatformService.ListAccessReviews:input_type -> forge.v1.ListAccessReviewsRequest
-	124, // 125: forge.v1.PlatformService.CreateAccessReview:input_type -> forge.v1.CreateAccessReviewRequest
-	126, // 126: forge.v1.PlatformService.ListAccessReviewItems:input_type -> forge.v1.ListAccessReviewItemsRequest
-	128, // 127: forge.v1.PlatformService.DecideAccessReviewItem:input_type -> forge.v1.DecideAccessReviewItemRequest
-	69,  // 128: forge.v1.PlatformService.ListConfigChanges:input_type -> forge.v1.ListConfigChangesRequest
-	72,  // 129: forge.v1.PlatformService.CreateConfigChange:input_type -> forge.v1.CreateConfigChangeRequest
-	74,  // 130: forge.v1.PlatformService.ApproveConfigChange:input_type -> forge.v1.ApproveConfigChangeRequest
-	76,  // 131: forge.v1.PlatformService.PublishConfigChange:input_type -> forge.v1.PublishConfigChangeRequest
-	78,  // 132: forge.v1.PlatformService.RequestConfigRollback:input_type -> forge.v1.RequestConfigRollbackRequest
-	80,  // 133: forge.v1.PlatformService.RollbackConfigChange:input_type -> forge.v1.RollbackConfigChangeRequest
-	1,   // 134: forge.v1.PlatformService.ListUsers:output_type -> forge.v1.ListUsersResponse
-	3,   // 135: forge.v1.PlatformService.CreateUser:output_type -> forge.v1.CreateUserResponse
-	5,   // 136: forge.v1.PlatformService.ListDepartments:output_type -> forge.v1.ListDepartmentsResponse
-	7,   // 137: forge.v1.PlatformService.CreateDepartment:output_type -> forge.v1.CreateDepartmentResponse
-	9,   // 138: forge.v1.PlatformService.UpdateDepartment:output_type -> forge.v1.UpdateDepartmentResponse
-	11,  // 139: forge.v1.PlatformService.ListPositions:output_type -> forge.v1.ListPositionsResponse
-	13,  // 140: forge.v1.PlatformService.CreatePosition:output_type -> forge.v1.CreatePositionResponse
-	15,  // 141: forge.v1.PlatformService.UpdatePosition:output_type -> forge.v1.UpdatePositionResponse
-	17,  // 142: forge.v1.PlatformService.ListUserGroups:output_type -> forge.v1.ListUserGroupsResponse
-	19,  // 143: forge.v1.PlatformService.CreateUserGroup:output_type -> forge.v1.CreateUserGroupResponse
-	21,  // 144: forge.v1.PlatformService.UpdateUserGroup:output_type -> forge.v1.UpdateUserGroupResponse
-	23,  // 145: forge.v1.PlatformService.UpdateUserGroupMembers:output_type -> forge.v1.UpdateUserGroupMembersResponse
-	25,  // 146: forge.v1.PlatformService.UpdateUserGroupRoles:output_type -> forge.v1.UpdateUserGroupRolesResponse
-	27,  // 147: forge.v1.PlatformService.ListUserAssignments:output_type -> forge.v1.ListUserAssignmentsResponse
-	29,  // 148: forge.v1.PlatformService.ReplaceUserAssignments:output_type -> forge.v1.ReplaceUserAssignmentsResponse
-	33,  // 149: forge.v1.PlatformService.ListUserEffectiveApplicationAccess:output_type -> forge.v1.ListUserEffectiveApplicationAccessResponse
-	35,  // 150: forge.v1.PlatformService.GetOrganization:output_type -> forge.v1.GetOrganizationResponse
-	37,  // 151: forge.v1.PlatformService.UpdateOrganization:output_type -> forge.v1.UpdateOrganizationResponse
-	39,  // 152: forge.v1.PlatformService.GetSecurityPolicy:output_type -> forge.v1.GetSecurityPolicyResponse
-	41,  // 153: forge.v1.PlatformService.UpdateSecurityPolicy:output_type -> forge.v1.UpdateSecurityPolicyResponse
-	43,  // 154: forge.v1.PlatformService.ListRoles:output_type -> forge.v1.ListRolesResponse
-	45,  // 155: forge.v1.PlatformService.CreateRole:output_type -> forge.v1.CreateRoleResponse
-	47,  // 156: forge.v1.PlatformService.UpdateRole:output_type -> forge.v1.UpdateRoleResponse
-	49,  // 157: forge.v1.PlatformService.CopyRole:output_type -> forge.v1.CopyRoleResponse
-	51,  // 158: forge.v1.PlatformService.ListPermissions:output_type -> forge.v1.ListPermissionsResponse
-	53,  // 159: forge.v1.PlatformService.ListMenus:output_type -> forge.v1.ListMenusResponse
-	56,  // 160: forge.v1.PlatformService.UpdateMenu:output_type -> forge.v1.UpdateMenuResponse
-	58,  // 161: forge.v1.PlatformService.ListDataFieldPolicies:output_type -> forge.v1.ListDataFieldPoliciesResponse
-	61,  // 162: forge.v1.PlatformService.UpsertDataFieldPolicy:output_type -> forge.v1.UpsertDataFieldPolicyResponse
-	63,  // 163: forge.v1.PlatformService.AuthorizeDataExport:output_type -> forge.v1.AuthorizeDataExportResponse
-	65,  // 164: forge.v1.PlatformService.ListDataDeletionEvidence:output_type -> forge.v1.ListDataDeletionEvidenceResponse
-	68,  // 165: forge.v1.PlatformService.RecordDataDeletionEvidence:output_type -> forge.v1.RecordDataDeletionEvidenceResponse
-	85,  // 166: forge.v1.PlatformService.UpdateRoleDataScope:output_type -> forge.v1.UpdateRoleDataScopeResponse
-	83,  // 167: forge.v1.PlatformService.UpdateRolePermissions:output_type -> forge.v1.UpdateRolePermissionsResponse
-	87,  // 168: forge.v1.PlatformService.UpdateUserRoles:output_type -> forge.v1.UpdateUserRolesResponse
-	89,  // 169: forge.v1.PlatformService.UpdateUserStatus:output_type -> forge.v1.UpdateUserStatusResponse
-	91,  // 170: forge.v1.PlatformService.UpdateUserEntitlement:output_type -> forge.v1.UpdateUserEntitlementResponse
-	93,  // 171: forge.v1.PlatformService.UnlockUser:output_type -> forge.v1.UnlockUserResponse
-	95,  // 172: forge.v1.PlatformService.ResetUserPassword:output_type -> forge.v1.ResetUserPasswordResponse
-	97,  // 173: forge.v1.PlatformService.ListSessions:output_type -> forge.v1.ListSessionsResponse
-	99,  // 174: forge.v1.PlatformService.RevokeSession:output_type -> forge.v1.RevokeSessionResponse
-	101, // 175: forge.v1.PlatformService.ListAuditLogs:output_type -> forge.v1.ListAuditLogsResponse
-	103, // 176: forge.v1.PlatformService.VerifyAuditIntegrity:output_type -> forge.v1.VerifyAuditIntegrityResponse
-	105, // 177: forge.v1.PlatformService.ExportAuditLogs:output_type -> forge.v1.ExportAuditLogsResponse
-	108, // 178: forge.v1.PlatformService.ListTemporaryRoleGrants:output_type -> forge.v1.ListTemporaryRoleGrantsResponse
-	110, // 179: forge.v1.PlatformService.CreateTemporaryRoleGrant:output_type -> forge.v1.CreateTemporaryRoleGrantResponse
-	112, // 180: forge.v1.PlatformService.RevokeTemporaryRoleGrant:output_type -> forge.v1.RevokeTemporaryRoleGrantResponse
-	115, // 181: forge.v1.PlatformService.ListFederatedIdentityLinks:output_type -> forge.v1.ListFederatedIdentityLinksResponse
-	117, // 182: forge.v1.PlatformService.LinkFederatedIdentity:output_type -> forge.v1.LinkFederatedIdentityResponse
-	119, // 183: forge.v1.PlatformService.UnlinkFederatedIdentity:output_type -> forge.v1.UnlinkFederatedIdentityResponse
-	123, // 184: forge.v1.PlatformService.ListAccessReviews:output_type -> forge.v1.ListAccessReviewsResponse
-	125, // 185: forge.v1.PlatformService.CreateAccessReview:output_type -> forge.v1.CreateAccessReviewResponse
-	127, // 186: forge.v1.PlatformService.ListAccessReviewItems:output_type -> forge.v1.ListAccessReviewItemsResponse
-	129, // 187: forge.v1.PlatformService.DecideAccessReviewItem:output_type -> forge.v1.DecideAccessReviewItemResponse
-	70,  // 188: forge.v1.PlatformService.ListConfigChanges:output_type -> forge.v1.ListConfigChangesResponse
-	73,  // 189: forge.v1.PlatformService.CreateConfigChange:output_type -> forge.v1.CreateConfigChangeResponse
-	75,  // 190: forge.v1.PlatformService.ApproveConfigChange:output_type -> forge.v1.ApproveConfigChangeResponse
-	77,  // 191: forge.v1.PlatformService.PublishConfigChange:output_type -> forge.v1.PublishConfigChangeResponse
-	79,  // 192: forge.v1.PlatformService.RequestConfigRollback:output_type -> forge.v1.RequestConfigRollbackResponse
-	81,  // 193: forge.v1.PlatformService.RollbackConfigChange:output_type -> forge.v1.RollbackConfigChangeResponse
-	134, // [134:194] is the sub-list for method output_type
-	74,  // [74:134] is the sub-list for method input_type
-	74,  // [74:74] is the sub-list for extension type_name
-	74,  // [74:74] is the sub-list for extension extendee
-	0,   // [0:74] is the sub-list for field type_name
+	140, // 52: forge.v1.ListAuditLogsRequest.from:type_name -> google.protobuf.Timestamp
+	140, // 53: forge.v1.ListAuditLogsRequest.to:type_name -> google.protobuf.Timestamp
+	142, // 54: forge.v1.ListAuditLogsResponse.events:type_name -> forge.v1.AuditEvent
+	140, // 55: forge.v1.TemporaryRoleGrant.valid_from:type_name -> google.protobuf.Timestamp
+	140, // 56: forge.v1.TemporaryRoleGrant.valid_until:type_name -> google.protobuf.Timestamp
+	140, // 57: forge.v1.TemporaryRoleGrant.revoked_at:type_name -> google.protobuf.Timestamp
+	140, // 58: forge.v1.TemporaryRoleGrant.created_at:type_name -> google.protobuf.Timestamp
+	106, // 59: forge.v1.ListTemporaryRoleGrantsResponse.grants:type_name -> forge.v1.TemporaryRoleGrant
+	140, // 60: forge.v1.CreateTemporaryRoleGrantRequest.valid_from:type_name -> google.protobuf.Timestamp
+	140, // 61: forge.v1.CreateTemporaryRoleGrantRequest.valid_until:type_name -> google.protobuf.Timestamp
+	106, // 62: forge.v1.CreateTemporaryRoleGrantResponse.grant:type_name -> forge.v1.TemporaryRoleGrant
+	140, // 63: forge.v1.FederatedIdentityLink.created_at:type_name -> google.protobuf.Timestamp
+	140, // 64: forge.v1.FederatedIdentityLink.last_authenticated_at:type_name -> google.protobuf.Timestamp
+	113, // 65: forge.v1.ListFederatedIdentityLinksResponse.links:type_name -> forge.v1.FederatedIdentityLink
+	113, // 66: forge.v1.LinkFederatedIdentityResponse.link:type_name -> forge.v1.FederatedIdentityLink
+	140, // 67: forge.v1.AccessReview.due_at:type_name -> google.protobuf.Timestamp
+	140, // 68: forge.v1.AccessReview.created_at:type_name -> google.protobuf.Timestamp
+	140, // 69: forge.v1.AccessReview.completed_at:type_name -> google.protobuf.Timestamp
+	140, // 70: forge.v1.AccessReviewItem.decided_at:type_name -> google.protobuf.Timestamp
+	140, // 71: forge.v1.AccessReviewItem.created_at:type_name -> google.protobuf.Timestamp
+	120, // 72: forge.v1.ListAccessReviewsResponse.reviews:type_name -> forge.v1.AccessReview
+	140, // 73: forge.v1.CreateAccessReviewRequest.due_at:type_name -> google.protobuf.Timestamp
+	120, // 74: forge.v1.CreateAccessReviewResponse.review:type_name -> forge.v1.AccessReview
+	121, // 75: forge.v1.ListAccessReviewItemsResponse.items:type_name -> forge.v1.AccessReviewItem
+	0,   // 76: forge.v1.PlatformService.ListUsers:input_type -> forge.v1.ListUsersRequest
+	2,   // 77: forge.v1.PlatformService.CreateUser:input_type -> forge.v1.CreateUserRequest
+	4,   // 78: forge.v1.PlatformService.ListDepartments:input_type -> forge.v1.ListDepartmentsRequest
+	6,   // 79: forge.v1.PlatformService.CreateDepartment:input_type -> forge.v1.CreateDepartmentRequest
+	8,   // 80: forge.v1.PlatformService.UpdateDepartment:input_type -> forge.v1.UpdateDepartmentRequest
+	10,  // 81: forge.v1.PlatformService.ListPositions:input_type -> forge.v1.ListPositionsRequest
+	12,  // 82: forge.v1.PlatformService.CreatePosition:input_type -> forge.v1.CreatePositionRequest
+	14,  // 83: forge.v1.PlatformService.UpdatePosition:input_type -> forge.v1.UpdatePositionRequest
+	16,  // 84: forge.v1.PlatformService.ListUserGroups:input_type -> forge.v1.ListUserGroupsRequest
+	18,  // 85: forge.v1.PlatformService.CreateUserGroup:input_type -> forge.v1.CreateUserGroupRequest
+	20,  // 86: forge.v1.PlatformService.UpdateUserGroup:input_type -> forge.v1.UpdateUserGroupRequest
+	22,  // 87: forge.v1.PlatformService.UpdateUserGroupMembers:input_type -> forge.v1.UpdateUserGroupMembersRequest
+	24,  // 88: forge.v1.PlatformService.UpdateUserGroupRoles:input_type -> forge.v1.UpdateUserGroupRolesRequest
+	26,  // 89: forge.v1.PlatformService.ListUserAssignments:input_type -> forge.v1.ListUserAssignmentsRequest
+	28,  // 90: forge.v1.PlatformService.ReplaceUserAssignments:input_type -> forge.v1.ReplaceUserAssignmentsRequest
+	30,  // 91: forge.v1.PlatformService.ListUserEffectiveApplicationAccess:input_type -> forge.v1.ListUserEffectiveApplicationAccessRequest
+	34,  // 92: forge.v1.PlatformService.GetOrganization:input_type -> forge.v1.GetOrganizationRequest
+	36,  // 93: forge.v1.PlatformService.UpdateOrganization:input_type -> forge.v1.UpdateOrganizationRequest
+	38,  // 94: forge.v1.PlatformService.GetSecurityPolicy:input_type -> forge.v1.GetSecurityPolicyRequest
+	40,  // 95: forge.v1.PlatformService.UpdateSecurityPolicy:input_type -> forge.v1.UpdateSecurityPolicyRequest
+	42,  // 96: forge.v1.PlatformService.ListRoles:input_type -> forge.v1.ListRolesRequest
+	44,  // 97: forge.v1.PlatformService.CreateRole:input_type -> forge.v1.CreateRoleRequest
+	46,  // 98: forge.v1.PlatformService.UpdateRole:input_type -> forge.v1.UpdateRoleRequest
+	48,  // 99: forge.v1.PlatformService.CopyRole:input_type -> forge.v1.CopyRoleRequest
+	50,  // 100: forge.v1.PlatformService.ListPermissions:input_type -> forge.v1.ListPermissionsRequest
+	52,  // 101: forge.v1.PlatformService.ListMenus:input_type -> forge.v1.ListMenusRequest
+	55,  // 102: forge.v1.PlatformService.UpdateMenu:input_type -> forge.v1.UpdateMenuRequest
+	57,  // 103: forge.v1.PlatformService.ListDataFieldPolicies:input_type -> forge.v1.ListDataFieldPoliciesRequest
+	60,  // 104: forge.v1.PlatformService.UpsertDataFieldPolicy:input_type -> forge.v1.UpsertDataFieldPolicyRequest
+	62,  // 105: forge.v1.PlatformService.AuthorizeDataExport:input_type -> forge.v1.AuthorizeDataExportRequest
+	64,  // 106: forge.v1.PlatformService.ListDataDeletionEvidence:input_type -> forge.v1.ListDataDeletionEvidenceRequest
+	67,  // 107: forge.v1.PlatformService.RecordDataDeletionEvidence:input_type -> forge.v1.RecordDataDeletionEvidenceRequest
+	84,  // 108: forge.v1.PlatformService.UpdateRoleDataScope:input_type -> forge.v1.UpdateRoleDataScopeRequest
+	82,  // 109: forge.v1.PlatformService.UpdateRolePermissions:input_type -> forge.v1.UpdateRolePermissionsRequest
+	86,  // 110: forge.v1.PlatformService.UpdateUserRoles:input_type -> forge.v1.UpdateUserRolesRequest
+	88,  // 111: forge.v1.PlatformService.UpdateUserStatus:input_type -> forge.v1.UpdateUserStatusRequest
+	90,  // 112: forge.v1.PlatformService.UpdateUserEntitlement:input_type -> forge.v1.UpdateUserEntitlementRequest
+	92,  // 113: forge.v1.PlatformService.UnlockUser:input_type -> forge.v1.UnlockUserRequest
+	94,  // 114: forge.v1.PlatformService.ResetUserPassword:input_type -> forge.v1.ResetUserPasswordRequest
+	96,  // 115: forge.v1.PlatformService.ListSessions:input_type -> forge.v1.ListSessionsRequest
+	98,  // 116: forge.v1.PlatformService.RevokeSession:input_type -> forge.v1.RevokeSessionRequest
+	100, // 117: forge.v1.PlatformService.ListAuditLogs:input_type -> forge.v1.ListAuditLogsRequest
+	102, // 118: forge.v1.PlatformService.VerifyAuditIntegrity:input_type -> forge.v1.VerifyAuditIntegrityRequest
+	104, // 119: forge.v1.PlatformService.ExportAuditLogs:input_type -> forge.v1.ExportAuditLogsRequest
+	107, // 120: forge.v1.PlatformService.ListTemporaryRoleGrants:input_type -> forge.v1.ListTemporaryRoleGrantsRequest
+	109, // 121: forge.v1.PlatformService.CreateTemporaryRoleGrant:input_type -> forge.v1.CreateTemporaryRoleGrantRequest
+	111, // 122: forge.v1.PlatformService.RevokeTemporaryRoleGrant:input_type -> forge.v1.RevokeTemporaryRoleGrantRequest
+	114, // 123: forge.v1.PlatformService.ListFederatedIdentityLinks:input_type -> forge.v1.ListFederatedIdentityLinksRequest
+	116, // 124: forge.v1.PlatformService.LinkFederatedIdentity:input_type -> forge.v1.LinkFederatedIdentityRequest
+	118, // 125: forge.v1.PlatformService.UnlinkFederatedIdentity:input_type -> forge.v1.UnlinkFederatedIdentityRequest
+	122, // 126: forge.v1.PlatformService.ListAccessReviews:input_type -> forge.v1.ListAccessReviewsRequest
+	124, // 127: forge.v1.PlatformService.CreateAccessReview:input_type -> forge.v1.CreateAccessReviewRequest
+	126, // 128: forge.v1.PlatformService.ListAccessReviewItems:input_type -> forge.v1.ListAccessReviewItemsRequest
+	128, // 129: forge.v1.PlatformService.DecideAccessReviewItem:input_type -> forge.v1.DecideAccessReviewItemRequest
+	69,  // 130: forge.v1.PlatformService.ListConfigChanges:input_type -> forge.v1.ListConfigChangesRequest
+	72,  // 131: forge.v1.PlatformService.CreateConfigChange:input_type -> forge.v1.CreateConfigChangeRequest
+	74,  // 132: forge.v1.PlatformService.ApproveConfigChange:input_type -> forge.v1.ApproveConfigChangeRequest
+	76,  // 133: forge.v1.PlatformService.PublishConfigChange:input_type -> forge.v1.PublishConfigChangeRequest
+	78,  // 134: forge.v1.PlatformService.RequestConfigRollback:input_type -> forge.v1.RequestConfigRollbackRequest
+	80,  // 135: forge.v1.PlatformService.RollbackConfigChange:input_type -> forge.v1.RollbackConfigChangeRequest
+	1,   // 136: forge.v1.PlatformService.ListUsers:output_type -> forge.v1.ListUsersResponse
+	3,   // 137: forge.v1.PlatformService.CreateUser:output_type -> forge.v1.CreateUserResponse
+	5,   // 138: forge.v1.PlatformService.ListDepartments:output_type -> forge.v1.ListDepartmentsResponse
+	7,   // 139: forge.v1.PlatformService.CreateDepartment:output_type -> forge.v1.CreateDepartmentResponse
+	9,   // 140: forge.v1.PlatformService.UpdateDepartment:output_type -> forge.v1.UpdateDepartmentResponse
+	11,  // 141: forge.v1.PlatformService.ListPositions:output_type -> forge.v1.ListPositionsResponse
+	13,  // 142: forge.v1.PlatformService.CreatePosition:output_type -> forge.v1.CreatePositionResponse
+	15,  // 143: forge.v1.PlatformService.UpdatePosition:output_type -> forge.v1.UpdatePositionResponse
+	17,  // 144: forge.v1.PlatformService.ListUserGroups:output_type -> forge.v1.ListUserGroupsResponse
+	19,  // 145: forge.v1.PlatformService.CreateUserGroup:output_type -> forge.v1.CreateUserGroupResponse
+	21,  // 146: forge.v1.PlatformService.UpdateUserGroup:output_type -> forge.v1.UpdateUserGroupResponse
+	23,  // 147: forge.v1.PlatformService.UpdateUserGroupMembers:output_type -> forge.v1.UpdateUserGroupMembersResponse
+	25,  // 148: forge.v1.PlatformService.UpdateUserGroupRoles:output_type -> forge.v1.UpdateUserGroupRolesResponse
+	27,  // 149: forge.v1.PlatformService.ListUserAssignments:output_type -> forge.v1.ListUserAssignmentsResponse
+	29,  // 150: forge.v1.PlatformService.ReplaceUserAssignments:output_type -> forge.v1.ReplaceUserAssignmentsResponse
+	33,  // 151: forge.v1.PlatformService.ListUserEffectiveApplicationAccess:output_type -> forge.v1.ListUserEffectiveApplicationAccessResponse
+	35,  // 152: forge.v1.PlatformService.GetOrganization:output_type -> forge.v1.GetOrganizationResponse
+	37,  // 153: forge.v1.PlatformService.UpdateOrganization:output_type -> forge.v1.UpdateOrganizationResponse
+	39,  // 154: forge.v1.PlatformService.GetSecurityPolicy:output_type -> forge.v1.GetSecurityPolicyResponse
+	41,  // 155: forge.v1.PlatformService.UpdateSecurityPolicy:output_type -> forge.v1.UpdateSecurityPolicyResponse
+	43,  // 156: forge.v1.PlatformService.ListRoles:output_type -> forge.v1.ListRolesResponse
+	45,  // 157: forge.v1.PlatformService.CreateRole:output_type -> forge.v1.CreateRoleResponse
+	47,  // 158: forge.v1.PlatformService.UpdateRole:output_type -> forge.v1.UpdateRoleResponse
+	49,  // 159: forge.v1.PlatformService.CopyRole:output_type -> forge.v1.CopyRoleResponse
+	51,  // 160: forge.v1.PlatformService.ListPermissions:output_type -> forge.v1.ListPermissionsResponse
+	53,  // 161: forge.v1.PlatformService.ListMenus:output_type -> forge.v1.ListMenusResponse
+	56,  // 162: forge.v1.PlatformService.UpdateMenu:output_type -> forge.v1.UpdateMenuResponse
+	58,  // 163: forge.v1.PlatformService.ListDataFieldPolicies:output_type -> forge.v1.ListDataFieldPoliciesResponse
+	61,  // 164: forge.v1.PlatformService.UpsertDataFieldPolicy:output_type -> forge.v1.UpsertDataFieldPolicyResponse
+	63,  // 165: forge.v1.PlatformService.AuthorizeDataExport:output_type -> forge.v1.AuthorizeDataExportResponse
+	65,  // 166: forge.v1.PlatformService.ListDataDeletionEvidence:output_type -> forge.v1.ListDataDeletionEvidenceResponse
+	68,  // 167: forge.v1.PlatformService.RecordDataDeletionEvidence:output_type -> forge.v1.RecordDataDeletionEvidenceResponse
+	85,  // 168: forge.v1.PlatformService.UpdateRoleDataScope:output_type -> forge.v1.UpdateRoleDataScopeResponse
+	83,  // 169: forge.v1.PlatformService.UpdateRolePermissions:output_type -> forge.v1.UpdateRolePermissionsResponse
+	87,  // 170: forge.v1.PlatformService.UpdateUserRoles:output_type -> forge.v1.UpdateUserRolesResponse
+	89,  // 171: forge.v1.PlatformService.UpdateUserStatus:output_type -> forge.v1.UpdateUserStatusResponse
+	91,  // 172: forge.v1.PlatformService.UpdateUserEntitlement:output_type -> forge.v1.UpdateUserEntitlementResponse
+	93,  // 173: forge.v1.PlatformService.UnlockUser:output_type -> forge.v1.UnlockUserResponse
+	95,  // 174: forge.v1.PlatformService.ResetUserPassword:output_type -> forge.v1.ResetUserPasswordResponse
+	97,  // 175: forge.v1.PlatformService.ListSessions:output_type -> forge.v1.ListSessionsResponse
+	99,  // 176: forge.v1.PlatformService.RevokeSession:output_type -> forge.v1.RevokeSessionResponse
+	101, // 177: forge.v1.PlatformService.ListAuditLogs:output_type -> forge.v1.ListAuditLogsResponse
+	103, // 178: forge.v1.PlatformService.VerifyAuditIntegrity:output_type -> forge.v1.VerifyAuditIntegrityResponse
+	105, // 179: forge.v1.PlatformService.ExportAuditLogs:output_type -> forge.v1.ExportAuditLogsResponse
+	108, // 180: forge.v1.PlatformService.ListTemporaryRoleGrants:output_type -> forge.v1.ListTemporaryRoleGrantsResponse
+	110, // 181: forge.v1.PlatformService.CreateTemporaryRoleGrant:output_type -> forge.v1.CreateTemporaryRoleGrantResponse
+	112, // 182: forge.v1.PlatformService.RevokeTemporaryRoleGrant:output_type -> forge.v1.RevokeTemporaryRoleGrantResponse
+	115, // 183: forge.v1.PlatformService.ListFederatedIdentityLinks:output_type -> forge.v1.ListFederatedIdentityLinksResponse
+	117, // 184: forge.v1.PlatformService.LinkFederatedIdentity:output_type -> forge.v1.LinkFederatedIdentityResponse
+	119, // 185: forge.v1.PlatformService.UnlinkFederatedIdentity:output_type -> forge.v1.UnlinkFederatedIdentityResponse
+	123, // 186: forge.v1.PlatformService.ListAccessReviews:output_type -> forge.v1.ListAccessReviewsResponse
+	125, // 187: forge.v1.PlatformService.CreateAccessReview:output_type -> forge.v1.CreateAccessReviewResponse
+	127, // 188: forge.v1.PlatformService.ListAccessReviewItems:output_type -> forge.v1.ListAccessReviewItemsResponse
+	129, // 189: forge.v1.PlatformService.DecideAccessReviewItem:output_type -> forge.v1.DecideAccessReviewItemResponse
+	70,  // 190: forge.v1.PlatformService.ListConfigChanges:output_type -> forge.v1.ListConfigChangesResponse
+	73,  // 191: forge.v1.PlatformService.CreateConfigChange:output_type -> forge.v1.CreateConfigChangeResponse
+	75,  // 192: forge.v1.PlatformService.ApproveConfigChange:output_type -> forge.v1.ApproveConfigChangeResponse
+	77,  // 193: forge.v1.PlatformService.PublishConfigChange:output_type -> forge.v1.PublishConfigChangeResponse
+	79,  // 194: forge.v1.PlatformService.RequestConfigRollback:output_type -> forge.v1.RequestConfigRollbackResponse
+	81,  // 195: forge.v1.PlatformService.RollbackConfigChange:output_type -> forge.v1.RollbackConfigChangeResponse
+	136, // [136:196] is the sub-list for method output_type
+	76,  // [76:136] is the sub-list for method input_type
+	76,  // [76:76] is the sub-list for extension type_name
+	76,  // [76:76] is the sub-list for extension extendee
+	0,   // [0:76] is the sub-list for field type_name
 }
 
 func init() { file_forge_v1_platform_proto_init() }

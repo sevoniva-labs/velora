@@ -845,12 +845,34 @@ func (s *PlatformService) ListAuditLogs(ctx context.Context, req *forgev1.ListAu
 	if err != nil {
 		return nil, err
 	}
-	limit := int(req.GetLimit())
-	events, err := s.audit.List(ctx, principal.OrganizationID, limit)
+	page := int(req.GetPage())
+	pageSize := int(req.GetPageSize())
+	if page < 1 {
+		page = 1
+	}
+	if pageSize < 1 {
+		pageSize = int(req.GetLimit())
+	}
+	if pageSize < 1 {
+		pageSize = 20
+	}
+	if pageSize > 200 {
+		pageSize = 200
+	}
+	var from, to *time.Time
+	if req.GetFrom() != nil {
+		value := req.GetFrom().AsTime()
+		from = &value
+	}
+	if req.GetTo() != nil {
+		value := req.GetTo().AsTime()
+		to = &value
+	}
+	events, total, err := s.audit.ListPage(ctx, principal.OrganizationID, audit.ListQuery{Page: page, PageSize: pageSize, Operator: req.GetOperator(), Action: req.GetAction(), ResourceType: req.GetResourceType(), ResourceID: req.GetResourceId(), Result: req.GetResult(), From: from, To: to})
 	if err != nil {
 		return nil, internalError(err)
 	}
-	reply := &forgev1.ListAuditLogsResponse{Events: make([]*forgev1.AuditEvent, 0, len(events))}
+	reply := &forgev1.ListAuditLogsResponse{Events: make([]*forgev1.AuditEvent, 0, len(events)), Total: total, Page: int32(page), PageSize: int32(pageSize)} // #nosec G115 -- pagination values are bounded above.
 	for _, event := range events {
 		reply.Events = append(reply.Events, auditEventProto(event))
 	}

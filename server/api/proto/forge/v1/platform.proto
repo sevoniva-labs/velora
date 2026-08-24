@@ -1335,9 +1335,21 @@ message RevokeSessionResponse {}
 
 message ListAuditLogsRequest {
   int32 limit = 1;
+  int32 page = 2;
+  int32 page_size = 3;
+  string operator = 4;
+  string action = 5;
+  string resource_type = 6;
+  string result = 7;
+  google.protobuf.Timestamp from = 8;
+  google.protobuf.Timestamp to = 9;
+  string resource_id = 10;
 }
 message ListAuditLogsResponse {
   repeated AuditEvent events = 1;
+  int64 total = 2;
+  int32 page = 3;
+  int32 page_size = 4;
 }
 message VerifyAuditIntegrityRequest {}
 message VerifyAuditIntegrityResponse { bool verified = 1; }

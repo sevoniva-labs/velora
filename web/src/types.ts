@@ -468,6 +468,7 @@ export interface AuditLog {
   id: number
   operator: string
   action: string
+  result: string
   resource: string
   resourceId: string
   ip: string

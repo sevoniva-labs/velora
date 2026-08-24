@@ -179,6 +179,18 @@ export function auditActionLabel(action: string): string {
   return AUDIT_ACTION_LABEL[action] ?? action
 }
 
+export const AUDIT_RESOURCE_LABEL: Record<string, string> = {
+  user: '用户', role: '平台角色', session: '在线会话', api_token: '服务账号',
+  portal_application: '应用', portal_category: '应用分类', portal_tag: '应用标签',
+  application_access: '应用访问范围', identity_integration: '统一登录配置',
+  approval: '审批', temporary_role_grant: '临时授权', access_review: '访问复核',
+  config_change: '配置版本', identity_console: '身份引擎应急入口',
+}
+
+export function auditResourceLabel(resource: string): string {
+  return AUDIT_RESOURCE_LABEL[resource] ?? '其他对象'
+}
+
 export const APPROVAL_TYPE_LABEL: Record<string, string> = {
   APPLICATION_ACCESS_CHANGE: '应用访问变更',
   TEMPORARY_ROLE_GRANT: '临时授权',

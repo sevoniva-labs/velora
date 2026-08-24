@@ -108,6 +108,46 @@ paths:
                   schema:
                     type: integer
                     format: int32
+                - name: page
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+                - name: pageSize
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+                - name: operator
+                  in: query
+                  schema:
+                    type: string
+                - name: action
+                  in: query
+                  schema:
+                    type: string
+                - name: resourceType
+                  in: query
+                  schema:
+                    type: string
+                - name: result
+                  in: query
+                  schema:
+                    type: string
+                - name: from
+                  in: query
+                  schema:
+                    type: string
+                    format: date-time
+                - name: to
+                  in: query
+                  schema:
+                    type: string
+                    format: date-time
+                - name: resourceId
+                  in: query
+                  schema:
+                    type: string
             responses:
                 "200":
                     description: OK
@@ -3958,6 +3998,14 @@ components:
                     type: array
                     items:
                         $ref: '#/components/schemas/forge.v1.AuditEvent'
+                total:
+                    type: string
+                page:
+                    type: integer
+                    format: int32
+                pageSize:
+                    type: integer
+                    format: int32
         forge.v1.ListConfigChangesResponse:
             type: object
             properties:

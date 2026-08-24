@@ -343,7 +343,7 @@ func (s *PortalService) ListAdminPortalApplications(ctx context.Context, req *fo
 func adminApplicationPageSize(req *forgev1.ListAdminPortalApplicationsRequest) int {
 	pageSize := int(req.GetPageSize())
 	//lint:ignore SA1019 Deprecated wire field is intentionally read for one compatibility release.
-	legacyLimit := req.GetLimit()
+	legacyLimit := req.GetLimit() //nolint:staticcheck // See the staticcheck compatibility directive above.
 	if pageSize == 0 && legacyLimit > 0 {
 		return int(legacyLimit)
 	}

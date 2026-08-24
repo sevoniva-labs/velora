@@ -91,9 +91,9 @@ Chromium，再执行 `make -C server ci-web-e2e`。默认同时验证桌面与�
 - 对全部使用静态 `dataSource` 的 ProTable 页面复查查询行为，统一补齐真实筛选与重置。
 - 修正工作台就绪接口路径和受限管理员工作台入口，避免错误健康状态和无入口页面。
 - 保持既有顶栏、分组菜单、主题 Token 和 ProComponents 页面结构，仅调整应用概览内边距。
-- 完整门禁结果：Web 71 项单测；Playwright 34 项展开结果为 22 通过、12 预期跳过、0 失败；
+- 完整门禁结果：Web 71 项单测；Playwright 38 项展开结果为 24 通过、14 预期跳过、0 失败；
   Go 测试、race、SAST、依赖/泄密扫描、构建和包体预算全部通过。
-- 生产版本 `0.2.0+f29246a54799` 已部署；Server、Worker、Web revision 一致，五项就绪依赖均为
+- 生产版本 `0.2.0+2d0c8f6baa4a` 已部署；Server、Worker、Web revision 一致，五项就绪依赖均为
   `UP`，OIDC discovery、Demo、Spectra 与综合巡检通过。
 
 ## 三、提交与回滚策略

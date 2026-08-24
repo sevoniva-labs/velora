@@ -40,7 +40,7 @@ export default function Roles() {
     { title: '权限数', dataIndex: 'permissions', search: false, width: 100, render: (_, row) => `${row.permissions.length} 项` },
     { title: '数据范围', dataIndex: 'dataScope', valueType: 'select', valueEnum: Object.fromEntries(Object.entries(DATA_SCOPE_LABELS).map(([key, text]) => [key, { text }])), render: (_, row) => <Tag>{DATA_SCOPE_LABELS[row.dataScope] ?? '自定义'}</Tag> },
     { title: '状态', dataIndex: 'status', valueType: 'select', valueEnum: { ACTIVE: { text: '启用', status: 'Success' }, DISABLED: { text: '停用', status: 'Default' } }, width: 90 },
-    { title: '操作', valueType: 'option', width: 250, render: (_, row) => <Space><Button type="link" onClick={() => setPermissionRole(row)}>配置权限</Button><Button type="link" onClick={() => setScopeRole(row)}>数据范围</Button><Button type="link" onClick={() => setEditRole(row)}>编辑</Button><Button type="link" onClick={() => setCopyRole(row)}>复制</Button></Space> },
+    { title: '操作', valueType: 'option', width: 320, render: (_, row) => <Space className="table-action-cell"><Button type="link" onClick={() => setPermissionRole(row)}>配置权限</Button><Button type="link" onClick={() => setScopeRole(row)}>数据范围</Button><Button type="link" onClick={() => setEditRole(row)}>编辑</Button><Button type="link" onClick={() => setCopyRole(row)}>复制</Button></Space> },
   ]
   const approverOptions = (users.data ?? []).filter((item) => item.status === 'ACTIVE' && item.id !== me.data?.id).map((item) => ({ label: item.displayName || item.loginName, value: item.id }))
 

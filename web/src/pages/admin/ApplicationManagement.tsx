@@ -1,10 +1,11 @@
 import { useState } from 'react'
-import { Empty, Space, Tag } from 'antd'
+import { Empty, Skeleton, Space, Tag } from 'antd'
 import { PageContainer, ProCard, ProDescriptions, StatisticCard } from '@ant-design/pro-components'
 import { useQuery } from '@tanstack/react-query'
-import { useParams } from 'react-router-dom'
-import { adminGetApplicationProvisioningTarget, adminListApplications, queryKeys } from '../../api/api'
+import { useNavigate, useParams } from 'react-router-dom'
+import { adminGetApplicationProvisioningTarget, getApplicationOnboarding, queryKeys } from '../../api/api'
 import { listApplicationEffectiveAccess } from '../../api/admin-platform'
+import QueryErrorState from '../../components/QueryErrorState'
 import { APP_LIFECYCLE_COLOR, APP_LIFECYCLE_LABEL, APP_STATUS_LABEL, enumLabel } from '../../labels'
 import { usePageTitle } from '../../hooks/usePageTitle'
 import ApplicationAccess from './ApplicationAccess'
@@ -16,14 +17,17 @@ import ApplicationHistory from './ApplicationHistory'
 
 export default function ApplicationManagement() {
   const { id = '' } = useParams()
+  const navigate = useNavigate()
   const [tab, setTab] = useState('overview')
-  const applications = useQuery({ queryKey: queryKeys.adminApplications({ detail: id }), queryFn: () => adminListApplications({ page: 1, pageSize: 500 }) })
-  const application = applications.data?.items.find((item) => String(item.id) === id)
+  const onboarding = useQuery({ queryKey: queryKeys.applicationOnboarding(id), queryFn: () => getApplicationOnboarding(id), enabled: Boolean(id) })
+  const application = onboarding.data?.application
   const effectiveAccess = useQuery({ queryKey: ['admin', 'applications', id, 'effective-access'], queryFn: () => listApplicationEffectiveAccess(id), enabled: Boolean(id) })
   const provisioning = useQuery({ queryKey: queryKeys.applicationProvisioningTarget(id), queryFn: () => adminGetApplicationProvisioningTarget(id), enabled: Boolean(id) })
   usePageTitle(application?.name || '应用管理')
-  if (!applications.isLoading && !application) return <PageContainer title="应用管理"><Empty description="应用不存在或已归档" /></PageContainer>
-  return <PageContainer title={application?.name || '应用管理'} subTitle={application?.code} onBack={() => history.back()} tabList={[{ key: 'overview', tab: '概览' }, { key: 'information', tab: '应用信息' }, { key: 'login', tab: '登录配置' }, { key: 'access', tab: '角色与访问' }, { key: 'provisioning', tab: '账号同步' }, { key: 'release', tab: '验证与发布' }, { key: 'history', tab: '变更记录' }]} tabActiveKey={tab} onTabChange={setTab}>
+  if (onboarding.isLoading) return <PageContainer title="应用管理" onBack={() => navigate('/admin/applications')}><div className="velora-admin-page-card"><Skeleton active /></div></PageContainer>
+  if (onboarding.isError) return <PageContainer title="应用管理" onBack={() => navigate('/admin/applications')}><QueryErrorState refetch={() => void onboarding.refetch()} /></PageContainer>
+  if (!application) return <PageContainer title="应用管理" onBack={() => navigate('/admin/applications')}><Empty description="应用不存在或已归档" /></PageContainer>
+  return <PageContainer title={application.name} subTitle={application.code} onBack={() => navigate('/admin/applications')} tabList={[{ key: 'overview', tab: '概览' }, { key: 'information', tab: '应用信息' }, { key: 'login', tab: '登录配置' }, { key: 'access', tab: '角色与访问' }, { key: 'provisioning', tab: '账号同步' }, { key: 'release', tab: '验证与发布' }, { key: 'history', tab: '变更记录' }]} tabActiveKey={tab} onTabChange={setTab}>
     {tab === 'overview' && application && <Space direction="vertical" size={16} style={{ width: '100%' }}>
       <ProCard gutter={16} wrap><StatisticCard statistic={{ title: '接入状态', value: enumLabel(APP_LIFECYCLE_LABEL, application.lifecycleStatus, '草稿') }} /><StatisticCard statistic={{ title: '有效用户', value: effectiveAccess.data?.length ?? 0 }} /><StatisticCard statistic={{ title: '账号同步', value: provisioning.data?.deliveryStatus === 'HEALTHY' ? '正常' : ['DEGRADED', 'FAILED'].includes(provisioning.data?.deliveryStatus ?? '') ? '异常' : provisioning.data ? '等待同步' : '未配置' }} /></ProCard>
       <ProDescriptions dataSource={application} column={2} columns={[{ title: '应用名称', dataIndex: 'name' }, { title: '应用编码', dataIndex: 'code' }, { title: '接入状态', dataIndex: 'lifecycleStatus', render: (_, row) => <Tag color={APP_LIFECYCLE_COLOR[row.lifecycleStatus ?? '']}>{enumLabel(APP_LIFECYCLE_LABEL, row.lifecycleStatus, '草稿')}</Tag> }, { title: '运行状态', dataIndex: 'status', render: (_, row) => <Tag color={row.status === 'ENABLED' ? 'success' : 'default'}>{APP_STATUS_LABEL[row.status]}</Tag> }, { title: '主页地址', dataIndex: 'homeUrl', render: (_, row) => row.homeUrl || '—' }, { title: '说明', dataIndex: 'description', render: (_, row) => row.description || '—' }]} />

@@ -20,6 +20,7 @@ const _ = grpc.SupportPackageIsVersion9
 
 const (
 	PlatformService_ListUsers_FullMethodName                          = "/forge.v1.PlatformService/ListUsers"
+	PlatformService_GetUser_FullMethodName                            = "/forge.v1.PlatformService/GetUser"
 	PlatformService_CreateUser_FullMethodName                         = "/forge.v1.PlatformService/CreateUser"
 	PlatformService_ListDepartments_FullMethodName                    = "/forge.v1.PlatformService/ListDepartments"
 	PlatformService_CreateDepartment_FullMethodName                   = "/forge.v1.PlatformService/CreateDepartment"
@@ -86,6 +87,7 @@ const (
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type PlatformServiceClient interface {
 	ListUsers(ctx context.Context, in *ListUsersRequest, opts ...grpc.CallOption) (*ListUsersResponse, error)
+	GetUser(ctx context.Context, in *GetUserRequest, opts ...grpc.CallOption) (*GetUserResponse, error)
 	CreateUser(ctx context.Context, in *CreateUserRequest, opts ...grpc.CallOption) (*CreateUserResponse, error)
 	ListDepartments(ctx context.Context, in *ListDepartmentsRequest, opts ...grpc.CallOption) (*ListDepartmentsResponse, error)
 	CreateDepartment(ctx context.Context, in *CreateDepartmentRequest, opts ...grpc.CallOption) (*CreateDepartmentResponse, error)
@@ -160,6 +162,16 @@ func (c *platformServiceClient) ListUsers(ctx context.Context, in *ListUsersRequ
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(ListUsersResponse)
 	err := c.cc.Invoke(ctx, PlatformService_ListUsers_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *platformServiceClient) GetUser(ctx context.Context, in *GetUserRequest, opts ...grpc.CallOption) (*GetUserResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetUserResponse)
+	err := c.cc.Invoke(ctx, PlatformService_GetUser_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -762,6 +774,7 @@ func (c *platformServiceClient) RollbackConfigChange(ctx context.Context, in *Ro
 // for forward compatibility.
 type PlatformServiceServer interface {
 	ListUsers(context.Context, *ListUsersRequest) (*ListUsersResponse, error)
+	GetUser(context.Context, *GetUserRequest) (*GetUserResponse, error)
 	CreateUser(context.Context, *CreateUserRequest) (*CreateUserResponse, error)
 	ListDepartments(context.Context, *ListDepartmentsRequest) (*ListDepartmentsResponse, error)
 	CreateDepartment(context.Context, *CreateDepartmentRequest) (*CreateDepartmentResponse, error)
@@ -834,6 +847,9 @@ type UnimplementedPlatformServiceServer struct{}
 
 func (UnimplementedPlatformServiceServer) ListUsers(context.Context, *ListUsersRequest) (*ListUsersResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ListUsers not implemented")
+}
+func (UnimplementedPlatformServiceServer) GetUser(context.Context, *GetUserRequest) (*GetUserResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetUser not implemented")
 }
 func (UnimplementedPlatformServiceServer) CreateUser(context.Context, *CreateUserRequest) (*CreateUserResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method CreateUser not implemented")
@@ -1047,6 +1063,24 @@ func _PlatformService_ListUsers_Handler(srv interface{}, ctx context.Context, de
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(PlatformServiceServer).ListUsers(ctx, req.(*ListUsersRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _PlatformService_GetUser_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetUserRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PlatformServiceServer).GetUser(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: PlatformService_GetUser_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PlatformServiceServer).GetUser(ctx, req.(*GetUserRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -2123,6 +2157,10 @@ var PlatformService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ListUsers",
 			Handler:    _PlatformService_ListUsers_Handler,
+		},
+		{
+			MethodName: "GetUser",
+			Handler:    _PlatformService_GetUser_Handler,
 		},
 		{
 			MethodName: "CreateUser",

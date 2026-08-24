@@ -664,6 +664,18 @@ func (s *PlatformService) ListUsers(ctx context.Context, req *forgev1.ListUsersR
 	return reply, nil
 }
 
+func (s *PlatformService) GetUser(ctx context.Context, req *forgev1.GetUserRequest) (*forgev1.GetUserResponse, error) {
+	principal, err := requiredPrincipal(ctx)
+	if err != nil {
+		return nil, err
+	}
+	user, err := s.identity.GetUser(ctx, principal, req.GetUserId())
+	if err != nil {
+		return nil, serviceError(err)
+	}
+	return &forgev1.GetUserResponse{User: userProto(user)}, nil
+}
+
 func (s *PlatformService) GetOrganization(ctx context.Context, _ *forgev1.GetOrganizationRequest) (*forgev1.GetOrganizationResponse, error) {
 	principal, err := requiredPrincipal(ctx)
 	if err != nil {

@@ -46,7 +46,7 @@ func (s *PlatformService) CreateConfigChange(ctx context.Context, req *forgev1.C
 		ExpectedPreviousVersion: req.GetExpectedPreviousVersion(), ValueDigest: req.GetValueDigest(), ValueRef: req.GetValueRef(), Sensitive: req.GetSensitive(),
 	}
 	var created platformconfig.Change
-	event := newAuditEvent(ctx, principal, "config_change.create", "config_change", req.GetDataId(), map[string]any{"version": req.GetVersion(), "sensitive": req.GetSensitive()})
+	event := newAuditEvent(ctx, principal, "config_change.create", "config_change", req.GetDataId(), map[string]any{"sensitive": req.GetSensitive()})
 	err = s.audited(ctx, event, func(txCtx context.Context) error {
 		var createErr error
 		created, createErr = s.configChange.Create(txCtx, principal, input)

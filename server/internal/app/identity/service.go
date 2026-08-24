@@ -910,6 +910,25 @@ func (s *Service) ListUsersPage(ctx context.Context, actor domain.Principal, pag
 	}
 	return s.repo.ListUsersPage(ctx, actor.OrganizationID, actor.UserID, actor.DataScope, page, pageSize, keyword, status, roleKey)
 }
+
+func (s *Service) GetUser(ctx context.Context, actor domain.Principal, userID string) (domain.User, error) {
+	userID = strings.TrimSpace(userID)
+	user, err := s.repo.UserByID(ctx, userID)
+	if err != nil {
+		return domain.User{}, err
+	}
+	if user.OrganizationID != actor.OrganizationID {
+		return domain.User{}, sql.ErrNoRows
+	}
+	visible, err := s.userWithinDataScope(ctx, actor, userID)
+	if err != nil {
+		return domain.User{}, err
+	}
+	if !visible {
+		return domain.User{}, ErrGrantCeiling
+	}
+	return user, nil
+}
 func (s *Service) CreateUser(ctx context.Context, actor domain.Principal, orgID, login, display, raw string, roles []string) (domain.User, error) {
 	if err := authorizeGrantActor(actor, orgID); err != nil {
 		return domain.User{}, err

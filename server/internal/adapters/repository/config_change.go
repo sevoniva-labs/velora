@@ -36,6 +36,18 @@ func (r *ConfigChangeRepo) ByID(ctx context.Context, organizationID, id string) 
 	return scanConfigChange(r.db.QueryRowContext(ctx, r.db.Rebind(`SELECT id,organization_id,namespace,config_group,data_id,version,expected_previous_version,value_digest,value_ref,sensitive,created_by,approved_by,approval_id,state,updated_at FROM config_change_history WHERE organization_id=? AND id=?`), organizationID, id))
 }
 
+func (r *ConfigChangeRepo) LatestVersion(ctx context.Context, organizationID, namespace, group, dataID string) (uint64, error) {
+	var version int64
+	err := r.db.QueryRowContext(ctx, r.db.Rebind(`SELECT COALESCE(MAX(version),0) FROM config_change_history WHERE organization_id=? AND namespace=? AND config_group=? AND data_id=?`), organizationID, namespace, group, dataID).Scan(&version)
+	if err != nil {
+		return 0, err
+	}
+	if version < 0 {
+		return 0, errors.New("config version cannot be negative")
+	}
+	return uint64(version), nil
+}
+
 func (r *ConfigChangeRepo) Create(ctx context.Context, change configchange.Change) (configchange.Change, error) {
 	version, err := databaseVersion(change.Version)
 	if err != nil {

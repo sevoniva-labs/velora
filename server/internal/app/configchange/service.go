@@ -20,6 +20,7 @@ var (
 type Repository interface {
 	List(context.Context, string) ([]platformconfig.Change, error)
 	ByID(context.Context, string, string) (platformconfig.Change, error)
+	LatestVersion(context.Context, string, string, string, string) (uint64, error)
 	Create(context.Context, platformconfig.Change) (platformconfig.Change, error)
 	Update(context.Context, platformconfig.Change) (platformconfig.Change, error)
 }
@@ -50,7 +51,17 @@ func (s *Service) Create(ctx context.Context, actor identitydomain.Principal, in
 	if err := requireActor(actor); err != nil {
 		return platformconfig.Change{}, err
 	}
-	change, err := platformconfig.New(uuid.NewString(), actor.OrganizationID, input.Namespace, input.Group, input.DataID, input.ValueDigest, input.ValueRef, actor.UserID, input.Version, input.ExpectedPreviousVersion, input.Sensitive, time.Now().UTC())
+	namespace := strings.TrimSpace(input.Namespace)
+	group := strings.TrimSpace(input.Group)
+	dataID := strings.TrimSpace(input.DataID)
+	previousVersion, err := s.repo.LatestVersion(ctx, actor.OrganizationID, namespace, group, dataID)
+	if err != nil {
+		return platformconfig.Change{}, err
+	}
+	if previousVersion == ^uint64(0) {
+		return platformconfig.Change{}, errors.New("config version is exhausted")
+	}
+	change, err := platformconfig.New(uuid.NewString(), actor.OrganizationID, namespace, group, dataID, input.ValueDigest, input.ValueRef, actor.UserID, previousVersion+1, previousVersion, input.Sensitive, time.Now().UTC())
 	if err != nil {
 		return platformconfig.Change{}, err
 	}

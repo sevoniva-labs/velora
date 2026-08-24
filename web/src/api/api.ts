@@ -466,6 +466,11 @@ export async function adminPageUsers(params: ListAdminUsersParams = {}): Promise
   return { items, total: Number(data.total ?? items.length), page: Number(data.page ?? params.page ?? 1), pageSize: Number(data.pageSize ?? params.pageSize ?? 20) }
 }
 
+export async function adminGetUser(userId: string): Promise<AdminUser> {
+  const data = record(await apiFetch<unknown>(`/admin/users/${encodeURIComponent(userId)}`))
+  return mapAdminUser(data.user ?? data)
+}
+
 export async function adminCreateUser(input: CreateAdminUserInput): Promise<AdminUser> {
   const data = await apiFetch<unknown>('/admin/users', { method: 'POST', body: input })
   return mapAdminUser(record(data).user ?? data)

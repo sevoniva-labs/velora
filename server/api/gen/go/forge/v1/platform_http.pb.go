@@ -34,6 +34,7 @@ const OperationPlatformServiceDecideAccessReviewItem = "/forge.v1.PlatformServic
 const OperationPlatformServiceExportAuditLogs = "/forge.v1.PlatformService/ExportAuditLogs"
 const OperationPlatformServiceGetOrganization = "/forge.v1.PlatformService/GetOrganization"
 const OperationPlatformServiceGetSecurityPolicy = "/forge.v1.PlatformService/GetSecurityPolicy"
+const OperationPlatformServiceGetUser = "/forge.v1.PlatformService/GetUser"
 const OperationPlatformServiceLinkFederatedIdentity = "/forge.v1.PlatformService/LinkFederatedIdentity"
 const OperationPlatformServiceListAccessReviewItems = "/forge.v1.PlatformService/ListAccessReviewItems"
 const OperationPlatformServiceListAccessReviews = "/forge.v1.PlatformService/ListAccessReviews"
@@ -96,6 +97,7 @@ type PlatformServiceHTTPServer interface {
 	ExportAuditLogs(context.Context, *ExportAuditLogsRequest) (*ExportAuditLogsResponse, error)
 	GetOrganization(context.Context, *GetOrganizationRequest) (*GetOrganizationResponse, error)
 	GetSecurityPolicy(context.Context, *GetSecurityPolicyRequest) (*GetSecurityPolicyResponse, error)
+	GetUser(context.Context, *GetUserRequest) (*GetUserResponse, error)
 	LinkFederatedIdentity(context.Context, *LinkFederatedIdentityRequest) (*LinkFederatedIdentityResponse, error)
 	ListAccessReviewItems(context.Context, *ListAccessReviewItemsRequest) (*ListAccessReviewItemsResponse, error)
 	ListAccessReviews(context.Context, *ListAccessReviewsRequest) (*ListAccessReviewsResponse, error)
@@ -147,6 +149,7 @@ type PlatformServiceHTTPServer interface {
 func RegisterPlatformServiceHTTPServer(s *http.Server, srv PlatformServiceHTTPServer) {
 	r := s.Route("/")
 	r.GET("/api/v1/admin/users", _PlatformService_ListUsers0_HTTP_Handler(srv))
+	r.GET("/api/v1/admin/users/{user_id}", _PlatformService_GetUser0_HTTP_Handler(srv))
 	r.POST("/api/v1/admin/users", _PlatformService_CreateUser0_HTTP_Handler(srv))
 	r.GET("/api/v1/admin/departments", _PlatformService_ListDepartments0_HTTP_Handler(srv))
 	r.POST("/api/v1/admin/departments", _PlatformService_CreateDepartment0_HTTP_Handler(srv))
@@ -223,6 +226,28 @@ func _PlatformService_ListUsers0_HTTP_Handler(srv PlatformServiceHTTPServer) fun
 			return err
 		}
 		reply := out.(*ListUsersResponse)
+		return ctx.Result(200, reply)
+	}
+}
+
+func _PlatformService_GetUser0_HTTP_Handler(srv PlatformServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in GetUserRequest
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindVars(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationPlatformServiceGetUser)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.GetUser(ctx, req.(*GetUserRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*GetUserResponse)
 		return ctx.Result(200, reply)
 	}
 }
@@ -1559,6 +1584,7 @@ type PlatformServiceHTTPClient interface {
 	ExportAuditLogs(ctx context.Context, req *ExportAuditLogsRequest, opts ...http.CallOption) (rsp *ExportAuditLogsResponse, err error)
 	GetOrganization(ctx context.Context, req *GetOrganizationRequest, opts ...http.CallOption) (rsp *GetOrganizationResponse, err error)
 	GetSecurityPolicy(ctx context.Context, req *GetSecurityPolicyRequest, opts ...http.CallOption) (rsp *GetSecurityPolicyResponse, err error)
+	GetUser(ctx context.Context, req *GetUserRequest, opts ...http.CallOption) (rsp *GetUserResponse, err error)
 	LinkFederatedIdentity(ctx context.Context, req *LinkFederatedIdentityRequest, opts ...http.CallOption) (rsp *LinkFederatedIdentityResponse, err error)
 	ListAccessReviewItems(ctx context.Context, req *ListAccessReviewItemsRequest, opts ...http.CallOption) (rsp *ListAccessReviewItemsResponse, err error)
 	ListAccessReviews(ctx context.Context, req *ListAccessReviewsRequest, opts ...http.CallOption) (rsp *ListAccessReviewsResponse, err error)
@@ -1802,6 +1828,19 @@ func (c *PlatformServiceHTTPClientImpl) GetSecurityPolicy(ctx context.Context, i
 	pattern := "/api/v1/admin/security-config"
 	path := binding.EncodeURL(pattern, in, true)
 	opts = append(opts, http.Operation(OperationPlatformServiceGetSecurityPolicy))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "GET", path, nil, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+func (c *PlatformServiceHTTPClientImpl) GetUser(ctx context.Context, in *GetUserRequest, opts ...http.CallOption) (*GetUserResponse, error) {
+	var out GetUserResponse
+	pattern := "/api/v1/admin/users/{user_id}"
+	path := binding.EncodeURL(pattern, in, true)
+	opts = append(opts, http.Operation(OperationPlatformServiceGetUser))
 	opts = append(opts, http.PathTemplate(pattern))
 	err := c.cc.Invoke(ctx, "GET", path, nil, &out, opts...)
 	if err != nil {

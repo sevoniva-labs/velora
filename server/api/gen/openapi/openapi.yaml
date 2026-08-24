@@ -1969,6 +1969,27 @@ paths:
                 - SessionCookie: []
                   CsrfToken: []
                 - BearerAuth: []
+    /api/v1/admin/users/{userId}:
+        get:
+            tags:
+                - PlatformService
+            operationId: PlatformService_GetUser
+            parameters:
+                - name: userId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/forge.v1.GetUserResponse'
+            security:
+                - SessionCookie: []
+                - BearerAuth: []
     /api/v1/admin/users/{userId}/assignments:
         get:
             tags:
@@ -3932,6 +3953,11 @@ components:
                     type: object
                     additionalProperties:
                         type: string
+        forge.v1.GetUserResponse:
+            type: object
+            properties:
+                user:
+                    $ref: '#/components/schemas/forge.v1.User'
         forge.v1.HealthResponse:
             type: object
             properties:

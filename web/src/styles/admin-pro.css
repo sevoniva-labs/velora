@@ -24,6 +24,8 @@
 .velora-admin-content .ant-card .ant-table-wrapper { box-shadow: none; }
 .velora-admin-content .ant-alert-description { max-width: 920px; }
 .velora-admin-pro-table-card { padding: 16px 24px; border-radius: 8px; background: var(--admin-bg-surface); box-shadow: var(--admin-shadow); }
+.velora-admin-page-card { padding: 16px 24px; border-radius: 8px; background: var(--admin-bg-surface); box-shadow: var(--admin-shadow); }
+.table-action-cell { white-space: nowrap; }
 
 @media (max-width: 760px) {
   .velora-admin-pro-layout .ant-pro-layout-content { padding: 16px !important; }

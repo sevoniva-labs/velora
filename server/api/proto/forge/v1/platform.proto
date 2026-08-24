@@ -37,6 +37,15 @@ service PlatformService {
       ]
     };
   }
+  rpc GetUser(GetUserRequest) returns (GetUserResponse) {
+    option (google.api.http) = {get: "/api/v1/admin/users/{user_id}"};
+    option (openapi.v3.operation) = {
+      security: [
+        {additional_properties: [{name: "SessionCookie" value: {value: []}}]},
+        {additional_properties: [{name: "BearerAuth" value: {value: []}}]}
+      ]
+    };
+  }
   rpc CreateUser(CreateUserRequest) returns (CreateUserResponse) {
     option (google.api.http) = {
       post: "/api/v1/admin/users"
@@ -946,6 +955,8 @@ message ListUsersResponse {
   int32 page = 3;
   int32 page_size = 4;
 }
+message GetUserRequest { string user_id = 1; }
+message GetUserResponse { User user = 1; }
 
 message CreateUserRequest {
   string login_name = 1;

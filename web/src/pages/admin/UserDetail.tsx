@@ -1,10 +1,11 @@
 import { useMemo, useState } from 'react'
-import { App, Button, Empty, Space, Tag, Typography } from 'antd'
+import { App, Button, Empty, Skeleton, Space, Tag, Typography } from 'antd'
 import { DrawerForm, ModalForm, PageContainer, ProDescriptions, ProFormList, ProFormSelect, ProFormSwitch, ProTable, type ProColumns } from '@ant-design/pro-components'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useParams } from 'react-router-dom'
-import { adminListUsers } from '../../api/api'
+import { useNavigate, useParams } from 'react-router-dom'
+import { adminGetUser, adminListUsers } from '../../api/api'
 import { createApproval, listApprovals, listDepartments, listPlatformRoles, listPositions, listUserAssignments, listUserEffectiveApplicationAccess, replaceUserAssignments, updateUserRoles } from '../../api/admin-platform'
+import QueryErrorState from '../../components/QueryErrorState'
 import type { ApprovalRequest, UserAssignment, UserEffectiveApplicationAccess } from '../../types'
 import { usePageTitle } from '../../hooks/usePageTitle'
 import { useMe } from '../../auth/useMe'
@@ -14,6 +15,7 @@ interface RoleForm { roles: string[]; approverId: string }
 
 export default function UserDetail() {
   const { id = '' } = useParams()
+  const navigate = useNavigate()
   const { message } = App.useApp()
   const queryClient = useQueryClient()
   const me = useMe()
@@ -21,7 +23,8 @@ export default function UserDetail() {
   const [assignmentOpen, setAssignmentOpen] = useState(false)
   const [roleOpen, setRoleOpen] = useState(false)
   const users = useQuery({ queryKey: ['admin', 'users'], queryFn: adminListUsers })
-  const user = users.data?.find((item) => item.id === id)
+  const userQuery = useQuery({ queryKey: ['admin', 'users', id], queryFn: () => adminGetUser(id), enabled: Boolean(id) })
+  const user = userQuery.data
   usePageTitle(user?.displayName || '用户详情')
   const departments = useQuery({ queryKey: ['admin', 'departments'], queryFn: listDepartments })
   const positions = useQuery({ queryKey: ['admin', 'positions'], queryFn: listPositions })
@@ -37,7 +40,9 @@ export default function UserDetail() {
   const roleExecution = useMutation({ mutationFn: (approval: ApprovalRequest) => { const payload = JSON.parse(approval.payloadJson) as { roles?: string[] }; return updateUserRoles(id, payload.roles ?? [], approval.id) }, onSuccess: async () => { message.success('平台角色已更新'); await refreshRoles() }, onError: (error) => message.error(error instanceof Error ? error.message : '角色变更执行失败') })
   const approvedRoleChange = (approvals.data ?? []).find((item) => item.action === 'user.roles.update' && item.resourceId === id && item.status === 'APPROVED')
 
-  if (!users.isLoading && !user) return <PageContainer title="用户详情"><Empty description="用户不存在或已删除" /></PageContainer>
+  if (userQuery.isLoading) return <PageContainer title="用户详情" onBack={() => navigate('/admin/users')}><div className="velora-admin-page-card"><Skeleton active /></div></PageContainer>
+  if (userQuery.isError) return <PageContainer title="用户详情" onBack={() => navigate('/admin/users')}><QueryErrorState refetch={() => void userQuery.refetch()} /></PageContainer>
+  if (!userQuery.isLoading && !user) return <PageContainer title="用户详情" onBack={() => navigate('/admin/users')}><Empty description="用户不存在或已删除" /></PageContainer>
   const assignmentColumns: ProColumns<UserAssignment>[] = [
     { title: '部门', dataIndex: 'departmentId', render: (_, row) => departmentNames.get(row.departmentId) ?? '—' },
     { title: '岗位', dataIndex: 'positionId', render: (_, row) => row.positionId ? positionNames.get(row.positionId) ?? '—' : '—' },
@@ -50,8 +55,8 @@ export default function UserDetail() {
     { title: '权限来源', dataIndex: 'sources', render: (_, row) => row.sources.length ? row.sources.map((source) => <Tag key={source.grantId}>{source.subjectName || sourceLabel(source.subjectType)}</Tag>) : <Typography.Text type="secondary">历史直接授权</Typography.Text> },
   ]
 
-  return <PageContainer title={user?.displayName || user?.loginName || '用户详情'} onBack={() => history.back()} tabList={[{ key: 'profile', tab: '基本信息' }, { key: 'assignments', tab: '部门与岗位' }, { key: 'access', tab: '有效应用权限' }]} tabActiveKey={tab} onTabChange={setTab} extra={tab === 'profile' ? [approvedRoleChange ? <Button key="execute-roles" type="primary" loading={roleExecution.isPending} onClick={() => roleExecution.mutate(approvedRoleChange)}>执行角色变更</Button> : <Button key="roles" type="primary" onClick={() => setRoleOpen(true)}>配置平台角色</Button>] : tab === 'assignments' ? [<Button key="assignments" type="primary" onClick={() => setAssignmentOpen(true)}>编辑任职</Button>] : undefined}>
-    {tab === 'profile' && <ProDescriptions column={2} dataSource={user} columns={[
+  return <PageContainer title={user?.displayName || user?.loginName || '用户详情'} onBack={() => navigate('/admin/users')} tabList={[{ key: 'profile', tab: '基本信息' }, { key: 'assignments', tab: '部门与岗位' }, { key: 'access', tab: '有效应用权限' }]} tabActiveKey={tab} onTabChange={setTab} extra={tab === 'profile' ? [approvedRoleChange ? <Button key="execute-roles" type="primary" loading={roleExecution.isPending} onClick={() => roleExecution.mutate(approvedRoleChange)}>执行角色变更</Button> : <Button key="roles" type="primary" onClick={() => setRoleOpen(true)}>配置平台角色</Button>] : tab === 'assignments' ? [<Button key="assignments" type="primary" onClick={() => setAssignmentOpen(true)}>编辑任职</Button>] : undefined}>
+    {tab === 'profile' && <ProDescriptions className="velora-admin-page-card" column={2} dataSource={user} columns={[
       { title: '登录账号', dataIndex: 'loginName' },
       { title: '姓名', dataIndex: 'displayName' },
       { title: '邮箱', dataIndex: 'email', render: (_, row) => row.email || '—' },

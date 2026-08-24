@@ -1,6 +1,6 @@
 # Velora 管理后台重构实施与回滚说明
 
-状态：Phase 0–4 代码、迁移、自动门禁、生产部署和认证管理 API 验收已完成；仅剩登录后浏览器目视验收。
+状态：Phase 0–4 主体、迁移、自动门禁和生产部署已完成；MFA 与真实登录已验收，管理员全菜单目视验收和 Turnstile 托管模式切换尚未完成。
 
 ## 交付范围
 
@@ -71,25 +71,27 @@ VITE_UI_SCALE
 
 - 生产备份服务执行成功，退出码为 0。
 - Server、Worker、Migrate 使用本机构建的 `linux/amd64` 制品；Web 在本机构建后上传。依赖使用 `goproxy.cn`，服务器未执行 Go 或前端编译。
-- Server 与 Migrate 基础制品版本：`ab0f83c`；Worker 最终版本：`7505112`；当前 Server 版本：`be74325`；当前 Web 版本：`98122cd`。当前版本已包含分类与标签管理归位、旧访问策略写入退役、生产应用硬删除禁用、门户展示假 API 移除、用户和应用目录的服务端分页、检索和筛选、风险触发且不可见的 Turnstile、工作台精确应用状态总数、审计日志服务端分页与调查筛选、管理员路由和操作按钮权限边界、稳定中文错误提示，以及不受前 200 名用户限制的远程选人组件。应用中心按查看、配置登录、管理访问、验证和发布权限拆分入口与操作；临时授权记录由服务端直接返回用户账号和姓名，不再依赖前 200 名用户反查。
+- 当前 Server 版本：`08b0e4b`；当前 Web 版本：`bd37968`。除既有应用、组织、权限、审批和审计能力外，当前版本不再公开 Casdoor 账号地址；Casdoor 仅在 Velora 服务端完成主凭据校验。用户可在 Velora 个人中心启用或停用 TOTP、保存一次性恢复码，并在 Velora 登录页使用验证码或恢复码。高风险管理操作遇到 `STEP_UP_REQUIRED` 时会打开 ProComponents 身份确认窗口，完成密码与 MFA 校验后由用户重试原操作。
 - PostgreSQL additive migration 成功，当前 Goose 版本为 `31`；`application_access_grants`、`application_access_grant_roles`、`user_application_entitlement_sources`、应用负责人字段、平台角色生命周期字段和 `user_role_exclusions` 均已存在。
 - 旧策略迁移后有 3 条访问规则、1 条权限来源，现有 2 个应用保留。
 - Server、Worker、Web、PostgreSQL、Redis、Casdoor、Edge 与 Demo 容器健康。
 - `home` 健康、API health、API readiness、OIDC Discovery 与 Demo health 均返回 HTTP 200；readiness 的 database、cache、messaging、search、storage 均为 `UP`。
 - 通过一次性生产验收身份完成认证管理 API 验收：6 个平台角色、3 个用户、2 个应用均可读取；`carson` 的有效应用权限可解释；Spectra 账号下发重试保持 `HEALTHY`；旧单用户 entitlement 和旧访问策略写接口均返回 400，生产应用物理删除返回 400，确认旧写入面已退役。最终版本进一步验证 `/api/v1/admin/users?page=1&page_size=1&keyword=carson&status=ACTIVE` 返回唯一的 `carson`，并验证 `/api/v1/admin/portal/applications?page=1&page_size=1&keyword=spectra&status=ENABLED` 返回唯一的 `Spectra`；两者均返回 `total=1`、`page=1`、`page_size=1`。当前版本完成 22 个生产管理接口矩阵验证；审批和配置变更明确要求交互式用户会话，机器令牌得到稳定 403，临时交互式会话验证两接口均返回 200。配置变更列表此前把“需要交互式会话”错误映射为 500，已修正为 403 并增加回归测试。所有临时令牌和会话随后删除，数据库计数为 0，管理员强制改密标志恢复。
 - Server 发布后未发现 error、panic 或 fatal 日志。Worker 在未配置 WORM 归档时明确记录 `WARN` 并禁用清理，不会误报故障，也不会在没有不可变归档时删除审计数据。
-- 当前回滚标签为 Server `rollback-pre-be74325`、Web `rollback-pre-98122cd`；更早的阶段性标签继续保留。当前 Server 制品位于 `/opt/velora/prod/releases/be74325/server`，二进制 SHA-256 为 `bda4eb5397b71660e0019c208e3df4f699db100bffefeb1398523244851b9972`；当前 Web 制品位于 `/opt/velora/prod/releases/98122cd/web`，入口文件 SHA-256 为 `1f52d61135d44b029ac3f02c1b466e04c52fd8d08befb4edbd1effd16d81aa50`，生产入口加载 `assets/index-CgOy2n6Y.js`。生产容器镜像 ID 分别为 Server `8588ea5bac4d`、Web `a8aef2a85b85`。
+- 当前回滚标签为 Server `rollback-pre-08b0e4b`、Web `rollback-pre-bd37968`；更早标签继续保留。Server 制品位于 `/opt/velora/prod/releases/08b0e4b/server`，主二进制 SHA-256 为 `31f6afc55c12155c667585503276d0a986255a02be328384480fe68b83c4f771`；Web 制品位于 `/opt/velora/prod/releases/bd37968/web`，入口文件 SHA-256 为 `ab387bc5720f3aa19a158dfaf694cc8833bac7e866c0a372e2dcc40e5de7cec1`，生产入口加载 `assets/index-CiwBrhhc.js`。生产镜像 ID 分别为 Server `fbe19ce6d6d4`、Web `1cfab3a454ec`。
 
-最终自动门禁已在当前版本重新执行：Web lint、13 个测试文件共 58 项测试和生产构建通过；Server `go test ./...`、Proto、OpenAPI 与 HTTP 契约门禁通过。新增服务端授权元测试覆盖 Platform、Approval、Portal 全部 gRPC 操作，防止新接口遗漏授权策略；管理员页面使用精确权限路由守卫，越权直达 URL 显示明确的 403 状态且不会挂载页面或发起业务请求。只读权限不会再显示新建、编辑、撤销、复核或执行按钮，也不会在后台预取无权访问的审批、任职和应用治理接口；应用授权对象类型切换会清空旧对象，避免跨类型误授权。服务账号 Scope 对多个可选操作权限采用 OR 语义，生产使用仅含 `iam.integration.read` 的一次性令牌访问应用目录返回 200；令牌随后删除，管理员强制改密状态恢复。
+最终自动门禁已在当前版本重新执行：Web lint、13 个测试文件共 59 项测试和生产构建通过；Server `go test ./...` 通过。新增回归用例覆盖不可见 Turnstile 配置和 `STEP_UP_REQUIRED` 前端事件；既有授权元测试继续覆盖 Platform、Approval、Portal 全部 gRPC 操作。
 
-浏览器已验证未认证访问 `/admin` 正确回到 Velora 登录页，页面不暴露 Casdoor。生产实测发现 `retry=auto` 在挑战持续失败时每 8 秒无限重试；Cloudflare 24 小时分析因此记录 796 次登录挑战，其中 99.25% 被判为自动流量，并在客户端出现 `300010/300030`。当前方案改为风险触发：正常首次凭据提交不加载 Turnstile；凭据失败后才在 Redis 中为 IP 和标准化账号写入 15 分钟挑战状态，成功登录会清理状态，原有 IP/账号限流、账号锁定和审计继续生效。Cloudflare Widget 已在控制台由“托管”调整为“不可见”，前端使用 `appearance=interaction-only` 且不预留验证码空白高度；服务端仍强制校验 Siteverify 的成功结果、`login` action 和生产 hostname。遗留的管理员/IP 挑战状态已精确删除，刷新后的生产登录页没有验证码占位，也没有新增 Turnstile 控制台错误。自动化不得代替用户输入凭据或完成验证码；登录后的菜单、应用详情和治理操作仍需真实登录态继续目视验收，不得把该项记录为已通过。
+浏览器已验证未认证访问 `/admin` 正确回到 Velora 登录页，页面和公共健康接口均不暴露 Casdoor。生产仍采用风险触发：正常首次凭据提交不加载 Turnstile；凭据失败后才为 IP 和标准化账号写入 15 分钟挑战状态，成功登录清理状态，原有 IP/账号限流、账号锁定和审计继续生效。真实 `carson` 凭据已通过 Velora 页面登录并进入 `/home`，未再出现验证不可用、转圈或网络异常。
+
+Cloudflare 控制台确认 Site Key 的唯一 hostname 是 `home.sevoniva.com`、action 是 `login`，服务器到 Siteverify 网络正常。当前 Widget 为 Invisible；生产实测风险命中后不会提供可交互挑战，按钮会等待令牌，因此不能作为最终产品配置。最终方案是把同一 Widget 切换为 Managed，前端改用 `appearance=interaction-only`：正常用户不显示额外框，只有 Cloudflare 要求交互时显示官方挑战。完成该外部安全配置和二次真实登录前，不得把 Turnstile 验收记为通过。
 
 ## 最终生产核验快照
 
 核验时间：2026-08-24（Asia/Shanghai）。
 
 - 公网 `/api/v1/system/health` 与 `/api/v1/system/ready` 均返回成功，database、cache、messaging、search、storage 全部为 `UP`。
-- Server、Web、Worker、OIDC Demo、Redis、Casdoor、Edge、PostgreSQL 全部健康；当前生产 Server 为 `be74325`，Web 为 `98122cd`，Web 入口为 `assets/index-CgOy2n6Y.js`；最新 Server/Web 日志未发现 5xx、panic 或 fatal，Worker 日志仅包含预期的 WORM 未配置警告。
+- Server、Web、Worker、OIDC Demo、Redis、Casdoor、Edge、PostgreSQL 全部健康；当前生产 Server 为 `08b0e4b`，Web 为 `bd37968`，Web 入口为 `assets/index-CiwBrhhc.js`；公共健康不再返回 Casdoor 地址。
 - 数据库迁移版本为 31；平台角色 6 个；最终分页验收后临时令牌 0 个；`admin.must_change_password=true` 已恢复。
 - `user_role_exclusions` 当前为 0 条是正常生产数据状态；迁移、外键和访问复核撤权代码路径已通过自动测试。
 - WORM 归档适配器属于已明确预留能力；在正式配置不可变归档前，审计清理保持关闭。这不是数据保留门禁失败，也不得手工开启清理。

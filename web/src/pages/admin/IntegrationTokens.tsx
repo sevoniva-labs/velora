@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
-import { App, Button, Modal, Popconfirm, Tag, Typography } from 'antd'
+import { App, Button, Modal, Popconfirm, Space, Tag, Typography } from 'antd'
 import { KeyOutlined, PlusOutlined } from '@ant-design/icons'
-import { ModalForm, PageContainer, ProFormDigit, ProFormSelect, ProFormText, ProTable, type ProColumns } from '@ant-design/pro-components'
+import { ModalForm, PageContainer, ProFormDigit, ProFormSelect, ProFormText, ProList, type ProColumns } from '@ant-design/pro-components'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { createIntegrationToken, listIntegrationTokens, revokeIntegrationToken, type IntegrationToken } from '../../api/api'
 import { useMe } from '../../auth/useMe'
@@ -40,15 +40,14 @@ export default function AdminIntegrationTokens() {
   const create = useMutation({ mutationFn: createIntegrationToken, onSuccess: async (result) => { setSecret(result.token); setOpen(false); await refresh() }, onError: (error) => message.error(error instanceof Error ? error.message : '对接账号创建失败') })
   const revoke = useMutation({ mutationFn: revokeIntegrationToken, onSuccess: async () => { message.success('对接账号已停用'); await refresh() }, onError: (error) => message.error(error instanceof Error ? error.message : '对接账号停用失败') })
   const columns: ProColumns<IntegrationToken>[] = [
-    { title: '名称', dataIndex: 'name' },
-    { title: '允许操作', dataIndex: 'scopes', search: false, render: (_, row) => row.scopes.map((scope) => <Tag key={scope}>{permissionLabel(scope)}</Tag>) },
-    { title: '过期时间', dataIndex: 'expiresAt', valueType: 'dateTime', search: false, render: (_, row) => row.expiresAt ? formatDateTime(row.expiresAt) : '永不过期' },
-    { title: '最近使用', dataIndex: 'lastUsedAt', valueType: 'dateTime', search: false, render: (_, row) => row.lastUsedAt ? formatDateTime(row.lastUsedAt) : '未使用' },
-    { title: '状态', dataIndex: 'revoked', valueType: 'select', valueEnum: { false: { text: '可用' }, true: { text: '已停用' } }, render: (_, row) => row.revoked ? <Tag>已停用</Tag> : <Tag color="success">可用</Tag> },
-    { title: '操作', valueType: 'option', width: 90, render: (_, row) => row.revoked ? null : <Popconfirm title="停用此对接账号？" description="停用后，使用该密钥的系统将无法访问平台。" okText="停用" okButtonProps={{ danger: true }} onConfirm={() => revoke.mutate(row.id)}><Button type="link" danger>停用</Button></Popconfirm> },
+    { title: '名称', dataIndex: 'name', listSlot: 'title', render: (_, row) => <Typography.Text strong>{row.name}</Typography.Text> },
+    { dataIndex: 'createdBy', listSlot: 'description', search: false, render: (_, row) => <Typography.Text type="secondary">创建人：{row.createdBy || '—'}</Typography.Text> },
+    { title: '状态', dataIndex: 'revoked', listSlot: 'subTitle', valueType: 'select', valueEnum: { false: { text: '可用' }, true: { text: '已停用' } }, render: (_, row) => row.revoked ? <Tag>已停用</Tag> : <Tag color="success">可用</Tag> },
+    { dataIndex: 'scopes', listSlot: 'content', search: false, render: (_, row) => <Space direction="vertical" size={6}><Space size={4} wrap>{row.scopes.map((scope) => <Tag key={scope}>{permissionLabel(scope)}</Tag>)}</Space><Typography.Text type="secondary">有效期至：{row.expiresAt ? formatDateTime(row.expiresAt) : '长期有效'} · 最近使用：{row.lastUsedAt ? formatDateTime(row.lastUsedAt) : '未使用'}</Typography.Text></Space> },
+    { title: '操作', listSlot: 'actions', valueType: 'option', search: false, render: (_, row) => row.revoked ? [] : [<Popconfirm key="revoke" title="停用此对接账号？" description="停用后，使用该密钥的系统将无法访问平台。" okText="停用" okButtonProps={{ danger: true }} onConfirm={() => revoke.mutate(row.id)}><Button type="link" danger>停用</Button></Popconfirm>] },
   ]
   return <PageContainer title="接口凭据">
-    {tokens.isError ? <QueryErrorState refetch={tokens.refetch} /> : <ProTable<IntegrationToken> rowKey="id" columns={columns} {...tokenTable} loading={tokens.isLoading} search={{ labelWidth: 'auto' }} pagination={false} toolBarRender={() => [<Button key="create" type="primary" icon={<PlusOutlined />} onClick={() => setOpen(true)}>新建对接账号</Button>]} />}
+    {tokens.isError ? <QueryErrorState refetch={tokens.refetch} /> : <ProList<IntegrationToken> className="velora-admin-primary-table velora-admin-entity-list" rowKey="id" columns={columns} {...tokenTable} loading={tokens.isLoading} search={{ filterType: 'light' }} pagination={false} toolBarRender={() => [<Button key="create" type="primary" icon={<PlusOutlined />} onClick={() => setOpen(true)}>新建对接账号</Button>]} />}
     <ModalForm<CreateForm> title="新建对接账号" open={open} onOpenChange={setOpen} initialValues={{ expiresInDays: 90 }} submitter={{ searchConfig: { submitText: '创建', resetText: '取消' } }} onFinish={async (values) => { await create.mutateAsync(values); return true }}>
       <ProFormText name="name" label="名称" fieldProps={{ prefix: <KeyOutlined />, maxLength: 100 }} rules={[{ required: true, message: '请输入名称' }]} />
       <ProFormSelect name="scopes" label="允许操作" mode="multiple" options={scopeOptions} rules={[{ required: true, message: '请选择允许执行的操作' }]} />

@@ -134,10 +134,11 @@
 .velora-application-management .ant-pro-page-container-tabs .ant-tabs-tab { padding-block: 10px; }
 .velora-application-management .ant-pro-page-container-tabs .ant-tabs-tab-active .ant-tabs-tab-btn { font-weight: 600; }
 
-/* Full-page tables reserve a stable body, keeping pagination at the page bottom. */
+/* Paginated lists use one stable content stage. The stage grows with real rows,
+   while short lists keep the footer in a predictable position without stretching
+   the whole card to the viewport. */
 .velora-admin-primary-table > .ant-pro-card:not(.ant-pro-table-search) {
   display: flex;
-  min-height: max(440px, calc(100vh - 300px));
   flex-direction: column;
 }
 
@@ -150,6 +151,11 @@
   min-height: 0;
   flex: 1 1 auto;
   flex-direction: column;
+}
+
+.velora-admin-primary-table .ant-table-wrapper:has(.ant-table-pagination) > .ant-spin-nested-loading > .ant-spin-container,
+.velora-admin-primary-table .ant-pro-list-container:has(.ant-pro-list-pagination) > .ant-spin-nested-loading > .ant-spin-container {
+  min-height: 380px;
 }
 
 .velora-admin-primary-table .ant-table-pagination {
@@ -177,14 +183,9 @@
   margin-inline-start: 24px;
 }
 
-.velora-admin-table-after-filter > .ant-pro-card:not(.ant-pro-table-search) {
-  min-height: max(400px, calc(100vh - 360px));
-}
-
 /* Paginated tables inside detail tabs keep a compact but stable footer position. */
 .velora-admin-secondary-table > .ant-pro-card:not(.ant-pro-table-search) {
   display: flex;
-  min-height: 420px;
   flex-direction: column;
 }
 
@@ -204,6 +205,10 @@
   padding-block-start: 20px;
 }
 
+.velora-admin-secondary-table .ant-table-wrapper:has(.ant-table-pagination) > .ant-spin-nested-loading > .ant-spin-container {
+  min-height: 340px;
+}
+
 @media (max-width: 1100px) {
   .velora-dashboard-stat-grid,
   .velora-application-stat-grid,
@@ -215,8 +220,8 @@
   .velora-application-stat-grid,
   .velora-dashboard-action-grid { grid-template-columns: 1fr; }
   .velora-application-management .ant-pro-page-container-tabs .ant-tabs-nav-list { width: max-content; }
-  .velora-admin-primary-table > .ant-pro-card:not(.ant-pro-table-search),
-  .velora-admin-table-after-filter > .ant-pro-card:not(.ant-pro-table-search),
-  .velora-admin-secondary-table > .ant-pro-card:not(.ant-pro-table-search) { min-height: 420px; }
+  .velora-admin-primary-table .ant-table-wrapper:has(.ant-table-pagination) > .ant-spin-nested-loading > .ant-spin-container,
+  .velora-admin-primary-table .ant-pro-list-container:has(.ant-pro-list-pagination) > .ant-spin-nested-loading > .ant-spin-container,
+  .velora-admin-secondary-table .ant-table-wrapper:has(.ant-table-pagination) > .ant-spin-nested-loading > .ant-spin-container { min-height: 320px; }
   .velora-application-overview { padding: 16px; }
 }

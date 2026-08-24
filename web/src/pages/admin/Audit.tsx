@@ -1,10 +1,9 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import { App, Button, Drawer, Empty, Space, Tag, Typography } from 'antd'
-import { ModalForm, PageContainer, ProDescriptions, ProForm, ProFormDigit, ProFormDateTimeRangePicker, ProFormSelect, ProFormText, ProTable, QueryFilter, type ProColumns } from '@ant-design/pro-components'
+import { ModalForm, PageContainer, ProDescriptions, ProForm, ProFormDigit, ProFormSelect, ProTable, type ActionType, type ProColumns } from '@ant-design/pro-components'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import type { Dayjs } from 'dayjs'
-import { adminListAuditLogs, queryKeys } from '../../api/api'
+import { adminListAuditLogs } from '../../api/api'
 import type { AuditLog } from '../../types'
 import { AUDIT_ACTION_LABEL, AUDIT_RESOURCE_LABEL, auditActionLabel, auditResourceLabel } from '../../labels'
 import { usePageTitle } from '../../hooks/usePageTitle'
@@ -21,39 +20,39 @@ function parseDetail(value: string): Record<string, unknown> {
   try { const parsed = JSON.parse(value); return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed as Record<string, unknown> : {} } catch { return {} }
 }
 
+function isoDate(value: unknown): string | undefined {
+  if (!value) return undefined
+  if (typeof value === 'object' && 'toISOString' in value && typeof value.toISOString === 'function') return value.toISOString()
+  const date = new Date(String(value))
+  return Number.isNaN(date.getTime()) ? undefined : date.toISOString()
+}
+
 export default function AdminAudit() {
   usePageTitle('操作记录')
   const { message } = App.useApp()
   const me = useMe()
   const queryClient = useQueryClient()
-  const [page, setPage] = useState(1)
-  const [filters, setFilters] = useState<{ action?: string; operator?: string; resourceType?: string; result?: string; from?: string; to?: string }>({})
+  const actionRef = useRef<ActionType>(null)
+  const [loadError, setLoadError] = useState(false)
   const [selected, setSelected] = useState<AuditLog>()
   const [exportOpen, setExportOpen] = useState(false)
-  const logs = useQuery({ queryKey: queryKeys.auditLogs({ page, ...filters }), queryFn: () => adminListAuditLogs({ page, pageSize: 20, ...filters }) })
   const approvals = useQuery({ queryKey: ['admin', 'approvals'], queryFn: listApprovals })
   const approvedExport = (approvals.data ?? []).find((item) => item.action === 'audit.export' && item.resourceId === 'organization' && item.status === 'APPROVED')
   const integrity = useMutation({ mutationFn: verifyAuditIntegrity, onSuccess: (verified) => verified ? message.success('操作记录完整性校验通过') : message.error('操作记录完整性校验失败'), onError: (error) => message.error(error instanceof Error ? error.message : '完整性校验失败') })
   const requestExport = useMutation({ mutationFn: (values: ExportForm) => createApproval({ requestType: 'AUDIT_LOG_EXPORT', action: 'audit.export', resource: 'audit_log', resourceId: 'organization', summary: `导出最近 ${values.limit} 条操作记录`, payloadJson: JSON.stringify({ format: values.format, limit: values.limit }), approverIds: [values.approverId] }), onSuccess: async () => { message.success('导出申请已提交'); setExportOpen(false); await queryClient.invalidateQueries({ queryKey: ['admin', 'approvals'] }) }, onError: (error) => message.error(error instanceof Error ? error.message : '导出申请提交失败') })
   const executeExport = useMutation({ mutationFn: async () => { const payload = JSON.parse(approvedExport!.payloadJson) as { format?: 'json' | 'csv'; limit?: number }; const result = await exportAuditLogs(payload.format ?? 'csv', payload.limit ?? 1000, approvedExport!.id); const binary = atob(result.content); const bytes = Uint8Array.from(binary, (character) => character.charCodeAt(0)); const href = URL.createObjectURL(new Blob([bytes], { type: result.contentType })); const link = document.createElement('a'); link.href = href; link.download = result.filename || 'audit-logs.csv'; link.click(); URL.revokeObjectURL(href) }, onSuccess: async () => { message.success('操作记录已导出'); await queryClient.invalidateQueries({ queryKey: ['admin', 'approvals'] }) }, onError: (error) => message.error(error instanceof Error ? error.message : '导出失败') })
   const columns: ProColumns<AuditLog>[] = [
+    { title: '操作时间', dataIndex: 'occurredAt', valueType: 'dateTimeRange', hideInTable: true },
     { title: '时间', dataIndex: 'createdAt', valueType: 'dateTime', search: false, width: 180, render: (_, row) => formatDateTime(row.createdAt) },
-    { title: '操作人', dataIndex: 'operator', search: false, width: 160 },
-    { title: '操作', dataIndex: 'action', search: false, render: (_, row) => <Tag color="blue">{auditActionLabel(row.action)}</Tag> },
-    { title: '操作对象', dataIndex: 'resource', search: false, width: 140, render: (_, row) => row.resource ? auditResourceLabel(row.resource) : '—' },
-    { title: '结果', dataIndex: 'result', search: false, width: 90, render: (_, row) => <Tag color={row.result === 'SUCCESS' ? 'success' : 'error'}>{row.result === 'SUCCESS' ? '成功' : '失败'}</Tag> },
+    { title: '操作人', dataIndex: 'operator', width: 160 },
+    { title: '操作', dataIndex: 'action', valueType: 'select', valueEnum: Object.fromEntries(Object.entries(AUDIT_ACTION_LABEL).map(([value, text]) => [value, { text }])), render: (_, row) => <Tag color="blue">{auditActionLabel(row.action)}</Tag> },
+    { title: '操作对象', dataIndex: 'resource', valueType: 'select', valueEnum: Object.fromEntries(Object.entries(AUDIT_RESOURCE_LABEL).map(([value, text]) => [value, { text }])), width: 140, render: (_, row) => row.resource ? auditResourceLabel(row.resource) : '—' },
+    { title: '结果', dataIndex: 'result', valueType: 'select', valueEnum: { SUCCESS: { text: '成功' }, FAILED: { text: '失败' } }, width: 90, render: (_, row) => <Tag color={row.result === 'SUCCESS' ? 'success' : 'error'}>{row.result === 'SUCCESS' ? '成功' : '失败'}</Tag> },
     { title: '来源 IP', dataIndex: 'ip', search: false, width: 140 },
     { title: '详情', valueType: 'option', width: 80, render: (_, row) => <Button type="link" onClick={() => setSelected(row)}>查看</Button> },
   ]
   return <PageContainer title="操作记录" extra={<Space><Button loading={integrity.isPending} onClick={() => integrity.mutate()}>校验完整性</Button>{approvedExport ? <Button type="primary" loading={executeExport.isPending} onClick={() => executeExport.mutate()}>导出已批准记录</Button> : <Button type="primary" onClick={() => setExportOpen(true)}>导出</Button>}</Space>}>
-    <QueryFilter<{ operator?: string; action?: string; resourceType?: string; result?: string; occurredAt?: [Dayjs, Dayjs] }> defaultCollapsed={false} onFinish={async (values) => { setFilters({ operator: values.operator?.trim(), action: values.action, resourceType: values.resourceType, result: values.result, from: values.occurredAt?.[0]?.toISOString(), to: values.occurredAt?.[1]?.toISOString() }); setPage(1); return true }} onReset={() => { setFilters({}); setPage(1) }}>
-      <ProFormText name="operator" label="操作人" placeholder="姓名或账号" />
-      <ProFormSelect name="action" label="操作" showSearch fieldProps={{ optionFilterProp: 'label' }} options={Object.entries(AUDIT_ACTION_LABEL).map(([value, label]) => ({ value, label }))} />
-      <ProFormSelect name="resourceType" label="操作对象" options={Object.entries(AUDIT_RESOURCE_LABEL).map(([value, label]) => ({ value, label }))} />
-      <ProFormSelect name="result" label="结果" options={[{ value: 'SUCCESS', label: '成功' }, { value: 'FAILED', label: '失败' }]} />
-      <ProFormDateTimeRangePicker name="occurredAt" label="操作时间" />
-    </QueryFilter>
-    {logs.isError ? <QueryErrorState refetch={logs.refetch} /> : <ProTable<AuditLog> className="velora-admin-primary-table velora-admin-table-after-filter" rowKey="id" columns={columns} dataSource={logs.data?.items ?? []} loading={logs.isLoading} search={false} options={false} pagination={{ current: page, pageSize: 20, total: logs.data?.total ?? 0, showSizeChanger: false, onChange: setPage }} />}
+    {loadError ? <QueryErrorState refetch={() => { setLoadError(false); actionRef.current?.reload() }} /> : <ProTable<AuditLog> className="velora-admin-primary-table" actionRef={actionRef} rowKey="id" columns={columns} search={{ filterType: 'light' }} options={false} request={async (params) => { try { const occurredAt = Array.isArray(params.occurredAt) ? params.occurredAt : []; const data = await adminListAuditLogs({ page: params.current, pageSize: params.pageSize, operator: String(params.operator ?? '').trim() || undefined, action: String(params.action ?? '') || undefined, resourceType: String(params.resource ?? '') || undefined, result: String(params.result ?? '') || undefined, from: isoDate(occurredAt[0]), to: isoDate(occurredAt[1]) }); return { data: data.items, total: data.total, success: true } } catch { setLoadError(true); return { data: [], total: 0, success: false } } }} pagination={{ defaultPageSize: 20, showSizeChanger: false }} />}
     <Drawer title="操作详情" open={Boolean(selected)} onClose={() => setSelected(undefined)} width={640}>
       {selected && <AuditDetail log={selected} />}
     </Drawer>

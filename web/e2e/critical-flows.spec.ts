@@ -180,7 +180,7 @@ async function installCriticalMock(page: Page, state: CriticalState) {
     if (path === '/admin/user-groups') return fulfill(route, 200, ok({ user_groups: [{ id: 'group-1', organization_id: 'default', group_key: 'core', name: '核心用户', description: '', status: 'ACTIVE', roles: [], member_ids: [], member_count: 0 }] }))
     if (path === '/admin/roles') return fulfill(route, 200, ok({ roles: [{ key: 'operations', name: '运营管理员', description: '', data_scope: 'ALL', permissions: [], data_scope_department_ids: [], status: 'ACTIVE' }] }))
     if (path === '/admin/users') return fulfill(route, 200, ok({ users: [{ id: 'user-1', organization_id: 'default', login_name: 'carson', display_name: 'Carson', email: 'carson@example.test', status: 'ACTIVE', identity_source: 'LOCAL', roles: [], entitlements: [], created_at: '2026-08-24T10:00:00Z' }], total: 1, page: 1, page_size: 50 }))
-    if (path === '/admin/portal/categories') return fulfill(route, 200, ok({ categories: [] }))
+    if (path === '/admin/portal/categories') return fulfill(route, 200, ok({ categories: [{ id: 'category-1', category_key: 'devsecops', name: '开发安全', description: '研发安全工具', sort_order: 10 }] }))
     if (path === '/admin/portal/tags') return fulfill(route, 200, ok({ tags: [] }))
 
     if (path === '/approvals' && method === 'GET') {
@@ -276,6 +276,62 @@ test('短列表分页器固定在卡片底部且保留统一留白', async ({ pa
   await page.getByRole('button', { name: '停用' }).last().click()
   await expect.poll(() => state.appStatus).toBe('DISABLED')
   await expect(page.getByRole('button', { name: '启用' })).toBeVisible()
+})
+
+test('后台对象列表使用一体化 ProList 且保留完整生命周期操作', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop-chromium', '后台对象列表只在桌面执行一次')
+  await installCriticalMock(page, newState())
+
+  const cases = [
+    { path: '/admin/applications', row: 'Spectra', actions: ['管理', '停用'], pagination: true },
+    { path: '/admin/users', row: 'Carson', actions: ['查看', '停用'], pagination: true },
+    { path: '/admin/taxonomy', row: '开发安全', actions: ['编辑', '删除'], pagination: false },
+  ] as const
+
+  for (const item of cases) {
+    await page.goto(item.path)
+    const list = page.locator('.velora-admin-primary-table').first()
+    await expect(list).toBeVisible()
+    await expect(list.locator(':scope > .ant-pro-card.ant-pro-table-search')).toHaveCount(0)
+    await expect(list.locator(':scope > .ant-pro-card:not(.ant-pro-table-search)')).toHaveCount(1)
+    await expect(list.locator('.ant-pro-table-list-toolbar')).toBeVisible()
+    await expect(page.getByText(item.row, { exact: true }).first()).toBeVisible()
+    for (const action of item.actions) {
+      const control = list.getByRole('button', { name: action }).or(list.getByRole('link', { name: action })).first()
+      await expect(control).toBeVisible()
+    }
+
+    const pagination = list.locator('.ant-pagination').first()
+    if (item.pagination) {
+      await expect(pagination).toBeVisible()
+      const card = list.locator(':scope > .ant-pro-card:not(.ant-pro-table-search)').first()
+      const [cardBox, paginationBox] = await Promise.all([card.boundingBox(), pagination.boundingBox()])
+      expect(cardBox && paginationBox, `${item.path} 的分页布局应可测量`).toBeTruthy()
+      const bottomGap = cardBox!.y + cardBox!.height - (paginationBox!.y + paginationBox!.height)
+      expect(bottomGap, `${item.path} 的分页器必须位于卡片底部`).toBeGreaterThanOrEqual(16)
+      expect(bottomGap, `${item.path} 的分页器不能悬空`).toBeLessThanOrEqual(32)
+    } else {
+      await expect(pagination).toHaveCount(0)
+    }
+  }
+})
+
+test('组织、用户组和平台角色都提供编辑与停用闭环', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop-chromium', '管理对象生命周期只在桌面执行一次')
+  await installCriticalMock(page, newState())
+  const cases = [
+    { path: '/admin/organization', row: '研发部' },
+    { path: '/admin/user-groups', row: '核心用户' },
+    { path: '/admin/roles', row: '运营管理员' },
+  ] as const
+  for (const item of cases) {
+    await page.goto(item.path)
+    const list = page.locator('.velora-admin-primary-table').first()
+    await expect(list.locator(':scope > .ant-pro-card.ant-pro-table-search')).toHaveCount(0)
+    await expect(page.getByText(item.row, { exact: true }).first()).toBeVisible()
+    await expect(list.getByRole('button', { name: '编辑' }).first()).toBeVisible()
+    await expect(list.getByRole('button', { name: '停用' }).first()).toBeVisible()
+  }
 })
 
 test('后台接口失败显示可重试错误而不是空数据', async ({ page }, testInfo) => {

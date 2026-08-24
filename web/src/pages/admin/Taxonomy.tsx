@@ -5,9 +5,9 @@ import {
   ModalForm,
   PageContainer,
   ProFormDigit,
+  ProList,
   ProFormText,
   ProFormTextArea,
-  ProTable,
   type ProColumns,
 } from '@ant-design/pro-components'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
@@ -93,11 +93,12 @@ export default function Taxonomy() {
   }
 
   const commonColumns: ProColumns<TaxonomyRecord>[] = [
-    { title: '编码', dataIndex: 'code', width: 180, copyable: true },
-    { title: '名称', dataIndex: 'name', width: 220 },
-    { title: '排序', dataIndex: 'sort', width: 100, search: false },
+    { title: '名称', dataIndex: 'name', listSlot: 'title' },
+    { title: '编码', dataIndex: 'code', listSlot: 'description', copyable: true, render: (_, record) => 'description' in record && record.description ? `${record.code} · ${record.description}` : record.code },
+    { dataIndex: 'sort', listSlot: 'content', search: false, render: (_, record) => `排序 ${record.sort}` },
     {
       title: '操作',
+      listSlot: 'actions',
       valueType: 'option',
       width: 140,
       render: (_, record) => (
@@ -117,9 +118,7 @@ export default function Taxonomy() {
       ),
     },
   ]
-  const columns: ProColumns<TaxonomyRecord>[] = tab === 'categories'
-    ? [commonColumns[0], commonColumns[1], { title: '说明', dataIndex: 'description', search: false, ellipsis: true, renderText: (value) => value || '—' }, commonColumns[2], commonColumns[3]]
-    : commonColumns
+  const columns = commonColumns
 
   return (
     <PageContainer
@@ -131,13 +130,14 @@ export default function Taxonomy() {
       {activeQuery.isError ? (
         <QueryErrorState refetch={activeQuery.refetch} />
       ) : (
-        <ProTable<TaxonomyRecord>
+        <ProList<TaxonomyRecord>
           key={tab}
+          className="velora-admin-primary-table velora-admin-entity-list"
           rowKey="id"
           columns={columns}
           {...activeTable}
           loading={activeQuery.isLoading}
-          search={{ labelWidth: 'auto' }}
+          search={{ filterType: 'light' }}
           pagination={false}
           toolBarRender={() => [
             <Button key="create" type="primary" icon={<PlusOutlined />} onClick={() => openForm()}>

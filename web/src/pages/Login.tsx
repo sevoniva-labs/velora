@@ -12,6 +12,7 @@ import { useSearchParams, Navigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { useMe } from '../auth/useMe'
 import TurnstileWidget from '../components/TurnstileWidget'
+import { ApiError } from '../api/client'
 import {
   getAuthCapabilities,
   getTurnstileConfig,
@@ -52,8 +53,9 @@ export default function Login() {
     queryFn: getAuthCapabilities,
     retry: false,
   })
-  // Cloudflare Turnstile 人机验证（登录防 bot；后端配置启用后必须通过验证才能登录）
+  // 风险触发后再显示 Turnstile，避免验证码服务异常阻断所有正常登录。
   const [turnstileToken, setTurnstileToken] = useState('')
+  const [turnstileRequired, setTurnstileRequired] = useState(false)
   // Turnstile token 一次性有效：登录失败/过期后递增 key 强制重挂载 widget 获取新 token。
   const [turnstileAttempt, setTurnstileAttempt] = useState(0)
   const { data: turnstile } = useQuery({
@@ -105,8 +107,7 @@ export default function Login() {
   }
 
   const onFinish = async (values: { username: string; password: string }) => {
-    // 人机验证启用时强制校验 token（组件回调填充；未通过则按钮禁用）。
-    if (turnstileEnabled && !turnstileToken) {
+    if (turnstileEnabled && turnstileRequired && !turnstileToken) {
       message.warning('请完成人机验证后继续。')
       return
     }
@@ -121,7 +122,12 @@ export default function Login() {
         window.location.assign(res.redirect || '/')
       }
     } catch (err) {
-      message.error(loginErrorMessage(err, '登录失败，请稍后重试。'))
+      if (err instanceof ApiError && err.status === 403 && turnstileEnabled) {
+        setTurnstileRequired(true)
+        message.warning('请完成安全验证后重试。')
+      } else {
+        message.error(loginErrorMessage(err, '登录失败，请稍后重试。'))
+      }
       setSubmitting(false)
       // 人机验证 token 已被消费：重置 widget，下次提交需重新验证。
       setTurnstileToken('')
@@ -240,7 +246,7 @@ export default function Login() {
                   maxLength={128}
                 />
               </Form.Item>
-              {turnstileEnabled && (
+              {turnstileEnabled && turnstileRequired && (
                 <div style={{ marginTop: 12, marginBottom: 4 }}>
                   <TurnstileWidget
                     key={turnstileAttempt}
@@ -257,7 +263,7 @@ export default function Login() {
                   htmlType="submit"
                   block
                   loading={submitting}
-                  disabled={turnstileEnabled && !turnstileToken}
+                  disabled={turnstileEnabled && turnstileRequired && !turnstileToken}
                   className="velora-login-submit"
                 >
                   登录

@@ -46,7 +46,10 @@ func (s *IdentityService) loginCasdoorPassword(ctx context.Context, req *forgev1
 	federated, err := s.casdoorPasswordProvider.AuthenticatePassword(ctx, req.GetLoginName(), req.GetPassword(), req.GetMfaCode(), req.GetRecoveryCode())
 	if err != nil || federated.Provider != s.casdoorPasswordProvider.Name() || federated.Subject == "" {
 		_ = s.audit.Write(ctx, *event)
-		return nil, kerrors.Unauthorized("INVALID_CREDENTIALS", "invalid credentials")
+		if challengeErr := s.markLoginChallenge(ctx, event.ClientIP, req.GetLoginName()); challengeErr != nil {
+			return nil, kerrors.ServiceUnavailable("LOGIN_CHALLENGE_UNAVAILABLE", "login security state is unavailable")
+		}
+		return nil, kerrors.Forbidden("TURNSTILE_REQUIRED", "security verification is required")
 	}
 	principal, token, csrf, expires, err := s.loginFederated(ctx, organization, federated.Provider, federated.Subject, federated.MFAVerified)
 	if err != nil {
@@ -65,6 +68,7 @@ func (s *IdentityService) loginCasdoorPassword(ctx context.Context, req *forgev1
 		response.BridgeAction = s.sessionBridge.ActionURL()
 		response.BridgeTicket = ticket
 	}
+	s.clearLoginChallenge(ctx, event.ClientIP, req.GetLoginName())
 	s.setLoginCookies(ctx, token, csrf, expires)
 	return response, nil
 }

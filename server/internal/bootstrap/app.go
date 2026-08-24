@@ -300,6 +300,7 @@ func New(ctx context.Context, opts Options) (*App, error) {
 			return nil, fmt.Errorf("turnstile: %w", err)
 		}
 		identityService.ConfigureTurnstile(verifier)
+		identityService.ConfigureLoginChallengeCache(c)
 	}
 	if cfg.Security.CasdoorPasswordLoginEnabled {
 		providerName := strings.ToLower(strings.TrimSpace(cfg.Security.OIDCName))

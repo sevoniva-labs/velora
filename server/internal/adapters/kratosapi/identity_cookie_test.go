@@ -9,8 +9,14 @@ import (
 
 	kratoserrors "github.com/go-kratos/kratos/v2/errors"
 	"github.com/go-kratos/kratos/v2/transport"
+	"github.com/sevoniva-labs/velora/server/internal/platform/cache"
+	"github.com/sevoniva-labs/velora/server/internal/platform/config"
 	"github.com/sevoniva-labs/velora/server/internal/platform/ratelimit"
 )
+
+type acceptingTurnstile struct{}
+
+func (acceptingTurnstile) Verify(context.Context, string, string) error { return nil }
 
 type cookieHeader http.Header
 
@@ -83,5 +89,38 @@ func TestLoginRateLimitKeysSeparateIPAndNormalizedAccount(t *testing.T) {
 	}
 	if other := loginRateLimitKeys("198.51.100.2", "bob"); other[1] == keys[1] {
 		t.Fatal("different accounts share a rate-limit key")
+	}
+}
+
+func TestLoginChallengeIsRiskTriggeredAndClearedAfterSuccess(t *testing.T) {
+	challengeCache, err := cache.New(config.Cache{Provider: "memory", Prefix: "identity-test:"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	service := &IdentityService{turnstile: acceptingTurnstile{}, loginChallengeCache: challengeCache}
+	ctx := context.Background()
+	if required, err := service.loginChallengeRequired(ctx, "192.0.2.10", "alice"); err != nil || required {
+		t.Fatalf("initial challenge = %v, err = %v; want false", required, err)
+	}
+	if err := service.markLoginChallenge(ctx, "192.0.2.10", "alice"); err != nil {
+		t.Fatal(err)
+	}
+	if required, err := service.loginChallengeRequired(ctx, "192.0.2.10", "alice"); err != nil || !required {
+		t.Fatalf("marked challenge = %v, err = %v; want true", required, err)
+	}
+	// IP and normalized account are independent risk signals.
+	if required, err := service.loginChallengeRequired(ctx, "198.51.100.20", " ALICE "); err != nil || !required {
+		t.Fatalf("account challenge = %v, err = %v; want true", required, err)
+	}
+	service.clearLoginChallenge(ctx, "192.0.2.10", "alice")
+	if required, err := service.loginChallengeRequired(ctx, "192.0.2.10", "alice"); err != nil || required {
+		t.Fatalf("cleared challenge = %v, err = %v; want false", required, err)
+	}
+}
+
+func TestLoginChallengeFailsClosedWithoutSharedState(t *testing.T) {
+	service := &IdentityService{turnstile: acceptingTurnstile{}}
+	if _, err := service.loginChallengeRequired(context.Background(), "192.0.2.10", "alice"); err == nil {
+		t.Fatal("loginChallengeRequired() error = nil, want unavailable cache error")
 	}
 }

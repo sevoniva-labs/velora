@@ -15,6 +15,7 @@ import (
 	"github.com/sevoniva-labs/velora/server/internal/app/audit"
 	appidentity "github.com/sevoniva-labs/velora/server/internal/app/identity"
 	domain "github.com/sevoniva-labs/velora/server/internal/domain/identity"
+	"github.com/sevoniva-labs/velora/server/internal/platform/cache"
 	"github.com/sevoniva-labs/velora/server/internal/platform/database"
 	"github.com/sevoniva-labs/velora/server/internal/platform/httpserver"
 	"github.com/sevoniva-labs/velora/server/internal/platform/identitysource"
@@ -39,6 +40,7 @@ type IdentityService struct {
 	casdoorPasswordProvider     *identitysource.OIDCProvider
 	sessionBridge               *SessionBridge
 	turnstile                   turnstileVerifier
+	loginChallengeCache         cache.Cache
 	federated                   *FederatedLogin
 }
 
@@ -70,6 +72,14 @@ func (s *IdentityService) ConfigureTurnstile(verifier turnstileVerifier) {
 	s.turnstile = verifier
 }
 
+// ConfigureLoginChallengeCache stores short-lived risk state used to enforce
+// Turnstile only after a failed credential attempt. This keeps a third-party
+// challenge outage from locking out every legitimate user while retaining a
+// distributed bot challenge for suspicious IP/account pairs.
+func (s *IdentityService) ConfigureLoginChallengeCache(challengeCache cache.Cache) {
+	s.loginChallengeCache = challengeCache
+}
+
 func (s *IdentityService) requirePasswordManagement() error {
 	if !s.passwordLoginEnabled {
 		return kerrors.ServiceUnavailable("PASSWORD_MANAGEMENT_DISABLED", "password and local MFA management are disabled; use the configured OIDC provider")
@@ -97,8 +107,14 @@ func (s *IdentityService) Login(ctx context.Context, req *forgev1.LoginRequest) 
 			return nil, err
 		}
 	}
-	if s.turnstile != nil {
-		if err := s.turnstile.Verify(ctx, req.GetTurnstileToken(), httpserver.ClientIP(ctx)); err != nil {
+	clientIP := httpserver.ClientIP(ctx)
+	challengeRequired, err := s.loginChallengeRequired(ctx, clientIP, loginName)
+	if err != nil {
+		return nil, kerrors.ServiceUnavailable("LOGIN_CHALLENGE_UNAVAILABLE", "login security state is unavailable")
+	}
+	turnstileToken := strings.TrimSpace(req.GetTurnstileToken())
+	if s.turnstile != nil && (challengeRequired || turnstileToken != "") {
+		if turnstileToken == "" || s.turnstile.Verify(ctx, turnstileToken, clientIP) != nil {
 			_ = s.audit.Write(ctx, *event)
 			return nil, kerrors.Forbidden("TURNSTILE_REQUIRED", "security verification failed")
 		}
@@ -143,6 +159,12 @@ func (s *IdentityService) Login(ctx context.Context, req *forgev1.LoginRequest) 
 		return nil, internalError(txErr)
 	}
 	if loginErr != nil {
+		if errors.Is(loginErr, appidentity.ErrInvalidCredentials) {
+			if err := s.markLoginChallenge(ctx, clientIP, loginName); err != nil {
+				return nil, kerrors.ServiceUnavailable("LOGIN_CHALLENGE_UNAVAILABLE", "login security state is unavailable")
+			}
+			return nil, kerrors.Forbidden("TURNSTILE_REQUIRED", "security verification is required")
+		}
 		if errors.Is(loginErr, appidentity.ErrMFARequired) {
 			return nil, kerrors.New(http.StatusPreconditionRequired, "MFA_REQUIRED", "multi-factor authentication is required")
 		}
@@ -154,8 +176,57 @@ func (s *IdentityService) Login(ctx context.Context, req *forgev1.LoginRequest) 
 		}
 		return nil, kerrors.Unauthorized("INVALID_CREDENTIALS", "invalid credentials")
 	}
+	s.clearLoginChallenge(ctx, clientIP, loginName)
 	s.setLoginCookies(ctx, sessionToken, csrfToken, expiresAt)
 	return &forgev1.LoginResponse{User: principalUser(principal), CsrfToken: csrfToken}, nil
+}
+
+const loginChallengeTTL = 15 * time.Minute
+
+func loginChallengeKeys(clientIP, loginName string) []string {
+	keys := loginRateLimitKeys(clientIP, loginName)
+	return []string{"login-challenge:" + keys[0], "login-challenge:" + keys[1]}
+}
+
+func (s *IdentityService) loginChallengeRequired(ctx context.Context, clientIP, loginName string) (bool, error) {
+	if s.turnstile == nil {
+		return false, nil
+	}
+	if s.loginChallengeCache == nil || s.loginChallengeCache.Provider() == "disabled" {
+		return false, errors.New("login challenge cache is unavailable")
+	}
+	for _, key := range loginChallengeKeys(clientIP, loginName) {
+		if _, err := s.loginChallengeCache.Get(ctx, key); err == nil {
+			return true, nil
+		} else if !errors.Is(err, cache.ErrMiss) {
+			return false, err
+		}
+	}
+	return false, nil
+}
+
+func (s *IdentityService) markLoginChallenge(ctx context.Context, clientIP, loginName string) error {
+	if s.turnstile == nil {
+		return nil
+	}
+	if s.loginChallengeCache == nil || s.loginChallengeCache.Provider() == "disabled" {
+		return errors.New("login challenge cache is unavailable")
+	}
+	for _, key := range loginChallengeKeys(clientIP, loginName) {
+		if err := s.loginChallengeCache.Set(ctx, key, "required", loginChallengeTTL); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (s *IdentityService) clearLoginChallenge(ctx context.Context, clientIP, loginName string) {
+	if s.loginChallengeCache == nil {
+		return
+	}
+	for _, key := range loginChallengeKeys(clientIP, loginName) {
+		_ = s.loginChallengeCache.Delete(ctx, key)
+	}
 }
 
 // loginRateLimitKeys applies independent IP and normalized-account windows.

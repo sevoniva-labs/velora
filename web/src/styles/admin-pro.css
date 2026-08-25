@@ -41,12 +41,105 @@
 .velora-admin-content .ant-pro-table-list-toolbar-container {
   min-height: 56px;
   gap: 16px;
-  padding-inline: 20px;
+  padding: 18px 20px;
 }
 
 .velora-admin-content .ant-pro-table-list-toolbar-left,
 .velora-admin-content .ant-pro-table-list-toolbar-right {
   min-width: 0;
+}
+
+/* Entity lists follow the ProList toolbar pattern: scopes on the left,
+   persistent search and primary action on the right. */
+.velora-admin-list-scope {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 8px;
+}
+
+.velora-admin-list-scope-item.ant-btn {
+  height: 36px;
+  padding-inline: 8px;
+  color: var(--velora-secondary);
+  font-size: 14px;
+}
+
+.velora-admin-list-scope-item.ant-btn:hover {
+  color: var(--velora-title) !important;
+  background: transparent !important;
+}
+
+.velora-admin-list-scope-item.ant-btn.is-active {
+  color: var(--velora-title);
+  font-weight: 600;
+}
+
+.velora-admin-list-scope-count {
+  display: inline-flex;
+  min-width: 24px;
+  height: 24px;
+  align-items: center;
+  justify-content: center;
+  margin-inline-start: 6px;
+  padding-inline: 7px;
+  border-radius: 999px;
+  background: #f0f2f5;
+  color: var(--velora-secondary);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 24px;
+}
+
+.velora-admin-list-scope-item.is-active .velora-admin-list-scope-count {
+  background: var(--velora-primary-soft);
+  color: var(--velora-primary);
+}
+
+.velora-admin-list-title {
+  color: var(--velora-title);
+  font-size: 15px;
+}
+
+.velora-admin-list-tools {
+  justify-content: flex-end;
+}
+
+.velora-admin-list-search {
+  width: 280px;
+  height: 36px;
+}
+
+.velora-admin-list-search .ant-input-search-btn {
+  color: var(--velora-title) !important;
+  background: var(--velora-surface) !important;
+  border-color: var(--velora-border) !important;
+  box-shadow: none !important;
+}
+
+.velora-admin-list-search .ant-input-search-btn:hover,
+.velora-admin-list-search .ant-input-search-btn:focus-visible {
+  color: var(--velora-primary) !important;
+  border-color: var(--velora-primary) !important;
+}
+
+.velora-admin-list-search .ant-input-affix-wrapper,
+.velora-admin-list-search .ant-input,
+.velora-admin-list-search .ant-input-search-btn {
+  height: 36px;
+}
+
+.velora-admin-list-search .ant-input-affix-wrapper {
+  padding-block: 0;
+}
+
+.velora-admin-list-tools > .ant-space-item > .ant-btn {
+  height: 36px;
+}
+
+.velora-admin-list-search .ant-input-search-btn {
+  width: 42px;
+  padding-inline: 0;
 }
 
 .velora-admin-content .ant-empty {
@@ -223,5 +316,11 @@
   .velora-admin-primary-table .ant-table-wrapper:has(.ant-table-pagination) > .ant-spin-nested-loading > .ant-spin-container,
   .velora-admin-primary-table .ant-pro-list-container:has(.ant-pro-list-pagination) > .ant-spin-nested-loading > .ant-spin-container,
   .velora-admin-secondary-table .ant-table-wrapper:has(.ant-table-pagination) > .ant-spin-nested-loading > .ant-spin-container { min-height: 320px; }
+  .velora-admin-content .ant-pro-table-list-toolbar-container { align-items: stretch; }
+  .velora-admin-content .ant-pro-table-list-toolbar-left,
+  .velora-admin-content .ant-pro-table-list-toolbar-right,
+  .velora-admin-list-tools { width: 100%; }
+  .velora-admin-list-scope { overflow-x: auto; }
+  .velora-admin-list-search { width: min(100%, 360px); }
   .velora-application-overview { padding: 16px; }
 }

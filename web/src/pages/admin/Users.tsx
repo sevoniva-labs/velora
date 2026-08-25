@@ -11,6 +11,7 @@ import { usePageTitle } from '../../hooks/usePageTitle'
 import { SYSTEM_USER_CREATE, SYSTEM_USER_UPDATE } from '../../auth/permissions'
 import { useAdminPermission } from '../../auth/useAdminPermission'
 import QueryErrorState from '../../components/QueryErrorState'
+import { AdminListScope, AdminListSearch } from '../../components/admin/AdminListToolbar'
 
 type CreateForm = Omit<CreateAdminUserInput, 'entitlements'>
 
@@ -29,16 +30,31 @@ export default function Users() {
   const canUpdate = useAdminPermission(SYSTEM_USER_UPDATE)
   const [createOpen, setCreateOpen] = useState(false)
   const [loadError, setLoadError] = useState(false)
+  const [scope, setScope] = useState('ALL')
+  const [searchValue, setSearchValue] = useState('')
+  const [keyword, setKeyword] = useState('')
   const roles = useQuery({ queryKey: ['admin', 'roles'], queryFn: listPlatformRoles })
+  const counts = useQuery({
+    queryKey: ['admin', 'user-counts'],
+    queryFn: async () => {
+      const [all, active, disabled, locked] = await Promise.all([
+        adminPageUsers({ page: 1, pageSize: 1 }),
+        adminPageUsers({ page: 1, pageSize: 1, status: 'ACTIVE' }),
+        adminPageUsers({ page: 1, pageSize: 1, status: 'DISABLED' }),
+        adminPageUsers({ page: 1, pageSize: 1, status: 'LOCKED' }),
+      ])
+      return { ALL: all.total, ACTIVE: active.total, DISABLED: disabled.total, LOCKED: locked.total }
+    },
+  })
   const roleNames = useMemo(() => new Map((roles.data ?? []).map((role) => [role.key, role.name])), [roles.data])
   const create = useMutation({
     mutationFn: (values: CreateForm) => adminCreateUser({ ...values, loginName: values.loginName.trim(), displayName: values.displayName.trim(), email: values.email?.trim(), entitlements: [] }),
-    onSuccess: async () => { message.success('用户已创建'); setCreateOpen(false); await queryClient.invalidateQueries({ queryKey: ['admin', 'users'] }); actionRef.current?.reload() },
+    onSuccess: async () => { message.success('用户已创建'); setCreateOpen(false); await Promise.all([queryClient.invalidateQueries({ queryKey: ['admin', 'users'] }), queryClient.invalidateQueries({ queryKey: ['admin', 'user-counts'] })]); actionRef.current?.reload() },
     onError: (error) => message.error(error instanceof Error ? error.message : '用户创建失败'),
   })
   const updateStatus = useMutation({
     mutationFn: ({ user, status }: { user: AdminUser; status: 'ACTIVE' | 'DISABLED' }) => adminUpdateUserStatus(user.id, status),
-    onSuccess: async (_, values) => { message.success(values.status === 'ACTIVE' ? '用户已启用' : '用户已停用'); await queryClient.invalidateQueries({ queryKey: ['admin', 'users'] }); actionRef.current?.reload() },
+    onSuccess: async (_, values) => { message.success(values.status === 'ACTIVE' ? '用户已启用' : '用户已停用'); await Promise.all([queryClient.invalidateQueries({ queryKey: ['admin', 'users'] }), queryClient.invalidateQueries({ queryKey: ['admin', 'user-counts'] })]); actionRef.current?.reload() },
     onError: (error) => message.error(error instanceof Error ? error.message : '用户状态更新失败'),
   })
   const columns: ProColumns<AdminUser>[] = [
@@ -51,7 +67,23 @@ export default function Users() {
   ]
 
   return <PageContainer title="用户">
-    {loadError ? <QueryErrorState refetch={() => setLoadError(false)} /> : <ProList<AdminUser> className="velora-admin-primary-table velora-admin-entity-list" actionRef={actionRef} rowKey="id" columns={columns} request={async (params) => { try { const data = await adminPageUsers({ page: params.current, pageSize: params.pageSize, keyword: String(params.keyword ?? '') || undefined, status: String(params.status ?? '') || undefined, roleKey: String(params.roleKey ?? '') || undefined }); return { data: data.items, total: data.total, success: true } } catch { setLoadError(true); return { data: [], total: 0, success: false } } }} search={{ filterType: 'light' }} pagination={{ defaultPageSize: 20, showSizeChanger: true }} toolBarRender={canCreate ? () => [<Button key="create" type="primary" icon={<PlusOutlined />} onClick={() => setCreateOpen(true)}>新建用户</Button>] : false} />}
+    {loadError ? <QueryErrorState refetch={() => setLoadError(false)} /> : <ProList<AdminUser>
+      key={`${scope}:${keyword}`}
+      className="velora-admin-primary-table velora-admin-entity-list"
+      actionRef={actionRef}
+      rowKey="id"
+      columns={columns}
+      search={false}
+      headerTitle={<AdminListScope value={scope} onChange={setScope} options={[
+        { label: '全部用户', value: 'ALL', count: counts.data?.ALL },
+        { label: '正常', value: 'ACTIVE', count: counts.data?.ACTIVE },
+        { label: '已停用', value: 'DISABLED', count: counts.data?.DISABLED },
+        { label: '已锁定', value: 'LOCKED', count: counts.data?.LOCKED },
+      ]} />}
+      request={async (params) => { try { const data = await adminPageUsers({ page: params.current, pageSize: params.pageSize, keyword: keyword || undefined, status: scope === 'ALL' ? undefined : scope }); return { data: data.items, total: data.total, success: true } } catch { setLoadError(true); return { data: [], total: 0, success: false } } }}
+      pagination={{ defaultPageSize: 20, showSizeChanger: true }}
+      toolBarRender={() => [<AdminListSearch key="search" value={searchValue} placeholder="搜索姓名、账号或邮箱" onChange={setSearchValue} onSearch={setKeyword}>{canCreate && <Button type="primary" icon={<PlusOutlined />} onClick={() => setCreateOpen(true)}>新建用户</Button>}</AdminListSearch>]}
+    />}
     <ModalForm<CreateForm> title="新建用户" open={createOpen} onOpenChange={setCreateOpen} width={620} initialValues={{ roles: ['user'] }} submitter={{ searchConfig: { submitText: '创建用户', resetText: '取消' } }} onFinish={async (values) => { await create.mutateAsync(values); return true }}>
       <ProFormText name="loginName" label="登录账号" rules={[{ required: true, message: '请输入登录账号' }, { pattern: /^[a-zA-Z][a-zA-Z0-9._-]{2,63}$/, message: '3–64 位，以字母开头' }]} />
       <ProFormText name="displayName" label="姓名" rules={[{ required: true, message: '请输入姓名' }]} />

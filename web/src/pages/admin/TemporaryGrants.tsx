@@ -12,8 +12,8 @@ import { formatDateTime } from '../../utils/format'
 import AdminUserSelect from '../../components/AdminUserSelect'
 import { SYSTEM_TEMPORARY_GRANT_MANAGE } from '../../auth/permissions'
 import { useAdminPermission } from '../../auth/useAdminPermission'
-import { useClientTableSearch } from '../../utils/tableSearch'
 import QueryErrorState from '../../components/QueryErrorState'
+import { AdminListScope, AdminListSearch } from '../../components/admin/AdminListToolbar'
 
 interface RequestForm { userId: string; roleKey: string; reason: string; validUntil: Dayjs; approverId: string }
 interface RevokeForm { reason: string }
@@ -28,11 +28,15 @@ export default function TemporaryGrants() {
   const [requestOpen, setRequestOpen] = useState(false)
   const [revoking, setRevoking] = useState<TemporaryRoleGrant>()
   const [targetUserName, setTargetUserName] = useState('')
+  const [scope, setScope] = useState('ALL')
+  const [searchValue, setSearchValue] = useState('')
+  const [keyword, setKeyword] = useState('')
   const roles = useQuery({ queryKey: ['admin', 'roles'], queryFn: listPlatformRoles })
   const grants = useQuery({ queryKey: ['admin', 'temporary-grants'], queryFn: listTemporaryRoleGrants })
-  const grantTable = useClientTableSearch(grants.data ?? [], { exact: ['status'] })
-  const approvals = useQuery({ queryKey: ['admin', 'approvals'], queryFn: listApprovals, enabled: canManage })
   const roleNames = useMemo(() => new Map((roles.data ?? []).map((item) => [item.key, item.name])), [roles.data])
+  const allGrants = grants.data ?? []
+  const visibleGrants = allGrants.filter((item) => (scope === 'ALL' || (scope === 'ENDED' ? ['EXPIRED', 'REVOKED'].includes(item.status) : item.status === scope)) && (!keyword || `${item.loginName} ${item.displayName} ${roleNames.get(item.roleKey) ?? item.roleKey}`.toLowerCase().includes(keyword.toLowerCase())))
+  const approvals = useQuery({ queryKey: ['admin', 'approvals'], queryFn: listApprovals, enabled: canManage })
   const executed = new Set((grants.data ?? []).map((item) => item.approvalId))
   const approved = (approvals.data ?? []).filter((item) => item.requestType === 'TEMPORARY_ROLE_GRANT' && item.status === 'APPROVED' && !executed.has(item.id))
   const refresh = async () => { await Promise.all([queryClient.invalidateQueries({ queryKey: ['admin', 'temporary-grants'] }), queryClient.invalidateQueries({ queryKey: ['admin', 'approvals'] })]) }
@@ -54,8 +58,8 @@ export default function TemporaryGrants() {
   ]
   return <PageContainer title="临时授权">
     <Space direction="vertical" size={16} style={{ width: '100%' }}>
-      {grants.isError ? <QueryErrorState refetch={grants.refetch} /> : <ProTable<TemporaryRoleGrant> className="velora-admin-primary-table" headerTitle="授权记录" rowKey="id" columns={columns} {...grantTable} loading={grants.isLoading} search={{ filterType: 'light' }} pagination={{ pageSize: 20 }} toolBarRender={canManage ? () => [<Button key="request" type="primary" icon={<PlusOutlined />} onClick={() => setRequestOpen(true)}>申请临时授权</Button>] : false} />}
-      {canManage && approved.length > 0 && <ProTable<ApprovalRequest> headerTitle="待执行" rowKey="id" columns={approvedColumns} dataSource={approved} search={false} pagination={false} options={false} />}
+      {grants.isError ? <QueryErrorState refetch={grants.refetch} /> : <ProTable<TemporaryRoleGrant> className="velora-admin-primary-table" rowKey="id" columns={columns} dataSource={visibleGrants} loading={grants.isLoading} search={false} pagination={{ pageSize: 20 }} headerTitle={<AdminListScope value={scope} onChange={setScope} options={[{ label: '全部授权', value: 'ALL', count: allGrants.length }, { label: '生效中', value: 'ACTIVE', count: allGrants.filter((item) => item.status === 'ACTIVE').length }, { label: '待生效', value: 'SCHEDULED', count: allGrants.filter((item) => item.status === 'SCHEDULED').length }, { label: '已结束', value: 'ENDED', count: allGrants.filter((item) => ['EXPIRED', 'REVOKED'].includes(item.status)).length }]} />} toolBarRender={() => [<AdminListSearch key="tools" value={searchValue} placeholder="搜索用户或平台角色" onChange={setSearchValue} onSearch={setKeyword}>{canManage && <Button type="primary" icon={<PlusOutlined />} onClick={() => setRequestOpen(true)}>申请临时授权</Button>}</AdminListSearch>]} />}
+      {canManage && approved.length > 0 && <ProTable<ApprovalRequest> className="velora-admin-secondary-table" headerTitle="待执行" rowKey="id" columns={approvedColumns} dataSource={approved} search={false} pagination={{ pageSize: 20, hideOnSinglePage: false }} options={false} />}
     </Space>
     <ModalForm<RequestForm> title="申请临时授权" open={requestOpen} onOpenChange={setRequestOpen} width={600} initialValues={{ validUntil: dayjs().add(8, 'hour') }} submitter={{ searchConfig: { submitText: '提交申请', resetText: '取消' } }} onFinish={async (values) => { await request.mutateAsync(values); return true }}>
       <ProForm.Item name="userId" label="用户" rules={[{ required: true, message: '请选择用户' }]}><AdminUserSelect onUserSelect={(user) => setTargetUserName(user.displayName || user.loginName)} /></ProForm.Item>

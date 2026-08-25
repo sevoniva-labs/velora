@@ -10,8 +10,8 @@ import type { ApplicationAccessGrant, ApplicationAccessImpact, ApplicationEffect
 import { useMe } from '../../auth/useMe'
 import AdminUserSelect from '../../components/AdminUserSelect'
 import { APPROVAL_REQUEST_CREATE, APPROVAL_REQUEST_READ, hasPermission } from '../../auth/permissions'
-import { useClientTableSearch } from '../../utils/tableSearch'
 import QueryErrorState from '../../components/QueryErrorState'
+import { AdminListSearch, AdminListTitle } from '../../components/admin/AdminListToolbar'
 
 const SUBJECT_LABELS: Record<ApplicationAccessGrant['subjectType'], string> = { EVERYONE: '全体成员', DEPARTMENT: '部门', USER_GROUP: '用户组', PLATFORM_ROLE: '平台角色', USER: '指定人员' }
 const RISK_LABELS = { NORMAL: '普通', PRIVILEGED: '高权限', CRITICAL: '关键权限' }
@@ -36,9 +36,11 @@ export default function ApplicationAccess({ applicationId, view }: Props) {
   const [roleDirty, setRoleDirty] = useState(false)
   const [approverId, setApproverId] = useState<string>()
   const [selectedSubjectName, setSelectedSubjectName] = useState('')
+  const [effectiveSearch, setEffectiveSearch] = useState('')
+  const [effectiveKeyword, setEffectiveKeyword] = useState('')
   const grants = useQuery({ queryKey: ['admin', 'applications', applicationId, 'access-grants'], queryFn: () => listApplicationAccessGrants(applicationId) })
   const effective = useQuery({ queryKey: ['admin', 'applications', applicationId, 'effective-access'], queryFn: () => listApplicationEffectiveAccess(applicationId) })
-  const effectiveTable = useClientTableSearch(effective.data ?? [])
+  const visibleEffectiveAccess = (effective.data ?? []).filter((item) => !effectiveKeyword || `${item.displayName} ${item.loginName} ${item.roles.join(' ')}`.toLowerCase().includes(effectiveKeyword.toLowerCase()))
   const roles = useQuery({ queryKey: ['admin', 'applications', applicationId, 'roles'], queryFn: () => adminListApplicationRoles(applicationId) })
   const departments = useQuery({ queryKey: ['admin', 'departments'], queryFn: listDepartments })
   const groups = useQuery({ queryKey: ['admin', 'user-groups'], queryFn: listUserGroups })
@@ -97,9 +99,9 @@ export default function ApplicationAccess({ applicationId, view }: Props) {
       <EditableProTable<ApplicationRole> rowKey="id" columns={roleColumns} value={roleDrafts} loading={roles.isLoading} recordCreatorProps={{ newRecordType: 'dataSource', record: () => ({ id: crypto.randomUUID(), applicationId, roleKey: '', name: '', description: '', riskLevel: 'NORMAL', status: 'ACTIVE', configVersion: 0 }) }} editable={{ type: 'multiple' }} onChange={(values) => { setRoleDrafts([...values]); setRoleDirty(true) }} controlled={false} />
     </ProCard>)}
     {view === 'access' && (grants.isError || effective.isError ? <QueryErrorState compact refetch={() => Promise.all([grants.refetch(), effective.refetch()])} /> : <>
-    <ProTable<ApplicationAccessGrant> headerTitle="谁可以使用" rowKey="id" columns={grantColumns} dataSource={drafts} loading={grants.isLoading} search={false} pagination={false} options={false} toolBarRender={() => [dirty ? <Tag key="dirty" color="warning">待保存</Tag> : null, <Button key="add" icon={<PlusOutlined />} onClick={() => { setEditing(undefined); setSelectedSubjectName(''); setSubjectType('DEPARTMENT'); setEffect('ALLOW'); setGrantOpen(true) }}>添加使用范围</Button>, <Button key="save" type="primary" disabled={!dirty} loading={previewMutation.isPending} onClick={() => previewMutation.mutate()}>预览并保存</Button>].filter(Boolean)} />
-    {approvedChanges.length > 0 && <ProTable<ApprovalRequest> headerTitle="待执行变更" rowKey="id" dataSource={approvedChanges} search={false} pagination={false} options={false} columns={[{ title: '事项', dataIndex: 'summary' }, { title: '操作', valueType: 'option', width: 110, render: (_, row) => <Button type="link" loading={saveMutation.isPending} onClick={() => executeApproved(row)}>执行变更</Button> }]} />}
-    <ProTable<ApplicationEffectiveAccess> className="velora-admin-secondary-table" headerTitle="当前可使用人员" rowKey="userId" columns={effectiveColumns} {...effectiveTable} loading={effective.isLoading} search={{ filterType: 'light' }} pagination={{ pageSize: 20 }} />
+    <ProTable<ApplicationAccessGrant> className="velora-admin-secondary-table" headerTitle="谁可以使用" rowKey="id" columns={grantColumns} dataSource={drafts} loading={grants.isLoading} search={false} pagination={{ pageSize: 20, hideOnSinglePage: false }} options={false} toolBarRender={() => [dirty ? <Tag key="dirty" color="warning">待保存</Tag> : null, <Button key="add" icon={<PlusOutlined />} onClick={() => { setEditing(undefined); setSelectedSubjectName(''); setSubjectType('DEPARTMENT'); setEffect('ALLOW'); setGrantOpen(true) }}>添加使用范围</Button>, <Button key="save" type="primary" disabled={!dirty} loading={previewMutation.isPending} onClick={() => previewMutation.mutate()}>预览并保存</Button>].filter(Boolean)} />
+    {approvedChanges.length > 0 && <ProTable<ApprovalRequest> className="velora-admin-secondary-table" headerTitle="待执行变更" rowKey="id" dataSource={approvedChanges} search={false} pagination={{ pageSize: 20, hideOnSinglePage: false }} options={false} columns={[{ title: '事项', dataIndex: 'summary' }, { title: '操作', valueType: 'option', width: 110, render: (_, row) => <Button type="link" loading={saveMutation.isPending} onClick={() => executeApproved(row)}>执行变更</Button> }]} />}
+    <ProTable<ApplicationEffectiveAccess> className="velora-admin-secondary-table" headerTitle={<AdminListTitle>当前可使用人员</AdminListTitle>} rowKey="userId" columns={effectiveColumns} dataSource={visibleEffectiveAccess} loading={effective.isLoading} search={false} pagination={{ pageSize: 20 }} toolBarRender={() => [<AdminListSearch key="tools" value={effectiveSearch} placeholder="搜索用户或应用角色" onChange={setEffectiveSearch} onSearch={setEffectiveKeyword} />]} />
 
     <ModalForm<ApplicationAccessGrant> formRef={grantFormRef} key={editing?.id ?? 'new'} title={editing ? '编辑使用范围' : '添加使用范围'} open={grantOpen} onOpenChange={setGrantOpen} width={560} initialValues={editing ? { ...editing, validFrom: editing.validFrom ? dayjs(editing.validFrom) : undefined, validUntil: editing.validUntil ? dayjs(editing.validUntil) : undefined } : { subjectType: 'DEPARTMENT', effect: 'ALLOW', roles: [], status: 'ACTIVE', includeDescendants: true }} submitter={{ searchConfig: { submitText: '确定', resetText: '取消' } }} onFinish={async (values) => saveGrant(values)}>
       <ProFormSelect name="subjectType" label="按什么范围" options={Object.entries(SUBJECT_LABELS).map(([value, label]) => ({ value, label }))} fieldProps={{ onChange: (value) => { setSubjectType(value as ApplicationAccessGrant['subjectType']); grantFormRef.current?.setFieldValue('subjectId', undefined); setSelectedSubjectName('') } }} rules={[{ required: true }]} />

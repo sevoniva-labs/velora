@@ -7,8 +7,8 @@ import { createIntegrationToken, listIntegrationTokens, revokeIntegrationToken, 
 import { useMe } from '../../auth/useMe'
 import { usePageTitle } from '../../hooks/usePageTitle'
 import { formatDateTime } from '../../utils/format'
-import { useClientTableSearch } from '../../utils/tableSearch'
 import QueryErrorState from '../../components/QueryErrorState'
+import { AdminListScope, AdminListSearch } from '../../components/admin/AdminListToolbar'
 
 interface CreateForm { name: string; scopes: string[]; expiresInDays: number }
 
@@ -29,8 +29,16 @@ export default function AdminIntegrationTokens() {
   const queryClient = useQueryClient()
   const [open, setOpen] = useState(false)
   const [secret, setSecret] = useState<string>()
+  const [scope, setScope] = useState('ALL')
+  const [searchValue, setSearchValue] = useState('')
+  const [keyword, setKeyword] = useState('')
   const tokens = useQuery({ queryKey: ['admin', 'integration-tokens'], queryFn: listIntegrationTokens })
-  const tokenTable = useClientTableSearch(tokens.data ?? [], { exact: ['revoked'] })
+  const allTokens = tokens.data ?? []
+  const visibleTokens = useMemo(() => allTokens.filter((item) => {
+    if (scope === 'ACTIVE' && item.revoked) return false
+    if (scope === 'REVOKED' && !item.revoked) return false
+    return !keyword || item.name.toLowerCase().includes(keyword.toLowerCase()) || item.createdBy?.toLowerCase().includes(keyword.toLowerCase())
+  }), [allTokens, keyword, scope])
   const scopeOptions = useMemo(() => {
     const permissions = (me.data?.permissions ?? []).filter((item) => item !== '*').sort()
     const options = permissions.map((value) => ({ value, label: permissionLabel(value) }))
@@ -47,7 +55,21 @@ export default function AdminIntegrationTokens() {
     { title: '操作', listSlot: 'actions', valueType: 'option', search: false, render: (_, row) => row.revoked ? [] : [<Popconfirm key="revoke" title="停用此对接账号？" description="停用后，使用该密钥的系统将无法访问平台。" okText="停用" okButtonProps={{ danger: true }} onConfirm={() => revoke.mutate(row.id)}><Button type="link" danger>停用</Button></Popconfirm>] },
   ]
   return <PageContainer title="接口凭据">
-    {tokens.isError ? <QueryErrorState refetch={tokens.refetch} /> : <ProList<IntegrationToken> className="velora-admin-primary-table velora-admin-entity-list" rowKey="id" columns={columns} {...tokenTable} loading={tokens.isLoading} search={{ filterType: 'light' }} pagination={false} toolBarRender={() => [<Button key="create" type="primary" icon={<PlusOutlined />} onClick={() => setOpen(true)}>新建对接账号</Button>]} />}
+    {tokens.isError ? <QueryErrorState refetch={tokens.refetch} /> : <ProList<IntegrationToken>
+      className="velora-admin-primary-table velora-admin-entity-list"
+      rowKey="id"
+      columns={columns}
+      dataSource={visibleTokens}
+      loading={tokens.isLoading}
+      search={false}
+      pagination={{ pageSize: 20, hideOnSinglePage: false }}
+      headerTitle={<AdminListScope value={scope} onChange={setScope} options={[
+        { label: '全部账号', value: 'ALL', count: allTokens.length },
+        { label: '可用', value: 'ACTIVE', count: allTokens.filter((item) => !item.revoked).length },
+        { label: '已停用', value: 'REVOKED', count: allTokens.filter((item) => item.revoked).length },
+      ]} />}
+      toolBarRender={() => [<AdminListSearch key="tools" value={searchValue} placeholder="搜索账号名称或创建人" onChange={setSearchValue} onSearch={setKeyword}><Button type="primary" icon={<PlusOutlined />} onClick={() => setOpen(true)}>新建对接账号</Button></AdminListSearch>]}
+    />}
     <ModalForm<CreateForm> title="新建对接账号" open={open} onOpenChange={setOpen} initialValues={{ expiresInDays: 90 }} submitter={{ searchConfig: { submitText: '创建', resetText: '取消' } }} onFinish={async (values) => { await create.mutateAsync(values); return true }}>
       <ProFormText name="name" label="名称" fieldProps={{ prefix: <KeyOutlined />, maxLength: 100 }} rules={[{ required: true, message: '请输入名称' }]} />
       <ProFormSelect name="scopes" label="允许操作" mode="multiple" options={scopeOptions} rules={[{ required: true, message: '请选择允许执行的操作' }]} />

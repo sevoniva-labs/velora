@@ -10,8 +10,8 @@ import { usePageTitle } from '../../hooks/usePageTitle'
 import { formatDateTime } from '../../utils/format'
 import { approvalTypeLabel } from '../../labels'
 import { APPROVAL_TASK_DECIDE, hasPermission } from '../../auth/permissions'
-import { useClientTableSearch } from '../../utils/tableSearch'
 import QueryErrorState from '../../components/QueryErrorState'
+import { AdminListScope, AdminListSearch } from '../../components/admin/AdminListToolbar'
 
 interface DecisionForm { decision: 'APPROVE' | 'REJECT'; comment: string }
 const STATUS_LABELS: Record<string, string> = { PENDING: '待审批', APPROVED: '已批准', REJECTED: '已拒绝', WITHDRAWN: '已撤回', EXPIRED: '已过期', EXECUTED: '已执行' }
@@ -24,8 +24,12 @@ export default function Approvals() {
   const queryClient = useQueryClient()
   const navigate = useNavigate()
   const [selected, setSelected] = useState<ApprovalRequest>()
+  const [scope, setScope] = useState('ALL')
+  const [searchValue, setSearchValue] = useState('')
+  const [keyword, setKeyword] = useState('')
   const approvals = useQuery({ queryKey: ['admin', 'approvals'], queryFn: listApprovals, refetchInterval: 30_000 })
-  const approvalTable = useClientTableSearch(approvals.data ?? [], { exact: ['status'] })
+  const allApprovals = approvals.data ?? []
+  const visibleApprovals = allApprovals.filter((item) => (scope === 'ALL' || (scope === 'ENDED' ? !['PENDING', 'APPROVED'].includes(item.status) : item.status === scope)) && (!keyword || `${item.summary} ${approvalTypeLabel(item.requestType)}`.toLowerCase().includes(keyword.toLowerCase())))
   const decide = useMutation({ mutationFn: (values: DecisionForm) => decideApproval(selected!.id, values.decision, values.comment ?? ''), onSuccess: async (_, values) => { message.success(values.decision === 'APPROVE' ? '已批准' : '已拒绝'); setSelected(undefined); await queryClient.invalidateQueries({ queryKey: ['admin', 'approvals'] }) }, onError: (error) => message.error(error instanceof Error ? error.message : '审批处理失败') })
   const columns: ProColumns<ApprovalRequest>[] = [
     { title: '事项', dataIndex: 'summary', render: (_, row) => <Space direction="vertical" size={0}><Typography.Text strong>{row.summary}</Typography.Text><Typography.Text type="secondary">{approvalTypeLabel(row.requestType)}</Typography.Text></Space> },
@@ -34,7 +38,7 @@ export default function Approvals() {
     { title: '状态', dataIndex: 'status', valueType: 'select', valueEnum: Object.fromEntries(Object.entries(STATUS_LABELS).map(([key, text]) => [key, { text }])), render: (_, row) => <Tag color={row.status === 'PENDING' ? 'processing' : row.status === 'APPROVED' ? 'success' : 'default'}>{STATUS_LABELS[row.status] ?? '已结束'}</Tag> },
     { title: '操作', valueType: 'option', width: 110, render: (_, row) => canDecide && row.status === 'PENDING' && row.tasks.some((task) => task.assigneeId === me.data?.id && task.status === 'PENDING') ? <Button type="link" onClick={() => setSelected(row)}>处理</Button> : row.status === 'APPROVED' && executionPath(row) ? <Button type="link" onClick={() => navigate(executionPath(row)!)}>前往执行</Button> : <Typography.Text type="secondary">—</Typography.Text> },
   ]
-  return <PageContainer title="审批">{approvals.isError ? <QueryErrorState refetch={approvals.refetch} /> : <ProTable<ApprovalRequest> className="velora-admin-primary-table" rowKey="id" columns={columns} {...approvalTable} loading={approvals.isLoading} search={{ filterType: 'light' }} pagination={{ pageSize: 20 }} />}
+  return <PageContainer title="审批">{approvals.isError ? <QueryErrorState refetch={approvals.refetch} /> : <ProTable<ApprovalRequest> className="velora-admin-primary-table" rowKey="id" columns={columns} dataSource={visibleApprovals} loading={approvals.isLoading} search={false} pagination={{ pageSize: 20 }} headerTitle={<AdminListScope value={scope} onChange={setScope} options={[{ label: '全部审批', value: 'ALL', count: allApprovals.length }, { label: '待审批', value: 'PENDING', count: allApprovals.filter((item) => item.status === 'PENDING').length }, { label: '已批准', value: 'APPROVED', count: allApprovals.filter((item) => item.status === 'APPROVED').length }, { label: '已结束', value: 'ENDED', count: allApprovals.filter((item) => !['PENDING', 'APPROVED'].includes(item.status)).length }]} />} toolBarRender={() => [<AdminListSearch key="tools" value={searchValue} placeholder="搜索审批事项" onChange={setSearchValue} onSearch={setKeyword} />]} />}
     <ModalForm<DecisionForm> key={selected?.id ?? 'decision'} title="处理审批" open={Boolean(selected)} onOpenChange={(value) => !value && setSelected(undefined)} initialValues={{ decision: 'APPROVE' }} submitter={{ searchConfig: { submitText: '提交', resetText: '取消' } }} onFinish={async (values) => { await decide.mutateAsync(values); return true }}>
       <ProFormRadio.Group name="decision" label="处理结果" options={[{ label: '批准', value: 'APPROVE' }, { label: '拒绝', value: 'REJECT' }]} rules={[{ required: true }]} />
       <ProFormTextArea name="comment" label="处理意见" fieldProps={{ maxLength: 500, showCount: true }} />

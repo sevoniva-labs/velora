@@ -11,8 +11,8 @@ import { formatDateTime } from '../../utils/format'
 import AdminUserSelect from '../../components/AdminUserSelect'
 import { SYSTEM_CONFIG_MANAGE } from '../../auth/permissions'
 import { useAdminPermission } from '../../auth/useAdminPermission'
-import { useClientTableSearch } from '../../utils/tableSearch'
 import QueryErrorState from '../../components/QueryErrorState'
+import { AdminListScope, AdminListSearch } from '../../components/admin/AdminListToolbar'
 
 interface CreateForm { namespace: string; group: string; dataId: string; valueDigest: string; valueRef: string; sensitive: boolean }
 interface ApprovalForm { approverId: string }
@@ -33,8 +33,12 @@ export default function ConfigChanges() {
   const queryClient = useQueryClient()
   const [createOpen, setCreateOpen] = useState(false)
   const [requesting, setRequesting] = useState<ConfigChange>()
+  const [scope, setScope] = useState('ALL')
+  const [searchValue, setSearchValue] = useState('')
+  const [keyword, setKeyword] = useState('')
   const changes = useQuery({ queryKey: ['admin', 'config-changes'], queryFn: listConfigChanges })
-  const changeTable = useClientTableSearch(changes.data ?? [], { exact: ['state', 'sensitive'] })
+  const allChanges = changes.data ?? []
+  const visibleChanges = allChanges.filter((item) => (scope === 'ALL' || (scope === 'ACTIVE' ? ['PENDING_APPROVAL', 'APPROVED', 'ROLLBACK_PENDING'].includes(item.state) : scope === 'ENDED' ? ['ROLLED_BACK', 'REJECTED'].includes(item.state) : item.state === scope)) && (!keyword || `${item.dataId} ${item.namespace} ${item.group}`.toLowerCase().includes(keyword.toLowerCase())))
   const approvals = useQuery({ queryKey: ['admin', 'approvals'], queryFn: listApprovals, enabled: canManage })
   const approvedByResource = useMemo(() => new Map((approvals.data ?? []).filter((item) => item.resource === 'config_change' && item.status === 'APPROVED').map((item) => [`${item.resourceId}:${item.action}`, item])), [approvals.data])
   const createInput = (values: CreateForm) => {
@@ -56,7 +60,7 @@ export default function ConfigChanges() {
   ]
   if (canManage) columns.push({ title: '操作', valueType: 'option', width: 120, render: (_, row) => { const config = ACTIONS[row.state]; if (!config) return <Typography.Text type="secondary">—</Typography.Text>; const approved = approvedByResource.get(`${row.id}:${config.auditAction}`); return approved ? <Button type="link" loading={execute.isPending} onClick={() => execute.mutate({ change: row, approval: approved })}>执行</Button> : <Button type="link" onClick={() => setRequesting(row)}>{config.label}</Button> } })
   return <PageContainer title="配置发布">
-    {changes.isError ? <QueryErrorState refetch={changes.refetch} /> : <ProTable<ConfigChange> className="velora-admin-primary-table" rowKey="id" columns={columns} {...changeTable} loading={changes.isLoading} search={{ filterType: 'light' }} pagination={{ pageSize: 20 }} toolBarRender={canManage ? () => [<Button key="create" type="primary" icon={<PlusOutlined />} onClick={() => setCreateOpen(true)}>新建变更</Button>] : false} />}
+    {changes.isError ? <QueryErrorState refetch={changes.refetch} /> : <ProTable<ConfigChange> className="velora-admin-primary-table" rowKey="id" columns={columns} dataSource={visibleChanges} loading={changes.isLoading} search={false} pagination={{ pageSize: 20 }} headerTitle={<AdminListScope value={scope} onChange={setScope} options={[{ label: '全部变更', value: 'ALL', count: allChanges.length }, { label: '处理中', value: 'ACTIVE', count: allChanges.filter((item) => ['PENDING_APPROVAL', 'APPROVED', 'ROLLBACK_PENDING'].includes(item.state)).length }, { label: '已生效', value: 'PUBLISHED', count: allChanges.filter((item) => item.state === 'PUBLISHED').length }, { label: '已结束', value: 'ENDED', count: allChanges.filter((item) => ['ROLLED_BACK', 'REJECTED'].includes(item.state)).length }]} />} toolBarRender={() => [<AdminListSearch key="tools" value={searchValue} placeholder="搜索变更名称或环境" onChange={setSearchValue} onSearch={setKeyword}>{canManage && <Button type="primary" icon={<PlusOutlined />} onClick={() => setCreateOpen(true)}>新建变更</Button>}</AdminListSearch>]} />}
     <ModalForm<CreateForm> title="新建配置发布单" open={createOpen} onOpenChange={setCreateOpen} width={640} modalProps={{ centered: true }} initialValues={{ sensitive: false }} submitter={{ searchConfig: { submitText: '创建发布单', resetText: '取消' } }} onFinish={async (values) => { await create.mutateAsync(createInput(values)); return true }}>
       <ProFormSelect name="namespace" label="发布环境" width="md" options={[{ label: '生产环境', value: 'production' }, { label: '测试环境', value: 'testing' }, { label: '开发环境', value: 'development' }]} rules={[{ required: true, message: '请选择发布环境' }]} />
       <ProFormSelect name="group" label="配置领域" width="md" options={[{ label: '门户与应用', value: 'portal' }, { label: '组织与权限', value: 'identity' }, { label: '登录与安全', value: 'security' }, { label: '系统集成', value: 'integration' }]} rules={[{ required: true, message: '请选择配置领域' }]} />

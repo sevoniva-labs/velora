@@ -25,7 +25,7 @@ import {
 import QueryErrorState from '../../components/QueryErrorState'
 import { usePageTitle } from '../../hooks/usePageTitle'
 import type { Category, Tag } from '../../types'
-import { useClientTableSearch } from '../../utils/tableSearch'
+import { AdminListSearch, AdminListTitle } from '../../components/admin/AdminListToolbar'
 
 type TaxonomyTab = 'categories' | 'tags'
 type TaxonomyRecord = Category | Tag
@@ -44,12 +44,13 @@ export default function Taxonomy() {
   const [tab, setTab] = useState<TaxonomyTab>('categories')
   const [editing, setEditing] = useState<TaxonomyRecord>()
   const [formOpen, setFormOpen] = useState(false)
+  const [searchValue, setSearchValue] = useState('')
+  const [keyword, setKeyword] = useState('')
   const categories = useQuery({ queryKey: queryKeys.categories, queryFn: listCategories })
   const tags = useQuery({ queryKey: queryKeys.tags, queryFn: listTags })
   const activeQuery = tab === 'categories' ? categories : tags
-  const categoryTable = useClientTableSearch(categories.data ?? [])
-  const tagTable = useClientTableSearch(tags.data ?? [])
-  const activeTable = tab === 'categories' ? categoryTable : tagTable
+  const activeRows: TaxonomyRecord[] = tab === 'categories' ? (categories.data ?? []) : (tags.data ?? [])
+  const visibleRows = keyword ? activeRows.filter((item) => `${item.name} ${item.code}`.toLocaleLowerCase('zh-CN').includes(keyword.toLocaleLowerCase('zh-CN'))) : activeRows
 
   const refresh = async (target: TaxonomyTab) => {
     await queryClient.invalidateQueries({ queryKey: target === 'categories' ? queryKeys.categories : queryKeys.tags })
@@ -135,14 +136,15 @@ export default function Taxonomy() {
           className="velora-admin-primary-table velora-admin-entity-list"
           rowKey="id"
           columns={columns}
-          {...activeTable}
+          dataSource={visibleRows}
           loading={activeQuery.isLoading}
-          search={{ filterType: 'light' }}
-          pagination={false}
+          search={false}
+          headerTitle={<AdminListTitle>{tab === 'categories' ? '分类列表' : '标签列表'}</AdminListTitle>}
+          pagination={{ pageSize: 20, hideOnSinglePage: false }}
           toolBarRender={() => [
-            <Button key="create" type="primary" icon={<PlusOutlined />} onClick={() => openForm()}>
-              {tab === 'categories' ? '新建分类' : '新建标签'}
-            </Button>,
+            <AdminListSearch key="search" value={searchValue} placeholder={tab === 'categories' ? '搜索分类' : '搜索标签'} onChange={setSearchValue} onSearch={setKeyword}>
+              <Button type="primary" icon={<PlusOutlined />} onClick={() => openForm()}>{tab === 'categories' ? '新建分类' : '新建标签'}</Button>
+            </AdminListSearch>,
           ]}
         />
       )}

@@ -9,8 +9,8 @@ import { usePageTitle } from '../../hooks/usePageTitle'
 import AdminUserSelect from '../../components/AdminUserSelect'
 import { SYSTEM_USER_GROUP_MANAGE } from '../../auth/permissions'
 import { useAdminPermission } from '../../auth/useAdminPermission'
-import { useClientTableSearch } from '../../utils/tableSearch'
 import QueryErrorState from '../../components/QueryErrorState'
+import { AdminListScope, AdminListSearch } from '../../components/admin/AdminListToolbar'
 
 interface GroupForm extends UserGroupInput { memberIds: string[]; roles: string[] }
 
@@ -21,9 +21,16 @@ export default function UserGroups() {
   const canManage = useAdminPermission(SYSTEM_USER_GROUP_MANAGE)
   const [open, setOpen] = useState(false)
   const [editing, setEditing] = useState<UserGroup>()
+  const [scope, setScope] = useState('ALL')
+  const [searchValue, setSearchValue] = useState('')
+  const [keyword, setKeyword] = useState('')
   const groups = useQuery({ queryKey: ['admin', 'user-groups'], queryFn: listUserGroups })
   const roles = useQuery({ queryKey: ['admin', 'roles'], queryFn: listPlatformRoles })
-  const groupTable = useClientTableSearch(groups.data ?? [], { exact: ['status'] })
+  const groupRows = groups.data ?? []
+  const visibleGroups = groupRows.filter((group) => {
+    if (scope !== 'ALL' && group.status !== scope) return false
+    return !keyword || `${group.name} ${group.groupKey} ${group.description}`.toLocaleLowerCase('zh-CN').includes(keyword.toLocaleLowerCase('zh-CN'))
+  })
   const mutation = useMutation({
     mutationFn: async (values: GroupForm) => {
       const payload = { name: values.name, description: values.description ?? '', status: values.status, groupKey: values.groupKey }
@@ -48,7 +55,21 @@ export default function UserGroups() {
   if (canManage) columns.push({ title: '操作', listSlot: 'actions', valueType: 'option', search: false, render: (_, row) => [<Button key="edit" type="link" onClick={() => { setEditing(row); setOpen(true) }}>编辑</Button>, <Popconfirm key="status" title={row.status === 'ACTIVE' ? '停用此用户组？' : '启用此用户组？'} description={row.status === 'ACTIVE' ? '停用后，该组不再授予平台角色。成员关系会保留。' : undefined} okText={row.status === 'ACTIVE' ? '停用' : '启用'} okButtonProps={{ danger: row.status === 'ACTIVE' }} onConfirm={() => updateStatus.mutate(row)}><Button type="link" danger={row.status === 'ACTIVE'}>{row.status === 'ACTIVE' ? '停用' : '启用'}</Button></Popconfirm>] })
 
   return <PageContainer title="用户组">
-    {groups.isError ? <QueryErrorState refetch={groups.refetch} /> : <ProList<UserGroup> className="velora-admin-primary-table velora-admin-entity-list" rowKey="id" columns={columns} {...groupTable} loading={groups.isLoading} search={{ filterType: 'light' }} pagination={{ pageSize: 20 }} toolBarRender={canManage ? () => [<Button key="create" type="primary" icon={<PlusOutlined />} onClick={() => { setEditing(undefined); setOpen(true) }}>新建用户组</Button>] : false} />}
+    {groups.isError ? <QueryErrorState refetch={groups.refetch} /> : <ProList<UserGroup>
+      className="velora-admin-primary-table velora-admin-entity-list"
+      rowKey="id"
+      columns={columns}
+      dataSource={visibleGroups}
+      loading={groups.isLoading}
+      search={false}
+      headerTitle={<AdminListScope value={scope} onChange={setScope} options={[
+        { label: '全部用户组', value: 'ALL', count: groupRows.length },
+        { label: '启用', value: 'ACTIVE', count: groupRows.filter((item) => item.status === 'ACTIVE').length },
+        { label: '停用', value: 'DISABLED', count: groupRows.filter((item) => item.status === 'DISABLED').length },
+      ]} />}
+      pagination={{ pageSize: 20 }}
+      toolBarRender={() => [<AdminListSearch key="search" value={searchValue} placeholder="搜索用户组" onChange={setSearchValue} onSearch={setKeyword}>{canManage && <Button type="primary" icon={<PlusOutlined />} onClick={() => { setEditing(undefined); setOpen(true) }}>新建用户组</Button>}</AdminListSearch>]}
+    />}
     <DrawerForm<GroupForm> key={editing?.id ?? 'new'} title={editing ? '编辑用户组' : '新建用户组'} open={open} onOpenChange={setOpen} width={560} initialValues={editing ?? { status: 'ACTIVE', memberIds: [], roles: [] }} submitter={{ searchConfig: { submitText: '保存', resetText: '取消' } }} onFinish={async (values) => { await mutation.mutateAsync(values); return true }}>
       {!editing && <ProFormText name="groupKey" label="用户组编码" rules={[{ required: true, message: '请输入用户组编码' }, { pattern: /^[a-z][a-z0-9_-]{1,63}$/, message: '使用小写字母、数字、短横线或下划线' }]} />}
       <ProFormText name="name" label="用户组名称" rules={[{ required: true, message: '请输入用户组名称' }]} />

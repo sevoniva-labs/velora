@@ -12,19 +12,13 @@ import { createApproval, exportAuditLogs, listApprovals, verifyAuditIntegrity } 
 import AdminUserSelect from '../../components/AdminUserSelect'
 import { useMe } from '../../auth/useMe'
 import QueryErrorState from '../../components/QueryErrorState'
+import { AdminListScope, AdminListSearch } from '../../components/admin/AdminListToolbar'
 
 interface ExportForm { format: 'json' | 'csv'; limit: number; approverId: string }
 
 function parseDetail(value: string): Record<string, unknown> {
   if (!value) return {}
   try { const parsed = JSON.parse(value); return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed as Record<string, unknown> : {} } catch { return {} }
-}
-
-function isoDate(value: unknown): string | undefined {
-  if (!value) return undefined
-  if (typeof value === 'object' && 'toISOString' in value && typeof value.toISOString === 'function') return value.toISOString()
-  const date = new Date(String(value))
-  return Number.isNaN(date.getTime()) ? undefined : date.toISOString()
 }
 
 export default function AdminAudit() {
@@ -36,6 +30,9 @@ export default function AdminAudit() {
   const [loadError, setLoadError] = useState(false)
   const [selected, setSelected] = useState<AuditLog>()
   const [exportOpen, setExportOpen] = useState(false)
+  const [scope, setScope] = useState('ALL')
+  const [searchValue, setSearchValue] = useState('')
+  const [keyword, setKeyword] = useState('')
   const approvals = useQuery({ queryKey: ['admin', 'approvals'], queryFn: listApprovals })
   const approvedExport = (approvals.data ?? []).find((item) => item.action === 'audit.export' && item.resourceId === 'organization' && item.status === 'APPROVED')
   const integrity = useMutation({ mutationFn: verifyAuditIntegrity, onSuccess: (verified) => verified ? message.success('操作记录完整性校验通过') : message.error('操作记录完整性校验失败'), onError: (error) => message.error(error instanceof Error ? error.message : '完整性校验失败') })
@@ -52,7 +49,7 @@ export default function AdminAudit() {
     { title: '详情', valueType: 'option', width: 80, render: (_, row) => <Button type="link" onClick={() => setSelected(row)}>查看</Button> },
   ]
   return <PageContainer title="操作记录" extra={<Space><Button loading={integrity.isPending} onClick={() => integrity.mutate()}>校验完整性</Button>{approvedExport ? <Button type="primary" loading={executeExport.isPending} onClick={() => executeExport.mutate()}>导出已批准记录</Button> : <Button type="primary" onClick={() => setExportOpen(true)}>导出</Button>}</Space>}>
-    {loadError ? <QueryErrorState refetch={() => { setLoadError(false); actionRef.current?.reload() }} /> : <ProTable<AuditLog> className="velora-admin-primary-table" actionRef={actionRef} rowKey="id" columns={columns} search={{ filterType: 'light' }} options={false} request={async (params) => { try { const occurredAt = Array.isArray(params.occurredAt) ? params.occurredAt : []; const data = await adminListAuditLogs({ page: params.current, pageSize: params.pageSize, operator: String(params.operator ?? '').trim() || undefined, action: String(params.action ?? '') || undefined, resourceType: String(params.resource ?? '') || undefined, result: String(params.result ?? '') || undefined, from: isoDate(occurredAt[0]), to: isoDate(occurredAt[1]) }); return { data: data.items, total: data.total, success: true } } catch { setLoadError(true); return { data: [], total: 0, success: false } } }} pagination={{ defaultPageSize: 20, showSizeChanger: false }} />}
+    {loadError ? <QueryErrorState refetch={() => { setLoadError(false); actionRef.current?.reload() }} /> : <ProTable<AuditLog> key={`${scope}:${keyword}`} className="velora-admin-primary-table" actionRef={actionRef} rowKey="id" columns={columns} search={false} options={false} headerTitle={<AdminListScope value={scope} onChange={setScope} options={[{ label: '全部记录', value: 'ALL' }, { label: '成功', value: 'SUCCESS' }, { label: '失败', value: 'FAILED' }]} />} toolBarRender={() => [<AdminListSearch key="tools" value={searchValue} placeholder="搜索操作人" onChange={setSearchValue} onSearch={setKeyword} />]} request={async (params) => { try { const data = await adminListAuditLogs({ page: params.current, pageSize: params.pageSize, operator: keyword || undefined, result: scope === 'ALL' ? undefined : scope }); return { data: data.items, total: data.total, success: true } } catch { setLoadError(true); return { data: [], total: 0, success: false } } }} pagination={{ defaultPageSize: 20, showSizeChanger: false }} />}
     <Drawer title="操作详情" open={Boolean(selected)} onClose={() => setSelected(undefined)} width={640}>
       {selected && <AuditDetail log={selected} />}
     </Drawer>

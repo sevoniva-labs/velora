@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { App, Button, Popconfirm, Space, Tag, Typography } from 'antd'
 import { PlusOutlined } from '@ant-design/icons'
 import { DrawerForm, PageContainer, ProDescriptions, ProFormDigit, ProFormSelect, ProFormText, ProFormTextArea, ProTable, type ProColumns } from '@ant-design/pro-components'
@@ -8,8 +8,8 @@ import type { Department, Position } from '../../types'
 import { usePageTitle } from '../../hooks/usePageTitle'
 import { SYSTEM_DEPARTMENT_MANAGE, SYSTEM_DEPARTMENT_READ, SYSTEM_ORGANIZATION_MANAGE, SYSTEM_POSITION_MANAGE, SYSTEM_POSITION_READ } from '../../auth/permissions'
 import { useAdminPermission } from '../../auth/useAdminPermission'
-import { useClientTableSearch } from '../../utils/tableSearch'
 import QueryErrorState from '../../components/QueryErrorState'
+import { AdminListScope, AdminListSearch } from '../../components/admin/AdminListToolbar'
 
 const ACTIVE_OPTIONS = [{ label: '启用', value: 'ACTIVE' }, { label: '停用', value: 'DISABLED' }]
 
@@ -32,11 +32,19 @@ export default function Organization() {
   const [positionOpen, setPositionOpen] = useState(false)
   const [editingDepartment, setEditingDepartment] = useState<Department>()
   const [editingPosition, setEditingPosition] = useState<Position>()
+  const [departmentScope, setDepartmentScope] = useState('ALL')
+  const [departmentSearch, setDepartmentSearch] = useState('')
+  const [departmentKeyword, setDepartmentKeyword] = useState('')
+  const [positionScope, setPositionScope] = useState('ALL')
+  const [positionSearch, setPositionSearch] = useState('')
+  const [positionKeyword, setPositionKeyword] = useState('')
   const departments = useQuery({ queryKey: ['admin', 'departments'], queryFn: listDepartments, enabled: canReadDepartments || canReadPositions })
   const positions = useQuery({ queryKey: ['admin', 'positions'], queryFn: listPositions, enabled: canReadPositions })
   const organization = useQuery({ queryKey: ['admin', 'organization'], queryFn: getOrganization })
-  const departmentTable = useClientTableSearch(departments.data ?? [], { exact: ['status'] })
-  const positionTable = useClientTableSearch(positions.data ?? [], { exact: ['status'] })
+  const allDepartments = departments.data ?? []
+  const allPositions = positions.data ?? []
+  const visibleDepartments = useMemo(() => allDepartments.filter((item) => (departmentScope === 'ALL' || item.status === departmentScope) && (!departmentKeyword || `${item.name} ${item.departmentKey}`.toLowerCase().includes(departmentKeyword.toLowerCase()))), [allDepartments, departmentKeyword, departmentScope])
+  const visiblePositions = useMemo(() => allPositions.filter((item) => (positionScope === 'ALL' || item.status === positionScope) && (!positionKeyword || `${item.name} ${item.positionKey} ${item.description ?? ''}`.toLowerCase().includes(positionKeyword.toLowerCase()))), [allPositions, positionKeyword, positionScope])
   const refresh = async () => { await Promise.all([queryClient.invalidateQueries({ queryKey: ['admin', 'departments'] }), queryClient.invalidateQueries({ queryKey: ['admin', 'positions'] })]) }
 
   const departmentMutation = useMutation({
@@ -79,8 +87,8 @@ export default function Organization() {
       { title: '每人会话上限', dataIndex: 'maxActiveSessions' },
       { title: '说明', dataIndex: 'description', span: 2, render: (_, row) => row.description || '—' },
     ]} />)}
-    {tab === 'departments' && (departments.isError ? <QueryErrorState refetch={departments.refetch} /> : <ProTable<Department> className="velora-admin-primary-table" rowKey="id" loading={departments.isLoading} {...departmentTable} columns={departmentColumns} search={{ filterType: 'light' }} pagination={false} toolBarRender={canManageDepartments ? () => [<Button key="create" type="primary" icon={<PlusOutlined />} onClick={() => { setEditingDepartment(undefined); setDepartmentOpen(true) }}>新建部门</Button>] : false} />)}
-    {tab === 'positions' && (positions.isError || departments.isError ? <QueryErrorState refetch={() => Promise.all([positions.refetch(), departments.refetch()])} /> : <ProTable<Position> className="velora-admin-primary-table" rowKey="id" loading={positions.isLoading || departments.isLoading} {...positionTable} columns={positionColumns} search={{ filterType: 'light' }} pagination={false} toolBarRender={canManagePositions ? () => [<Button key="create" type="primary" icon={<PlusOutlined />} onClick={() => { setEditingPosition(undefined); setPositionOpen(true) }}>新建岗位</Button>] : false} />)}
+    {tab === 'departments' && (departments.isError ? <QueryErrorState refetch={departments.refetch} /> : <ProTable<Department> className="velora-admin-primary-table" rowKey="id" loading={departments.isLoading} dataSource={visibleDepartments} columns={departmentColumns} search={false} pagination={{ pageSize: 20, hideOnSinglePage: false }} headerTitle={<AdminListScope value={departmentScope} onChange={setDepartmentScope} options={[{ label: '全部部门', value: 'ALL', count: allDepartments.length }, { label: '启用', value: 'ACTIVE', count: allDepartments.filter((item) => item.status === 'ACTIVE').length }, { label: '停用', value: 'DISABLED', count: allDepartments.filter((item) => item.status === 'DISABLED').length }]} />} toolBarRender={() => [<AdminListSearch key="tools" value={departmentSearch} placeholder="搜索部门名称或编码" onChange={setDepartmentSearch} onSearch={setDepartmentKeyword}>{canManageDepartments && <Button type="primary" icon={<PlusOutlined />} onClick={() => { setEditingDepartment(undefined); setDepartmentOpen(true) }}>新建部门</Button>}</AdminListSearch>]} />)}
+    {tab === 'positions' && (positions.isError || departments.isError ? <QueryErrorState refetch={() => Promise.all([positions.refetch(), departments.refetch()])} /> : <ProTable<Position> className="velora-admin-primary-table" rowKey="id" loading={positions.isLoading || departments.isLoading} dataSource={visiblePositions} columns={positionColumns} search={false} pagination={{ pageSize: 20, hideOnSinglePage: false }} headerTitle={<AdminListScope value={positionScope} onChange={setPositionScope} options={[{ label: '全部岗位', value: 'ALL', count: allPositions.length }, { label: '启用', value: 'ACTIVE', count: allPositions.filter((item) => item.status === 'ACTIVE').length }, { label: '停用', value: 'DISABLED', count: allPositions.filter((item) => item.status === 'DISABLED').length }]} />} toolBarRender={() => [<AdminListSearch key="tools" value={positionSearch} placeholder="搜索岗位名称或编码" onChange={setPositionSearch} onSearch={setPositionKeyword}>{canManagePositions && <Button type="primary" icon={<PlusOutlined />} onClick={() => { setEditingPosition(undefined); setPositionOpen(true) }}>新建岗位</Button>}</AdminListSearch>]} />)}
 
     <DrawerForm<OrganizationInput> key={organization.data?.updatedAt ?? 'organization'} title="编辑组织信息" open={organizationOpen} onOpenChange={setOrganizationOpen} width={520} initialValues={organization.data} submitter={{ searchConfig: { submitText: '保存', resetText: '取消' } }} onFinish={async (values) => { await organizationMutation.mutateAsync(values); return true }}>
       <ProFormText name="name" label="组织名称" rules={[{ required: true, message: '请输入组织名称' }]} />

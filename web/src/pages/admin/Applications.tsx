@@ -2,7 +2,7 @@ import { useRef, useState } from 'react'
 import { App, Button, Popconfirm, Space, Tag, Typography } from 'antd'
 import { PlusOutlined } from '@ant-design/icons'
 import { ModalForm, PageContainer, ProFormSelect, ProFormText, ProFormTextArea, ProList, type ActionType, type ProColumns } from '@ant-design/pro-components'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, useNavigate } from 'react-router-dom'
 import { adminCreateApplication, adminListApplications, adminUpdateApplication, type AdminApplicationInput } from '../../api/api'
 import { AppIcon } from '../../components/AppCard'
@@ -12,6 +12,7 @@ import { usePageTitle } from '../../hooks/usePageTitle'
 import { PORTAL_MANAGE } from '../../auth/permissions'
 import { useAdminPermission } from '../../auth/useAdminPermission'
 import QueryErrorState from '../../components/QueryErrorState'
+import { AdminListScope, AdminListSearch } from '../../components/admin/AdminListToolbar'
 
 type CreateApplication = Pick<AdminApplicationInput, 'code' | 'name' | 'description' | 'homeUrl' | 'ssoType'>
 
@@ -24,9 +25,23 @@ export default function Applications() {
   const canCreate = useAdminPermission(PORTAL_MANAGE)
   const [open, setOpen] = useState(false)
   const [loadError, setLoadError] = useState(false)
+  const [scope, setScope] = useState('ALL')
+  const [searchValue, setSearchValue] = useState('')
+  const [keyword, setKeyword] = useState('')
+  const counts = useQuery({
+    queryKey: ['admin', 'application-counts'],
+    queryFn: async () => {
+      const [all, enabled, disabled] = await Promise.all([
+        adminListApplications({ page: 1, pageSize: 1 }),
+        adminListApplications({ page: 1, pageSize: 1, status: 'ENABLED' }),
+        adminListApplications({ page: 1, pageSize: 1, status: 'DISABLED' }),
+      ])
+      return { ALL: all.total, ENABLED: enabled.total, DISABLED: disabled.total }
+    },
+  })
   const create = useMutation({
     mutationFn: (values: CreateApplication) => adminCreateApplication({ ...values, status: 'ENABLED', sort: 0, isFeatured: false }),
-    onSuccess: async (application) => { message.success('应用已创建'); setOpen(false); await queryClient.invalidateQueries({ queryKey: ['admin', 'applications'] }); navigate(`/admin/applications/${application.id}`) },
+    onSuccess: async (application) => { message.success('应用已创建'); setOpen(false); await Promise.all([queryClient.invalidateQueries({ queryKey: ['admin', 'applications'] }), queryClient.invalidateQueries({ queryKey: ['admin', 'application-counts'] })]); navigate(`/admin/applications/${application.id}`) },
     onError: (error) => message.error(error instanceof Error ? error.message : '应用创建失败'),
   })
   const updateStatus = useMutation({
@@ -46,7 +61,7 @@ export default function Applications() {
       isFeatured: application.isFeatured,
       tagIds: application.tags.map((item) => item.id),
     }),
-    onSuccess: async (application) => { message.success(application.status === 'ENABLED' ? '应用已启用' : '应用已停用'); await queryClient.invalidateQueries({ queryKey: ['admin', 'applications'] }); actionRef.current?.reload() },
+    onSuccess: async (application) => { message.success(application.status === 'ENABLED' ? '应用已启用' : '应用已停用'); await Promise.all([queryClient.invalidateQueries({ queryKey: ['admin', 'applications'] }), queryClient.invalidateQueries({ queryKey: ['admin', 'application-counts'] })]); actionRef.current?.reload() },
     onError: (error) => message.error(error instanceof Error ? error.message : '应用状态更新失败'),
   })
   const columns: ProColumns<Application>[] = [
@@ -59,7 +74,22 @@ export default function Applications() {
     { title: '操作', listSlot: 'actions', valueType: 'option', search: false, render: (_, row) => [<Link key="manage" to={`/admin/applications/${row.id}`}>{canCreate ? '管理' : '查看'}</Link>, canCreate ? <Popconfirm key="status" title={row.status === 'ENABLED' ? '停用此应用？' : '启用此应用？'} description={row.status === 'ENABLED' ? '停用后，用户将无法从门户进入该应用。' : undefined} okText={row.status === 'ENABLED' ? '停用' : '启用'} okButtonProps={{ danger: row.status === 'ENABLED' }} onConfirm={() => updateStatus.mutate(row)}><Button type="link" danger={row.status === 'ENABLED'} loading={updateStatus.isPending}>{row.status === 'ENABLED' ? '停用' : '启用'}</Button></Popconfirm> : null].filter(Boolean) },
   ]
   return <PageContainer title="应用管理">
-    {loadError ? <QueryErrorState refetch={() => setLoadError(false)} /> : <ProList<Application> className="velora-admin-primary-table velora-admin-entity-list" actionRef={actionRef} rowKey="id" columns={columns} search={{ filterType: 'light' }} request={async (params) => { try { const data = await adminListApplications({ page: params.current, pageSize: params.pageSize, keyword: String(params.keyword ?? '') || undefined, status: String(params.status ?? '') || undefined, ssoType: String(params.ssoType ?? '') || undefined, lifecycleStatus: String(params.lifecycleStatus ?? '') || undefined }); return { data: data.items, total: data.total, success: true } } catch { setLoadError(true); return { data: [], total: 0, success: false } } }} pagination={{ defaultPageSize: 20, showSizeChanger: true }} toolBarRender={canCreate ? () => [<Button key="create" type="primary" icon={<PlusOutlined />} onClick={() => setOpen(true)}>新建应用</Button>] : false} />}
+    {loadError ? <QueryErrorState refetch={() => setLoadError(false)} /> : <ProList<Application>
+      key={`${scope}:${keyword}`}
+      className="velora-admin-primary-table velora-admin-entity-list"
+      actionRef={actionRef}
+      rowKey="id"
+      columns={columns}
+      search={false}
+      headerTitle={<AdminListScope value={scope} onChange={setScope} options={[
+        { label: '全部应用', value: 'ALL', count: counts.data?.ALL },
+        { label: '可用', value: 'ENABLED', count: counts.data?.ENABLED },
+        { label: '已停用', value: 'DISABLED', count: counts.data?.DISABLED },
+      ]} />}
+      request={async (params) => { try { const data = await adminListApplications({ page: params.current, pageSize: params.pageSize, keyword: keyword || undefined, status: scope === 'ALL' ? undefined : scope }); return { data: data.items, total: data.total, success: true } } catch { setLoadError(true); return { data: [], total: 0, success: false } } }}
+      pagination={{ defaultPageSize: 20, showSizeChanger: true }}
+      toolBarRender={() => [<AdminListSearch key="search" value={searchValue} placeholder="搜索应用名称或编码" onChange={setSearchValue} onSearch={setKeyword}>{canCreate && <Button type="primary" icon={<PlusOutlined />} onClick={() => setOpen(true)}>新建应用</Button>}</AdminListSearch>]}
+    />}
     <ModalForm<CreateApplication> title="新建应用" open={open} onOpenChange={setOpen} width={600} initialValues={{ ssoType: 'OIDC' }} submitter={{ searchConfig: { submitText: '创建应用', resetText: '取消' } }} onFinish={async (values) => { await create.mutateAsync(values); return true }}>
       <ProFormText name="name" label="应用名称" rules={[{ required: true, message: '请输入应用名称' }]} />
       <ProFormText name="code" label="应用编码" rules={[{ required: true, message: '请输入应用编码' }, { pattern: /^[a-z][a-z0-9_-]{1,63}$/, message: '使用小写字母、数字、短横线或下划线' }]} />

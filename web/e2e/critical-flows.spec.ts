@@ -249,9 +249,7 @@ test('后台列表查询会真实过滤当前数据', async ({ page }, testInfo)
   await installCriticalMock(page, state)
   await page.goto('/admin/approvals')
   await expect(page.getByText('已拒绝的历史申请', { exact: true })).toBeVisible()
-  await page.getByText('展开', { exact: true }).click()
-  await selectOption(page, '状态', '待审批')
-  await page.getByRole('button', { name: /查\s*询/ }).click()
+  await page.getByRole('tab', { name: /待审批/ }).click()
   await expect(page.getByText('已拒绝的历史申请', { exact: true })).toHaveCount(0)
   await expect(page.getByText('变更 Spectra 使用范围', { exact: true })).toBeVisible()
   await captureAudit(page, '04-approvals-filtered')
@@ -261,17 +259,20 @@ test('短列表分页器固定在卡片底部且保留统一留白', async ({ pa
   test.skip(testInfo.project.name !== 'desktop-chromium', '列表布局只在桌面执行一次')
   const state = newState()
   await installCriticalMock(page, state)
-  await page.goto('/admin/applications')
-  const table = page.locator('.velora-admin-primary-table').first()
-  const card = table.locator(':scope > .ant-pro-card:not(.ant-pro-table-search)').first()
-  const pagination = table.locator('.ant-pagination').first()
-  await expect(pagination).toBeVisible()
-  const [cardBox, paginationBox] = await Promise.all([card.boundingBox(), pagination.boundingBox()])
-  expect(cardBox && paginationBox, '列表卡片和分页器应完成布局').toBeTruthy()
-  const bottomGap = cardBox!.y + cardBox!.height - (paginationBox!.y + paginationBox!.height)
-  expect(bottomGap, '分页器与卡片底部应保留 16–32px 留白').toBeGreaterThanOrEqual(16)
-  expect(bottomGap, '分页器不应随数据行数上浮').toBeLessThanOrEqual(32)
+  for (const path of ['/admin/applications', '/admin/users', '/admin/user-groups', '/admin/approvals']) {
+    await page.goto(path)
+    const table = page.locator('.velora-admin-primary-table').first()
+    const card = table.locator(':scope > .ant-pro-card:not(.ant-pro-table-search)').first()
+    const pagination = table.locator('.ant-pagination').first()
+    await expect(pagination, `${path} 应显示分页器`).toBeVisible()
+    const [cardBox, paginationBox] = await Promise.all([card.boundingBox(), pagination.boundingBox()])
+    expect(cardBox && paginationBox, `${path} 的列表卡片和分页器应完成布局`).toBeTruthy()
+    const bottomGap = cardBox!.y + cardBox!.height - (paginationBox!.y + paginationBox!.height)
+    expect(bottomGap, `${path} 的分页器与卡片底部应保留 16–32px 留白`).toBeGreaterThanOrEqual(16)
+    expect(bottomGap, `${path} 的分页器不应随数据行数上浮`).toBeLessThanOrEqual(32)
+  }
 
+  await page.goto('/admin/applications')
   await page.getByRole('button', { name: '停用' }).click()
   await page.getByRole('button', { name: '停用' }).last().click()
   await expect.poll(() => state.appStatus).toBe('DISABLED')
@@ -285,7 +286,7 @@ test('后台对象列表使用一体化 ProList 且保留完整生命周期操�
   const cases = [
     { path: '/admin/applications', row: 'Spectra', actions: ['管理', '停用'], pagination: true },
     { path: '/admin/users', row: 'Carson', actions: ['查看', '停用'], pagination: true },
-    { path: '/admin/taxonomy', row: '开发安全', actions: ['编辑', '删除'], pagination: false },
+    { path: '/admin/taxonomy', row: '开发安全', actions: ['编辑', '删除'], pagination: true },
   ] as const
 
   for (const item of cases) {
@@ -295,6 +296,7 @@ test('后台对象列表使用一体化 ProList 且保留完整生命周期操�
     await expect(list.locator(':scope > .ant-pro-card.ant-pro-table-search')).toHaveCount(0)
     await expect(list.locator(':scope > .ant-pro-card:not(.ant-pro-table-search)')).toHaveCount(1)
     await expect(list.locator('.ant-pro-table-list-toolbar')).toBeVisible()
+    await expect(list.locator('.velora-admin-list-search')).toBeVisible()
     await expect(page.getByText(item.row, { exact: true }).first()).toBeVisible()
     for (const action of item.actions) {
       const control = list.getByRole('button', { name: action }).or(list.getByRole('link', { name: action })).first()
@@ -326,6 +328,7 @@ test('组织、用户组和平台角色都提供编辑与停用闭环', async ({
   ] as const
   for (const item of cases) {
     await page.goto(item.path)
+    if (item.path === '/admin/organization') await page.getByRole('tab', { name: '部门' }).click()
     const list = page.locator('.velora-admin-primary-table').first()
     await expect(list.locator(':scope > .ant-pro-card.ant-pro-table-search')).toHaveCount(0)
     await expect(page.getByText(item.row, { exact: true }).first()).toBeVisible()

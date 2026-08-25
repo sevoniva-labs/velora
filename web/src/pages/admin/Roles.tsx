@@ -9,8 +9,8 @@ import { useMe } from '../../auth/useMe'
 import AdminUserSelect from '../../components/AdminUserSelect'
 import { SYSTEM_ROLE_MANAGE } from '../../auth/permissions'
 import { useAdminPermission } from '../../auth/useAdminPermission'
-import { useClientTableSearch } from '../../utils/tableSearch'
 import QueryErrorState from '../../components/QueryErrorState'
+import { AdminListScope, AdminListSearch } from '../../components/admin/AdminListToolbar'
 
 const DATA_SCOPE_LABELS: Record<string, string> = { ALL: '全部数据', DEPARTMENT: '指定部门', SELF_DEPARTMENT: '本部门', SELF: '仅本人' }
 interface RoleForm { roleKey: string; name: string; description?: string }
@@ -26,8 +26,15 @@ export default function Roles() {
   const [createOpen, setCreateOpen] = useState(false)
   const [editRole, setEditRole] = useState<PlatformRole>()
   const [copyRole, setCopyRole] = useState<PlatformRole>()
+  const [scope, setScope] = useState('ALL')
+  const [searchValue, setSearchValue] = useState('')
+  const [keyword, setKeyword] = useState('')
   const roles = useQuery({ queryKey: ['admin', 'roles'], queryFn: listPlatformRoles })
-  const roleTable = useClientTableSearch(roles.data ?? [], { exact: ['status', 'dataScope'] })
+  const roleRows = roles.data ?? []
+  const visibleRoles = roleRows.filter((role) => {
+    if (scope !== 'ALL' && role.status !== scope) return false
+    return !keyword || `${role.name} ${role.key} ${role.description}`.toLocaleLowerCase('zh-CN').includes(keyword.toLocaleLowerCase('zh-CN'))
+  })
   const permissions = useQuery({ queryKey: ['admin', 'permissions'], queryFn: listPlatformPermissions })
   const departments = useQuery({ queryKey: ['admin', 'departments'], queryFn: listDepartments })
   const approvals = useQuery({ queryKey: ['admin', 'approvals'], queryFn: listApprovals, enabled: canManage })
@@ -51,8 +58,22 @@ export default function Roles() {
   if (canManage) columns.push({ title: '操作', listSlot: 'actions', valueType: 'option', search: false, render: (_, row) => [<Button key="permissions" type="link" onClick={() => setPermissionRole(row)}>权限</Button>, <Button key="scope" type="link" onClick={() => setScopeRole(row)}>管理范围</Button>, <Button key="edit" type="link" onClick={() => setEditRole(row)}>编辑</Button>, <Button key="copy" type="link" onClick={() => setCopyRole(row)}>复制</Button>, row.key !== 'system_admin' ? <Popconfirm key="status" title={row.status === 'ACTIVE' ? '停用此角色？' : '启用此角色？'} description={row.status === 'ACTIVE' ? '停用后，该角色不再授予权限。现有配置会保留。' : undefined} okText={row.status === 'ACTIVE' ? '停用' : '启用'} okButtonProps={{ danger: row.status === 'ACTIVE' }} onConfirm={() => roleStatusMutation.mutate(row)}><Button type="link" danger={row.status === 'ACTIVE'}>{row.status === 'ACTIVE' ? '停用' : '启用'}</Button></Popconfirm> : null].filter(Boolean) })
 
   return <PageContainer title="平台角色">
-    {roles.isError ? <QueryErrorState refetch={roles.refetch} /> : <ProList<PlatformRole> className="velora-admin-primary-table velora-admin-entity-list" rowKey="key" columns={columns} {...roleTable} loading={roles.isLoading} search={{ filterType: 'light' }} pagination={false} toolBarRender={canManage ? () => [<Button key="create" type="primary" onClick={() => setCreateOpen(true)}>新建角色</Button>] : false} />}
-    {canManage && approved.length > 0 && <ProTable<ApprovalRequest> headerTitle="待执行变更" rowKey="id" dataSource={approved} search={false} pagination={false} options={false} columns={[{ title: '事项', dataIndex: 'summary' }, { title: '操作', valueType: 'option', width: 100, render: (_, row) => <Button type="link" loading={execute.isPending} onClick={() => execute.mutate(row)}>执行变更</Button> }]} />}
+    {roles.isError ? <QueryErrorState refetch={roles.refetch} /> : <ProList<PlatformRole>
+      className="velora-admin-primary-table velora-admin-entity-list"
+      rowKey="key"
+      columns={columns}
+      dataSource={visibleRoles}
+      loading={roles.isLoading}
+      search={false}
+      headerTitle={<AdminListScope value={scope} onChange={setScope} options={[
+        { label: '全部角色', value: 'ALL', count: roleRows.length },
+        { label: '启用', value: 'ACTIVE', count: roleRows.filter((item) => item.status === 'ACTIVE').length },
+        { label: '停用', value: 'DISABLED', count: roleRows.filter((item) => item.status === 'DISABLED').length },
+      ]} />}
+      pagination={{ pageSize: 20, hideOnSinglePage: false }}
+      toolBarRender={() => [<AdminListSearch key="search" value={searchValue} placeholder="搜索角色" onChange={setSearchValue} onSearch={setKeyword}>{canManage && <Button type="primary" onClick={() => setCreateOpen(true)}>新建角色</Button>}</AdminListSearch>]}
+    />}
+    {canManage && approved.length > 0 && <ProTable<ApprovalRequest> className="velora-admin-secondary-table" headerTitle="待执行变更" rowKey="id" dataSource={approved} search={false} pagination={{ pageSize: 20, hideOnSinglePage: false }} options={false} columns={[{ title: '事项', dataIndex: 'summary' }, { title: '操作', valueType: 'option', width: 100, render: (_, row) => <Button type="link" loading={execute.isPending} onClick={() => execute.mutate(row)}>执行变更</Button> }]} />}
     <ModalForm<{ permissions: string[]; approverId: string }> key={permissionRole?.key ?? 'permissions'} title={permissionRole ? `配置权限 · ${permissionRole.name}` : '配置权限'} open={Boolean(permissionRole)} onOpenChange={(value) => !value && setPermissionRole(undefined)} width={720} initialValues={{ permissions: permissionRole?.permissions ?? [] }} submitter={{ searchConfig: { submitText: '提交审批', resetText: '取消' } }} onFinish={async (values) => { await permissionRequest.mutateAsync(values); return true }}>
       <ProFormCheckbox.Group name="permissions" label="权限" options={(permissions.data ?? []).map((item) => ({ label: `${item.resource || '其他'} · ${item.name || item.description || item.key}`, value: item.key }))} />
       <ProForm.Item name="approverId" label="审批人" rules={[{ required: true, message: '请选择审批人' }]}><AdminUserSelect excludeIds={me.data?.id ? [me.data.id] : []} /></ProForm.Item>

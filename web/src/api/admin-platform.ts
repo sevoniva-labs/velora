@@ -27,6 +27,10 @@ function normalizeEffectiveAccess(item: ApplicationEffectiveAccess): Application
   return { ...item, roles: item.roles ?? [], sourceGrantIds: item.sourceGrantIds ?? [] }
 }
 
+export function normalizeUserEffectiveApplicationAccess(item: UserEffectiveApplicationAccess): UserEffectiveApplicationAccess {
+  return { ...item, roles: Array.isArray(item.roles) ? item.roles : [], sources: Array.isArray(item.sources) ? item.sources : [] }
+}
+
 export async function listDepartments(): Promise<Department[]> {
   return (await apiFetch<{ departments?: Department[] }>('/admin/departments')).departments ?? []
 }
@@ -140,7 +144,7 @@ export function replaceUserAssignments(userId: string, assignments: UserAssignme
 }
 
 export async function listUserEffectiveApplicationAccess(userId: string): Promise<UserEffectiveApplicationAccess[]> {
-  return (await apiFetch<{ accesses?: UserEffectiveApplicationAccess[] }>(`/admin/users/${encodeURIComponent(userId)}/effective-application-access`)).accesses ?? []
+  return ((await apiFetch<{ accesses?: UserEffectiveApplicationAccess[] }>(`/admin/users/${encodeURIComponent(userId)}/effective-application-access`)).accesses ?? []).map(normalizeUserEffectiveApplicationAccess)
 }
 
 export async function updateUserRoles(userId: string, roles: string[], approvalId?: string): Promise<AdminUser> {

@@ -64,9 +64,9 @@ export default function UserDetail() {
   ]
   const entitlementColumns: ProColumns<UserEffectiveApplicationAccess>[] = [
     { title: '应用', dataIndex: 'applicationCode', render: (_, row) => <Space direction="vertical" size={0}><Typography.Text strong>{row.applicationName || row.applicationCode}</Typography.Text><Typography.Text type="secondary">{row.applicationCode}</Typography.Text></Space> },
-    { title: '应用角色', dataIndex: 'roles', render: (_, row) => row.roles.length ? row.roles.map((role) => <Tag key={role}>{role}</Tag>) : '仅访问' },
+    { title: '应用角色', dataIndex: 'roles', render: (_, row) => row.roles?.length ? row.roles.map((role) => <Tag key={role}>{role}</Tag>) : '仅访问' },
     { title: '状态', dataIndex: 'status', render: (_, row) => row.status === 'ACTIVE' ? <Tag color="success">可使用</Tag> : <Tag>已停用</Tag> },
-    { title: '获得方式', dataIndex: 'sources', render: (_, row) => row.sources.length ? row.sources.map((source) => <Tag key={source.grantId}>{source.subjectName || sourceLabel(source.subjectType)}</Tag>) : <Typography.Text type="secondary">历史直接授权</Typography.Text> },
+    { title: '获得方式', dataIndex: 'sources', render: (_, row) => row.sources?.length ? row.sources.map((source) => <Tag key={source.grantId}>{source.subjectName || sourceLabel(source.subjectType)}</Tag>) : <Typography.Text type="secondary">历史直接授权</Typography.Text> },
   ]
 
   const tabs = [{ key: 'profile', tab: '基本信息' }, ...(canReadAssignments ? [{ key: 'assignments', tab: '部门与岗位' }] : []), { key: 'access', tab: '可使用应用' }]
@@ -87,7 +87,9 @@ export default function UserDetail() {
       { title: '账号来源', dataIndex: 'identitySource', render: () => '统一身份' },
     ]} />}
     {tab === 'assignments' && <ProTable<UserAssignment> className="velora-admin-secondary-table" rowKey={(row) => row.id ?? `${row.departmentId}-${row.positionId}`} columns={assignmentColumns} dataSource={assignments.data ?? []} loading={assignments.isLoading} search={false} pagination={{ pageSize: 20, hideOnSinglePage: false }} options={false} />}
-    {tab === 'access' && <ProTable<UserEffectiveApplicationAccess> className="velora-admin-secondary-table" rowKey="applicationId" columns={entitlementColumns} dataSource={effectiveAccess.data ?? []} loading={effectiveAccess.isLoading} search={false} pagination={{ pageSize: 20, hideOnSinglePage: false }} options={false} locale={{ emptyText: '暂无可使用应用' }} />}
+    {tab === 'access' && (effectiveAccess.isError
+      ? <div className="velora-admin-page-card"><QueryErrorState description="应用权限加载失败" refetch={() => void effectiveAccess.refetch()} /></div>
+      : <ProTable<UserEffectiveApplicationAccess> className="velora-admin-secondary-table" rowKey="applicationId" columns={entitlementColumns} dataSource={effectiveAccess.data ?? []} loading={effectiveAccess.isLoading} search={false} pagination={{ pageSize: 20, hideOnSinglePage: false }} options={false} locale={{ emptyText: '暂无可使用应用' }} />)}
 
     <DrawerForm<AssignmentForm> key={`${id}-${assignments.data?.length ?? 0}`} title="编辑任职" open={assignmentOpen} onOpenChange={setAssignmentOpen} width={620} initialValues={{ assignments: assignments.data ?? [] }} submitter={{ searchConfig: { submitText: '保存任职', resetText: '取消' } }} onFinish={async (values) => { const rows = values.assignments ?? []; if (rows.length && rows.filter((item) => item.primary).length !== 1) throw new Error('请设置且仅设置一个主职'); await assignmentMutation.mutateAsync(values); return true }}>
       <ProFormList name="assignments" creatorButtonProps={{ creatorButtonText: '添加任职' }} copyIconProps={false}>

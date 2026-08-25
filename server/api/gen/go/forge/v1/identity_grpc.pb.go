@@ -19,21 +19,23 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	IdentityService_Login_FullMethodName                = "/forge.v1.IdentityService/Login"
-	IdentityService_BeginOIDCLogin_FullMethodName       = "/forge.v1.IdentityService/BeginOIDCLogin"
-	IdentityService_CompleteOIDCLogin_FullMethodName    = "/forge.v1.IdentityService/CompleteOIDCLogin"
-	IdentityService_LoginLDAP_FullMethodName            = "/forge.v1.IdentityService/LoginLDAP"
-	IdentityService_Logout_FullMethodName               = "/forge.v1.IdentityService/Logout"
-	IdentityService_ChangePassword_FullMethodName       = "/forge.v1.IdentityService/ChangePassword"
-	IdentityService_StepUpAuthentication_FullMethodName = "/forge.v1.IdentityService/StepUpAuthentication"
-	IdentityService_GetCurrentUser_FullMethodName       = "/forge.v1.IdentityService/GetCurrentUser"
-	IdentityService_GetMFAStatus_FullMethodName         = "/forge.v1.IdentityService/GetMFAStatus"
-	IdentityService_BeginMFAEnrollment_FullMethodName   = "/forge.v1.IdentityService/BeginMFAEnrollment"
-	IdentityService_ConfirmMFAEnrollment_FullMethodName = "/forge.v1.IdentityService/ConfirmMFAEnrollment"
-	IdentityService_DisableMFA_FullMethodName           = "/forge.v1.IdentityService/DisableMFA"
-	IdentityService_ListApiTokens_FullMethodName        = "/forge.v1.IdentityService/ListApiTokens"
-	IdentityService_CreateApiToken_FullMethodName       = "/forge.v1.IdentityService/CreateApiToken"
-	IdentityService_RevokeApiToken_FullMethodName       = "/forge.v1.IdentityService/RevokeApiToken"
+	IdentityService_Login_FullMethodName                    = "/forge.v1.IdentityService/Login"
+	IdentityService_BeginOIDCLogin_FullMethodName           = "/forge.v1.IdentityService/BeginOIDCLogin"
+	IdentityService_CompleteOIDCLogin_FullMethodName        = "/forge.v1.IdentityService/CompleteOIDCLogin"
+	IdentityService_LoginLDAP_FullMethodName                = "/forge.v1.IdentityService/LoginLDAP"
+	IdentityService_Logout_FullMethodName                   = "/forge.v1.IdentityService/Logout"
+	IdentityService_ChangePassword_FullMethodName           = "/forge.v1.IdentityService/ChangePassword"
+	IdentityService_StepUpAuthentication_FullMethodName     = "/forge.v1.IdentityService/StepUpAuthentication"
+	IdentityService_GetCurrentUser_FullMethodName           = "/forge.v1.IdentityService/GetCurrentUser"
+	IdentityService_GetCurrentUserProfile_FullMethodName    = "/forge.v1.IdentityService/GetCurrentUserProfile"
+	IdentityService_UpdateCurrentUserProfile_FullMethodName = "/forge.v1.IdentityService/UpdateCurrentUserProfile"
+	IdentityService_GetMFAStatus_FullMethodName             = "/forge.v1.IdentityService/GetMFAStatus"
+	IdentityService_BeginMFAEnrollment_FullMethodName       = "/forge.v1.IdentityService/BeginMFAEnrollment"
+	IdentityService_ConfirmMFAEnrollment_FullMethodName     = "/forge.v1.IdentityService/ConfirmMFAEnrollment"
+	IdentityService_DisableMFA_FullMethodName               = "/forge.v1.IdentityService/DisableMFA"
+	IdentityService_ListApiTokens_FullMethodName            = "/forge.v1.IdentityService/ListApiTokens"
+	IdentityService_CreateApiToken_FullMethodName           = "/forge.v1.IdentityService/CreateApiToken"
+	IdentityService_RevokeApiToken_FullMethodName           = "/forge.v1.IdentityService/RevokeApiToken"
 )
 
 // IdentityServiceClient is the client API for IdentityService service.
@@ -48,6 +50,8 @@ type IdentityServiceClient interface {
 	ChangePassword(ctx context.Context, in *ChangePasswordRequest, opts ...grpc.CallOption) (*ChangePasswordResponse, error)
 	StepUpAuthentication(ctx context.Context, in *StepUpAuthenticationRequest, opts ...grpc.CallOption) (*StepUpAuthenticationResponse, error)
 	GetCurrentUser(ctx context.Context, in *GetCurrentUserRequest, opts ...grpc.CallOption) (*GetCurrentUserResponse, error)
+	GetCurrentUserProfile(ctx context.Context, in *GetCurrentUserProfileRequest, opts ...grpc.CallOption) (*GetCurrentUserProfileResponse, error)
+	UpdateCurrentUserProfile(ctx context.Context, in *UpdateCurrentUserProfileRequest, opts ...grpc.CallOption) (*UpdateCurrentUserProfileResponse, error)
 	GetMFAStatus(ctx context.Context, in *GetMFAStatusRequest, opts ...grpc.CallOption) (*GetMFAStatusResponse, error)
 	BeginMFAEnrollment(ctx context.Context, in *BeginMFAEnrollmentRequest, opts ...grpc.CallOption) (*BeginMFAEnrollmentResponse, error)
 	ConfirmMFAEnrollment(ctx context.Context, in *ConfirmMFAEnrollmentRequest, opts ...grpc.CallOption) (*ConfirmMFAEnrollmentResponse, error)
@@ -145,6 +149,26 @@ func (c *identityServiceClient) GetCurrentUser(ctx context.Context, in *GetCurre
 	return out, nil
 }
 
+func (c *identityServiceClient) GetCurrentUserProfile(ctx context.Context, in *GetCurrentUserProfileRequest, opts ...grpc.CallOption) (*GetCurrentUserProfileResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetCurrentUserProfileResponse)
+	err := c.cc.Invoke(ctx, IdentityService_GetCurrentUserProfile_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *identityServiceClient) UpdateCurrentUserProfile(ctx context.Context, in *UpdateCurrentUserProfileRequest, opts ...grpc.CallOption) (*UpdateCurrentUserProfileResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(UpdateCurrentUserProfileResponse)
+	err := c.cc.Invoke(ctx, IdentityService_UpdateCurrentUserProfile_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *identityServiceClient) GetMFAStatus(ctx context.Context, in *GetMFAStatusRequest, opts ...grpc.CallOption) (*GetMFAStatusResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(GetMFAStatusResponse)
@@ -227,6 +251,8 @@ type IdentityServiceServer interface {
 	ChangePassword(context.Context, *ChangePasswordRequest) (*ChangePasswordResponse, error)
 	StepUpAuthentication(context.Context, *StepUpAuthenticationRequest) (*StepUpAuthenticationResponse, error)
 	GetCurrentUser(context.Context, *GetCurrentUserRequest) (*GetCurrentUserResponse, error)
+	GetCurrentUserProfile(context.Context, *GetCurrentUserProfileRequest) (*GetCurrentUserProfileResponse, error)
+	UpdateCurrentUserProfile(context.Context, *UpdateCurrentUserProfileRequest) (*UpdateCurrentUserProfileResponse, error)
 	GetMFAStatus(context.Context, *GetMFAStatusRequest) (*GetMFAStatusResponse, error)
 	BeginMFAEnrollment(context.Context, *BeginMFAEnrollmentRequest) (*BeginMFAEnrollmentResponse, error)
 	ConfirmMFAEnrollment(context.Context, *ConfirmMFAEnrollmentRequest) (*ConfirmMFAEnrollmentResponse, error)
@@ -267,6 +293,12 @@ func (UnimplementedIdentityServiceServer) StepUpAuthentication(context.Context, 
 }
 func (UnimplementedIdentityServiceServer) GetCurrentUser(context.Context, *GetCurrentUserRequest) (*GetCurrentUserResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetCurrentUser not implemented")
+}
+func (UnimplementedIdentityServiceServer) GetCurrentUserProfile(context.Context, *GetCurrentUserProfileRequest) (*GetCurrentUserProfileResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetCurrentUserProfile not implemented")
+}
+func (UnimplementedIdentityServiceServer) UpdateCurrentUserProfile(context.Context, *UpdateCurrentUserProfileRequest) (*UpdateCurrentUserProfileResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method UpdateCurrentUserProfile not implemented")
 }
 func (UnimplementedIdentityServiceServer) GetMFAStatus(context.Context, *GetMFAStatusRequest) (*GetMFAStatusResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetMFAStatus not implemented")
@@ -454,6 +486,42 @@ func _IdentityService_GetCurrentUser_Handler(srv interface{}, ctx context.Contex
 	return interceptor(ctx, in, info, handler)
 }
 
+func _IdentityService_GetCurrentUserProfile_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetCurrentUserProfileRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IdentityServiceServer).GetCurrentUserProfile(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: IdentityService_GetCurrentUserProfile_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IdentityServiceServer).GetCurrentUserProfile(ctx, req.(*GetCurrentUserProfileRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _IdentityService_UpdateCurrentUserProfile_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdateCurrentUserProfileRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IdentityServiceServer).UpdateCurrentUserProfile(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: IdentityService_UpdateCurrentUserProfile_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IdentityServiceServer).UpdateCurrentUserProfile(ctx, req.(*UpdateCurrentUserProfileRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _IdentityService_GetMFAStatus_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(GetMFAStatusRequest)
 	if err := dec(in); err != nil {
@@ -618,6 +686,14 @@ var IdentityService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetCurrentUser",
 			Handler:    _IdentityService_GetCurrentUser_Handler,
+		},
+		{
+			MethodName: "GetCurrentUserProfile",
+			Handler:    _IdentityService_GetCurrentUserProfile_Handler,
+		},
+		{
+			MethodName: "UpdateCurrentUserProfile",
+			Handler:    _IdentityService_UpdateCurrentUserProfile_Handler,
 		},
 		{
 			MethodName: "GetMFAStatus",

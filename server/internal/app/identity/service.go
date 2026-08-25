@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"net/mail"
+	"net/url"
 	"strconv"
 	"strings"
 	"time"
@@ -32,6 +33,9 @@ var ErrInvalidSecurityPolicy = errors.New("invalid security policy")
 var ErrLastSystemAdmin = repository.ErrLastSystemAdmin
 var ErrPasswordStateChanged = repository.ErrPasswordStateChanged
 var ErrInteractiveSessionRequired = errors.New("interactive user session required")
+var ErrInvalidUserProfile = errors.New("invalid user profile")
+var ErrUserProfileVersionConflict = repository.ErrUserProfileVersionConflict
+var ErrUserProfileContactConflict = repository.ErrUserProfileContactConflict
 var ErrInvalidDepartment = errors.New("invalid department")
 var ErrInvalidPosition = errors.New("invalid position")
 var ErrInvalidUserGroup = errors.New("invalid user group")
@@ -973,6 +977,77 @@ func (s *Service) GetUser(ctx context.Context, actor domain.Principal, userID st
 		return domain.User{}, ErrGrantCeiling
 	}
 	return user, nil
+}
+
+func (s *Service) UpdateUserProfile(ctx context.Context, actor domain.Principal, userID string, input domain.UserProfileInput) (domain.User, error) {
+	current, err := s.GetUser(ctx, actor, userID)
+	if err != nil {
+		return domain.User{}, err
+	}
+	clean, err := normalizeUserProfile(input)
+	if err != nil {
+		return domain.User{}, err
+	}
+	if current.IdentitySource == "CASDOOR" && s.ManagedIdentityEnabled() {
+		phone := clean.Phone
+		if phone != "" {
+			phone = clean.PhoneCountryCode + phone
+		}
+		if err := s.managedIdentity.UpdateUserProfile(ctx, current.LoginName, ManagedUserProfileInput{DisplayName: clean.DisplayName, Email: clean.Email, Gender: clean.Gender, Phone: phone, AvatarURL: clean.AvatarURL}); err != nil {
+			return domain.User{}, err
+		}
+	}
+	return s.repo.UpdateUserProfile(ctx, actor.OrganizationID, current.ID, clean)
+}
+
+func normalizeUserProfile(input domain.UserProfileInput) (domain.UserProfileInput, error) {
+	input.DisplayName = strings.TrimSpace(input.DisplayName)
+	input.RealName = strings.TrimSpace(input.RealName)
+	input.Gender = strings.ToUpper(strings.TrimSpace(input.Gender))
+	input.PhoneCountryCode = strings.TrimSpace(input.PhoneCountryCode)
+	input.Phone = strings.TrimSpace(input.Phone)
+	input.Email = strings.ToLower(strings.TrimSpace(input.Email))
+	input.AvatarURL = strings.TrimSpace(input.AvatarURL)
+	if input.PhoneCountryCode == "" {
+		input.PhoneCountryCode = "+86"
+	}
+	if input.DisplayName == "" || len([]rune(input.DisplayName)) > 200 || len([]rune(input.RealName)) > 200 || input.ExpectedVersion < 0 {
+		return domain.UserProfileInput{}, ErrInvalidUserProfile
+	}
+	if input.Gender != "UNSPECIFIED" && input.Gender != "MALE" && input.Gender != "FEMALE" {
+		return domain.UserProfileInput{}, ErrInvalidUserProfile
+	}
+	if len(input.PhoneCountryCode) < 2 || len(input.PhoneCountryCode) > 5 || input.PhoneCountryCode[0] != '+' {
+		return domain.UserProfileInput{}, ErrInvalidUserProfile
+	}
+	for _, value := range input.PhoneCountryCode[1:] {
+		if value < '0' || value > '9' {
+			return domain.UserProfileInput{}, ErrInvalidUserProfile
+		}
+	}
+	if input.Phone != "" {
+		if len(input.Phone) < 6 || len(input.Phone) > 20 {
+			return domain.UserProfileInput{}, ErrInvalidUserProfile
+		}
+		for _, value := range input.Phone {
+			if value < '0' || value > '9' {
+				return domain.UserProfileInput{}, ErrInvalidUserProfile
+			}
+		}
+	}
+	if input.Email != "" {
+		parsed, err := mail.ParseAddress(input.Email)
+		if err != nil || !strings.EqualFold(parsed.Address, input.Email) || len(input.Email) > 320 {
+			return domain.UserProfileInput{}, ErrInvalidUserProfile
+		}
+	}
+	if input.AvatarURL != "" {
+		parsed, err := url.Parse(input.AvatarURL)
+		if err != nil || parsed.Scheme != "https" || parsed.Host == "" || len(input.AvatarURL) > 2048 {
+			return domain.UserProfileInput{}, ErrInvalidUserProfile
+		}
+	}
+	return input, nil
 }
 func (s *Service) CreateUser(ctx context.Context, actor domain.Principal, orgID, login, display, raw string, roles []string) (domain.User, error) {
 	if len(roles) == 0 {

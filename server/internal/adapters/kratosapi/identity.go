@@ -368,6 +368,37 @@ func (s *IdentityService) GetCurrentUser(ctx context.Context, _ *forgev1.GetCurr
 	return &forgev1.GetCurrentUserResponse{User: principalUser(principal)}, nil
 }
 
+func (s *IdentityService) GetCurrentUserProfile(ctx context.Context, _ *forgev1.GetCurrentUserProfileRequest) (*forgev1.GetCurrentUserProfileResponse, error) {
+	principal, err := requiredPrincipal(ctx)
+	if err != nil {
+		return nil, err
+	}
+	user, err := s.identity.GetUser(ctx, principal, principal.UserID)
+	if err != nil {
+		return nil, serviceError(err)
+	}
+	return &forgev1.GetCurrentUserProfileResponse{User: userProto(user)}, nil
+}
+
+func (s *IdentityService) UpdateCurrentUserProfile(ctx context.Context, req *forgev1.UpdateCurrentUserProfileRequest) (*forgev1.UpdateCurrentUserProfileResponse, error) {
+	principal, err := requiredPrincipal(ctx)
+	if err != nil {
+		return nil, err
+	}
+	input := domain.UserProfileInput{DisplayName: req.GetDisplayName(), RealName: req.GetRealName(), Gender: req.GetGender(), PhoneCountryCode: req.GetPhoneCountryCode(), Phone: req.GetPhone(), Email: req.GetEmail(), AvatarURL: req.GetAvatarUrl(), ExpectedVersion: req.GetExpectedVersion()}
+	var updated domain.User
+	event := newAuditEvent(ctx, principal, "user.profile.self_update", "user", principal.UserID, map[string]any{"expected_version": req.GetExpectedVersion()})
+	err = s.audited(ctx, event, func(txCtx context.Context) error {
+		var updateErr error
+		updated, updateErr = s.identity.UpdateUserProfile(txCtx, principal, principal.UserID, input)
+		return updateErr
+	})
+	if err != nil {
+		return nil, serviceError(err)
+	}
+	return &forgev1.UpdateCurrentUserProfileResponse{User: userProto(updated)}, nil
+}
+
 func (s *IdentityService) ChangePassword(ctx context.Context, req *forgev1.ChangePasswordRequest) (*forgev1.ChangePasswordResponse, error) {
 	principal, err := requiredPrincipal(ctx)
 	if err != nil {

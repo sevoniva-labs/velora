@@ -27,6 +27,7 @@ const OperationIdentityServiceConfirmMFAEnrollment = "/forge.v1.IdentityService/
 const OperationIdentityServiceCreateApiToken = "/forge.v1.IdentityService/CreateApiToken"
 const OperationIdentityServiceDisableMFA = "/forge.v1.IdentityService/DisableMFA"
 const OperationIdentityServiceGetCurrentUser = "/forge.v1.IdentityService/GetCurrentUser"
+const OperationIdentityServiceGetCurrentUserProfile = "/forge.v1.IdentityService/GetCurrentUserProfile"
 const OperationIdentityServiceGetMFAStatus = "/forge.v1.IdentityService/GetMFAStatus"
 const OperationIdentityServiceListApiTokens = "/forge.v1.IdentityService/ListApiTokens"
 const OperationIdentityServiceLogin = "/forge.v1.IdentityService/Login"
@@ -34,6 +35,7 @@ const OperationIdentityServiceLoginLDAP = "/forge.v1.IdentityService/LoginLDAP"
 const OperationIdentityServiceLogout = "/forge.v1.IdentityService/Logout"
 const OperationIdentityServiceRevokeApiToken = "/forge.v1.IdentityService/RevokeApiToken"
 const OperationIdentityServiceStepUpAuthentication = "/forge.v1.IdentityService/StepUpAuthentication"
+const OperationIdentityServiceUpdateCurrentUserProfile = "/forge.v1.IdentityService/UpdateCurrentUserProfile"
 
 type IdentityServiceHTTPServer interface {
 	BeginMFAEnrollment(context.Context, *BeginMFAEnrollmentRequest) (*BeginMFAEnrollmentResponse, error)
@@ -44,6 +46,7 @@ type IdentityServiceHTTPServer interface {
 	CreateApiToken(context.Context, *CreateApiTokenRequest) (*CreateApiTokenResponse, error)
 	DisableMFA(context.Context, *DisableMFARequest) (*DisableMFAResponse, error)
 	GetCurrentUser(context.Context, *GetCurrentUserRequest) (*GetCurrentUserResponse, error)
+	GetCurrentUserProfile(context.Context, *GetCurrentUserProfileRequest) (*GetCurrentUserProfileResponse, error)
 	GetMFAStatus(context.Context, *GetMFAStatusRequest) (*GetMFAStatusResponse, error)
 	ListApiTokens(context.Context, *ListApiTokensRequest) (*ListApiTokensResponse, error)
 	Login(context.Context, *LoginRequest) (*LoginResponse, error)
@@ -51,6 +54,7 @@ type IdentityServiceHTTPServer interface {
 	Logout(context.Context, *LogoutRequest) (*LogoutResponse, error)
 	RevokeApiToken(context.Context, *RevokeApiTokenRequest) (*RevokeApiTokenResponse, error)
 	StepUpAuthentication(context.Context, *StepUpAuthenticationRequest) (*StepUpAuthenticationResponse, error)
+	UpdateCurrentUserProfile(context.Context, *UpdateCurrentUserProfileRequest) (*UpdateCurrentUserProfileResponse, error)
 }
 
 func RegisterIdentityServiceHTTPServer(s *http.Server, srv IdentityServiceHTTPServer) {
@@ -64,6 +68,8 @@ func RegisterIdentityServiceHTTPServer(s *http.Server, srv IdentityServiceHTTPSe
 	r.PATCH("/api/v1/auth/password", _IdentityService_ChangePassword0_HTTP_Handler(srv))
 	r.POST("/api/v1/auth/step-up", _IdentityService_StepUpAuthentication0_HTTP_Handler(srv))
 	r.GET("/api/v1/me", _IdentityService_GetCurrentUser0_HTTP_Handler(srv))
+	r.GET("/api/v1/me/profile", _IdentityService_GetCurrentUserProfile0_HTTP_Handler(srv))
+	r.PATCH("/api/v1/me/profile", _IdentityService_UpdateCurrentUserProfile0_HTTP_Handler(srv))
 	r.GET("/api/v1/mfa", _IdentityService_GetMFAStatus0_HTTP_Handler(srv))
 	r.POST("/api/v1/mfa/totp/enrollment", _IdentityService_BeginMFAEnrollment0_HTTP_Handler(srv))
 	r.POST("/api/v1/mfa/totp/enrollment/confirmation", _IdentityService_ConfirmMFAEnrollment0_HTTP_Handler(srv))
@@ -274,6 +280,47 @@ func _IdentityService_GetCurrentUser0_HTTP_Handler(srv IdentityServiceHTTPServer
 	}
 }
 
+func _IdentityService_GetCurrentUserProfile0_HTTP_Handler(srv IdentityServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in GetCurrentUserProfileRequest
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationIdentityServiceGetCurrentUserProfile)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.GetCurrentUserProfile(ctx, req.(*GetCurrentUserProfileRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*GetCurrentUserProfileResponse)
+		return ctx.Result(200, reply)
+	}
+}
+
+func _IdentityService_UpdateCurrentUserProfile0_HTTP_Handler(srv IdentityServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in UpdateCurrentUserProfileRequest
+		if err := ctx.Bind(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationIdentityServiceUpdateCurrentUserProfile)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.UpdateCurrentUserProfile(ctx, req.(*UpdateCurrentUserProfileRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*UpdateCurrentUserProfileResponse)
+		return ctx.Result(200, reply)
+	}
+}
+
 func _IdentityService_GetMFAStatus0_HTTP_Handler(srv IdentityServiceHTTPServer) func(ctx http.Context) error {
 	return func(ctx http.Context) error {
 		var in GetMFAStatusRequest
@@ -431,6 +478,7 @@ type IdentityServiceHTTPClient interface {
 	CreateApiToken(ctx context.Context, req *CreateApiTokenRequest, opts ...http.CallOption) (rsp *CreateApiTokenResponse, err error)
 	DisableMFA(ctx context.Context, req *DisableMFARequest, opts ...http.CallOption) (rsp *DisableMFAResponse, err error)
 	GetCurrentUser(ctx context.Context, req *GetCurrentUserRequest, opts ...http.CallOption) (rsp *GetCurrentUserResponse, err error)
+	GetCurrentUserProfile(ctx context.Context, req *GetCurrentUserProfileRequest, opts ...http.CallOption) (rsp *GetCurrentUserProfileResponse, err error)
 	GetMFAStatus(ctx context.Context, req *GetMFAStatusRequest, opts ...http.CallOption) (rsp *GetMFAStatusResponse, err error)
 	ListApiTokens(ctx context.Context, req *ListApiTokensRequest, opts ...http.CallOption) (rsp *ListApiTokensResponse, err error)
 	Login(ctx context.Context, req *LoginRequest, opts ...http.CallOption) (rsp *LoginResponse, err error)
@@ -438,6 +486,7 @@ type IdentityServiceHTTPClient interface {
 	Logout(ctx context.Context, req *LogoutRequest, opts ...http.CallOption) (rsp *LogoutResponse, err error)
 	RevokeApiToken(ctx context.Context, req *RevokeApiTokenRequest, opts ...http.CallOption) (rsp *RevokeApiTokenResponse, err error)
 	StepUpAuthentication(ctx context.Context, req *StepUpAuthenticationRequest, opts ...http.CallOption) (rsp *StepUpAuthenticationResponse, err error)
+	UpdateCurrentUserProfile(ctx context.Context, req *UpdateCurrentUserProfileRequest, opts ...http.CallOption) (rsp *UpdateCurrentUserProfileResponse, err error)
 }
 
 type IdentityServiceHTTPClientImpl struct {
@@ -552,6 +601,19 @@ func (c *IdentityServiceHTTPClientImpl) GetCurrentUser(ctx context.Context, in *
 	return &out, nil
 }
 
+func (c *IdentityServiceHTTPClientImpl) GetCurrentUserProfile(ctx context.Context, in *GetCurrentUserProfileRequest, opts ...http.CallOption) (*GetCurrentUserProfileResponse, error) {
+	var out GetCurrentUserProfileResponse
+	pattern := "/api/v1/me/profile"
+	path := binding.EncodeURL(pattern, in, true)
+	opts = append(opts, http.Operation(OperationIdentityServiceGetCurrentUserProfile))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "GET", path, nil, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
 func (c *IdentityServiceHTTPClientImpl) GetMFAStatus(ctx context.Context, in *GetMFAStatusRequest, opts ...http.CallOption) (*GetMFAStatusResponse, error) {
 	var out GetMFAStatusResponse
 	pattern := "/api/v1/mfa"
@@ -637,6 +699,19 @@ func (c *IdentityServiceHTTPClientImpl) StepUpAuthentication(ctx context.Context
 	opts = append(opts, http.Operation(OperationIdentityServiceStepUpAuthentication))
 	opts = append(opts, http.PathTemplate(pattern))
 	err := c.cc.Invoke(ctx, "POST", path, in, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+func (c *IdentityServiceHTTPClientImpl) UpdateCurrentUserProfile(ctx context.Context, in *UpdateCurrentUserProfileRequest, opts ...http.CallOption) (*UpdateCurrentUserProfileResponse, error) {
+	var out UpdateCurrentUserProfileResponse
+	pattern := "/api/v1/me/profile"
+	path := binding.EncodeURL(pattern, in, false)
+	opts = append(opts, http.Operation(OperationIdentityServiceUpdateCurrentUserProfile))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "PATCH", path, in, &out, opts...)
 	if err != nil {
 		return nil, err
 	}

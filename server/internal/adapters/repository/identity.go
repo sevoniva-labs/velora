@@ -131,6 +131,9 @@ func (r *IdentityRepo) UserByLogin(ctx context.Context, orgID, login string) (us
 		out.User.LockedUntil = &t
 	}
 	if err == nil {
+		if err = r.HydrateUserProfile(ctx, &out.User); err != nil {
+			return out, err
+		}
 		out.User.Roles, _ = r.RolesForUser(ctx, out.User.ID)
 		out.User.Permissions, _ = r.PermissionsForUser(ctx, out.User.ID)
 		out.User.Entitlements, _ = r.ListUserEntitlements(ctx, out.User.ID)
@@ -148,6 +151,9 @@ func (r *IdentityRepo) UserByID(ctx context.Context, id string) (identity.User, 
 		out.LockedUntil = &t
 	}
 	if err == nil {
+		if err = r.HydrateUserProfile(ctx, &out); err != nil {
+			return out, err
+		}
 		out.Roles, _ = r.RolesForUser(ctx, id)
 		out.Permissions, _ = r.PermissionsForUser(ctx, id)
 		out.Entitlements, _ = r.ListUserEntitlements(ctx, id)

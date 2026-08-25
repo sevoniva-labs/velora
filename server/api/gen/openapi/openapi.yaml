@@ -2092,6 +2092,34 @@ paths:
                 - SessionCookie: []
                   CsrfToken: []
                 - BearerAuth: []
+    /api/v1/admin/users/{userId}/profile:
+        patch:
+            tags:
+                - PlatformService
+            operationId: PlatformService_UpdateUserProfile
+            parameters:
+                - name: userId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/forge.v1.UpdateUserProfileRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/forge.v1.UpdateUserProfileResponse'
+            security:
+                - SessionCookie: []
+                  CsrfToken: []
+                - BearerAuth: []
     /api/v1/admin/users/{userId}/reset-password:
         post:
             tags:
@@ -2724,6 +2752,40 @@ paths:
             security:
                 - SessionCookie: []
                 - BearerAuth: []
+    /api/v1/me/profile:
+        get:
+            tags:
+                - IdentityService
+            operationId: IdentityService_GetCurrentUserProfile
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/forge.v1.GetCurrentUserProfileResponse'
+            security:
+                - SessionCookie: []
+        patch:
+            tags:
+                - IdentityService
+            operationId: IdentityService_UpdateCurrentUserProfile
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/forge.v1.UpdateCurrentUserProfileRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/forge.v1.UpdateCurrentUserProfileResponse'
+            security:
+                - SessionCookie: []
+                  CsrfToken: []
     /api/v1/mfa:
         get:
             tags:
@@ -4031,6 +4093,11 @@ components:
             properties:
                 approval:
                     $ref: '#/components/schemas/forge.v1.ApprovalRequest'
+        forge.v1.GetCurrentUserProfileResponse:
+            type: object
+            properties:
+                user:
+                    $ref: '#/components/schemas/forge.v1.User'
         forge.v1.GetCurrentUserResponse:
             type: object
             properties:
@@ -5393,6 +5460,30 @@ components:
             properties:
                 user:
                     $ref: '#/components/schemas/forge.v1.User'
+        forge.v1.UpdateCurrentUserProfileRequest:
+            type: object
+            properties:
+                displayName:
+                    type: string
+                realName:
+                    type: string
+                gender:
+                    type: string
+                phoneCountryCode:
+                    type: string
+                phone:
+                    type: string
+                email:
+                    type: string
+                avatarUrl:
+                    type: string
+                expectedVersion:
+                    type: string
+        forge.v1.UpdateCurrentUserProfileResponse:
+            type: object
+            properties:
+                user:
+                    $ref: '#/components/schemas/forge.v1.User'
         forge.v1.UpdateDepartmentRequest:
             type: object
             properties:
@@ -5659,6 +5750,32 @@ components:
         forge.v1.UpdateUserGroupRolesResponse:
             type: object
             properties: {}
+        forge.v1.UpdateUserProfileRequest:
+            type: object
+            properties:
+                userId:
+                    type: string
+                displayName:
+                    type: string
+                realName:
+                    type: string
+                gender:
+                    type: string
+                phoneCountryCode:
+                    type: string
+                phone:
+                    type: string
+                email:
+                    type: string
+                avatarUrl:
+                    type: string
+                expectedVersion:
+                    type: string
+        forge.v1.UpdateUserProfileResponse:
+            type: object
+            properties:
+                user:
+                    $ref: '#/components/schemas/forge.v1.User'
         forge.v1.UpdateUserRolesRequest:
             type: object
             properties:
@@ -5817,6 +5934,24 @@ components:
                     type: array
                     items:
                         $ref: '#/components/schemas/forge.v1.ApplicationEntitlement'
+                realName:
+                    type: string
+                gender:
+                    type: string
+                phoneCountryCode:
+                    type: string
+                phone:
+                    type: string
+                phoneVerifiedAt:
+                    type: string
+                    format: date-time
+                emailVerifiedAt:
+                    type: string
+                    format: date-time
+                avatarUrl:
+                    type: string
+                profileVersion:
+                    type: string
         forge.v1.UserAssignment:
             type: object
             properties:

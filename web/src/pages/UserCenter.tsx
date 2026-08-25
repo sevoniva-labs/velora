@@ -1,6 +1,7 @@
 import { useCallback, useState } from 'react'
 import { Alert, Avatar, Button, Card, Descriptions, Divider, Form, Input, List, Modal, QRCode, Space, Tag, Typography, message } from 'antd'
 import { KeyOutlined, LaptopOutlined, LogoutOutlined, SafetyCertificateOutlined } from '@ant-design/icons'
+import { ModalForm, ProForm, ProFormSelect, ProFormText } from '@ant-design/pro-components'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   changePassword,
@@ -10,6 +11,8 @@ import {
   getAuthCapabilities,
   getMFAStatus,
   getUserProfile,
+  updateUserProfile,
+  type UserProfileInput,
   listSessions,
   logout,
   revokeAllSessions,
@@ -27,6 +30,7 @@ export default function UserCenter() {
   const [deviceModalOpen, setDeviceModalOpen] = useState(false)
   const [beginMFAOpen, setBeginMFAOpen] = useState(false)
   const [disableMFAOpen, setDisableMFAOpen] = useState(false)
+  const [profileOpen, setProfileOpen] = useState(false)
   const [enrollment, setEnrollment] = useState<{ secret: string; provisioningUri: string }>()
   const [recoveryCodes, setRecoveryCodes] = useState<string[]>([])
 
@@ -50,6 +54,7 @@ export default function UserCenter() {
   const beginMFA = useMutation({ mutationFn: beginMFAEnrollment, onSuccess: (data) => { setEnrollment(data); setBeginMFAOpen(false) }, onError: (error: Error) => msg.error(error.message || '无法开始设置多因素认证') })
   const confirmMFA = useMutation({ mutationFn: confirmMFAEnrollment, onSuccess: async (data) => { setEnrollment(undefined); setRecoveryCodes(data.recoveryCodes ?? []); await queryClient.invalidateQueries({ queryKey: ['auth', 'mfa'] }); msg.success('多因素认证已启用') }, onError: (error: Error) => msg.error(error.message || '验证码不正确') })
   const disableMFAMutation = useMutation({ mutationFn: (values: { currentPassword: string; code?: string; recoveryCode?: string }) => disableMFA(values.currentPassword, values.code, values.recoveryCode), onSuccess: async () => { setDisableMFAOpen(false); await queryClient.invalidateQueries({ queryKey: ['auth', 'mfa'] }); msg.success('多因素认证已关闭') }, onError: (error: Error) => msg.error(error.message || '无法关闭多因素认证') })
+  const updateProfileMutation = useMutation({ mutationFn: updateUserProfile, onSuccess: async () => { setProfileOpen(false); await Promise.all([queryClient.invalidateQueries({ queryKey: ['user-center', 'profile'] }), queryClient.invalidateQueries({ queryKey: ['me'] })]); msg.success('个人资料已更新') }, onError: (error: Error) => msg.error(error.message || '个人资料保存失败') })
 
   const onFinish = useCallback(
     (values: { oldPassword: string; newPassword: string }) => {
@@ -80,7 +85,7 @@ export default function UserCenter() {
       <Title level={4}>用户中心</Title>
 
       {/* 个人资料 */}
-      <Card title="个人资料" style={{ marginBottom: 16 }}>
+      <Card title="个人资料" extra={<Button onClick={() => setProfileOpen(true)}>编辑资料</Button>} style={{ marginBottom: 16 }}>
         <Descriptions column={1} size="small">
           <Descriptions.Item label="头像">
             <Avatar src={profile?.avatar} size={48} />
@@ -91,8 +96,11 @@ export default function UserCenter() {
               {profile?.admin && <Tag color="gold">管理员</Tag>}
             </Space>
           </Descriptions.Item>
-          <Descriptions.Item label="显示名">{profile?.displayName || '-'}</Descriptions.Item>
-          <Descriptions.Item label="邮箱">{profile?.email || '-'}</Descriptions.Item>
+          <Descriptions.Item label="显示名称">{profile?.displayName || '-'}</Descriptions.Item>
+          <Descriptions.Item label="真实姓名">{profile?.realName || '-'}</Descriptions.Item>
+          <Descriptions.Item label="性别">{{ MALE: '男', FEMALE: '女', UNSPECIFIED: '未设置' }[profile?.gender ?? 'UNSPECIFIED']}</Descriptions.Item>
+          <Descriptions.Item label="手机号">{profile?.phone ? <Space>{profile.phoneCountryCode} {profile.phone}<Tag color={profile.phoneVerifiedAt ? 'success' : 'default'}>{profile.phoneVerifiedAt ? '已验证' : '未验证'}</Tag></Space> : '-'}</Descriptions.Item>
+          <Descriptions.Item label="邮箱">{profile?.email ? <Space>{profile.email}<Tag color={profile.emailVerifiedAt ? 'success' : 'default'}>{profile.emailVerifiedAt ? '已验证' : '未验证'}</Tag></Space> : '-'}</Descriptions.Item>
           <Descriptions.Item label="组织">{profile?.organization || '-'}</Descriptions.Item>
           <Descriptions.Item label="角色">
             <Space wrap>
@@ -103,6 +111,18 @@ export default function UserCenter() {
           </Descriptions.Item>
         </Descriptions>
       </Card>
+
+      <ModalForm<UserProfileInput> title="编辑个人资料" open={profileOpen} onOpenChange={setProfileOpen} initialValues={{ displayName: profile?.displayName ?? '', realName: profile?.realName ?? '', gender: profile?.gender ?? 'UNSPECIFIED', phoneCountryCode: profile?.phoneCountryCode || '+86', phone: profile?.phone ?? '', email: profile?.email ?? '', avatarUrl: profile?.avatar ?? '', expectedVersion: profile?.profileVersion ?? 0 }} submitter={{ searchConfig: { submitText: '保存', resetText: '取消' } }} onFinish={async (values) => { await updateProfileMutation.mutateAsync({ ...values, expectedVersion: profile?.profileVersion ?? 0 }); return true }}>
+        <ProFormText name="displayName" label="显示名称" rules={[{ required: true, message: '请输入显示名称' }, { max: 200 }]} />
+        <ProFormText name="realName" label="真实姓名" rules={[{ max: 200 }]} />
+        <ProFormSelect name="gender" label="性别" options={[{ label: '未设置', value: 'UNSPECIFIED' }, { label: '男', value: 'MALE' }, { label: '女', value: 'FEMALE' }]} />
+        <ProForm.Group>
+          <ProFormSelect name="phoneCountryCode" label="国家/地区代码" width="xs" options={[{ label: '中国大陆 +86', value: '+86' }]} />
+          <ProFormText name="phone" label="手机号" width="md" fieldProps={{ inputMode: 'tel', maxLength: 20 }} rules={[{ pattern: /^\d{6,20}$/, message: '请输入6–20位数字' }]} />
+        </ProForm.Group>
+        <ProFormText name="email" label="邮箱" fieldProps={{ type: 'email' }} rules={[{ type: 'email', message: '请输入有效邮箱' }, { max: 320 }]} />
+        <ProFormText name="avatarUrl" label="头像地址" fieldProps={{ type: 'url' }} rules={[{ type: 'url', message: '请输入 HTTPS 地址' }]} />
+      </ModalForm>
 
       {/* 密码由统一身份中心管理；本地密码表单仅在后端明确声明的开发模式显示。 */}
       {localPasswordManagement ? <Card title="修改密码" style={{ marginBottom: 16 }}>

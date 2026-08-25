@@ -676,6 +676,25 @@ func (s *PlatformService) GetUser(ctx context.Context, req *forgev1.GetUserReque
 	return &forgev1.GetUserResponse{User: userProto(user)}, nil
 }
 
+func (s *PlatformService) UpdateUserProfile(ctx context.Context, req *forgev1.UpdateUserProfileRequest) (*forgev1.UpdateUserProfileResponse, error) {
+	principal, err := requiredPrincipal(ctx)
+	if err != nil {
+		return nil, err
+	}
+	input := domain.UserProfileInput{DisplayName: req.GetDisplayName(), RealName: req.GetRealName(), Gender: req.GetGender(), PhoneCountryCode: req.GetPhoneCountryCode(), Phone: req.GetPhone(), Email: req.GetEmail(), AvatarURL: req.GetAvatarUrl(), ExpectedVersion: req.GetExpectedVersion()}
+	var updated domain.User
+	event := newAuditEvent(ctx, principal, "user.profile.update", "user", req.GetUserId(), map[string]any{"expected_version": req.GetExpectedVersion()})
+	err = s.audited(ctx, event, func(txCtx context.Context) error {
+		var updateErr error
+		updated, updateErr = s.identity.UpdateUserProfile(txCtx, principal, req.GetUserId(), input)
+		return updateErr
+	})
+	if err != nil {
+		return nil, serviceError(err)
+	}
+	return &forgev1.UpdateUserProfileResponse{User: userProto(updated)}, nil
+}
+
 func (s *PlatformService) GetOrganization(ctx context.Context, _ *forgev1.GetOrganizationRequest) (*forgev1.GetOrganizationResponse, error) {
 	principal, err := requiredPrincipal(ctx)
 	if err != nil {
@@ -996,6 +1015,12 @@ func serviceError(err error) error {
 		return kratoserrors.Forbidden("PERMISSION_DENIED", "operation is not permitted")
 	case errors.Is(err, appidentity.ErrRoleConflict):
 		return kratoserrors.Conflict("ROLE_CONFLICT", "role combination violates segregation of duties")
+	case errors.Is(err, appidentity.ErrUserProfileVersionConflict):
+		return kratoserrors.Conflict("PROFILE_VERSION_CONFLICT", "user profile was changed by another request")
+	case errors.Is(err, appidentity.ErrUserProfileContactConflict):
+		return kratoserrors.Conflict("PROFILE_CONTACT_CONFLICT", "email or phone is already used by another account")
+	case errors.Is(err, appidentity.ErrInvalidUserProfile):
+		return kratoserrors.BadRequest("INVALID_USER_PROFILE", "user profile is invalid")
 	case errors.Is(err, appidentity.ErrInteractiveSessionRequired), errors.Is(err, appconfigchange.ErrActorRequired):
 		return kratoserrors.Forbidden("INTERACTIVE_SESSION_REQUIRED", "interactive session is required")
 	case errors.Is(err, appidentity.ErrStepUpRequired):
@@ -1097,6 +1122,9 @@ func userProto(user domain.User) *forgev1.User {
 		DisplayName: user.DisplayName, Email: user.Email, IdentitySource: user.IdentitySource, Status: user.Status, MustChangePassword: user.MustChangePassword,
 		LockedUntil: optionalTimestamp(user.LockedUntil), PasswordChangedAt: timestamp(user.PasswordChangedAt),
 		CreatedAt: timestamp(user.CreatedAt), Roles: user.Roles, Permissions: user.Permissions,
+		RealName: user.RealName, Gender: user.Gender, PhoneCountryCode: user.PhoneCountryCode, Phone: user.Phone,
+		PhoneVerifiedAt: optionalTimestamp(user.PhoneVerifiedAt), EmailVerifiedAt: optionalTimestamp(user.EmailVerifiedAt),
+		AvatarUrl: user.AvatarURL, ProfileVersion: user.ProfileVersion,
 	}
 	for _, entitlement := range user.Entitlements {
 		out.Entitlements = append(out.Entitlements, &forgev1.ApplicationEntitlement{ApplicationCode: entitlement.ApplicationCode, ApplicationName: entitlement.ApplicationName, Status: entitlement.Status, Roles: entitlement.Roles, Version: entitlement.Version})

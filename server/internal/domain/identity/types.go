@@ -197,6 +197,14 @@ type User struct {
 	LoginName           string                   `json:"login_name"`
 	DisplayName         string                   `json:"display_name"`
 	Email               string                   `json:"email"`
+	RealName            string                   `json:"real_name"`
+	Gender              string                   `json:"gender"`
+	PhoneCountryCode    string                   `json:"phone_country_code"`
+	Phone               string                   `json:"phone"`
+	PhoneVerifiedAt     *time.Time               `json:"phone_verified_at,omitempty"`
+	EmailVerifiedAt     *time.Time               `json:"email_verified_at,omitempty"`
+	AvatarURL           string                   `json:"avatar_url"`
+	ProfileVersion      int64                    `json:"profile_version"`
 	IdentitySource      string                   `json:"identity_source"`
 	ExternalSubject     string                   `json:"-"`
 	ProvisioningVersion int64                    `json:"-"`
@@ -210,6 +218,11 @@ type User struct {
 	Roles               []string                 `json:"roles"`
 	Permissions         []string                 `json:"permissions,omitempty"`
 	Entitlements        []ApplicationEntitlement `json:"entitlements,omitempty"`
+}
+
+type UserProfileInput struct {
+	DisplayName, RealName, Gender, PhoneCountryCode, Phone, Email, AvatarURL string
+	ExpectedVersion                                                          int64
 }
 
 type ApplicationEntitlement struct {

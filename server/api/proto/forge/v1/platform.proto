@@ -46,6 +46,10 @@ service PlatformService {
       ]
     };
   }
+  rpc UpdateUserProfile(UpdateUserProfileRequest) returns (UpdateUserProfileResponse) {
+    option (google.api.http) = {patch: "/api/v1/admin/users/{user_id}/profile" body: "*"};
+    option (openapi.v3.operation) = {security: [{additional_properties: [{name: "SessionCookie" value: {value: []}}, {name: "CsrfToken" value: {value: []}}]}, {additional_properties: [{name: "BearerAuth" value: {value: []}}]}]};
+  }
   rpc CreateUser(CreateUserRequest) returns (CreateUserResponse) {
     option (google.api.http) = {
       post: "/api/v1/admin/users"
@@ -957,6 +961,18 @@ message ListUsersResponse {
 }
 message GetUserRequest { string user_id = 1; }
 message GetUserResponse { User user = 1; }
+message UpdateUserProfileRequest {
+  string user_id = 1;
+  string display_name = 2;
+  string real_name = 3;
+  string gender = 4;
+  string phone_country_code = 5;
+  string phone = 6;
+  string email = 7;
+  string avatar_url = 8;
+  int64 expected_version = 9;
+}
+message UpdateUserProfileResponse { User user = 1; }
 
 message CreateUserRequest {
   string login_name = 1;

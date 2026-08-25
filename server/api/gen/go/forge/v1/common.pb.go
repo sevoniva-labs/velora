@@ -41,6 +41,14 @@ type User struct {
 	Email               string                    `protobuf:"bytes,15,opt,name=email,proto3" json:"email,omitempty"`
 	IdentitySource      string                    `protobuf:"bytes,16,opt,name=identity_source,json=identitySource,proto3" json:"identity_source,omitempty"`
 	Entitlements        []*ApplicationEntitlement `protobuf:"bytes,17,rep,name=entitlements,proto3" json:"entitlements,omitempty"`
+	RealName            string                    `protobuf:"bytes,18,opt,name=real_name,json=realName,proto3" json:"real_name,omitempty"`
+	Gender              string                    `protobuf:"bytes,19,opt,name=gender,proto3" json:"gender,omitempty"`
+	PhoneCountryCode    string                    `protobuf:"bytes,20,opt,name=phone_country_code,json=phoneCountryCode,proto3" json:"phone_country_code,omitempty"`
+	Phone               string                    `protobuf:"bytes,21,opt,name=phone,proto3" json:"phone,omitempty"`
+	PhoneVerifiedAt     *timestamppb.Timestamp    `protobuf:"bytes,22,opt,name=phone_verified_at,json=phoneVerifiedAt,proto3" json:"phone_verified_at,omitempty"`
+	EmailVerifiedAt     *timestamppb.Timestamp    `protobuf:"bytes,23,opt,name=email_verified_at,json=emailVerifiedAt,proto3" json:"email_verified_at,omitempty"`
+	AvatarUrl           string                    `protobuf:"bytes,24,opt,name=avatar_url,json=avatarUrl,proto3" json:"avatar_url,omitempty"`
+	ProfileVersion      int64                     `protobuf:"varint,25,opt,name=profile_version,json=profileVersion,proto3" json:"profile_version,omitempty"`
 	unknownFields       protoimpl.UnknownFields
 	sizeCache           protoimpl.SizeCache
 }
@@ -192,6 +200,62 @@ func (x *User) GetEntitlements() []*ApplicationEntitlement {
 		return x.Entitlements
 	}
 	return nil
+}
+
+func (x *User) GetRealName() string {
+	if x != nil {
+		return x.RealName
+	}
+	return ""
+}
+
+func (x *User) GetGender() string {
+	if x != nil {
+		return x.Gender
+	}
+	return ""
+}
+
+func (x *User) GetPhoneCountryCode() string {
+	if x != nil {
+		return x.PhoneCountryCode
+	}
+	return ""
+}
+
+func (x *User) GetPhone() string {
+	if x != nil {
+		return x.Phone
+	}
+	return ""
+}
+
+func (x *User) GetPhoneVerifiedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.PhoneVerifiedAt
+	}
+	return nil
+}
+
+func (x *User) GetEmailVerifiedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.EmailVerifiedAt
+	}
+	return nil
+}
+
+func (x *User) GetAvatarUrl() string {
+	if x != nil {
+		return x.AvatarUrl
+	}
+	return ""
+}
+
+func (x *User) GetProfileVersion() int64 {
+	if x != nil {
+		return x.ProfileVersion
+	}
+	return 0
 }
 
 type ApplicationEntitlement struct {
@@ -1546,7 +1610,7 @@ var File_forge_v1_common_proto protoreflect.FileDescriptor
 
 const file_forge_v1_common_proto_rawDesc = "" +
 	"\n" +
-	"\x15forge/v1/common.proto\x12\bforge.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"\x82\x06\n" +
+	"\x15forge/v1/common.proto\x12\bforge.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"\xd3\b\n" +
 	"\x04User\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12'\n" +
 	"\x0forganization_id\x18\x02 \x01(\tR\x0eorganizationId\x12\x1d\n" +
@@ -1568,7 +1632,16 @@ const file_forge_v1_common_proto_rawDesc = "" +
 	"\x0fmfa_verified_at\x18\x0e \x01(\v2\x1a.google.protobuf.TimestampR\rmfaVerifiedAt\x12\x14\n" +
 	"\x05email\x18\x0f \x01(\tR\x05email\x12'\n" +
 	"\x0fidentity_source\x18\x10 \x01(\tR\x0eidentitySource\x12D\n" +
-	"\fentitlements\x18\x11 \x03(\v2 .forge.v1.ApplicationEntitlementR\fentitlements\"\xb6\x01\n" +
+	"\fentitlements\x18\x11 \x03(\v2 .forge.v1.ApplicationEntitlementR\fentitlements\x12\x1b\n" +
+	"\treal_name\x18\x12 \x01(\tR\brealName\x12\x16\n" +
+	"\x06gender\x18\x13 \x01(\tR\x06gender\x12,\n" +
+	"\x12phone_country_code\x18\x14 \x01(\tR\x10phoneCountryCode\x12\x14\n" +
+	"\x05phone\x18\x15 \x01(\tR\x05phone\x12F\n" +
+	"\x11phone_verified_at\x18\x16 \x01(\v2\x1a.google.protobuf.TimestampR\x0fphoneVerifiedAt\x12F\n" +
+	"\x11email_verified_at\x18\x17 \x01(\v2\x1a.google.protobuf.TimestampR\x0femailVerifiedAt\x12\x1d\n" +
+	"\n" +
+	"avatar_url\x18\x18 \x01(\tR\tavatarUrl\x12'\n" +
+	"\x0fprofile_version\x18\x19 \x01(\x03R\x0eprofileVersion\"\xb6\x01\n" +
 	"\x16ApplicationEntitlement\x12)\n" +
 	"\x10application_code\x18\x01 \x01(\tR\x0fapplicationCode\x12)\n" +
 	"\x10application_name\x18\x02 \x01(\tR\x0fapplicationName\x12\x16\n" +
@@ -1767,29 +1840,31 @@ var file_forge_v1_common_proto_depIdxs = []int32{
 	2,  // 3: forge.v1.User.data_scope:type_name -> forge.v1.EffectiveDataScope
 	14, // 4: forge.v1.User.mfa_verified_at:type_name -> google.protobuf.Timestamp
 	1,  // 5: forge.v1.User.entitlements:type_name -> forge.v1.ApplicationEntitlement
-	14, // 6: forge.v1.Organization.created_at:type_name -> google.protobuf.Timestamp
-	14, // 7: forge.v1.Organization.updated_at:type_name -> google.protobuf.Timestamp
-	14, // 8: forge.v1.Department.created_at:type_name -> google.protobuf.Timestamp
-	14, // 9: forge.v1.Department.updated_at:type_name -> google.protobuf.Timestamp
-	14, // 10: forge.v1.Position.created_at:type_name -> google.protobuf.Timestamp
-	14, // 11: forge.v1.Position.updated_at:type_name -> google.protobuf.Timestamp
-	14, // 12: forge.v1.UserGroup.created_at:type_name -> google.protobuf.Timestamp
-	14, // 13: forge.v1.UserGroup.updated_at:type_name -> google.protobuf.Timestamp
-	14, // 14: forge.v1.UserAssignment.valid_from:type_name -> google.protobuf.Timestamp
-	14, // 15: forge.v1.UserAssignment.valid_until:type_name -> google.protobuf.Timestamp
-	14, // 16: forge.v1.UserAssignment.created_at:type_name -> google.protobuf.Timestamp
-	14, // 17: forge.v1.Session.created_at:type_name -> google.protobuf.Timestamp
-	14, // 18: forge.v1.Session.expires_at:type_name -> google.protobuf.Timestamp
-	14, // 19: forge.v1.Session.last_seen_at:type_name -> google.protobuf.Timestamp
-	14, // 20: forge.v1.ApiToken.created_at:type_name -> google.protobuf.Timestamp
-	14, // 21: forge.v1.ApiToken.expires_at:type_name -> google.protobuf.Timestamp
-	14, // 22: forge.v1.ApiToken.last_used_at:type_name -> google.protobuf.Timestamp
-	14, // 23: forge.v1.AuditEvent.occurred_at:type_name -> google.protobuf.Timestamp
-	24, // [24:24] is the sub-list for method output_type
-	24, // [24:24] is the sub-list for method input_type
-	24, // [24:24] is the sub-list for extension type_name
-	24, // [24:24] is the sub-list for extension extendee
-	0,  // [0:24] is the sub-list for field type_name
+	14, // 6: forge.v1.User.phone_verified_at:type_name -> google.protobuf.Timestamp
+	14, // 7: forge.v1.User.email_verified_at:type_name -> google.protobuf.Timestamp
+	14, // 8: forge.v1.Organization.created_at:type_name -> google.protobuf.Timestamp
+	14, // 9: forge.v1.Organization.updated_at:type_name -> google.protobuf.Timestamp
+	14, // 10: forge.v1.Department.created_at:type_name -> google.protobuf.Timestamp
+	14, // 11: forge.v1.Department.updated_at:type_name -> google.protobuf.Timestamp
+	14, // 12: forge.v1.Position.created_at:type_name -> google.protobuf.Timestamp
+	14, // 13: forge.v1.Position.updated_at:type_name -> google.protobuf.Timestamp
+	14, // 14: forge.v1.UserGroup.created_at:type_name -> google.protobuf.Timestamp
+	14, // 15: forge.v1.UserGroup.updated_at:type_name -> google.protobuf.Timestamp
+	14, // 16: forge.v1.UserAssignment.valid_from:type_name -> google.protobuf.Timestamp
+	14, // 17: forge.v1.UserAssignment.valid_until:type_name -> google.protobuf.Timestamp
+	14, // 18: forge.v1.UserAssignment.created_at:type_name -> google.protobuf.Timestamp
+	14, // 19: forge.v1.Session.created_at:type_name -> google.protobuf.Timestamp
+	14, // 20: forge.v1.Session.expires_at:type_name -> google.protobuf.Timestamp
+	14, // 21: forge.v1.Session.last_seen_at:type_name -> google.protobuf.Timestamp
+	14, // 22: forge.v1.ApiToken.created_at:type_name -> google.protobuf.Timestamp
+	14, // 23: forge.v1.ApiToken.expires_at:type_name -> google.protobuf.Timestamp
+	14, // 24: forge.v1.ApiToken.last_used_at:type_name -> google.protobuf.Timestamp
+	14, // 25: forge.v1.AuditEvent.occurred_at:type_name -> google.protobuf.Timestamp
+	26, // [26:26] is the sub-list for method output_type
+	26, // [26:26] is the sub-list for method input_type
+	26, // [26:26] is the sub-list for extension type_name
+	26, // [26:26] is the sub-list for extension extendee
+	0,  // [0:26] is the sub-list for field type_name
 }
 
 func init() { file_forge_v1_common_proto_init() }

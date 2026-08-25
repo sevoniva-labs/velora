@@ -115,6 +115,14 @@ service IdentityService {
       ]
     };
   }
+  rpc GetCurrentUserProfile(GetCurrentUserProfileRequest) returns (GetCurrentUserProfileResponse) {
+    option (google.api.http) = {get: "/api/v1/me/profile"};
+    option (openapi.v3.operation) = {security: [{additional_properties: [{name: "SessionCookie" value: {value: []}}]}]};
+  }
+  rpc UpdateCurrentUserProfile(UpdateCurrentUserProfileRequest) returns (UpdateCurrentUserProfileResponse) {
+    option (google.api.http) = {patch: "/api/v1/me/profile" body: "*"};
+    option (openapi.v3.operation) = {security: [{additional_properties: [{name: "SessionCookie" value: {value: []}}, {name: "CsrfToken" value: {value: []}}]}]};
+  }
   rpc GetMFAStatus(GetMFAStatusRequest) returns (GetMFAStatusResponse) {
     option (google.api.http) = {get: "/api/v1/mfa"};
     option (openapi.v3.operation) = {
@@ -338,6 +346,20 @@ message GetCurrentUserRequest {}
 message GetCurrentUserResponse {
   User user = 1;
 }
+
+message GetCurrentUserProfileRequest {}
+message GetCurrentUserProfileResponse { User user = 1; }
+message UpdateCurrentUserProfileRequest {
+  string display_name = 1;
+  string real_name = 2;
+  string gender = 3;
+  string phone_country_code = 4;
+  string phone = 5;
+  string email = 6;
+  string avatar_url = 7;
+  int64 expected_version = 8;
+}
+message UpdateCurrentUserProfileResponse { User user = 1; }
 
 message GetMFAStatusRequest {}
 message GetMFAStatusResponse {

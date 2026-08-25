@@ -60,10 +60,33 @@ type userWire struct {
 	ID                string `json:"id"`
 	DisplayName       string `json:"displayName"`
 	Email             string `json:"email"`
+	Gender            string `json:"gender"`
+	Phone             string `json:"phone"`
+	Avatar            string `json:"avatar"`
 	Password          string `json:"password,omitempty"`
 	Type              string `json:"type,omitempty"`
 	SignupApplication string `json:"signupApplication,omitempty"`
 	IsForbidden       bool   `json:"isForbidden"`
+}
+
+func (c *Client) UpdateUserProfile(ctx context.Context, login string, in appidentity.ManagedUserProfileInput) error {
+	u, found, err := c.get(ctx, login)
+	if err != nil {
+		return err
+	}
+	if !found {
+		return errors.New("casdoor user not found")
+	}
+	u.Password = ""
+	u.DisplayName = strings.TrimSpace(in.DisplayName)
+	u.Email = strings.ToLower(strings.TrimSpace(in.Email))
+	u.Gender = strings.ToLower(strings.TrimSpace(in.Gender))
+	if u.Gender == "unspecified" {
+		u.Gender = ""
+	}
+	u.Phone = strings.TrimSpace(in.Phone)
+	u.Avatar = strings.TrimSpace(in.AvatarURL)
+	return c.modify(ctx, "update-user", u.Owner+"/"+u.Name, []string{"display_name", "email", "gender", "phone", "avatar"}, u)
 }
 
 func (c *Client) CreateUser(ctx context.Context, in appidentity.ManagedUserInput) (string, error) {

@@ -76,6 +76,7 @@ const OperationPlatformServiceUpdateUserEntitlement = "/forge.v1.PlatformService
 const OperationPlatformServiceUpdateUserGroup = "/forge.v1.PlatformService/UpdateUserGroup"
 const OperationPlatformServiceUpdateUserGroupMembers = "/forge.v1.PlatformService/UpdateUserGroupMembers"
 const OperationPlatformServiceUpdateUserGroupRoles = "/forge.v1.PlatformService/UpdateUserGroupRoles"
+const OperationPlatformServiceUpdateUserProfile = "/forge.v1.PlatformService/UpdateUserProfile"
 const OperationPlatformServiceUpdateUserRoles = "/forge.v1.PlatformService/UpdateUserRoles"
 const OperationPlatformServiceUpdateUserStatus = "/forge.v1.PlatformService/UpdateUserStatus"
 const OperationPlatformServiceUpsertDataFieldPolicy = "/forge.v1.PlatformService/UpsertDataFieldPolicy"
@@ -140,6 +141,7 @@ type PlatformServiceHTTPServer interface {
 	UpdateUserGroup(context.Context, *UpdateUserGroupRequest) (*UpdateUserGroupResponse, error)
 	UpdateUserGroupMembers(context.Context, *UpdateUserGroupMembersRequest) (*UpdateUserGroupMembersResponse, error)
 	UpdateUserGroupRoles(context.Context, *UpdateUserGroupRolesRequest) (*UpdateUserGroupRolesResponse, error)
+	UpdateUserProfile(context.Context, *UpdateUserProfileRequest) (*UpdateUserProfileResponse, error)
 	UpdateUserRoles(context.Context, *UpdateUserRolesRequest) (*UpdateUserRolesResponse, error)
 	UpdateUserStatus(context.Context, *UpdateUserStatusRequest) (*UpdateUserStatusResponse, error)
 	UpsertDataFieldPolicy(context.Context, *UpsertDataFieldPolicyRequest) (*UpsertDataFieldPolicyResponse, error)
@@ -150,6 +152,7 @@ func RegisterPlatformServiceHTTPServer(s *http.Server, srv PlatformServiceHTTPSe
 	r := s.Route("/")
 	r.GET("/api/v1/admin/users", _PlatformService_ListUsers0_HTTP_Handler(srv))
 	r.GET("/api/v1/admin/users/{user_id}", _PlatformService_GetUser0_HTTP_Handler(srv))
+	r.PATCH("/api/v1/admin/users/{user_id}/profile", _PlatformService_UpdateUserProfile0_HTTP_Handler(srv))
 	r.POST("/api/v1/admin/users", _PlatformService_CreateUser0_HTTP_Handler(srv))
 	r.GET("/api/v1/admin/departments", _PlatformService_ListDepartments0_HTTP_Handler(srv))
 	r.POST("/api/v1/admin/departments", _PlatformService_CreateDepartment0_HTTP_Handler(srv))
@@ -248,6 +251,31 @@ func _PlatformService_GetUser0_HTTP_Handler(srv PlatformServiceHTTPServer) func(
 			return err
 		}
 		reply := out.(*GetUserResponse)
+		return ctx.Result(200, reply)
+	}
+}
+
+func _PlatformService_UpdateUserProfile0_HTTP_Handler(srv PlatformServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in UpdateUserProfileRequest
+		if err := ctx.Bind(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindVars(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationPlatformServiceUpdateUserProfile)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.UpdateUserProfile(ctx, req.(*UpdateUserProfileRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*UpdateUserProfileResponse)
 		return ctx.Result(200, reply)
 	}
 }
@@ -1627,6 +1655,7 @@ type PlatformServiceHTTPClient interface {
 	UpdateUserGroup(ctx context.Context, req *UpdateUserGroupRequest, opts ...http.CallOption) (rsp *UpdateUserGroupResponse, err error)
 	UpdateUserGroupMembers(ctx context.Context, req *UpdateUserGroupMembersRequest, opts ...http.CallOption) (rsp *UpdateUserGroupMembersResponse, err error)
 	UpdateUserGroupRoles(ctx context.Context, req *UpdateUserGroupRolesRequest, opts ...http.CallOption) (rsp *UpdateUserGroupRolesResponse, err error)
+	UpdateUserProfile(ctx context.Context, req *UpdateUserProfileRequest, opts ...http.CallOption) (rsp *UpdateUserProfileResponse, err error)
 	UpdateUserRoles(ctx context.Context, req *UpdateUserRolesRequest, opts ...http.CallOption) (rsp *UpdateUserRolesResponse, err error)
 	UpdateUserStatus(ctx context.Context, req *UpdateUserStatusRequest, opts ...http.CallOption) (rsp *UpdateUserStatusResponse, err error)
 	UpsertDataFieldPolicy(ctx context.Context, req *UpsertDataFieldPolicyRequest, opts ...http.CallOption) (rsp *UpsertDataFieldPolicyResponse, err error)
@@ -2377,6 +2406,19 @@ func (c *PlatformServiceHTTPClientImpl) UpdateUserGroupRoles(ctx context.Context
 	opts = append(opts, http.Operation(OperationPlatformServiceUpdateUserGroupRoles))
 	opts = append(opts, http.PathTemplate(pattern))
 	err := c.cc.Invoke(ctx, "PUT", path, in, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+func (c *PlatformServiceHTTPClientImpl) UpdateUserProfile(ctx context.Context, in *UpdateUserProfileRequest, opts ...http.CallOption) (*UpdateUserProfileResponse, error) {
+	var out UpdateUserProfileResponse
+	pattern := "/api/v1/admin/users/{user_id}/profile"
+	path := binding.EncodeURL(pattern, in, false)
+	opts = append(opts, http.Operation(OperationPlatformServiceUpdateUserProfile))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "PATCH", path, in, &out, opts...)
 	if err != nil {
 		return nil, err
 	}

@@ -24,6 +24,14 @@ message User {
   string email = 15;
   string identity_source = 16;
   repeated ApplicationEntitlement entitlements = 17;
+  string real_name = 18;
+  string gender = 19;
+  string phone_country_code = 20;
+  string phone = 21;
+  google.protobuf.Timestamp phone_verified_at = 22;
+  google.protobuf.Timestamp email_verified_at = 23;
+  string avatar_url = 24;
+  int64 profile_version = 25;
 }
 
 message ApplicationEntitlement {

@@ -59,12 +59,19 @@ function mapUser(value: unknown): CurrentUser {
     username: String(user.loginName ?? user.username ?? ''),
     displayName: String(user.displayName ?? user.loginName ?? ''),
     email: String(user.email ?? ''),
-    avatar: String(user.avatar ?? ''),
+    avatar: String(user.avatarUrl ?? user.avatar ?? ''),
     organization: String(user.organizationId ?? user.organization ?? 'default'),
     roles,
     permissions,
     admin,
     groups: Array.isArray(user.groups) ? user.groups.map(String) : [],
+    realName: String(user.realName ?? ''),
+    gender: String(user.gender ?? 'UNSPECIFIED').toUpperCase() as CurrentUser['gender'],
+    phoneCountryCode: String(user.phoneCountryCode ?? '+86'),
+    phone: String(user.phone ?? ''),
+    phoneVerifiedAt: user.phoneVerifiedAt ? String(user.phoneVerifiedAt) : undefined,
+    emailVerifiedAt: user.emailVerifiedAt ? String(user.emailVerifiedAt) : undefined,
+    profileVersion: Number(user.profileVersion ?? 0),
   }
 }
 
@@ -137,6 +144,14 @@ function mapAdminUser(value: unknown): AdminUser {
     roles: Array.isArray(item.roles) ? item.roles.map(String) : [],
     entitlements: listFrom(item, 'entitlements').map(mapEntitlement),
     createdAt: String(item.createdAt ?? ''),
+    realName: String(item.realName ?? ''),
+    gender: String(item.gender ?? 'UNSPECIFIED').toUpperCase() as AdminUser['gender'],
+    phoneCountryCode: String(item.phoneCountryCode ?? '+86'),
+    phone: String(item.phone ?? ''),
+    phoneVerifiedAt: item.phoneVerifiedAt ? String(item.phoneVerifiedAt) : undefined,
+    emailVerifiedAt: item.emailVerifiedAt ? String(item.emailVerifiedAt) : undefined,
+    avatarUrl: String(item.avatarUrl ?? ''),
+    profileVersion: Number(item.profileVersion ?? 0),
   }
 }
 
@@ -305,7 +320,9 @@ export async function getTurnstileConfig(): Promise<{ enabled: boolean; siteKey:
 
 export interface UserProfile extends CurrentUser { admin: boolean }
 export interface SessionDevice { sessionId: string; userAgent: string; ip: string; lastActiveAt: string; expiresAt: string; revokedAt?: string; current: boolean }
-export async function getUserProfile(): Promise<UserProfile> { return (await getMe()) as UserProfile }
+export interface UserProfileInput { displayName: string; realName: string; gender: CurrentUser['gender']; phoneCountryCode: string; phone: string; email: string; avatarUrl: string; expectedVersion: number }
+export async function getUserProfile(): Promise<UserProfile> { const data = await apiFetch<unknown>('/me/profile'); return mapUser(record(data).user ?? data) as UserProfile }
+export async function updateUserProfile(input: UserProfileInput): Promise<UserProfile> { const data = await apiFetch<unknown>('/me/profile', { method: 'PATCH', body: input }); return mapUser(record(data).user ?? data) as UserProfile }
 export function changePassword(oldPassword: string, newPassword: string): Promise<{ status: string; message: string }> { return apiFetch('/auth/password', { method: 'PATCH', body: { currentPassword: oldPassword, newPassword } }).then(() => ({ status: 'updated', message: '密码已更新，请重新登录' })) }
 export async function listSessions(): Promise<SessionDevice[]> {
   const data = await apiFetch<unknown>('/admin/sessions?limit=100')
@@ -513,6 +530,11 @@ export async function adminCreateUser(input: CreateAdminUserInput): Promise<Admi
 
 export async function adminUpdateUserStatus(userId: string, status: 'ACTIVE' | 'DISABLED'): Promise<AdminUser> {
   const data = await apiFetch<unknown>(`/admin/users/${encodeURIComponent(userId)}/status`, { method: 'PATCH', body: { status } })
+  return mapAdminUser(record(data).user ?? data)
+}
+
+export async function adminUpdateUserProfile(userId: string, input: UserProfileInput): Promise<AdminUser> {
+  const data = await apiFetch<unknown>(`/admin/users/${encodeURIComponent(userId)}/profile`, { method: 'PATCH', body: input })
   return mapAdminUser(record(data).user ?? data)
 }
 

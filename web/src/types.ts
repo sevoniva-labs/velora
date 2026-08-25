@@ -19,6 +19,13 @@ export interface CurrentUser {
   /** 兼容旧页面的管理员标记，来源必须是 permissions。 */
   admin?: boolean
   groups: string[]
+  realName: string
+  gender: 'UNSPECIFIED' | 'MALE' | 'FEMALE'
+  phoneCountryCode: string
+  phone: string
+  phoneVerifiedAt?: string
+  emailVerifiedAt?: string
+  profileVersion: number
 }
 
 export interface ApplicationEntitlement {
@@ -40,6 +47,14 @@ export interface AdminUser {
   roles: string[]
   entitlements: ApplicationEntitlement[]
   createdAt: string
+  realName: string
+  gender: 'UNSPECIFIED' | 'MALE' | 'FEMALE'
+  phoneCountryCode: string
+  phone: string
+  phoneVerifiedAt?: string
+  emailVerifiedAt?: string
+  avatarUrl: string
+  profileVersion: number
 }
 
 export interface Department {

@@ -3,7 +3,7 @@ import { App, Button, Empty, Popconfirm, Skeleton, Space, Tag, Typography } from
 import { DrawerForm, ModalForm, PageContainer, ProDescriptions, ProForm, ProFormList, ProFormSelect, ProFormSwitch, ProFormText, ProTable, type ProColumns } from '@ant-design/pro-components'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate, useParams } from 'react-router-dom'
-import { adminGetUser } from '../../api/api'
+import { adminGetUser, adminUpdateUserProfile, type UserProfileInput } from '../../api/api'
 import { createApproval, listApprovals, listDepartments, listPlatformRoles, listPositions, listUserAssignments, listUserEffectiveApplicationAccess, replaceUserAssignments, resetUserPassword, unlockUser, updateUserRoles } from '../../api/admin-platform'
 import QueryErrorState from '../../components/QueryErrorState'
 import type { ApprovalRequest, UserAssignment, UserEffectiveApplicationAccess } from '../../types'
@@ -33,6 +33,7 @@ export default function UserDetail() {
   const [roleOpen, setRoleOpen] = useState(false)
   const [passwordApprovalOpen, setPasswordApprovalOpen] = useState(false)
   const [passwordResetOpen, setPasswordResetOpen] = useState(false)
+  const [profileOpen, setProfileOpen] = useState(false)
   const userQuery = useQuery({ queryKey: ['admin', 'users', id], queryFn: () => adminGetUser(id), enabled: Boolean(id) })
   const user = userQuery.data
   usePageTitle(user?.displayName || '用户详情')
@@ -53,6 +54,7 @@ export default function UserDetail() {
   const approvedPasswordReset = (approvals.data ?? []).find((item) => item.action === 'user.password.reset' && item.resourceId === id && item.status === 'APPROVED')
   const passwordReset = useMutation({ mutationFn: (values: PasswordResetForm) => resetUserPassword(id, values.password, approvedPasswordReset!.id), onSuccess: async () => { message.success('密码已重置，用户下次登录必须修改密码'); setPasswordResetOpen(false); await queryClient.invalidateQueries({ queryKey: ['admin', 'approvals'] }) }, onError: (error) => message.error(error instanceof Error ? error.message : '密码重置失败') })
   const unlock = useMutation({ mutationFn: () => unlockUser(id), onSuccess: async () => { message.success('用户已解锁'); await queryClient.invalidateQueries({ queryKey: ['admin', 'users'] }) }, onError: (error) => message.error(error instanceof Error ? error.message : '用户解锁失败') })
+  const profileMutation = useMutation({ mutationFn: (values: UserProfileInput) => adminUpdateUserProfile(id, values), onSuccess: async () => { message.success('用户资料已更新'); setProfileOpen(false); await Promise.all([queryClient.invalidateQueries({ queryKey: ['admin', 'users', id] }), queryClient.invalidateQueries({ queryKey: ['admin', 'users'] })]) }, onError: (error) => message.error(error instanceof Error ? error.message : '用户资料保存失败') })
 
   if (userQuery.isLoading) return <PageContainer title="用户详情" onBack={() => navigate('/admin/users')}><div className="velora-admin-page-card"><Skeleton active /></div></PageContainer>
   if (userQuery.isError) return <PageContainer title="用户详情" onBack={() => navigate('/admin/users')}><QueryErrorState refetch={() => void userQuery.refetch()} /></PageContainer>
@@ -71,6 +73,7 @@ export default function UserDetail() {
 
   const tabs = [{ key: 'profile', tab: '基本信息' }, ...(canReadAssignments ? [{ key: 'assignments', tab: '部门与岗位' }] : []), { key: 'access', tab: '可使用应用' }]
   const profileActions = tab === 'profile' ? [
+    ...(canUpdateUser ? [<Button key="profile" onClick={() => setProfileOpen(true)}>编辑资料</Button>] : []),
     ...(canUpdateUser && user?.status === 'LOCKED' ? [<Popconfirm key="unlock" title="解锁此用户？" onConfirm={() => unlock.mutate()}><Button loading={unlock.isPending}>解锁用户</Button></Popconfirm>] : []),
     ...(canUpdateUser ? [approvedPasswordReset ? <Button key="execute-password" danger onClick={() => setPasswordResetOpen(true)}>执行密码重置</Button> : <Button key="password" onClick={() => setPasswordApprovalOpen(true)}>重置密码</Button>] : []),
     ...(canManageRoles ? [approvedRoleChange ? <Button key="execute-roles" type="primary" loading={roleExecution.isPending} onClick={() => roleExecution.mutate(approvedRoleChange)}>执行角色变更</Button> : <Button key="roles" type="primary" onClick={() => setRoleOpen(true)}>配置平台角色</Button>] : []),
@@ -80,8 +83,11 @@ export default function UserDetail() {
   return <PageContainer title={user?.displayName || user?.loginName || '用户详情'} onBack={() => navigate('/admin/users')} tabList={tabs} tabActiveKey={tab} onTabChange={setTab} extra={extra}>
     {tab === 'profile' && <ProDescriptions className="velora-admin-page-card" column={2} dataSource={user} columns={[
       { title: '登录账号', dataIndex: 'loginName' },
-      { title: '姓名', dataIndex: 'displayName' },
-      { title: '邮箱', dataIndex: 'email', render: (_, row) => row.email || '—' },
+      { title: '显示名称', dataIndex: 'displayName' },
+      { title: '真实姓名', dataIndex: 'realName', render: (_, row) => row.realName || '—' },
+      { title: '性别', dataIndex: 'gender', render: (_, row) => ({ MALE: '男', FEMALE: '女', UNSPECIFIED: '未设置' } as Record<string, string>)[row.gender] ?? '未设置' },
+      { title: '手机号', dataIndex: 'phone', render: (_, row) => row.phone ? <Space>{row.phoneCountryCode} {row.phone}{row.phoneVerifiedAt ? <Tag color="success">已验证</Tag> : <Tag>未验证</Tag>}</Space> : '—' },
+      { title: '邮箱', dataIndex: 'email', render: (_, row) => row.email ? <Space>{row.email}{row.emailVerifiedAt ? <Tag color="success">已验证</Tag> : <Tag>未验证</Tag>}</Space> : '—' },
       { title: '账号状态', dataIndex: 'status', render: (_, row) => row.status === 'ACTIVE' ? <Tag color="success">正常</Tag> : row.status === 'LOCKED' ? <Tag color="warning">已锁定</Tag> : <Tag>已停用</Tag> },
       { title: '平台角色', dataIndex: 'roles', render: (_, row) => row.roles.map((key) => <Tag key={key}>{roles.data?.find((role) => role.key === key)?.name ?? key}</Tag>) },
       { title: '账号来源', dataIndex: 'identitySource', render: () => '统一身份' },
@@ -90,6 +96,18 @@ export default function UserDetail() {
     {tab === 'access' && (effectiveAccess.isError
       ? <div className="velora-admin-page-card"><QueryErrorState description="应用权限加载失败" refetch={() => void effectiveAccess.refetch()} /></div>
       : <ProTable<UserEffectiveApplicationAccess> className="velora-admin-secondary-table" rowKey="applicationId" columns={entitlementColumns} dataSource={effectiveAccess.data ?? []} loading={effectiveAccess.isLoading} search={false} pagination={{ pageSize: 20, hideOnSinglePage: false }} options={false} locale={{ emptyText: '暂无可使用应用' }} />)}
+
+    <DrawerForm<UserProfileInput> title="编辑用户资料" open={profileOpen} onOpenChange={setProfileOpen} width={560} initialValues={{ displayName: user?.displayName ?? '', realName: user?.realName ?? '', gender: user?.gender ?? 'UNSPECIFIED', phoneCountryCode: user?.phoneCountryCode || '+86', phone: user?.phone ?? '', email: user?.email ?? '', avatarUrl: user?.avatarUrl ?? '', expectedVersion: user?.profileVersion ?? 0 }} submitter={{ searchConfig: { submitText: '保存', resetText: '取消' } }} onFinish={async (values) => { await profileMutation.mutateAsync({ ...values, expectedVersion: user?.profileVersion ?? 0 }); return true }}>
+      <ProFormText name="displayName" label="显示名称" rules={[{ required: true, message: '请输入显示名称' }, { max: 200 }]} />
+      <ProFormText name="realName" label="真实姓名" rules={[{ max: 200 }]} />
+      <ProFormSelect name="gender" label="性别" options={[{ label: '未设置', value: 'UNSPECIFIED' }, { label: '男', value: 'MALE' }, { label: '女', value: 'FEMALE' }]} />
+      <ProForm.Group>
+        <ProFormSelect name="phoneCountryCode" label="国家/地区代码" width="xs" options={[{ label: '中国大陆 +86', value: '+86' }]} />
+        <ProFormText name="phone" label="手机号" width="md" fieldProps={{ inputMode: 'tel', maxLength: 20 }} rules={[{ pattern: /^\d{6,20}$/, message: '请输入6–20位数字' }]} />
+      </ProForm.Group>
+      <ProFormText name="email" label="邮箱" fieldProps={{ type: 'email' }} rules={[{ type: 'email', message: '请输入有效邮箱' }, { max: 320 }]} />
+      <ProFormText name="avatarUrl" label="头像地址" fieldProps={{ type: 'url' }} rules={[{ type: 'url', message: '请输入 HTTPS 地址' }]} />
+    </DrawerForm>
 
     <DrawerForm<AssignmentForm> key={`${id}-${assignments.data?.length ?? 0}`} title="编辑任职" open={assignmentOpen} onOpenChange={setAssignmentOpen} width={620} initialValues={{ assignments: assignments.data ?? [] }} submitter={{ searchConfig: { submitText: '保存任职', resetText: '取消' } }} onFinish={async (values) => { const rows = values.assignments ?? []; if (rows.length && rows.filter((item) => item.primary).length !== 1) throw new Error('请设置且仅设置一个主职'); await assignmentMutation.mutateAsync(values); return true }}>
       <ProFormList name="assignments" creatorButtonProps={{ creatorButtonText: '添加任职' }} copyIconProps={false}>

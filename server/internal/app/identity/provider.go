@@ -10,6 +10,7 @@ type ManagedIdentityProvider interface {
 	CreateUser(context.Context, ManagedUserInput) (string, error)
 	SetUserStatus(context.Context, string, bool) error
 	SetUserPassword(context.Context, string, string) error
+	UpdateUserProfile(context.Context, string, ManagedUserProfileInput) error
 }
 
 type ManagedUserInput struct {
@@ -17,6 +18,10 @@ type ManagedUserInput struct {
 	DisplayName string
 	Email       string
 	Password    string
+}
+
+type ManagedUserProfileInput struct {
+	DisplayName, Email, Gender, Phone, AvatarURL string
 }
 
 func (s *Service) ConfigureManagedIdentityProvider(provider ManagedIdentityProvider, issuer string) {

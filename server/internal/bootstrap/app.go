@@ -6,6 +6,7 @@ import (
 	"crypto/x509"
 	"fmt"
 	"log/slog"
+	"net/http"
 	"os"
 	"strings"
 	"time"
@@ -324,6 +325,10 @@ func New(ctx context.Context, opts Options) (*App, error) {
 		if wechatBroker != nil {
 			identityService.ConfigureWeChat(wechatBroker)
 			httpServer.HandlePrefix("/_velora/wechat/", wechatBroker.Handler())
+		} else {
+			// Keep disabled identity endpoints fail-closed instead of falling
+			// through to the SPA handler on the protocol-only auth host.
+			httpServer.HandlePrefix("/_velora/wechat/", http.NotFoundHandler())
 		}
 		httpServer.Handle("/_velora/session/bridge", bridge.Handler())
 		httpServer.Handle("/_velora/authorize", bridge.AuthorizationHandler())

@@ -25,6 +25,7 @@ var codeMap = map[string]string{
 	"INVALID_ARGUMENT":                  "100008",
 	"INVALID_EXPORT_FORMAT":             "100009",
 	"INVALID_EXPORT_LIMIT":              "100010",
+	"INVALID_USER_PROFILE":              "100028",
 	"UNAUTHENTICATED":                   "200001",
 	"INVALID_CREDENTIALS":               "200002",
 	"LOGIN_FAILED":                      "200002",
@@ -62,6 +63,8 @@ var codeMap = map[string]string{
 	"INVALID_MFA":                       "200025",
 	"MFA_REQUIRED":                      "200026",
 	"STEP_UP_REQUIRED":                  "200027",
+	"WECHAT_DISABLED":                   "200034",
+	"WECHAT_LOGIN_FAILED":               "200035",
 	"APPROVAL_ALREADY_EXECUTED":         "300004",
 	"APPROVAL_DIGEST_MISMATCH":          "300005",
 	"APPROVAL_NOT_EXECUTABLE":           "300006",
@@ -69,6 +72,8 @@ var codeMap = map[string]string{
 	"AUDIT_INTEGRITY_FAILED":            "300008",
 	"MFA_ALREADY_ENABLED":               "300009",
 	"ROLE_CONFLICT":                     "300010",
+	"PROFILE_CONTACT_CONFLICT":          "300016",
+	"PROFILE_VERSION_CONFLICT":          "300017",
 	"FEDERATED_UNAVAILABLE":             "400005",
 	"APPROVAL_REQUIRED":                 "100011",
 	"FEDERATED_PROVIDER_NOT_FOUND":      "100012",
@@ -111,6 +116,8 @@ var codeMap = map[string]string{
 	"ENROLLMENT_CREDENTIAL_UNAVAILABLE": "300015",
 	"PROVISIONING_CHECK_UNAVAILABLE":    "400014",
 	"LOGIN_CHALLENGE_UNAVAILABLE":       "400015",
+	"WECHAT_STATUS_UNAVAILABLE":         "400016",
+	"WECHAT_UNLINK_FAILED":              "400017",
 }
 
 func NumericCode(symbol string) string {

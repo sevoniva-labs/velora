@@ -7,6 +7,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/url"
 	"strings"
@@ -33,6 +34,7 @@ const (
 )
 
 type wechatIdentityManager interface {
+	ValidateWeChatPolicy(context.Context, string) error
 	WeChatBinding(context.Context, string) (bool, error)
 	UnlinkWeChat(context.Context, string) error
 }
@@ -74,6 +76,11 @@ func NewWeChatBroker(cfg WeChatConfig, c cache.Cache, db *database.DB, provider 
 	}
 	if c == nil || c.Provider() == "disabled" || db == nil || provider == nil || bridge == nil || manager == nil || service == nil || strings.TrimSpace(cfg.AppID) == "" || strings.TrimSpace(cfg.Provider) == "" {
 		return nil, errors.New("WeChat broker dependencies are incomplete")
+	}
+	policyCtx, cancel := context.WithTimeout(context.Background(), 8*time.Second)
+	defer cancel()
+	if err := manager.ValidateWeChatPolicy(policyCtx, cfg.Provider); err != nil {
+		return nil, fmt.Errorf("unsafe Casdoor WeChat policy: %w", err)
 	}
 	return &WeChatBroker{config: cfg, cache: c, db: db, provider: provider, bridge: bridge, manager: manager, identityService: service, portal: bridge.portalURL, authHost: strings.ToLower(callback.Hostname())}, nil
 }

@@ -843,6 +843,9 @@ func (c Config) Validate() error {
 		if strings.TrimSpace(c.Security.WeChatAppID) == "" || strings.TrimSpace(c.Security.WeChatProvider) == "" {
 			errs = append(errs, "security.wechat_app_id and security.wechat_provider are required when WeChat login is enabled")
 		}
+		if !c.Security.CasdoorIdentityManagementEnabled || strings.TrimSpace(c.Security.CasdoorApplicationOwner) == "" {
+			errs = append(errs, "security.wechat_login_enabled requires Casdoor identity management and application owner for policy validation")
+		}
 		callback, err := url.Parse(strings.TrimSpace(c.Security.WeChatCallbackURL))
 		if err != nil || callback.Scheme != "https" || callback.Host == "" || callback.User != nil || callback.RawQuery != "" || callback.Fragment != "" || callback.Path != "/_velora/wechat/callback" {
 			errs = append(errs, "security.wechat_callback_url must be an HTTPS /_velora/wechat/callback URL")

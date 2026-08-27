@@ -285,7 +285,8 @@ func New(ctx context.Context, opts Options) (*App, error) {
 	casdoorIdentity, err := casdooridentity.New(casdooridentity.Config{
 		BaseURL: cfg.Security.OIDCInternalURL, ClientID: cfg.Security.CasdoorIdentityClientID,
 		ClientSecret: cfg.Security.CasdoorIdentityClientSecret, Organization: cfg.Security.CasdoorOrganization,
-		Application: cfg.Security.CasdoorApplication, Enabled: cfg.Security.CasdoorIdentityManagementEnabled,
+		Application: cfg.Security.CasdoorApplication, ApplicationOwner: cfg.Security.CasdoorApplicationOwner,
+		Enabled: cfg.Security.CasdoorIdentityManagementEnabled,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("casdoor identity management: %w", err)

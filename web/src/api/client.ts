@@ -62,12 +62,17 @@ export const STEP_UP_REQUIRED_EVENT = 'velora:step-up-required'
 function handleUnauthorized(path: string): void {
   // 已在登录页 / 登录相关端点自身的 401（账号/密码错误）不触发跳转，避免死循环与闪烁。
   if (redirectingToLogin) return
-  if (window.location.pathname.startsWith('/login')) return
-  if (path.startsWith('/auth/login') || path === '/auth/oidc/login' || path === '/auth/step-up') return
+  if (!shouldRedirectUnauthorized(path, window.location.pathname)) return
   redirectingToLogin = true
   const current = window.location.pathname + window.location.search
   const target = `/login?redirect=${encodeURIComponent(current === '/' ? '' : current)}`
   window.location.assign(target)
+}
+
+/** 登录事务自身的 401 必须留在当前页面，以便用户修正凭据或 MFA 后重试。 */
+export function shouldRedirectUnauthorized(path: string, pathname: string): boolean {
+  if (pathname.startsWith('/login')) return false
+  return !(path.startsWith('/auth/login') || path === '/auth/oidc/login' || path === '/auth/step-up' || path === '/auth/wechat/complete')
 }
 
 /** 发起请求；非 2xx 抛 ApiError。写请求自动注入 X-CSRF-Token。 */

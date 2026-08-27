@@ -154,3 +154,45 @@ func TestModifyRejectsUnchangedResponse(t *testing.T) {
 		t.Fatal("expected unchanged update to fail")
 	}
 }
+
+func TestValidateWeChatPolicy(t *testing.T) {
+	tests := []struct {
+		name    string
+		policy  string
+		wantErr string
+	}{
+		{name: "safe", policy: `{"name":"app-velora","enableSignUp":false,"enableLinkWithEmail":false,"providers":[{"name":"wechat-open","canSignIn":true,"canSignUp":false,"bindingRule":[]}]}`},
+		{name: "application signup", policy: `{"name":"app-velora","enableSignUp":true,"providers":[]}`, wantErr: "sign-up must be disabled"},
+		{name: "implicit auto link", policy: `{"name":"app-velora","providers":[{"name":"wechat-open","canSignIn":true,"canSignUp":false,"bindingRule":null}]}`, wantErr: "explicit empty array"},
+		{name: "explicit auto link", policy: `{"name":"app-velora","providers":[{"name":"wechat-open","canSignIn":true,"canSignUp":false,"bindingRule":["Email"]}]}`, wantErr: "explicit empty array"},
+		{name: "provider signup", policy: `{"name":"app-velora","providers":[{"name":"wechat-open","canSignIn":true,"canSignUp":true,"bindingRule":[]}]}`, wantErr: "provider sign-up must be disabled"},
+		{name: "missing provider", policy: `{"name":"app-velora","providers":[]}`, wantErr: "not attached"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if r.URL.Path != "/api/get-application" || r.URL.Query().Get("id") != "admin/app-velora" {
+					t.Fatalf("unexpected request %s?%s", r.URL.Path, r.URL.RawQuery)
+				}
+				user, pass, ok := r.BasicAuth()
+				if !ok || user != "client" || pass != "secret" {
+					t.Fatal("missing client authentication")
+				}
+				w.Header().Set("Content-Type", "application/json")
+				_, _ = fmt.Fprintf(w, `{"status":"ok","data":%s}`, tt.policy)
+			}))
+			defer server.Close()
+			client, err := New(Config{BaseURL: server.URL, ClientID: "client", ClientSecret: "secret", Organization: "built-in", Application: "app-velora", ApplicationOwner: "admin", Enabled: true, HTTPClient: server.Client()})
+			if err != nil {
+				t.Fatal(err)
+			}
+			err = client.ValidateWeChatPolicy(context.Background(), "wechat-open")
+			if tt.wantErr == "" && err != nil {
+				t.Fatalf("ValidateWeChatPolicy() error = %v", err)
+			}
+			if tt.wantErr != "" && (err == nil || !strings.Contains(err.Error(), tt.wantErr)) {
+				t.Fatalf("ValidateWeChatPolicy() error = %v, want %q", err, tt.wantErr)
+			}
+		})
+	}
+}

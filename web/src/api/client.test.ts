@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest'
-import { ApiError, STEP_UP_REQUIRED_EVENT, buildQuery, apiFetch, publicErrorMessage } from './client'
+import { ApiError, STEP_UP_REQUIRED_EVENT, buildQuery, apiFetch, publicErrorMessage, shouldRedirectUnauthorized } from './client'
 
 describe('buildQuery', () => {
   it('过滤空值', () => {
@@ -10,6 +10,17 @@ describe('buildQuery', () => {
   })
   it('空参数返回空串', () => {
     expect(buildQuery({})).toBe('')
+  })
+})
+
+describe('shouldRedirectUnauthorized', () => {
+  it('微信登录完成阶段 MFA 错误时保留事务页面', () => {
+    expect(shouldRedirectUnauthorized('/auth/wechat/complete', '/login')).toBe(false)
+    expect(shouldRedirectUnauthorized('/auth/wechat/complete', '/wechat-complete')).toBe(false)
+  })
+
+  it('普通业务请求会话失效时返回登录页', () => {
+    expect(shouldRedirectUnauthorized('/me', '/admin/users')).toBe(true)
   })
 })
 

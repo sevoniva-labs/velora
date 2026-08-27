@@ -18,15 +18,15 @@ import (
 )
 
 type Config struct {
-	BaseURL, ClientID, ClientSecret, Organization, Application string
-	Enabled                                                    bool
-	HTTPClient                                                 *http.Client
+	BaseURL, ClientID, ClientSecret, Organization, Application, ApplicationOwner string
+	Enabled                                                                      bool
+	HTTPClient                                                                   *http.Client
 }
 
 type Client struct {
-	baseURL, clientID, clientSecret, organization, application string
-	enabled                                                    bool
-	httpClient                                                 *http.Client
+	baseURL, clientID, clientSecret, organization, application, applicationOwner string
+	enabled                                                                      bool
+	httpClient                                                                   *http.Client
 }
 
 var errNotFound = errors.New("casdoor identity not found")
@@ -49,7 +49,7 @@ func New(cfg Config) (*Client, error) {
 	if httpClient == nil {
 		httpClient = &http.Client{Timeout: 8 * time.Second}
 	}
-	return &Client{baseURL: base, clientID: cfg.ClientID, clientSecret: cfg.ClientSecret, organization: cfg.Organization, application: cfg.Application, enabled: true, httpClient: httpClient}, nil
+	return &Client{baseURL: base, clientID: cfg.ClientID, clientSecret: cfg.ClientSecret, organization: cfg.Organization, application: cfg.Application, applicationOwner: cfg.ApplicationOwner, enabled: true, httpClient: httpClient}, nil
 }
 
 func (c *Client) Enabled() bool { return c != nil && c.enabled }
@@ -68,6 +68,64 @@ type userWire struct {
 	SignupApplication string `json:"signupApplication,omitempty"`
 	IsForbidden       bool   `json:"isForbidden"`
 	WeChat            string `json:"wechat"`
+}
+
+type providerPolicyWire struct {
+	Name        string    `json:"name"`
+	CanSignUp   bool      `json:"canSignUp"`
+	CanSignIn   bool      `json:"canSignIn"`
+	BindingRule *[]string `json:"bindingRule"`
+}
+
+type applicationPolicyWire struct {
+	Name                string               `json:"name"`
+	EnableSignUp        bool                 `json:"enableSignUp"`
+	EnableLinkWithEmail bool                 `json:"enableLinkWithEmail"`
+	Providers           []providerPolicyWire `json:"providers"`
+}
+
+// ValidateWeChatPolicy fails closed before the WeChat broker is exposed.
+// Casdoor treats a null bindingRule as Email/Phone/Name auto-linking, so an
+// explicit empty array is required in addition to disabling account sign-up.
+func (c *Client) ValidateWeChatPolicy(ctx context.Context, providerName string) error {
+	if !c.Enabled() {
+		return errors.New("casdoor identity management is disabled")
+	}
+	owner, application := strings.TrimSpace(c.applicationOwner), strings.TrimSpace(c.application)
+	if owner == "" || application == "" {
+		return errors.New("casdoor application owner and name are required")
+	}
+	var policy applicationPolicyWire
+	_, err := c.do(ctx, http.MethodGet, "/api/get-application?id="+url.QueryEscape(owner+"/"+application), nil, &policy)
+	if err != nil {
+		return fmt.Errorf("read Casdoor application policy: %w", err)
+	}
+	if strings.TrimSpace(policy.Name) == "" {
+		return errors.New("casdoor application policy was not found")
+	}
+	if policy.EnableSignUp {
+		return errors.New("casdoor application sign-up must be disabled")
+	}
+	if policy.EnableLinkWithEmail {
+		return errors.New("casdoor application email linking must be disabled")
+	}
+	providerName = strings.TrimSpace(providerName)
+	for _, provider := range policy.Providers {
+		if provider.Name != providerName {
+			continue
+		}
+		if !provider.CanSignIn {
+			return errors.New("casdoor WeChat provider sign-in must be enabled")
+		}
+		if provider.CanSignUp {
+			return errors.New("casdoor WeChat provider sign-up must be disabled")
+		}
+		if provider.BindingRule == nil || len(*provider.BindingRule) != 0 {
+			return errors.New("casdoor WeChat provider bindingRule must be an explicit empty array")
+		}
+		return nil
+	}
+	return errors.New("casdoor WeChat provider is not attached to the application")
 }
 
 func (c *Client) WeChatBinding(ctx context.Context, login string) (bool, error) {

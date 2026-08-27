@@ -47,6 +47,12 @@ VELORA_WECHAT_CALLBACK_URL=https://auth.sevoniva.com/_velora/wechat/callback
 
 启动时强制检查 HTTPS 回调、固定回调路径、分布式缓存、Casdoor 私有会话桥和必要字段。任一项不完整都会拒绝以“已启用”状态启动。AppSecret 不属于 Velora 配置。
 
+Velora 还会通过既有 Casdoor 身份管理凭据读取 Application 策略并执行启动前检查，因此必须同时配置 `VELORA_CASDOOR_IDENTITY_MANAGEMENT_ENABLED=true` 与 `VELORA_CASDOOR_APPLICATION_OWNER`。以下条件必须全部满足：
+
+- Application 的 `enableSignUp=false`、`enableLinkWithEmail=false`；
+- 微信 Provider 已关联到该 Application，`canSignIn=true`、`canSignUp=false`；
+- 微信 Provider 的 `bindingRule` 必须显式配置为 `[]`。`null` 在 Casdoor 中会回退为按邮箱、手机号和用户名自动关联，Velora 会拒绝启动。
+
 ## 用户旅程
 
 ### 首次绑定

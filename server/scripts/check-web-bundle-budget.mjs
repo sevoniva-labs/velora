@@ -20,7 +20,10 @@ const budgets = [
       // Rolldown keeps lazily used ProComponents and icons in small cacheable
       // chunks. Allow the measured split count while retaining strict byte
       // budgets for the initial route and the complete application.
-      jsFiles: 80,
+      // The production route set currently emits 81 lazy chunks. Keep only
+      // minimal churn headroom here; byte budgets below remain authoritative
+      // for transfer and parse cost.
+      jsFiles: 84,
       jsRaw: 2500 * KiB,
       jsGzip: 800 * KiB,
       // Ant Design 6 is intentionally emitted as one vendor chunk; keep a

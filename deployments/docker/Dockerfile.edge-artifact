@@ -1,0 +1,16 @@
+ARG BASE_IMAGE
+FROM ${BASE_IMAGE}
+ARG VELORA_VERSION=dev
+ARG VELORA_REVISION=unknown
+ARG VELORA_BUILD_DATE=unknown
+LABEL org.opencontainers.image.title="Velora Edge" \
+      org.opencontainers.image.version="${VELORA_VERSION}" \
+      org.opencontainers.image.revision="${VELORA_REVISION}" \
+      org.opencontainers.image.created="${VELORA_BUILD_DATE}" \
+      org.opencontainers.image.source="https://github.com/sevoniva-labs/velora"
+COPY edge.conf /etc/nginx/conf.d/default.conf
+COPY edge-tls.conf /etc/nginx/snippets/velora-tls.conf
+COPY edge-security.conf /etc/nginx/snippets/velora-security.conf
+COPY edge-proxy.conf /etc/nginx/snippets/velora-proxy.conf
+COPY auth-logout.html /usr/share/nginx/html/auth-logout.html
+COPY auth-logout.js /usr/share/nginx/html/auth-logout.js

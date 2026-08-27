@@ -13,6 +13,7 @@ mkdir -p \
   "$output_dir/runtime/compose" \
   "$output_dir/compose" \
   "$output_dir/docker"
+mkdir -p "$output_dir/edge"
 cd "$repo_root/server"
 export GOPROXY="${GOPROXY:-https://goproxy.cn,direct}"
 for target in "velora:./cmd/server" "velora-worker:./cmd/worker" "velora-connect:./cmd/velora-connect" "velora-migrate:./cmd/migrate" "velora-storage-check:./cmd/storage-check"; do
@@ -31,11 +32,13 @@ VITE_APP_VERSION="$release_version" pnpm build
 cp "$repo_root/deployments/docker/Dockerfile.server-artifact" "$output_dir/server/Dockerfile"
 cp "$repo_root/deployments/docker/Dockerfile.demo-artifact" "$output_dir/demo/Dockerfile"
 cp "$repo_root/deployments/docker/Dockerfile.web-artifact" "$output_dir/web/Dockerfile"
+cp "$repo_root/deployments/docker/Dockerfile.edge-artifact" "$output_dir/edge/Dockerfile"
+cp "$repo_root/deployments/docker/edge.conf" "$repo_root/deployments/docker/edge-tls.conf" "$repo_root/deployments/docker/edge-security.conf" "$repo_root/deployments/docker/edge-proxy.conf" "$repo_root/deployments/docker/auth-logout.html" "$repo_root/deployments/docker/auth-logout.js" "$output_dir/edge/"
 cp -R "$repo_root/web/dist/." "$output_dir/web/web-dist/"
 cp "$repo_root/deployments/env/prod/docker-compose.yml" "$output_dir/runtime/compose/docker-compose.yml"
 cp "$repo_root/deployments/compose/init-db-prod.sh" "$output_dir/compose/init-db-prod.sh"
 cp "$repo_root/deployments/docker/postgres-entrypoint.sh" "$output_dir/docker/postgres-entrypoint.sh"
 chmod 0755 "$output_dir/compose/init-db-prod.sh" "$output_dir/docker/postgres-entrypoint.sh"
 (cd "$output_dir" && printf 'version=%s\nrevision=%s\nbuild_date=%s\n' "$release_version" "$revision" "$build_date" > BUILD-INFO)
-(cd "$output_dir" && find server demo web runtime compose docker -type f -print0 | sort -z | xargs -0 shasum -a 256 > SHA256SUMS)
+(cd "$output_dir" && find server demo web edge runtime compose docker -type f -print0 | sort -z | xargs -0 shasum -a 256 > SHA256SUMS)
 echo "production artifacts: $output_dir ($release_version, $revision)"

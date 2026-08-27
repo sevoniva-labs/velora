@@ -158,6 +158,7 @@ func (b *WeChatBroker) start(w http.ResponseWriter, r *http.Request) {
 		b.fail(w, r, "/login?wechat=failed")
 		return
 	}
+	// #nosec G124 -- state is one-time, HttpOnly and SameSite protected; production validation requires Secure while local HTTP tests remain supported.
 	http.SetCookie(w, &http.Cookie{Name: wechatStateCookie, Value: state, Path: "/_velora/wechat/", MaxAge: int(wechatStateTTL.Seconds()), HttpOnly: true, Secure: b.config.Secure, SameSite: http.SameSiteLaxMode})
 	callback := b.config.CallbackURL
 	q := url.Values{"appid": {b.config.AppID}, "redirect_uri": {callback}, "response_type": {"code"}, "scope": {"snsapi_login"}, "state": {state}}
@@ -173,6 +174,7 @@ func (b *WeChatBroker) callback(w http.ResponseWriter, r *http.Request) {
 	}
 	state, code := strings.TrimSpace(r.URL.Query().Get("state")), strings.TrimSpace(r.URL.Query().Get("code"))
 	cookie, err := r.Cookie(wechatStateCookie)
+	// #nosec G124 -- deletion mirrors the production-validated state cookie and contains no secret value.
 	http.SetCookie(w, &http.Cookie{Name: wechatStateCookie, Path: "/_velora/wechat/", MaxAge: -1, Expires: time.Unix(0, 0), HttpOnly: true, Secure: b.config.Secure, SameSite: http.SameSiteLaxMode})
 	if err != nil || state == "" || code == "" || subtle.ConstantTimeCompare([]byte(cookie.Value), []byte(state)) != 1 {
 		b.observe("wechat_callback", "invalid_state", started)

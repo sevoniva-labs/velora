@@ -423,6 +423,7 @@ func (p *OIDCProvider) exchangeProviderCode(ctx context.Context, providerName, c
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Accept", "application/json")
 	if sessionCookie != "" {
+		// #nosec G124 -- this Cookie is an outbound server-to-server request header, not a browser Set-Cookie response.
 		req.AddCookie(&http.Cookie{Name: "casdoor_session_id", Value: sessionCookie})
 	}
 	client := p.httpClient

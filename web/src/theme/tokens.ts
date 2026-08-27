@@ -6,6 +6,8 @@ export const brandColors = {
   primary: '#1677FF',
   primaryHover: '#4096FF',
   primaryActive: '#0958D9',
+  link: '#0958D9',
+  linkHover: '#003EB3',
   primarySoft: '#E6F4FF',
   primarySofter: '#F0F7FF',
   /** 顶栏品牌渐变（浅色体系的蓝色调，非深色） */
@@ -79,8 +81,8 @@ export const veloraTheme: ThemeConfig = {
     colorBgContainer: neutralColors.bgContainer,
     colorBgElevated: neutralColors.bgContainer,
     colorFillAlter: '#F7F8FA',
-    colorLink: brandColors.primary,
-    colorLinkHover: brandColors.primaryHover,
+    colorLink: brandColors.link,
+    colorLinkHover: brandColors.linkHover,
     colorPrimaryBg: brandColors.primarySoft,
     colorPrimaryBgHover: brandColors.primarySofter,
     fontFamily:

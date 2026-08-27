@@ -137,7 +137,8 @@ async function installCriticalMock(page: Page, state: CriticalState) {
     }
 
     if (path === '/portal/applications' || path === '/portal/recent') return fulfill(route, 200, ok({ applications: [], items: [], total: 0, page: 1, page_size: 20 }))
-    if (path === '/portal/categories' || path === '/portal/favorites' || path === '/portal/tags') return fulfill(route, 200, ok({ categories: [], applications: [], tags: [] }))
+    if (path === '/portal/categories') return fulfill(route, 200, ok({ categories: [{ id: 'category-1', category_key: 'devsecops', name: '开发安全', description: '研发安全工具', sort_order: 10 }] }))
+    if (path === '/portal/favorites' || path === '/portal/tags') return fulfill(route, 200, ok({ applications: [], tags: [] }))
 
     if (path === '/admin/portal/applications/app-1/onboarding') return fulfill(route, 200, ok({
       application: application(state.appStatus), binding, verifications: [], onboarding_checks: [
@@ -273,8 +274,8 @@ test('短列表分页器固定在卡片底部且保留统一留白', async ({ pa
   }
 
   await page.goto('/admin/applications')
-  await page.getByRole('button', { name: '停用' }).click()
-  await page.getByRole('button', { name: '停用' }).last().click()
+  await page.getByRole('button', { name: '停用' }).first().click()
+  await page.locator('.ant-popconfirm-buttons').getByRole('button', { name: /停\s*用/ }).click()
   await expect.poll(() => state.appStatus).toBe('DISABLED')
   await expect(page.getByRole('button', { name: '启用' })).toBeVisible()
 })

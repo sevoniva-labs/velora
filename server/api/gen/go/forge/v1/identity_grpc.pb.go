@@ -56,7 +56,7 @@ type IdentityServiceClient interface {
 	GetCurrentUser(ctx context.Context, in *GetCurrentUserRequest, opts ...grpc.CallOption) (*GetCurrentUserResponse, error)
 	GetCurrentUserProfile(ctx context.Context, in *GetCurrentUserProfileRequest, opts ...grpc.CallOption) (*GetCurrentUserProfileResponse, error)
 	UpdateCurrentUserProfile(ctx context.Context, in *UpdateCurrentUserProfileRequest, opts ...grpc.CallOption) (*UpdateCurrentUserProfileResponse, error)
-	CompleteWeChatLogin(ctx context.Context, in *CompleteWeChatLoginRequest, opts ...grpc.CallOption) (*LoginResponse, error)
+	CompleteWeChatLogin(ctx context.Context, in *CompleteWeChatLoginRequest, opts ...grpc.CallOption) (*CompleteWeChatLoginResponse, error)
 	GetWeChatBinding(ctx context.Context, in *GetWeChatBindingRequest, opts ...grpc.CallOption) (*GetWeChatBindingResponse, error)
 	BeginWeChatBinding(ctx context.Context, in *BeginWeChatBindingRequest, opts ...grpc.CallOption) (*BeginWeChatBindingResponse, error)
 	DeleteWeChatBinding(ctx context.Context, in *DeleteWeChatBindingRequest, opts ...grpc.CallOption) (*DeleteWeChatBindingResponse, error)
@@ -177,9 +177,9 @@ func (c *identityServiceClient) UpdateCurrentUserProfile(ctx context.Context, in
 	return out, nil
 }
 
-func (c *identityServiceClient) CompleteWeChatLogin(ctx context.Context, in *CompleteWeChatLoginRequest, opts ...grpc.CallOption) (*LoginResponse, error) {
+func (c *identityServiceClient) CompleteWeChatLogin(ctx context.Context, in *CompleteWeChatLoginRequest, opts ...grpc.CallOption) (*CompleteWeChatLoginResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(LoginResponse)
+	out := new(CompleteWeChatLoginResponse)
 	err := c.cc.Invoke(ctx, IdentityService_CompleteWeChatLogin_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
@@ -301,7 +301,7 @@ type IdentityServiceServer interface {
 	GetCurrentUser(context.Context, *GetCurrentUserRequest) (*GetCurrentUserResponse, error)
 	GetCurrentUserProfile(context.Context, *GetCurrentUserProfileRequest) (*GetCurrentUserProfileResponse, error)
 	UpdateCurrentUserProfile(context.Context, *UpdateCurrentUserProfileRequest) (*UpdateCurrentUserProfileResponse, error)
-	CompleteWeChatLogin(context.Context, *CompleteWeChatLoginRequest) (*LoginResponse, error)
+	CompleteWeChatLogin(context.Context, *CompleteWeChatLoginRequest) (*CompleteWeChatLoginResponse, error)
 	GetWeChatBinding(context.Context, *GetWeChatBindingRequest) (*GetWeChatBindingResponse, error)
 	BeginWeChatBinding(context.Context, *BeginWeChatBindingRequest) (*BeginWeChatBindingResponse, error)
 	DeleteWeChatBinding(context.Context, *DeleteWeChatBindingRequest) (*DeleteWeChatBindingResponse, error)
@@ -352,7 +352,7 @@ func (UnimplementedIdentityServiceServer) GetCurrentUserProfile(context.Context,
 func (UnimplementedIdentityServiceServer) UpdateCurrentUserProfile(context.Context, *UpdateCurrentUserProfileRequest) (*UpdateCurrentUserProfileResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method UpdateCurrentUserProfile not implemented")
 }
-func (UnimplementedIdentityServiceServer) CompleteWeChatLogin(context.Context, *CompleteWeChatLoginRequest) (*LoginResponse, error) {
+func (UnimplementedIdentityServiceServer) CompleteWeChatLogin(context.Context, *CompleteWeChatLoginRequest) (*CompleteWeChatLoginResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method CompleteWeChatLogin not implemented")
 }
 func (UnimplementedIdentityServiceServer) GetWeChatBinding(context.Context, *GetWeChatBindingRequest) (*GetWeChatBindingResponse, error) {

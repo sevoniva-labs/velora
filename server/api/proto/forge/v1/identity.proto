@@ -123,7 +123,7 @@ service IdentityService {
     option (google.api.http) = {patch: "/api/v1/me/profile" body: "*"};
     option (openapi.v3.operation) = {security: [{additional_properties: [{name: "SessionCookie" value: {value: []}}, {name: "CsrfToken" value: {value: []}}]}]};
   }
-  rpc CompleteWeChatLogin(CompleteWeChatLoginRequest) returns (LoginResponse) {
+  rpc CompleteWeChatLogin(CompleteWeChatLoginRequest) returns (CompleteWeChatLoginResponse) {
     option (google.api.http) = {post: "/api/v1/auth/wechat/complete" body: "*"};
   }
   rpc GetWeChatBinding(GetWeChatBindingRequest) returns (GetWeChatBindingResponse) {
@@ -381,6 +381,12 @@ message CompleteWeChatLoginRequest {
   string return_path = 2;
   string mfa_code = 3;
   string recovery_code = 4;
+}
+message CompleteWeChatLoginResponse {
+  User user = 1;
+  string csrf_token = 2;
+  string bridge_action = 3;
+  string bridge_ticket = 4;
 }
 message GetWeChatBindingRequest {}
 message GetWeChatBindingResponse {

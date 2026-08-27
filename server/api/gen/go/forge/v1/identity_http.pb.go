@@ -47,7 +47,7 @@ type IdentityServiceHTTPServer interface {
 	BeginWeChatBinding(context.Context, *BeginWeChatBindingRequest) (*BeginWeChatBindingResponse, error)
 	ChangePassword(context.Context, *ChangePasswordRequest) (*ChangePasswordResponse, error)
 	CompleteOIDCLogin(context.Context, *CompleteOIDCLoginRequest) (*CompleteOIDCLoginResponse, error)
-	CompleteWeChatLogin(context.Context, *CompleteWeChatLoginRequest) (*LoginResponse, error)
+	CompleteWeChatLogin(context.Context, *CompleteWeChatLoginRequest) (*CompleteWeChatLoginResponse, error)
 	ConfirmMFAEnrollment(context.Context, *ConfirmMFAEnrollmentRequest) (*ConfirmMFAEnrollmentResponse, error)
 	CreateApiToken(context.Context, *CreateApiTokenRequest) (*CreateApiTokenResponse, error)
 	DeleteWeChatBinding(context.Context, *DeleteWeChatBindingRequest) (*DeleteWeChatBindingResponse, error)
@@ -350,7 +350,7 @@ func _IdentityService_CompleteWeChatLogin0_HTTP_Handler(srv IdentityServiceHTTPS
 		if err != nil {
 			return err
 		}
-		reply := out.(*LoginResponse)
+		reply := out.(*CompleteWeChatLoginResponse)
 		return ctx.Result(200, reply)
 	}
 }
@@ -569,7 +569,7 @@ type IdentityServiceHTTPClient interface {
 	BeginWeChatBinding(ctx context.Context, req *BeginWeChatBindingRequest, opts ...http.CallOption) (rsp *BeginWeChatBindingResponse, err error)
 	ChangePassword(ctx context.Context, req *ChangePasswordRequest, opts ...http.CallOption) (rsp *ChangePasswordResponse, err error)
 	CompleteOIDCLogin(ctx context.Context, req *CompleteOIDCLoginRequest, opts ...http.CallOption) (rsp *CompleteOIDCLoginResponse, err error)
-	CompleteWeChatLogin(ctx context.Context, req *CompleteWeChatLoginRequest, opts ...http.CallOption) (rsp *LoginResponse, err error)
+	CompleteWeChatLogin(ctx context.Context, req *CompleteWeChatLoginRequest, opts ...http.CallOption) (rsp *CompleteWeChatLoginResponse, err error)
 	ConfirmMFAEnrollment(ctx context.Context, req *ConfirmMFAEnrollmentRequest, opts ...http.CallOption) (rsp *ConfirmMFAEnrollmentResponse, err error)
 	CreateApiToken(ctx context.Context, req *CreateApiTokenRequest, opts ...http.CallOption) (rsp *CreateApiTokenResponse, err error)
 	DeleteWeChatBinding(ctx context.Context, req *DeleteWeChatBindingRequest, opts ...http.CallOption) (rsp *DeleteWeChatBindingResponse, err error)
@@ -660,8 +660,8 @@ func (c *IdentityServiceHTTPClientImpl) CompleteOIDCLogin(ctx context.Context, i
 	return &out, nil
 }
 
-func (c *IdentityServiceHTTPClientImpl) CompleteWeChatLogin(ctx context.Context, in *CompleteWeChatLoginRequest, opts ...http.CallOption) (*LoginResponse, error) {
-	var out LoginResponse
+func (c *IdentityServiceHTTPClientImpl) CompleteWeChatLogin(ctx context.Context, in *CompleteWeChatLoginRequest, opts ...http.CallOption) (*CompleteWeChatLoginResponse, error) {
+	var out CompleteWeChatLoginResponse
 	pattern := "/api/v1/auth/wechat/complete"
 	path := binding.EncodeURL(pattern, in, false)
 	opts = append(opts, http.Operation(OperationIdentityServiceCompleteWeChatLogin))

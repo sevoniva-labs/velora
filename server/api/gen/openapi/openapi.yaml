@@ -2654,7 +2654,7 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/forge.v1.LoginResponse'
+                                $ref: '#/components/schemas/forge.v1.CompleteWeChatLoginResponse'
     /api/v1/example/organizations/{organizationId}/settlements/{settlementId}:
         get:
             tags:
@@ -3544,6 +3544,17 @@ components:
                 mfaCode:
                     type: string
                 recoveryCode:
+                    type: string
+        forge.v1.CompleteWeChatLoginResponse:
+            type: object
+            properties:
+                user:
+                    $ref: '#/components/schemas/forge.v1.User'
+                csrfToken:
+                    type: string
+                bridgeAction:
+                    type: string
+                bridgeTicket:
                     type: string
         forge.v1.ConfigChange:
             type: object

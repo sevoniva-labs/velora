@@ -291,7 +291,7 @@ func safeReturnPath(raw string) string {
 	return raw
 }
 
-func (s *IdentityService) CompleteWeChatLogin(ctx context.Context, req *forgev1.CompleteWeChatLoginRequest) (*forgev1.LoginResponse, error) {
+func (s *IdentityService) CompleteWeChatLogin(ctx context.Context, req *forgev1.CompleteWeChatLoginRequest) (*forgev1.CompleteWeChatLoginResponse, error) {
 	started := time.Now()
 	if s.wechat == nil {
 		return nil, kerrors.ServiceUnavailable("WECHAT_DISABLED", "WeChat login is unavailable")
@@ -328,7 +328,7 @@ func (s *IdentityService) CompleteWeChatLogin(ctx context.Context, req *forgev1.
 	}
 	_, _ = s.db.ExecContext(ctx, s.db.Rebind(`UPDATE user_wechat_bindings SET last_login_at=?,version=version+1 WHERE user_id=?`), time.Now().UTC(), principal.UserID)
 	s.setLoginCookies(ctx, session, csrf, expires)
-	res := &forgev1.LoginResponse{User: principalUser(principal), CsrfToken: csrf}
+	res := &forgev1.CompleteWeChatLoginResponse{User: principalUser(principal), CsrfToken: csrf}
 	if s.sessionBridge != nil {
 		ticket, err := s.sessionBridge.Create(ctx, item.CasdoorCookie, safeReturnPath(req.GetReturnPath()), principal)
 		if err != nil {

@@ -87,7 +87,12 @@ Velora 还会通过既有 Casdoor 身份管理凭据读取 Application 策略并
 
 ## 监控与告警
 
-监控微信 start/callback 的 4xx/5xx 比率、Casdoor `/api/login` 延迟、Redis 错误、`WECHAT_STATUS_UNAVAILABLE`、绑定失败和重复 state。连续五分钟失败率异常时先关闭入口，账号密码和既有 OIDC 不受影响。
+Velora 暴露两个低基数指标，不包含用户、openid、code、票据或 Provider subject：
+
+- `velora_identity_events_total{flow,result}`：扫码开始、回调、绑定和登录完成的结果计数；
+- `velora_identity_operation_duration_seconds{flow}`：对应链路耗时直方图。
+
+`deployments/monitoring/alerts.yml` 已包含微信身份失败量和 P95 延迟告警。重点排查 `invalid_state`/`replayed_state`、`provider_failed`、`state_store_failed`、`authentication_failed`、`bridge_failed` 与 `WECHAT_STATUS_UNAVAILABLE`。失败告警连续五分钟触发时，先设置 `VELORA_WECHAT_LOGIN_ENABLED=false` 并滚动重启，账号密码和既有 OIDC 不受影响；随后分别检查 Redis、Casdoor `/api/login`、微信开放平台回调域和 AppSecret 状态。
 
 ## 回滚
 

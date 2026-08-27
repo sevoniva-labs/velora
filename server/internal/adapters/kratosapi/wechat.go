@@ -55,6 +55,11 @@ type WeChatBroker struct {
 	identityService *IdentityService
 	portal          *url.URL
 	authHost        string
+	metrics         wechatMetrics
+}
+
+type wechatMetrics interface {
+	ObserveIdentity(flow, result string, start time.Time)
 }
 
 type wechatState struct {
@@ -66,7 +71,7 @@ type wechatCompletion struct {
 	MFAVerified                        bool
 }
 
-func NewWeChatBroker(cfg WeChatConfig, c cache.Cache, db *database.DB, provider *identitysource.OIDCProvider, bridge *SessionBridge, manager wechatIdentityManager, service *IdentityService) (*WeChatBroker, error) {
+func NewWeChatBroker(cfg WeChatConfig, c cache.Cache, db *database.DB, provider *identitysource.OIDCProvider, bridge *SessionBridge, manager wechatIdentityManager, service *IdentityService, metrics wechatMetrics) (*WeChatBroker, error) {
 	if !cfg.Enabled {
 		return nil, nil
 	}
@@ -82,7 +87,13 @@ func NewWeChatBroker(cfg WeChatConfig, c cache.Cache, db *database.DB, provider 
 	if err := manager.ValidateWeChatPolicy(policyCtx, cfg.Provider); err != nil {
 		return nil, fmt.Errorf("unsafe Casdoor WeChat policy: %w", err)
 	}
-	return &WeChatBroker{config: cfg, cache: c, db: db, provider: provider, bridge: bridge, manager: manager, identityService: service, portal: bridge.portalURL, authHost: strings.ToLower(callback.Hostname())}, nil
+	return &WeChatBroker{config: cfg, cache: c, db: db, provider: provider, bridge: bridge, manager: manager, identityService: service, portal: bridge.portalURL, authHost: strings.ToLower(callback.Hostname()), metrics: metrics}, nil
+}
+
+func (b *WeChatBroker) observe(flow, result string, start time.Time) {
+	if b != nil && b.metrics != nil {
+		b.metrics.ObserveIdentity(flow, result, start)
+	}
 }
 
 func (b *WeChatBroker) StartURL(returnPath string) string {
@@ -121,6 +132,7 @@ func (b *WeChatBroker) Handler() http.Handler {
 }
 
 func (b *WeChatBroker) start(w http.ResponseWriter, r *http.Request) {
+	started := time.Now()
 	if r.Method != http.MethodGet {
 		http.NotFound(w, r)
 		return
@@ -129,27 +141,32 @@ func (b *WeChatBroker) start(w http.ResponseWriter, r *http.Request) {
 	if ticket := strings.TrimSpace(r.URL.Query().Get("binding_ticket")); ticket != "" {
 		payload, ok := b.consume(r.Context(), wechatBindPrefix, ticket)
 		if !ok || json.Unmarshal([]byte(payload), &tx) != nil || tx.Mode != "bind" || tx.UserID == "" {
+			b.observe("wechat_start", "invalid_binding_ticket", started)
 			b.fail(w, r, "/user-center?wechat=failed")
 			return
 		}
 	}
 	state, err := cache.RandomToken(32)
 	if err != nil {
+		b.observe("wechat_start", "token_failed", started)
 		b.fail(w, r, "/login?wechat=failed")
 		return
 	}
 	payload, _ := json.Marshal(tx)
 	if b.cache.Set(r.Context(), wechatStatePrefix+digestToken(state), string(payload), wechatStateTTL) != nil {
+		b.observe("wechat_start", "state_store_failed", started)
 		b.fail(w, r, "/login?wechat=failed")
 		return
 	}
 	http.SetCookie(w, &http.Cookie{Name: wechatStateCookie, Value: state, Path: "/_velora/wechat/", MaxAge: int(wechatStateTTL.Seconds()), HttpOnly: true, Secure: b.config.Secure, SameSite: http.SameSiteLaxMode})
 	callback := b.config.CallbackURL
 	q := url.Values{"appid": {b.config.AppID}, "redirect_uri": {callback}, "response_type": {"code"}, "scope": {"snsapi_login"}, "state": {state}}
+	b.observe("wechat_start", "success", started)
 	http.Redirect(w, r, "https://open.weixin.qq.com/connect/qrconnect?"+q.Encode()+"#wechat_redirect", http.StatusFound)
 }
 
 func (b *WeChatBroker) callback(w http.ResponseWriter, r *http.Request) {
+	started := time.Now()
 	if r.Method != http.MethodGet {
 		http.NotFound(w, r)
 		return
@@ -158,27 +175,32 @@ func (b *WeChatBroker) callback(w http.ResponseWriter, r *http.Request) {
 	cookie, err := r.Cookie(wechatStateCookie)
 	http.SetCookie(w, &http.Cookie{Name: wechatStateCookie, Path: "/_velora/wechat/", MaxAge: -1, Expires: time.Unix(0, 0), HttpOnly: true, Secure: b.config.Secure, SameSite: http.SameSiteLaxMode})
 	if err != nil || state == "" || code == "" || subtle.ConstantTimeCompare([]byte(cookie.Value), []byte(state)) != 1 {
+		b.observe("wechat_callback", "invalid_state", started)
 		b.fail(w, r, "/login?wechat=failed")
 		return
 	}
 	payload, ok := b.consume(r.Context(), wechatStatePrefix, state)
 	if !ok {
+		b.observe("wechat_callback", "replayed_state", started)
 		b.fail(w, r, "/login?wechat=failed")
 		return
 	}
 	var tx wechatState
 	if json.Unmarshal([]byte(payload), &tx) != nil {
+		b.observe("wechat_callback", "invalid_state", started)
 		b.fail(w, r, "/login?wechat=failed")
 		return
 	}
 	if tx.Mode == "bind" {
 		casdoor, e := r.Cookie(casdoorSessionCookie)
 		if e != nil || b.provider.LinkProviderCode(r.Context(), b.config.Provider, code, b.config.CallbackURL, casdoor.Value) != nil {
+			b.observe("wechat_bind", "provider_failed", started)
 			b.fail(w, r, "/user-center?wechat=failed")
 			return
 		}
 		linked, verifyErr := b.manager.WeChatBinding(r.Context(), tx.LoginName)
 		if verifyErr != nil || !linked {
+			b.observe("wechat_bind", "verification_failed", started)
 			_ = b.manager.UnlinkWeChat(r.Context(), tx.LoginName)
 			b.fail(w, r, "/user-center?wechat=failed")
 			return
@@ -187,30 +209,36 @@ func (b *WeChatBroker) callback(w http.ResponseWriter, r *http.Request) {
 			_, e = b.db.ExecContext(r.Context(), b.db.Rebind(`INSERT INTO user_wechat_bindings(user_id,provider,bound_at,version) VALUES(?,?,?,1)`), tx.UserID, b.config.Provider, time.Now().UTC())
 		}
 		if e != nil {
+			b.observe("wechat_bind", "storage_failed", started)
 			_ = b.manager.UnlinkWeChat(r.Context(), tx.LoginName)
 			b.fail(w, r, "/user-center?wechat=failed")
 			return
 		}
 		_ = b.identityService.audit.Write(r.Context(), *newAuditEvent(r.Context(), identity.Principal{UserID: tx.UserID, OrganizationID: tx.OrganizationID, LoginName: tx.LoginName, SessionID: tx.SessionID}, "identity.wechat.bind", "user", tx.UserID, nil))
+		b.observe("wechat_bind", "success", started)
 		b.fail(w, r, "/user-center?wechat=bound")
 		return
 	}
 	fed, err := b.provider.AuthenticateProviderCode(r.Context(), b.config.Provider, code, b.config.CallbackURL)
 	if err != nil || fed.Subject == "" {
+		b.observe("wechat_callback", "provider_failed", started)
 		b.fail(w, r, "/login?wechat=unbound")
 		return
 	}
 	if !b.boundSubject(r.Context(), b.provider.Name(), fed.Subject) {
+		b.observe("wechat_callback", "unbound", started)
 		b.fail(w, r, "/login?wechat=unbound")
 		return
 	}
 	ticket, err := cache.RandomToken(32)
 	if err != nil {
+		b.observe("wechat_callback", "token_failed", started)
 		b.fail(w, r, "/login?wechat=failed")
 		return
 	}
 	completion, _ := json.Marshal(wechatCompletion{Subject: fed.Subject, MFAVerified: fed.MFAVerified, CasdoorCookie: fed.CasdoorSessionCookie, ReturnPath: tx.ReturnPath})
 	if b.cache.Set(r.Context(), wechatCompletePrefix+digestToken(ticket), string(completion), wechatCompleteTTL) != nil {
+		b.observe("wechat_callback", "state_store_failed", started)
 		b.fail(w, r, "/login?wechat=failed")
 		return
 	}
@@ -218,6 +246,7 @@ func (b *WeChatBroker) callback(w http.ResponseWriter, r *http.Request) {
 	if tx.ReturnPath != "/" {
 		target += "&redirect=" + url.QueryEscape(tx.ReturnPath)
 	}
+	b.observe("wechat_callback", "success", started)
 	b.fail(w, r, target)
 }
 
@@ -263,28 +292,38 @@ func safeReturnPath(raw string) string {
 }
 
 func (s *IdentityService) CompleteWeChatLogin(ctx context.Context, req *forgev1.CompleteWeChatLoginRequest) (*forgev1.LoginResponse, error) {
+	started := time.Now()
 	if s.wechat == nil {
 		return nil, kerrors.ServiceUnavailable("WECHAT_DISABLED", "WeChat login is unavailable")
 	}
 	ticketValue := strings.TrimSpace(req.GetTicket())
 	if len(ticketValue) < 32 || len(ticketValue) > 128 {
+		s.wechat.observe("wechat_complete", "invalid_ticket", started)
 		return nil, kerrors.Unauthorized("WECHAT_LOGIN_FAILED", "WeChat login transaction is invalid")
 	}
 	key := wechatCompletePrefix + digestToken(ticketValue)
 	payload, err := s.wechat.cache.Get(ctx, key)
 	if err != nil {
+		s.wechat.observe("wechat_complete", "invalid_ticket", started)
 		return nil, kerrors.Unauthorized("WECHAT_LOGIN_FAILED", "WeChat login transaction is invalid")
 	}
 	var item wechatCompletion
 	if json.Unmarshal([]byte(payload), &item) != nil || item.Subject == "" || item.CasdoorCookie == "" {
+		s.wechat.observe("wechat_complete", "invalid_ticket", started)
 		return nil, kerrors.Unauthorized("WECHAT_LOGIN_FAILED", "WeChat login transaction is invalid")
 	}
 	principal, session, csrf, expires, err := s.loginFederated(ctx, "default", s.wechat.provider.Name(), item.Subject, item.MFAVerified, req.GetMfaCode(), req.GetRecoveryCode())
 	if err != nil {
+		result := "authentication_failed"
+		if kerrors.FromError(err).Code == http.StatusPreconditionRequired {
+			result = "mfa_required"
+		}
+		s.wechat.observe("wechat_complete", result, started)
 		return nil, err
 	}
 	consumed, err := s.wechat.cache.CompareAndDelete(ctx, key, payload)
 	if err != nil || !consumed {
+		s.wechat.observe("wechat_complete", "replayed_ticket", started)
 		return nil, kerrors.Unauthorized("WECHAT_LOGIN_FAILED", "WeChat login transaction was already used")
 	}
 	_, _ = s.db.ExecContext(ctx, s.db.Rebind(`UPDATE user_wechat_bindings SET last_login_at=?,version=version+1 WHERE user_id=?`), time.Now().UTC(), principal.UserID)
@@ -293,11 +332,13 @@ func (s *IdentityService) CompleteWeChatLogin(ctx context.Context, req *forgev1.
 	if s.sessionBridge != nil {
 		ticket, err := s.sessionBridge.Create(ctx, item.CasdoorCookie, safeReturnPath(req.GetReturnPath()), principal)
 		if err != nil {
+			s.wechat.observe("wechat_complete", "bridge_failed", started)
 			return nil, federatedUnavailable()
 		}
 		res.BridgeAction = s.sessionBridge.ActionURL()
 		res.BridgeTicket = ticket
 	}
+	s.wechat.observe("wechat_complete", "success", started)
 	return res, nil
 }
 

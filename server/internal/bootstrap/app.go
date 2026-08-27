@@ -319,7 +319,7 @@ func New(ctx context.Context, opts Options) (*App, error) {
 			return err
 		})
 		identityService.ConfigureSessionBridge(bridge)
-		wechatBroker, wechatErr := kratosapi.NewWeChatBroker(kratosapi.WeChatConfig{Enabled: cfg.Security.WeChatLoginEnabled, AppID: cfg.Security.WeChatAppID, Provider: cfg.Security.WeChatProvider, CallbackURL: cfg.Security.WeChatCallbackURL, Secure: cfg.Security.SecureCookies}, c, db, oidcProviders[providerName], bridge, casdoorIdentity, identityService)
+		wechatBroker, wechatErr := kratosapi.NewWeChatBroker(kratosapi.WeChatConfig{Enabled: cfg.Security.WeChatLoginEnabled, AppID: cfg.Security.WeChatAppID, Provider: cfg.Security.WeChatProvider, CallbackURL: cfg.Security.WeChatCallbackURL, Secure: cfg.Security.SecureCookies}, c, db, oidcProviders[providerName], bridge, casdoorIdentity, identityService, met)
 		if wechatErr != nil {
 			return nil, fmt.Errorf("WeChat login: %w", wechatErr)
 		}

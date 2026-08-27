@@ -46,6 +46,33 @@ groups:
           summary: "OIDC authorize 失败激增"
           description: "最近 5 分钟 OIDC authorize 失败超过 50 次。"
 
+      - alert: WeChatIdentityFailuresHigh
+        expr: |
+          sum(increase(velora_identity_events_total{
+            flow=~"wechat_(start|callback|bind|complete)",
+            result=~"invalid_.*|.*_failed|replayed_.*|unbound"
+          }[5m])) > 10
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "微信扫码登录异常增多"
+          description: "最近 5 分钟微信扫码、绑定或会话完成异常超过 10 次。请检查 Casdoor、Redis 和微信开放平台状态。"
+
+      - alert: WeChatIdentityLatencyHigh
+        expr: |
+          histogram_quantile(0.95,
+            sum by (le, flow) (
+              rate(velora_identity_operation_duration_seconds_bucket{flow=~"wechat_(callback|bind|complete)"}[5m])
+            )
+          ) > 3
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "微信身份链路延迟过高"
+          description: "微信扫码、绑定或登录完成链路 P95 延迟持续 10 分钟超过 3 秒。"
+
   - name: velora-runtime
     rules:
       - alert: VeloraHighGoroutines

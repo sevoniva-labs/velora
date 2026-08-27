@@ -42,6 +42,7 @@ type IdentityService struct {
 	turnstile                   turnstileVerifier
 	loginChallengeCache         cache.Cache
 	federated                   *FederatedLogin
+	wechat                      *WeChatBroker
 }
 
 type turnstileVerifier interface {
@@ -67,6 +68,8 @@ func (s *IdentityService) ConfigureCasdoorPasswordLogin(enabled bool, provider *
 func (s *IdentityService) ConfigureSessionBridge(bridge *SessionBridge) {
 	s.sessionBridge = bridge
 }
+
+func (s *IdentityService) ConfigureWeChat(broker *WeChatBroker) { s.wechat = broker }
 
 func (s *IdentityService) ConfigureTurnstile(verifier turnstileVerifier) {
 	s.turnstile = verifier

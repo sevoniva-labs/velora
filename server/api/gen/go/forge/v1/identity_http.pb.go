@@ -21,14 +21,18 @@ const _ = http.SupportPackageIsVersion1
 
 const OperationIdentityServiceBeginMFAEnrollment = "/forge.v1.IdentityService/BeginMFAEnrollment"
 const OperationIdentityServiceBeginOIDCLogin = "/forge.v1.IdentityService/BeginOIDCLogin"
+const OperationIdentityServiceBeginWeChatBinding = "/forge.v1.IdentityService/BeginWeChatBinding"
 const OperationIdentityServiceChangePassword = "/forge.v1.IdentityService/ChangePassword"
 const OperationIdentityServiceCompleteOIDCLogin = "/forge.v1.IdentityService/CompleteOIDCLogin"
+const OperationIdentityServiceCompleteWeChatLogin = "/forge.v1.IdentityService/CompleteWeChatLogin"
 const OperationIdentityServiceConfirmMFAEnrollment = "/forge.v1.IdentityService/ConfirmMFAEnrollment"
 const OperationIdentityServiceCreateApiToken = "/forge.v1.IdentityService/CreateApiToken"
+const OperationIdentityServiceDeleteWeChatBinding = "/forge.v1.IdentityService/DeleteWeChatBinding"
 const OperationIdentityServiceDisableMFA = "/forge.v1.IdentityService/DisableMFA"
 const OperationIdentityServiceGetCurrentUser = "/forge.v1.IdentityService/GetCurrentUser"
 const OperationIdentityServiceGetCurrentUserProfile = "/forge.v1.IdentityService/GetCurrentUserProfile"
 const OperationIdentityServiceGetMFAStatus = "/forge.v1.IdentityService/GetMFAStatus"
+const OperationIdentityServiceGetWeChatBinding = "/forge.v1.IdentityService/GetWeChatBinding"
 const OperationIdentityServiceListApiTokens = "/forge.v1.IdentityService/ListApiTokens"
 const OperationIdentityServiceLogin = "/forge.v1.IdentityService/Login"
 const OperationIdentityServiceLoginLDAP = "/forge.v1.IdentityService/LoginLDAP"
@@ -40,14 +44,18 @@ const OperationIdentityServiceUpdateCurrentUserProfile = "/forge.v1.IdentityServ
 type IdentityServiceHTTPServer interface {
 	BeginMFAEnrollment(context.Context, *BeginMFAEnrollmentRequest) (*BeginMFAEnrollmentResponse, error)
 	BeginOIDCLogin(context.Context, *BeginOIDCLoginRequest) (*BeginOIDCLoginResponse, error)
+	BeginWeChatBinding(context.Context, *BeginWeChatBindingRequest) (*BeginWeChatBindingResponse, error)
 	ChangePassword(context.Context, *ChangePasswordRequest) (*ChangePasswordResponse, error)
 	CompleteOIDCLogin(context.Context, *CompleteOIDCLoginRequest) (*CompleteOIDCLoginResponse, error)
+	CompleteWeChatLogin(context.Context, *CompleteWeChatLoginRequest) (*LoginResponse, error)
 	ConfirmMFAEnrollment(context.Context, *ConfirmMFAEnrollmentRequest) (*ConfirmMFAEnrollmentResponse, error)
 	CreateApiToken(context.Context, *CreateApiTokenRequest) (*CreateApiTokenResponse, error)
+	DeleteWeChatBinding(context.Context, *DeleteWeChatBindingRequest) (*DeleteWeChatBindingResponse, error)
 	DisableMFA(context.Context, *DisableMFARequest) (*DisableMFAResponse, error)
 	GetCurrentUser(context.Context, *GetCurrentUserRequest) (*GetCurrentUserResponse, error)
 	GetCurrentUserProfile(context.Context, *GetCurrentUserProfileRequest) (*GetCurrentUserProfileResponse, error)
 	GetMFAStatus(context.Context, *GetMFAStatusRequest) (*GetMFAStatusResponse, error)
+	GetWeChatBinding(context.Context, *GetWeChatBindingRequest) (*GetWeChatBindingResponse, error)
 	ListApiTokens(context.Context, *ListApiTokensRequest) (*ListApiTokensResponse, error)
 	Login(context.Context, *LoginRequest) (*LoginResponse, error)
 	LoginLDAP(context.Context, *LoginLDAPRequest) (*LoginLDAPResponse, error)
@@ -70,6 +78,10 @@ func RegisterIdentityServiceHTTPServer(s *http.Server, srv IdentityServiceHTTPSe
 	r.GET("/api/v1/me", _IdentityService_GetCurrentUser0_HTTP_Handler(srv))
 	r.GET("/api/v1/me/profile", _IdentityService_GetCurrentUserProfile0_HTTP_Handler(srv))
 	r.PATCH("/api/v1/me/profile", _IdentityService_UpdateCurrentUserProfile0_HTTP_Handler(srv))
+	r.POST("/api/v1/auth/wechat/complete", _IdentityService_CompleteWeChatLogin0_HTTP_Handler(srv))
+	r.GET("/api/v1/me/wechat", _IdentityService_GetWeChatBinding0_HTTP_Handler(srv))
+	r.POST("/api/v1/me/wechat/binding", _IdentityService_BeginWeChatBinding0_HTTP_Handler(srv))
+	r.DELETE("/api/v1/me/wechat/binding", _IdentityService_DeleteWeChatBinding0_HTTP_Handler(srv))
 	r.GET("/api/v1/mfa", _IdentityService_GetMFAStatus0_HTTP_Handler(srv))
 	r.POST("/api/v1/mfa/totp/enrollment", _IdentityService_BeginMFAEnrollment0_HTTP_Handler(srv))
 	r.POST("/api/v1/mfa/totp/enrollment/confirmation", _IdentityService_ConfirmMFAEnrollment0_HTTP_Handler(srv))
@@ -321,6 +333,88 @@ func _IdentityService_UpdateCurrentUserProfile0_HTTP_Handler(srv IdentityService
 	}
 }
 
+func _IdentityService_CompleteWeChatLogin0_HTTP_Handler(srv IdentityServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in CompleteWeChatLoginRequest
+		if err := ctx.Bind(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationIdentityServiceCompleteWeChatLogin)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.CompleteWeChatLogin(ctx, req.(*CompleteWeChatLoginRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*LoginResponse)
+		return ctx.Result(200, reply)
+	}
+}
+
+func _IdentityService_GetWeChatBinding0_HTTP_Handler(srv IdentityServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in GetWeChatBindingRequest
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationIdentityServiceGetWeChatBinding)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.GetWeChatBinding(ctx, req.(*GetWeChatBindingRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*GetWeChatBindingResponse)
+		return ctx.Result(200, reply)
+	}
+}
+
+func _IdentityService_BeginWeChatBinding0_HTTP_Handler(srv IdentityServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in BeginWeChatBindingRequest
+		if err := ctx.Bind(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationIdentityServiceBeginWeChatBinding)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.BeginWeChatBinding(ctx, req.(*BeginWeChatBindingRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*BeginWeChatBindingResponse)
+		return ctx.Result(200, reply)
+	}
+}
+
+func _IdentityService_DeleteWeChatBinding0_HTTP_Handler(srv IdentityServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in DeleteWeChatBindingRequest
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationIdentityServiceDeleteWeChatBinding)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.DeleteWeChatBinding(ctx, req.(*DeleteWeChatBindingRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*DeleteWeChatBindingResponse)
+		return ctx.Result(200, reply)
+	}
+}
+
 func _IdentityService_GetMFAStatus0_HTTP_Handler(srv IdentityServiceHTTPServer) func(ctx http.Context) error {
 	return func(ctx http.Context) error {
 		var in GetMFAStatusRequest
@@ -472,14 +566,18 @@ func _IdentityService_RevokeApiToken0_HTTP_Handler(srv IdentityServiceHTTPServer
 type IdentityServiceHTTPClient interface {
 	BeginMFAEnrollment(ctx context.Context, req *BeginMFAEnrollmentRequest, opts ...http.CallOption) (rsp *BeginMFAEnrollmentResponse, err error)
 	BeginOIDCLogin(ctx context.Context, req *BeginOIDCLoginRequest, opts ...http.CallOption) (rsp *BeginOIDCLoginResponse, err error)
+	BeginWeChatBinding(ctx context.Context, req *BeginWeChatBindingRequest, opts ...http.CallOption) (rsp *BeginWeChatBindingResponse, err error)
 	ChangePassword(ctx context.Context, req *ChangePasswordRequest, opts ...http.CallOption) (rsp *ChangePasswordResponse, err error)
 	CompleteOIDCLogin(ctx context.Context, req *CompleteOIDCLoginRequest, opts ...http.CallOption) (rsp *CompleteOIDCLoginResponse, err error)
+	CompleteWeChatLogin(ctx context.Context, req *CompleteWeChatLoginRequest, opts ...http.CallOption) (rsp *LoginResponse, err error)
 	ConfirmMFAEnrollment(ctx context.Context, req *ConfirmMFAEnrollmentRequest, opts ...http.CallOption) (rsp *ConfirmMFAEnrollmentResponse, err error)
 	CreateApiToken(ctx context.Context, req *CreateApiTokenRequest, opts ...http.CallOption) (rsp *CreateApiTokenResponse, err error)
+	DeleteWeChatBinding(ctx context.Context, req *DeleteWeChatBindingRequest, opts ...http.CallOption) (rsp *DeleteWeChatBindingResponse, err error)
 	DisableMFA(ctx context.Context, req *DisableMFARequest, opts ...http.CallOption) (rsp *DisableMFAResponse, err error)
 	GetCurrentUser(ctx context.Context, req *GetCurrentUserRequest, opts ...http.CallOption) (rsp *GetCurrentUserResponse, err error)
 	GetCurrentUserProfile(ctx context.Context, req *GetCurrentUserProfileRequest, opts ...http.CallOption) (rsp *GetCurrentUserProfileResponse, err error)
 	GetMFAStatus(ctx context.Context, req *GetMFAStatusRequest, opts ...http.CallOption) (rsp *GetMFAStatusResponse, err error)
+	GetWeChatBinding(ctx context.Context, req *GetWeChatBindingRequest, opts ...http.CallOption) (rsp *GetWeChatBindingResponse, err error)
 	ListApiTokens(ctx context.Context, req *ListApiTokensRequest, opts ...http.CallOption) (rsp *ListApiTokensResponse, err error)
 	Login(ctx context.Context, req *LoginRequest, opts ...http.CallOption) (rsp *LoginResponse, err error)
 	LoginLDAP(ctx context.Context, req *LoginLDAPRequest, opts ...http.CallOption) (rsp *LoginLDAPResponse, err error)
@@ -523,6 +621,19 @@ func (c *IdentityServiceHTTPClientImpl) BeginOIDCLogin(ctx context.Context, in *
 	return &out, nil
 }
 
+func (c *IdentityServiceHTTPClientImpl) BeginWeChatBinding(ctx context.Context, in *BeginWeChatBindingRequest, opts ...http.CallOption) (*BeginWeChatBindingResponse, error) {
+	var out BeginWeChatBindingResponse
+	pattern := "/api/v1/me/wechat/binding"
+	path := binding.EncodeURL(pattern, in, false)
+	opts = append(opts, http.Operation(OperationIdentityServiceBeginWeChatBinding))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "POST", path, in, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
 func (c *IdentityServiceHTTPClientImpl) ChangePassword(ctx context.Context, in *ChangePasswordRequest, opts ...http.CallOption) (*ChangePasswordResponse, error) {
 	var out ChangePasswordResponse
 	pattern := "/api/v1/auth/password"
@@ -541,6 +652,19 @@ func (c *IdentityServiceHTTPClientImpl) CompleteOIDCLogin(ctx context.Context, i
 	pattern := "/api/v1/auth/federated/oidc/{provider}/callback"
 	path := binding.EncodeURL(pattern, in, false)
 	opts = append(opts, http.Operation(OperationIdentityServiceCompleteOIDCLogin))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "POST", path, in, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+func (c *IdentityServiceHTTPClientImpl) CompleteWeChatLogin(ctx context.Context, in *CompleteWeChatLoginRequest, opts ...http.CallOption) (*LoginResponse, error) {
+	var out LoginResponse
+	pattern := "/api/v1/auth/wechat/complete"
+	path := binding.EncodeURL(pattern, in, false)
+	opts = append(opts, http.Operation(OperationIdentityServiceCompleteWeChatLogin))
 	opts = append(opts, http.PathTemplate(pattern))
 	err := c.cc.Invoke(ctx, "POST", path, in, &out, opts...)
 	if err != nil {
@@ -569,6 +693,19 @@ func (c *IdentityServiceHTTPClientImpl) CreateApiToken(ctx context.Context, in *
 	opts = append(opts, http.Operation(OperationIdentityServiceCreateApiToken))
 	opts = append(opts, http.PathTemplate(pattern))
 	err := c.cc.Invoke(ctx, "POST", path, in, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+func (c *IdentityServiceHTTPClientImpl) DeleteWeChatBinding(ctx context.Context, in *DeleteWeChatBindingRequest, opts ...http.CallOption) (*DeleteWeChatBindingResponse, error) {
+	var out DeleteWeChatBindingResponse
+	pattern := "/api/v1/me/wechat/binding"
+	path := binding.EncodeURL(pattern, in, true)
+	opts = append(opts, http.Operation(OperationIdentityServiceDeleteWeChatBinding))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "DELETE", path, nil, &out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -619,6 +756,19 @@ func (c *IdentityServiceHTTPClientImpl) GetMFAStatus(ctx context.Context, in *Ge
 	pattern := "/api/v1/mfa"
 	path := binding.EncodeURL(pattern, in, true)
 	opts = append(opts, http.Operation(OperationIdentityServiceGetMFAStatus))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "GET", path, nil, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+func (c *IdentityServiceHTTPClientImpl) GetWeChatBinding(ctx context.Context, in *GetWeChatBindingRequest, opts ...http.CallOption) (*GetWeChatBindingResponse, error) {
+	var out GetWeChatBindingResponse
+	pattern := "/api/v1/me/wechat"
+	path := binding.EncodeURL(pattern, in, true)
+	opts = append(opts, http.Operation(OperationIdentityServiceGetWeChatBinding))
 	opts = append(opts, http.PathTemplate(pattern))
 	err := c.cc.Invoke(ctx, "GET", path, nil, &out, opts...)
 	if err != nil {

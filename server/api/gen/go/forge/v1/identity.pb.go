@@ -1094,6 +1094,322 @@ func (x *UpdateCurrentUserProfileResponse) GetUser() *User {
 	return nil
 }
 
+type CompleteWeChatLoginRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Ticket        string                 `protobuf:"bytes,1,opt,name=ticket,proto3" json:"ticket,omitempty"`
+	ReturnPath    string                 `protobuf:"bytes,2,opt,name=return_path,json=returnPath,proto3" json:"return_path,omitempty"`
+	MfaCode       string                 `protobuf:"bytes,3,opt,name=mfa_code,json=mfaCode,proto3" json:"mfa_code,omitempty"`
+	RecoveryCode  string                 `protobuf:"bytes,4,opt,name=recovery_code,json=recoveryCode,proto3" json:"recovery_code,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CompleteWeChatLoginRequest) Reset() {
+	*x = CompleteWeChatLoginRequest{}
+	mi := &file_forge_v1_identity_proto_msgTypes[20]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CompleteWeChatLoginRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CompleteWeChatLoginRequest) ProtoMessage() {}
+
+func (x *CompleteWeChatLoginRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_forge_v1_identity_proto_msgTypes[20]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CompleteWeChatLoginRequest.ProtoReflect.Descriptor instead.
+func (*CompleteWeChatLoginRequest) Descriptor() ([]byte, []int) {
+	return file_forge_v1_identity_proto_rawDescGZIP(), []int{20}
+}
+
+func (x *CompleteWeChatLoginRequest) GetTicket() string {
+	if x != nil {
+		return x.Ticket
+	}
+	return ""
+}
+
+func (x *CompleteWeChatLoginRequest) GetReturnPath() string {
+	if x != nil {
+		return x.ReturnPath
+	}
+	return ""
+}
+
+func (x *CompleteWeChatLoginRequest) GetMfaCode() string {
+	if x != nil {
+		return x.MfaCode
+	}
+	return ""
+}
+
+func (x *CompleteWeChatLoginRequest) GetRecoveryCode() string {
+	if x != nil {
+		return x.RecoveryCode
+	}
+	return ""
+}
+
+type GetWeChatBindingRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetWeChatBindingRequest) Reset() {
+	*x = GetWeChatBindingRequest{}
+	mi := &file_forge_v1_identity_proto_msgTypes[21]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetWeChatBindingRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetWeChatBindingRequest) ProtoMessage() {}
+
+func (x *GetWeChatBindingRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_forge_v1_identity_proto_msgTypes[21]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetWeChatBindingRequest.ProtoReflect.Descriptor instead.
+func (*GetWeChatBindingRequest) Descriptor() ([]byte, []int) {
+	return file_forge_v1_identity_proto_rawDescGZIP(), []int{21}
+}
+
+type GetWeChatBindingResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Enabled       bool                   `protobuf:"varint,1,opt,name=enabled,proto3" json:"enabled,omitempty"`
+	Bound         bool                   `protobuf:"varint,2,opt,name=bound,proto3" json:"bound,omitempty"`
+	BoundAt       *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=bound_at,json=boundAt,proto3" json:"bound_at,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetWeChatBindingResponse) Reset() {
+	*x = GetWeChatBindingResponse{}
+	mi := &file_forge_v1_identity_proto_msgTypes[22]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetWeChatBindingResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetWeChatBindingResponse) ProtoMessage() {}
+
+func (x *GetWeChatBindingResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_forge_v1_identity_proto_msgTypes[22]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetWeChatBindingResponse.ProtoReflect.Descriptor instead.
+func (*GetWeChatBindingResponse) Descriptor() ([]byte, []int) {
+	return file_forge_v1_identity_proto_rawDescGZIP(), []int{22}
+}
+
+func (x *GetWeChatBindingResponse) GetEnabled() bool {
+	if x != nil {
+		return x.Enabled
+	}
+	return false
+}
+
+func (x *GetWeChatBindingResponse) GetBound() bool {
+	if x != nil {
+		return x.Bound
+	}
+	return false
+}
+
+func (x *GetWeChatBindingResponse) GetBoundAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.BoundAt
+	}
+	return nil
+}
+
+type BeginWeChatBindingRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *BeginWeChatBindingRequest) Reset() {
+	*x = BeginWeChatBindingRequest{}
+	mi := &file_forge_v1_identity_proto_msgTypes[23]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *BeginWeChatBindingRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*BeginWeChatBindingRequest) ProtoMessage() {}
+
+func (x *BeginWeChatBindingRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_forge_v1_identity_proto_msgTypes[23]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use BeginWeChatBindingRequest.ProtoReflect.Descriptor instead.
+func (*BeginWeChatBindingRequest) Descriptor() ([]byte, []int) {
+	return file_forge_v1_identity_proto_rawDescGZIP(), []int{23}
+}
+
+type BeginWeChatBindingResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	RedirectUrl   string                 `protobuf:"bytes,1,opt,name=redirect_url,json=redirectUrl,proto3" json:"redirect_url,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *BeginWeChatBindingResponse) Reset() {
+	*x = BeginWeChatBindingResponse{}
+	mi := &file_forge_v1_identity_proto_msgTypes[24]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *BeginWeChatBindingResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*BeginWeChatBindingResponse) ProtoMessage() {}
+
+func (x *BeginWeChatBindingResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_forge_v1_identity_proto_msgTypes[24]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use BeginWeChatBindingResponse.ProtoReflect.Descriptor instead.
+func (*BeginWeChatBindingResponse) Descriptor() ([]byte, []int) {
+	return file_forge_v1_identity_proto_rawDescGZIP(), []int{24}
+}
+
+func (x *BeginWeChatBindingResponse) GetRedirectUrl() string {
+	if x != nil {
+		return x.RedirectUrl
+	}
+	return ""
+}
+
+type DeleteWeChatBindingRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DeleteWeChatBindingRequest) Reset() {
+	*x = DeleteWeChatBindingRequest{}
+	mi := &file_forge_v1_identity_proto_msgTypes[25]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DeleteWeChatBindingRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeleteWeChatBindingRequest) ProtoMessage() {}
+
+func (x *DeleteWeChatBindingRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_forge_v1_identity_proto_msgTypes[25]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DeleteWeChatBindingRequest.ProtoReflect.Descriptor instead.
+func (*DeleteWeChatBindingRequest) Descriptor() ([]byte, []int) {
+	return file_forge_v1_identity_proto_rawDescGZIP(), []int{25}
+}
+
+type DeleteWeChatBindingResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DeleteWeChatBindingResponse) Reset() {
+	*x = DeleteWeChatBindingResponse{}
+	mi := &file_forge_v1_identity_proto_msgTypes[26]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DeleteWeChatBindingResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeleteWeChatBindingResponse) ProtoMessage() {}
+
+func (x *DeleteWeChatBindingResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_forge_v1_identity_proto_msgTypes[26]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DeleteWeChatBindingResponse.ProtoReflect.Descriptor instead.
+func (*DeleteWeChatBindingResponse) Descriptor() ([]byte, []int) {
+	return file_forge_v1_identity_proto_rawDescGZIP(), []int{26}
+}
+
 type GetMFAStatusRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
@@ -1102,7 +1418,7 @@ type GetMFAStatusRequest struct {
 
 func (x *GetMFAStatusRequest) Reset() {
 	*x = GetMFAStatusRequest{}
-	mi := &file_forge_v1_identity_proto_msgTypes[20]
+	mi := &file_forge_v1_identity_proto_msgTypes[27]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1114,7 +1430,7 @@ func (x *GetMFAStatusRequest) String() string {
 func (*GetMFAStatusRequest) ProtoMessage() {}
 
 func (x *GetMFAStatusRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_forge_v1_identity_proto_msgTypes[20]
+	mi := &file_forge_v1_identity_proto_msgTypes[27]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1127,7 +1443,7 @@ func (x *GetMFAStatusRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetMFAStatusRequest.ProtoReflect.Descriptor instead.
 func (*GetMFAStatusRequest) Descriptor() ([]byte, []int) {
-	return file_forge_v1_identity_proto_rawDescGZIP(), []int{20}
+	return file_forge_v1_identity_proto_rawDescGZIP(), []int{27}
 }
 
 type GetMFAStatusResponse struct {
@@ -1139,7 +1455,7 @@ type GetMFAStatusResponse struct {
 
 func (x *GetMFAStatusResponse) Reset() {
 	*x = GetMFAStatusResponse{}
-	mi := &file_forge_v1_identity_proto_msgTypes[21]
+	mi := &file_forge_v1_identity_proto_msgTypes[28]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1151,7 +1467,7 @@ func (x *GetMFAStatusResponse) String() string {
 func (*GetMFAStatusResponse) ProtoMessage() {}
 
 func (x *GetMFAStatusResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_forge_v1_identity_proto_msgTypes[21]
+	mi := &file_forge_v1_identity_proto_msgTypes[28]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1164,7 +1480,7 @@ func (x *GetMFAStatusResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetMFAStatusResponse.ProtoReflect.Descriptor instead.
 func (*GetMFAStatusResponse) Descriptor() ([]byte, []int) {
-	return file_forge_v1_identity_proto_rawDescGZIP(), []int{21}
+	return file_forge_v1_identity_proto_rawDescGZIP(), []int{28}
 }
 
 func (x *GetMFAStatusResponse) GetEnabled() bool {
@@ -1183,7 +1499,7 @@ type BeginMFAEnrollmentRequest struct {
 
 func (x *BeginMFAEnrollmentRequest) Reset() {
 	*x = BeginMFAEnrollmentRequest{}
-	mi := &file_forge_v1_identity_proto_msgTypes[22]
+	mi := &file_forge_v1_identity_proto_msgTypes[29]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1195,7 +1511,7 @@ func (x *BeginMFAEnrollmentRequest) String() string {
 func (*BeginMFAEnrollmentRequest) ProtoMessage() {}
 
 func (x *BeginMFAEnrollmentRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_forge_v1_identity_proto_msgTypes[22]
+	mi := &file_forge_v1_identity_proto_msgTypes[29]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1208,7 +1524,7 @@ func (x *BeginMFAEnrollmentRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BeginMFAEnrollmentRequest.ProtoReflect.Descriptor instead.
 func (*BeginMFAEnrollmentRequest) Descriptor() ([]byte, []int) {
-	return file_forge_v1_identity_proto_rawDescGZIP(), []int{22}
+	return file_forge_v1_identity_proto_rawDescGZIP(), []int{29}
 }
 
 func (x *BeginMFAEnrollmentRequest) GetCurrentPassword() string {
@@ -1228,7 +1544,7 @@ type BeginMFAEnrollmentResponse struct {
 
 func (x *BeginMFAEnrollmentResponse) Reset() {
 	*x = BeginMFAEnrollmentResponse{}
-	mi := &file_forge_v1_identity_proto_msgTypes[23]
+	mi := &file_forge_v1_identity_proto_msgTypes[30]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1240,7 +1556,7 @@ func (x *BeginMFAEnrollmentResponse) String() string {
 func (*BeginMFAEnrollmentResponse) ProtoMessage() {}
 
 func (x *BeginMFAEnrollmentResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_forge_v1_identity_proto_msgTypes[23]
+	mi := &file_forge_v1_identity_proto_msgTypes[30]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1253,7 +1569,7 @@ func (x *BeginMFAEnrollmentResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BeginMFAEnrollmentResponse.ProtoReflect.Descriptor instead.
 func (*BeginMFAEnrollmentResponse) Descriptor() ([]byte, []int) {
-	return file_forge_v1_identity_proto_rawDescGZIP(), []int{23}
+	return file_forge_v1_identity_proto_rawDescGZIP(), []int{30}
 }
 
 func (x *BeginMFAEnrollmentResponse) GetSecret() string {
@@ -1279,7 +1595,7 @@ type ConfirmMFAEnrollmentRequest struct {
 
 func (x *ConfirmMFAEnrollmentRequest) Reset() {
 	*x = ConfirmMFAEnrollmentRequest{}
-	mi := &file_forge_v1_identity_proto_msgTypes[24]
+	mi := &file_forge_v1_identity_proto_msgTypes[31]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1291,7 +1607,7 @@ func (x *ConfirmMFAEnrollmentRequest) String() string {
 func (*ConfirmMFAEnrollmentRequest) ProtoMessage() {}
 
 func (x *ConfirmMFAEnrollmentRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_forge_v1_identity_proto_msgTypes[24]
+	mi := &file_forge_v1_identity_proto_msgTypes[31]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1304,7 +1620,7 @@ func (x *ConfirmMFAEnrollmentRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ConfirmMFAEnrollmentRequest.ProtoReflect.Descriptor instead.
 func (*ConfirmMFAEnrollmentRequest) Descriptor() ([]byte, []int) {
-	return file_forge_v1_identity_proto_rawDescGZIP(), []int{24}
+	return file_forge_v1_identity_proto_rawDescGZIP(), []int{31}
 }
 
 func (x *ConfirmMFAEnrollmentRequest) GetCode() string {
@@ -1323,7 +1639,7 @@ type ConfirmMFAEnrollmentResponse struct {
 
 func (x *ConfirmMFAEnrollmentResponse) Reset() {
 	*x = ConfirmMFAEnrollmentResponse{}
-	mi := &file_forge_v1_identity_proto_msgTypes[25]
+	mi := &file_forge_v1_identity_proto_msgTypes[32]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1335,7 +1651,7 @@ func (x *ConfirmMFAEnrollmentResponse) String() string {
 func (*ConfirmMFAEnrollmentResponse) ProtoMessage() {}
 
 func (x *ConfirmMFAEnrollmentResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_forge_v1_identity_proto_msgTypes[25]
+	mi := &file_forge_v1_identity_proto_msgTypes[32]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1348,7 +1664,7 @@ func (x *ConfirmMFAEnrollmentResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ConfirmMFAEnrollmentResponse.ProtoReflect.Descriptor instead.
 func (*ConfirmMFAEnrollmentResponse) Descriptor() ([]byte, []int) {
-	return file_forge_v1_identity_proto_rawDescGZIP(), []int{25}
+	return file_forge_v1_identity_proto_rawDescGZIP(), []int{32}
 }
 
 func (x *ConfirmMFAEnrollmentResponse) GetRecoveryCodes() []string {
@@ -1369,7 +1685,7 @@ type DisableMFARequest struct {
 
 func (x *DisableMFARequest) Reset() {
 	*x = DisableMFARequest{}
-	mi := &file_forge_v1_identity_proto_msgTypes[26]
+	mi := &file_forge_v1_identity_proto_msgTypes[33]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1381,7 +1697,7 @@ func (x *DisableMFARequest) String() string {
 func (*DisableMFARequest) ProtoMessage() {}
 
 func (x *DisableMFARequest) ProtoReflect() protoreflect.Message {
-	mi := &file_forge_v1_identity_proto_msgTypes[26]
+	mi := &file_forge_v1_identity_proto_msgTypes[33]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1394,7 +1710,7 @@ func (x *DisableMFARequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DisableMFARequest.ProtoReflect.Descriptor instead.
 func (*DisableMFARequest) Descriptor() ([]byte, []int) {
-	return file_forge_v1_identity_proto_rawDescGZIP(), []int{26}
+	return file_forge_v1_identity_proto_rawDescGZIP(), []int{33}
 }
 
 func (x *DisableMFARequest) GetCurrentPassword() string {
@@ -1426,7 +1742,7 @@ type DisableMFAResponse struct {
 
 func (x *DisableMFAResponse) Reset() {
 	*x = DisableMFAResponse{}
-	mi := &file_forge_v1_identity_proto_msgTypes[27]
+	mi := &file_forge_v1_identity_proto_msgTypes[34]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1438,7 +1754,7 @@ func (x *DisableMFAResponse) String() string {
 func (*DisableMFAResponse) ProtoMessage() {}
 
 func (x *DisableMFAResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_forge_v1_identity_proto_msgTypes[27]
+	mi := &file_forge_v1_identity_proto_msgTypes[34]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1451,7 +1767,7 @@ func (x *DisableMFAResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DisableMFAResponse.ProtoReflect.Descriptor instead.
 func (*DisableMFAResponse) Descriptor() ([]byte, []int) {
-	return file_forge_v1_identity_proto_rawDescGZIP(), []int{27}
+	return file_forge_v1_identity_proto_rawDescGZIP(), []int{34}
 }
 
 type ListApiTokensRequest struct {
@@ -1462,7 +1778,7 @@ type ListApiTokensRequest struct {
 
 func (x *ListApiTokensRequest) Reset() {
 	*x = ListApiTokensRequest{}
-	mi := &file_forge_v1_identity_proto_msgTypes[28]
+	mi := &file_forge_v1_identity_proto_msgTypes[35]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1474,7 +1790,7 @@ func (x *ListApiTokensRequest) String() string {
 func (*ListApiTokensRequest) ProtoMessage() {}
 
 func (x *ListApiTokensRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_forge_v1_identity_proto_msgTypes[28]
+	mi := &file_forge_v1_identity_proto_msgTypes[35]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1487,7 +1803,7 @@ func (x *ListApiTokensRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListApiTokensRequest.ProtoReflect.Descriptor instead.
 func (*ListApiTokensRequest) Descriptor() ([]byte, []int) {
-	return file_forge_v1_identity_proto_rawDescGZIP(), []int{28}
+	return file_forge_v1_identity_proto_rawDescGZIP(), []int{35}
 }
 
 type ListApiTokensResponse struct {
@@ -1499,7 +1815,7 @@ type ListApiTokensResponse struct {
 
 func (x *ListApiTokensResponse) Reset() {
 	*x = ListApiTokensResponse{}
-	mi := &file_forge_v1_identity_proto_msgTypes[29]
+	mi := &file_forge_v1_identity_proto_msgTypes[36]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1511,7 +1827,7 @@ func (x *ListApiTokensResponse) String() string {
 func (*ListApiTokensResponse) ProtoMessage() {}
 
 func (x *ListApiTokensResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_forge_v1_identity_proto_msgTypes[29]
+	mi := &file_forge_v1_identity_proto_msgTypes[36]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1524,7 +1840,7 @@ func (x *ListApiTokensResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListApiTokensResponse.ProtoReflect.Descriptor instead.
 func (*ListApiTokensResponse) Descriptor() ([]byte, []int) {
-	return file_forge_v1_identity_proto_rawDescGZIP(), []int{29}
+	return file_forge_v1_identity_proto_rawDescGZIP(), []int{36}
 }
 
 func (x *ListApiTokensResponse) GetTokens() []*ApiToken {
@@ -1545,7 +1861,7 @@ type CreateApiTokenRequest struct {
 
 func (x *CreateApiTokenRequest) Reset() {
 	*x = CreateApiTokenRequest{}
-	mi := &file_forge_v1_identity_proto_msgTypes[30]
+	mi := &file_forge_v1_identity_proto_msgTypes[37]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1557,7 +1873,7 @@ func (x *CreateApiTokenRequest) String() string {
 func (*CreateApiTokenRequest) ProtoMessage() {}
 
 func (x *CreateApiTokenRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_forge_v1_identity_proto_msgTypes[30]
+	mi := &file_forge_v1_identity_proto_msgTypes[37]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1570,7 +1886,7 @@ func (x *CreateApiTokenRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateApiTokenRequest.ProtoReflect.Descriptor instead.
 func (*CreateApiTokenRequest) Descriptor() ([]byte, []int) {
-	return file_forge_v1_identity_proto_rawDescGZIP(), []int{30}
+	return file_forge_v1_identity_proto_rawDescGZIP(), []int{37}
 }
 
 func (x *CreateApiTokenRequest) GetName() string {
@@ -1604,7 +1920,7 @@ type CreateApiTokenResponse struct {
 
 func (x *CreateApiTokenResponse) Reset() {
 	*x = CreateApiTokenResponse{}
-	mi := &file_forge_v1_identity_proto_msgTypes[31]
+	mi := &file_forge_v1_identity_proto_msgTypes[38]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1616,7 +1932,7 @@ func (x *CreateApiTokenResponse) String() string {
 func (*CreateApiTokenResponse) ProtoMessage() {}
 
 func (x *CreateApiTokenResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_forge_v1_identity_proto_msgTypes[31]
+	mi := &file_forge_v1_identity_proto_msgTypes[38]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1629,7 +1945,7 @@ func (x *CreateApiTokenResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateApiTokenResponse.ProtoReflect.Descriptor instead.
 func (*CreateApiTokenResponse) Descriptor() ([]byte, []int) {
-	return file_forge_v1_identity_proto_rawDescGZIP(), []int{31}
+	return file_forge_v1_identity_proto_rawDescGZIP(), []int{38}
 }
 
 func (x *CreateApiTokenResponse) GetToken() *ApiToken {
@@ -1655,7 +1971,7 @@ type RevokeApiTokenRequest struct {
 
 func (x *RevokeApiTokenRequest) Reset() {
 	*x = RevokeApiTokenRequest{}
-	mi := &file_forge_v1_identity_proto_msgTypes[32]
+	mi := &file_forge_v1_identity_proto_msgTypes[39]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1667,7 +1983,7 @@ func (x *RevokeApiTokenRequest) String() string {
 func (*RevokeApiTokenRequest) ProtoMessage() {}
 
 func (x *RevokeApiTokenRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_forge_v1_identity_proto_msgTypes[32]
+	mi := &file_forge_v1_identity_proto_msgTypes[39]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1680,7 +1996,7 @@ func (x *RevokeApiTokenRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RevokeApiTokenRequest.ProtoReflect.Descriptor instead.
 func (*RevokeApiTokenRequest) Descriptor() ([]byte, []int) {
-	return file_forge_v1_identity_proto_rawDescGZIP(), []int{32}
+	return file_forge_v1_identity_proto_rawDescGZIP(), []int{39}
 }
 
 func (x *RevokeApiTokenRequest) GetTokenId() string {
@@ -1698,7 +2014,7 @@ type RevokeApiTokenResponse struct {
 
 func (x *RevokeApiTokenResponse) Reset() {
 	*x = RevokeApiTokenResponse{}
-	mi := &file_forge_v1_identity_proto_msgTypes[33]
+	mi := &file_forge_v1_identity_proto_msgTypes[40]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1710,7 +2026,7 @@ func (x *RevokeApiTokenResponse) String() string {
 func (*RevokeApiTokenResponse) ProtoMessage() {}
 
 func (x *RevokeApiTokenResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_forge_v1_identity_proto_msgTypes[33]
+	mi := &file_forge_v1_identity_proto_msgTypes[40]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1723,7 +2039,7 @@ func (x *RevokeApiTokenResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RevokeApiTokenResponse.ProtoReflect.Descriptor instead.
 func (*RevokeApiTokenResponse) Descriptor() ([]byte, []int) {
-	return file_forge_v1_identity_proto_rawDescGZIP(), []int{33}
+	return file_forge_v1_identity_proto_rawDescGZIP(), []int{40}
 }
 
 var File_forge_v1_identity_proto protoreflect.FileDescriptor
@@ -1801,7 +2117,23 @@ const file_forge_v1_identity_proto_rawDesc = "" +
 	"avatar_url\x18\a \x01(\tR\tavatarUrl\x12)\n" +
 	"\x10expected_version\x18\b \x01(\x03R\x0fexpectedVersion\"F\n" +
 	" UpdateCurrentUserProfileResponse\x12\"\n" +
-	"\x04user\x18\x01 \x01(\v2\x0e.forge.v1.UserR\x04user\"\x15\n" +
+	"\x04user\x18\x01 \x01(\v2\x0e.forge.v1.UserR\x04user\"\x95\x01\n" +
+	"\x1aCompleteWeChatLoginRequest\x12\x16\n" +
+	"\x06ticket\x18\x01 \x01(\tR\x06ticket\x12\x1f\n" +
+	"\vreturn_path\x18\x02 \x01(\tR\n" +
+	"returnPath\x12\x19\n" +
+	"\bmfa_code\x18\x03 \x01(\tR\amfaCode\x12#\n" +
+	"\rrecovery_code\x18\x04 \x01(\tR\frecoveryCode\"\x19\n" +
+	"\x17GetWeChatBindingRequest\"\x81\x01\n" +
+	"\x18GetWeChatBindingResponse\x12\x18\n" +
+	"\aenabled\x18\x01 \x01(\bR\aenabled\x12\x14\n" +
+	"\x05bound\x18\x02 \x01(\bR\x05bound\x125\n" +
+	"\bbound_at\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\aboundAt\"\x1b\n" +
+	"\x19BeginWeChatBindingRequest\"?\n" +
+	"\x1aBeginWeChatBindingResponse\x12!\n" +
+	"\fredirect_url\x18\x01 \x01(\tR\vredirectUrl\"\x1c\n" +
+	"\x1aDeleteWeChatBindingRequest\"\x1d\n" +
+	"\x1bDeleteWeChatBindingResponse\"\x15\n" +
 	"\x13GetMFAStatusRequest\"0\n" +
 	"\x14GetMFAStatusResponse\x12\x18\n" +
 	"\aenabled\x18\x01 \x01(\bR\aenabled\"F\n" +
@@ -1831,7 +2163,7 @@ const file_forge_v1_identity_proto_rawDesc = "" +
 	"\x06secret\x18\x02 \x01(\tR\x06secret\"2\n" +
 	"\x15RevokeApiTokenRequest\x12\x19\n" +
 	"\btoken_id\x18\x01 \x01(\tR\atokenId\"\x18\n" +
-	"\x16RevokeApiTokenResponse2\xcc\x14\n" +
+	"\x16RevokeApiTokenResponse2\xb8\x19\n" +
 	"\x0fIdentityService\x12W\n" +
 	"\x05Login\x12\x16.forge.v1.LoginRequest\x1a\x17.forge.v1.LoginResponse\"\x1d\x82\xd3\xe4\x93\x02\x17:\x01*\"\x12/api/v1/auth/login\x12\x89\x01\n" +
 	"\x0eBeginOIDCLogin\x12\x1f.forge.v1.BeginOIDCLoginRequest\x1a .forge.v1.BeginOIDCLoginResponse\"4\x82\xd3\xe4\x93\x02.\x12,/api/v1/auth/federated/oidc/{provider}/begin\x12\xcb\x01\n" +
@@ -1866,7 +2198,21 @@ const file_forge_v1_identity_proto_rawDesc = "" +
 	"\x11\n" +
 	"\rSessionCookie\x12\x00\n" +
 	"\r\n" +
-	"\tCsrfToken\x12\x00\x82\xd3\xe4\x93\x02\x17:\x01*2\x12/api/v1/me/profile\x12z\n" +
+	"\tCsrfToken\x12\x00\x82\xd3\xe4\x93\x02\x17:\x01*2\x12/api/v1/me/profile\x12}\n" +
+	"\x13CompleteWeChatLogin\x12$.forge.v1.CompleteWeChatLoginRequest\x1a\x17.forge.v1.LoginResponse\"'\x82\xd3\xe4\x93\x02!:\x01*\"\x1c/api/v1/auth/wechat/complete\x12\x8c\x01\n" +
+	"\x10GetWeChatBinding\x12!.forge.v1.GetWeChatBindingRequest\x1a\".forge.v1.GetWeChatBindingResponse\"1\xbaG\x15Z\x13\n" +
+	"\x11\n" +
+	"\rSessionCookie\x12\x00\x82\xd3\xe4\x93\x02\x13\x12\x11/api/v1/me/wechat\x12\xac\x01\n" +
+	"\x12BeginWeChatBinding\x12#.forge.v1.BeginWeChatBindingRequest\x1a$.forge.v1.BeginWeChatBindingResponse\"K\xbaG$Z\"\n" +
+	"\x11\n" +
+	"\rSessionCookie\x12\x00\n" +
+	"\r\n" +
+	"\tCsrfToken\x12\x00\x82\xd3\xe4\x93\x02\x1e:\x01*\"\x19/api/v1/me/wechat/binding\x12\xac\x01\n" +
+	"\x13DeleteWeChatBinding\x12$.forge.v1.DeleteWeChatBindingRequest\x1a%.forge.v1.DeleteWeChatBindingResponse\"H\xbaG$Z\"\n" +
+	"\x11\n" +
+	"\rSessionCookie\x12\x00\n" +
+	"\r\n" +
+	"\tCsrfToken\x12\x00\x82\xd3\xe4\x93\x02\x1b*\x19/api/v1/me/wechat/binding\x12z\n" +
 	"\fGetMFAStatus\x12\x1d.forge.v1.GetMFAStatusRequest\x1a\x1e.forge.v1.GetMFAStatusResponse\"+\xbaG\x15Z\x13\n" +
 	"\x11\n" +
 	"\rSessionCookie\x12\x00\x82\xd3\xe4\x93\x02\r\x12\v/api/v1/mfa\x12\xae\x01\n" +
@@ -1912,7 +2258,7 @@ func file_forge_v1_identity_proto_rawDescGZIP() []byte {
 	return file_forge_v1_identity_proto_rawDescData
 }
 
-var file_forge_v1_identity_proto_msgTypes = make([]protoimpl.MessageInfo, 34)
+var file_forge_v1_identity_proto_msgTypes = make([]protoimpl.MessageInfo, 41)
 var file_forge_v1_identity_proto_goTypes = []any{
 	(*LoginRequest)(nil),                     // 0: forge.v1.LoginRequest
 	(*LoginResponse)(nil),                    // 1: forge.v1.LoginResponse
@@ -1934,73 +2280,89 @@ var file_forge_v1_identity_proto_goTypes = []any{
 	(*GetCurrentUserProfileResponse)(nil),    // 17: forge.v1.GetCurrentUserProfileResponse
 	(*UpdateCurrentUserProfileRequest)(nil),  // 18: forge.v1.UpdateCurrentUserProfileRequest
 	(*UpdateCurrentUserProfileResponse)(nil), // 19: forge.v1.UpdateCurrentUserProfileResponse
-	(*GetMFAStatusRequest)(nil),              // 20: forge.v1.GetMFAStatusRequest
-	(*GetMFAStatusResponse)(nil),             // 21: forge.v1.GetMFAStatusResponse
-	(*BeginMFAEnrollmentRequest)(nil),        // 22: forge.v1.BeginMFAEnrollmentRequest
-	(*BeginMFAEnrollmentResponse)(nil),       // 23: forge.v1.BeginMFAEnrollmentResponse
-	(*ConfirmMFAEnrollmentRequest)(nil),      // 24: forge.v1.ConfirmMFAEnrollmentRequest
-	(*ConfirmMFAEnrollmentResponse)(nil),     // 25: forge.v1.ConfirmMFAEnrollmentResponse
-	(*DisableMFARequest)(nil),                // 26: forge.v1.DisableMFARequest
-	(*DisableMFAResponse)(nil),               // 27: forge.v1.DisableMFAResponse
-	(*ListApiTokensRequest)(nil),             // 28: forge.v1.ListApiTokensRequest
-	(*ListApiTokensResponse)(nil),            // 29: forge.v1.ListApiTokensResponse
-	(*CreateApiTokenRequest)(nil),            // 30: forge.v1.CreateApiTokenRequest
-	(*CreateApiTokenResponse)(nil),           // 31: forge.v1.CreateApiTokenResponse
-	(*RevokeApiTokenRequest)(nil),            // 32: forge.v1.RevokeApiTokenRequest
-	(*RevokeApiTokenResponse)(nil),           // 33: forge.v1.RevokeApiTokenResponse
-	(*User)(nil),                             // 34: forge.v1.User
-	(*timestamppb.Timestamp)(nil),            // 35: google.protobuf.Timestamp
-	(*ApiToken)(nil),                         // 36: forge.v1.ApiToken
+	(*CompleteWeChatLoginRequest)(nil),       // 20: forge.v1.CompleteWeChatLoginRequest
+	(*GetWeChatBindingRequest)(nil),          // 21: forge.v1.GetWeChatBindingRequest
+	(*GetWeChatBindingResponse)(nil),         // 22: forge.v1.GetWeChatBindingResponse
+	(*BeginWeChatBindingRequest)(nil),        // 23: forge.v1.BeginWeChatBindingRequest
+	(*BeginWeChatBindingResponse)(nil),       // 24: forge.v1.BeginWeChatBindingResponse
+	(*DeleteWeChatBindingRequest)(nil),       // 25: forge.v1.DeleteWeChatBindingRequest
+	(*DeleteWeChatBindingResponse)(nil),      // 26: forge.v1.DeleteWeChatBindingResponse
+	(*GetMFAStatusRequest)(nil),              // 27: forge.v1.GetMFAStatusRequest
+	(*GetMFAStatusResponse)(nil),             // 28: forge.v1.GetMFAStatusResponse
+	(*BeginMFAEnrollmentRequest)(nil),        // 29: forge.v1.BeginMFAEnrollmentRequest
+	(*BeginMFAEnrollmentResponse)(nil),       // 30: forge.v1.BeginMFAEnrollmentResponse
+	(*ConfirmMFAEnrollmentRequest)(nil),      // 31: forge.v1.ConfirmMFAEnrollmentRequest
+	(*ConfirmMFAEnrollmentResponse)(nil),     // 32: forge.v1.ConfirmMFAEnrollmentResponse
+	(*DisableMFARequest)(nil),                // 33: forge.v1.DisableMFARequest
+	(*DisableMFAResponse)(nil),               // 34: forge.v1.DisableMFAResponse
+	(*ListApiTokensRequest)(nil),             // 35: forge.v1.ListApiTokensRequest
+	(*ListApiTokensResponse)(nil),            // 36: forge.v1.ListApiTokensResponse
+	(*CreateApiTokenRequest)(nil),            // 37: forge.v1.CreateApiTokenRequest
+	(*CreateApiTokenResponse)(nil),           // 38: forge.v1.CreateApiTokenResponse
+	(*RevokeApiTokenRequest)(nil),            // 39: forge.v1.RevokeApiTokenRequest
+	(*RevokeApiTokenResponse)(nil),           // 40: forge.v1.RevokeApiTokenResponse
+	(*User)(nil),                             // 41: forge.v1.User
+	(*timestamppb.Timestamp)(nil),            // 42: google.protobuf.Timestamp
+	(*ApiToken)(nil),                         // 43: forge.v1.ApiToken
 }
 var file_forge_v1_identity_proto_depIdxs = []int32{
-	34, // 0: forge.v1.LoginResponse.user:type_name -> forge.v1.User
-	34, // 1: forge.v1.CompleteOIDCLoginResponse.user:type_name -> forge.v1.User
-	34, // 2: forge.v1.LoginLDAPResponse.user:type_name -> forge.v1.User
-	35, // 3: forge.v1.StepUpAuthenticationResponse.verified_at:type_name -> google.protobuf.Timestamp
-	34, // 4: forge.v1.GetCurrentUserResponse.user:type_name -> forge.v1.User
-	34, // 5: forge.v1.GetCurrentUserProfileResponse.user:type_name -> forge.v1.User
-	34, // 6: forge.v1.UpdateCurrentUserProfileResponse.user:type_name -> forge.v1.User
-	36, // 7: forge.v1.ListApiTokensResponse.tokens:type_name -> forge.v1.ApiToken
-	36, // 8: forge.v1.CreateApiTokenResponse.token:type_name -> forge.v1.ApiToken
-	0,  // 9: forge.v1.IdentityService.Login:input_type -> forge.v1.LoginRequest
-	2,  // 10: forge.v1.IdentityService.BeginOIDCLogin:input_type -> forge.v1.BeginOIDCLoginRequest
-	4,  // 11: forge.v1.IdentityService.CompleteOIDCLogin:input_type -> forge.v1.CompleteOIDCLoginRequest
-	6,  // 12: forge.v1.IdentityService.LoginLDAP:input_type -> forge.v1.LoginLDAPRequest
-	8,  // 13: forge.v1.IdentityService.Logout:input_type -> forge.v1.LogoutRequest
-	10, // 14: forge.v1.IdentityService.ChangePassword:input_type -> forge.v1.ChangePasswordRequest
-	12, // 15: forge.v1.IdentityService.StepUpAuthentication:input_type -> forge.v1.StepUpAuthenticationRequest
-	14, // 16: forge.v1.IdentityService.GetCurrentUser:input_type -> forge.v1.GetCurrentUserRequest
-	16, // 17: forge.v1.IdentityService.GetCurrentUserProfile:input_type -> forge.v1.GetCurrentUserProfileRequest
-	18, // 18: forge.v1.IdentityService.UpdateCurrentUserProfile:input_type -> forge.v1.UpdateCurrentUserProfileRequest
-	20, // 19: forge.v1.IdentityService.GetMFAStatus:input_type -> forge.v1.GetMFAStatusRequest
-	22, // 20: forge.v1.IdentityService.BeginMFAEnrollment:input_type -> forge.v1.BeginMFAEnrollmentRequest
-	24, // 21: forge.v1.IdentityService.ConfirmMFAEnrollment:input_type -> forge.v1.ConfirmMFAEnrollmentRequest
-	26, // 22: forge.v1.IdentityService.DisableMFA:input_type -> forge.v1.DisableMFARequest
-	28, // 23: forge.v1.IdentityService.ListApiTokens:input_type -> forge.v1.ListApiTokensRequest
-	30, // 24: forge.v1.IdentityService.CreateApiToken:input_type -> forge.v1.CreateApiTokenRequest
-	32, // 25: forge.v1.IdentityService.RevokeApiToken:input_type -> forge.v1.RevokeApiTokenRequest
-	1,  // 26: forge.v1.IdentityService.Login:output_type -> forge.v1.LoginResponse
-	3,  // 27: forge.v1.IdentityService.BeginOIDCLogin:output_type -> forge.v1.BeginOIDCLoginResponse
-	5,  // 28: forge.v1.IdentityService.CompleteOIDCLogin:output_type -> forge.v1.CompleteOIDCLoginResponse
-	7,  // 29: forge.v1.IdentityService.LoginLDAP:output_type -> forge.v1.LoginLDAPResponse
-	9,  // 30: forge.v1.IdentityService.Logout:output_type -> forge.v1.LogoutResponse
-	11, // 31: forge.v1.IdentityService.ChangePassword:output_type -> forge.v1.ChangePasswordResponse
-	13, // 32: forge.v1.IdentityService.StepUpAuthentication:output_type -> forge.v1.StepUpAuthenticationResponse
-	15, // 33: forge.v1.IdentityService.GetCurrentUser:output_type -> forge.v1.GetCurrentUserResponse
-	17, // 34: forge.v1.IdentityService.GetCurrentUserProfile:output_type -> forge.v1.GetCurrentUserProfileResponse
-	19, // 35: forge.v1.IdentityService.UpdateCurrentUserProfile:output_type -> forge.v1.UpdateCurrentUserProfileResponse
-	21, // 36: forge.v1.IdentityService.GetMFAStatus:output_type -> forge.v1.GetMFAStatusResponse
-	23, // 37: forge.v1.IdentityService.BeginMFAEnrollment:output_type -> forge.v1.BeginMFAEnrollmentResponse
-	25, // 38: forge.v1.IdentityService.ConfirmMFAEnrollment:output_type -> forge.v1.ConfirmMFAEnrollmentResponse
-	27, // 39: forge.v1.IdentityService.DisableMFA:output_type -> forge.v1.DisableMFAResponse
-	29, // 40: forge.v1.IdentityService.ListApiTokens:output_type -> forge.v1.ListApiTokensResponse
-	31, // 41: forge.v1.IdentityService.CreateApiToken:output_type -> forge.v1.CreateApiTokenResponse
-	33, // 42: forge.v1.IdentityService.RevokeApiToken:output_type -> forge.v1.RevokeApiTokenResponse
-	26, // [26:43] is the sub-list for method output_type
-	9,  // [9:26] is the sub-list for method input_type
-	9,  // [9:9] is the sub-list for extension type_name
-	9,  // [9:9] is the sub-list for extension extendee
-	0,  // [0:9] is the sub-list for field type_name
+	41, // 0: forge.v1.LoginResponse.user:type_name -> forge.v1.User
+	41, // 1: forge.v1.CompleteOIDCLoginResponse.user:type_name -> forge.v1.User
+	41, // 2: forge.v1.LoginLDAPResponse.user:type_name -> forge.v1.User
+	42, // 3: forge.v1.StepUpAuthenticationResponse.verified_at:type_name -> google.protobuf.Timestamp
+	41, // 4: forge.v1.GetCurrentUserResponse.user:type_name -> forge.v1.User
+	41, // 5: forge.v1.GetCurrentUserProfileResponse.user:type_name -> forge.v1.User
+	41, // 6: forge.v1.UpdateCurrentUserProfileResponse.user:type_name -> forge.v1.User
+	42, // 7: forge.v1.GetWeChatBindingResponse.bound_at:type_name -> google.protobuf.Timestamp
+	43, // 8: forge.v1.ListApiTokensResponse.tokens:type_name -> forge.v1.ApiToken
+	43, // 9: forge.v1.CreateApiTokenResponse.token:type_name -> forge.v1.ApiToken
+	0,  // 10: forge.v1.IdentityService.Login:input_type -> forge.v1.LoginRequest
+	2,  // 11: forge.v1.IdentityService.BeginOIDCLogin:input_type -> forge.v1.BeginOIDCLoginRequest
+	4,  // 12: forge.v1.IdentityService.CompleteOIDCLogin:input_type -> forge.v1.CompleteOIDCLoginRequest
+	6,  // 13: forge.v1.IdentityService.LoginLDAP:input_type -> forge.v1.LoginLDAPRequest
+	8,  // 14: forge.v1.IdentityService.Logout:input_type -> forge.v1.LogoutRequest
+	10, // 15: forge.v1.IdentityService.ChangePassword:input_type -> forge.v1.ChangePasswordRequest
+	12, // 16: forge.v1.IdentityService.StepUpAuthentication:input_type -> forge.v1.StepUpAuthenticationRequest
+	14, // 17: forge.v1.IdentityService.GetCurrentUser:input_type -> forge.v1.GetCurrentUserRequest
+	16, // 18: forge.v1.IdentityService.GetCurrentUserProfile:input_type -> forge.v1.GetCurrentUserProfileRequest
+	18, // 19: forge.v1.IdentityService.UpdateCurrentUserProfile:input_type -> forge.v1.UpdateCurrentUserProfileRequest
+	20, // 20: forge.v1.IdentityService.CompleteWeChatLogin:input_type -> forge.v1.CompleteWeChatLoginRequest
+	21, // 21: forge.v1.IdentityService.GetWeChatBinding:input_type -> forge.v1.GetWeChatBindingRequest
+	23, // 22: forge.v1.IdentityService.BeginWeChatBinding:input_type -> forge.v1.BeginWeChatBindingRequest
+	25, // 23: forge.v1.IdentityService.DeleteWeChatBinding:input_type -> forge.v1.DeleteWeChatBindingRequest
+	27, // 24: forge.v1.IdentityService.GetMFAStatus:input_type -> forge.v1.GetMFAStatusRequest
+	29, // 25: forge.v1.IdentityService.BeginMFAEnrollment:input_type -> forge.v1.BeginMFAEnrollmentRequest
+	31, // 26: forge.v1.IdentityService.ConfirmMFAEnrollment:input_type -> forge.v1.ConfirmMFAEnrollmentRequest
+	33, // 27: forge.v1.IdentityService.DisableMFA:input_type -> forge.v1.DisableMFARequest
+	35, // 28: forge.v1.IdentityService.ListApiTokens:input_type -> forge.v1.ListApiTokensRequest
+	37, // 29: forge.v1.IdentityService.CreateApiToken:input_type -> forge.v1.CreateApiTokenRequest
+	39, // 30: forge.v1.IdentityService.RevokeApiToken:input_type -> forge.v1.RevokeApiTokenRequest
+	1,  // 31: forge.v1.IdentityService.Login:output_type -> forge.v1.LoginResponse
+	3,  // 32: forge.v1.IdentityService.BeginOIDCLogin:output_type -> forge.v1.BeginOIDCLoginResponse
+	5,  // 33: forge.v1.IdentityService.CompleteOIDCLogin:output_type -> forge.v1.CompleteOIDCLoginResponse
+	7,  // 34: forge.v1.IdentityService.LoginLDAP:output_type -> forge.v1.LoginLDAPResponse
+	9,  // 35: forge.v1.IdentityService.Logout:output_type -> forge.v1.LogoutResponse
+	11, // 36: forge.v1.IdentityService.ChangePassword:output_type -> forge.v1.ChangePasswordResponse
+	13, // 37: forge.v1.IdentityService.StepUpAuthentication:output_type -> forge.v1.StepUpAuthenticationResponse
+	15, // 38: forge.v1.IdentityService.GetCurrentUser:output_type -> forge.v1.GetCurrentUserResponse
+	17, // 39: forge.v1.IdentityService.GetCurrentUserProfile:output_type -> forge.v1.GetCurrentUserProfileResponse
+	19, // 40: forge.v1.IdentityService.UpdateCurrentUserProfile:output_type -> forge.v1.UpdateCurrentUserProfileResponse
+	1,  // 41: forge.v1.IdentityService.CompleteWeChatLogin:output_type -> forge.v1.LoginResponse
+	22, // 42: forge.v1.IdentityService.GetWeChatBinding:output_type -> forge.v1.GetWeChatBindingResponse
+	24, // 43: forge.v1.IdentityService.BeginWeChatBinding:output_type -> forge.v1.BeginWeChatBindingResponse
+	26, // 44: forge.v1.IdentityService.DeleteWeChatBinding:output_type -> forge.v1.DeleteWeChatBindingResponse
+	28, // 45: forge.v1.IdentityService.GetMFAStatus:output_type -> forge.v1.GetMFAStatusResponse
+	30, // 46: forge.v1.IdentityService.BeginMFAEnrollment:output_type -> forge.v1.BeginMFAEnrollmentResponse
+	32, // 47: forge.v1.IdentityService.ConfirmMFAEnrollment:output_type -> forge.v1.ConfirmMFAEnrollmentResponse
+	34, // 48: forge.v1.IdentityService.DisableMFA:output_type -> forge.v1.DisableMFAResponse
+	36, // 49: forge.v1.IdentityService.ListApiTokens:output_type -> forge.v1.ListApiTokensResponse
+	38, // 50: forge.v1.IdentityService.CreateApiToken:output_type -> forge.v1.CreateApiTokenResponse
+	40, // 51: forge.v1.IdentityService.RevokeApiToken:output_type -> forge.v1.RevokeApiTokenResponse
+	31, // [31:52] is the sub-list for method output_type
+	10, // [10:31] is the sub-list for method input_type
+	10, // [10:10] is the sub-list for extension type_name
+	10, // [10:10] is the sub-list for extension extendee
+	0,  // [0:10] is the sub-list for field type_name
 }
 
 func init() { file_forge_v1_identity_proto_init() }
@@ -2015,7 +2377,7 @@ func file_forge_v1_identity_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_forge_v1_identity_proto_rawDesc), len(file_forge_v1_identity_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   34,
+			NumMessages:   41,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

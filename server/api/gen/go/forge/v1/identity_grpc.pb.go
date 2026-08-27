@@ -29,6 +29,10 @@ const (
 	IdentityService_GetCurrentUser_FullMethodName           = "/forge.v1.IdentityService/GetCurrentUser"
 	IdentityService_GetCurrentUserProfile_FullMethodName    = "/forge.v1.IdentityService/GetCurrentUserProfile"
 	IdentityService_UpdateCurrentUserProfile_FullMethodName = "/forge.v1.IdentityService/UpdateCurrentUserProfile"
+	IdentityService_CompleteWeChatLogin_FullMethodName      = "/forge.v1.IdentityService/CompleteWeChatLogin"
+	IdentityService_GetWeChatBinding_FullMethodName         = "/forge.v1.IdentityService/GetWeChatBinding"
+	IdentityService_BeginWeChatBinding_FullMethodName       = "/forge.v1.IdentityService/BeginWeChatBinding"
+	IdentityService_DeleteWeChatBinding_FullMethodName      = "/forge.v1.IdentityService/DeleteWeChatBinding"
 	IdentityService_GetMFAStatus_FullMethodName             = "/forge.v1.IdentityService/GetMFAStatus"
 	IdentityService_BeginMFAEnrollment_FullMethodName       = "/forge.v1.IdentityService/BeginMFAEnrollment"
 	IdentityService_ConfirmMFAEnrollment_FullMethodName     = "/forge.v1.IdentityService/ConfirmMFAEnrollment"
@@ -52,6 +56,10 @@ type IdentityServiceClient interface {
 	GetCurrentUser(ctx context.Context, in *GetCurrentUserRequest, opts ...grpc.CallOption) (*GetCurrentUserResponse, error)
 	GetCurrentUserProfile(ctx context.Context, in *GetCurrentUserProfileRequest, opts ...grpc.CallOption) (*GetCurrentUserProfileResponse, error)
 	UpdateCurrentUserProfile(ctx context.Context, in *UpdateCurrentUserProfileRequest, opts ...grpc.CallOption) (*UpdateCurrentUserProfileResponse, error)
+	CompleteWeChatLogin(ctx context.Context, in *CompleteWeChatLoginRequest, opts ...grpc.CallOption) (*LoginResponse, error)
+	GetWeChatBinding(ctx context.Context, in *GetWeChatBindingRequest, opts ...grpc.CallOption) (*GetWeChatBindingResponse, error)
+	BeginWeChatBinding(ctx context.Context, in *BeginWeChatBindingRequest, opts ...grpc.CallOption) (*BeginWeChatBindingResponse, error)
+	DeleteWeChatBinding(ctx context.Context, in *DeleteWeChatBindingRequest, opts ...grpc.CallOption) (*DeleteWeChatBindingResponse, error)
 	GetMFAStatus(ctx context.Context, in *GetMFAStatusRequest, opts ...grpc.CallOption) (*GetMFAStatusResponse, error)
 	BeginMFAEnrollment(ctx context.Context, in *BeginMFAEnrollmentRequest, opts ...grpc.CallOption) (*BeginMFAEnrollmentResponse, error)
 	ConfirmMFAEnrollment(ctx context.Context, in *ConfirmMFAEnrollmentRequest, opts ...grpc.CallOption) (*ConfirmMFAEnrollmentResponse, error)
@@ -169,6 +177,46 @@ func (c *identityServiceClient) UpdateCurrentUserProfile(ctx context.Context, in
 	return out, nil
 }
 
+func (c *identityServiceClient) CompleteWeChatLogin(ctx context.Context, in *CompleteWeChatLoginRequest, opts ...grpc.CallOption) (*LoginResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(LoginResponse)
+	err := c.cc.Invoke(ctx, IdentityService_CompleteWeChatLogin_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *identityServiceClient) GetWeChatBinding(ctx context.Context, in *GetWeChatBindingRequest, opts ...grpc.CallOption) (*GetWeChatBindingResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetWeChatBindingResponse)
+	err := c.cc.Invoke(ctx, IdentityService_GetWeChatBinding_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *identityServiceClient) BeginWeChatBinding(ctx context.Context, in *BeginWeChatBindingRequest, opts ...grpc.CallOption) (*BeginWeChatBindingResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(BeginWeChatBindingResponse)
+	err := c.cc.Invoke(ctx, IdentityService_BeginWeChatBinding_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *identityServiceClient) DeleteWeChatBinding(ctx context.Context, in *DeleteWeChatBindingRequest, opts ...grpc.CallOption) (*DeleteWeChatBindingResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(DeleteWeChatBindingResponse)
+	err := c.cc.Invoke(ctx, IdentityService_DeleteWeChatBinding_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *identityServiceClient) GetMFAStatus(ctx context.Context, in *GetMFAStatusRequest, opts ...grpc.CallOption) (*GetMFAStatusResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(GetMFAStatusResponse)
@@ -253,6 +301,10 @@ type IdentityServiceServer interface {
 	GetCurrentUser(context.Context, *GetCurrentUserRequest) (*GetCurrentUserResponse, error)
 	GetCurrentUserProfile(context.Context, *GetCurrentUserProfileRequest) (*GetCurrentUserProfileResponse, error)
 	UpdateCurrentUserProfile(context.Context, *UpdateCurrentUserProfileRequest) (*UpdateCurrentUserProfileResponse, error)
+	CompleteWeChatLogin(context.Context, *CompleteWeChatLoginRequest) (*LoginResponse, error)
+	GetWeChatBinding(context.Context, *GetWeChatBindingRequest) (*GetWeChatBindingResponse, error)
+	BeginWeChatBinding(context.Context, *BeginWeChatBindingRequest) (*BeginWeChatBindingResponse, error)
+	DeleteWeChatBinding(context.Context, *DeleteWeChatBindingRequest) (*DeleteWeChatBindingResponse, error)
 	GetMFAStatus(context.Context, *GetMFAStatusRequest) (*GetMFAStatusResponse, error)
 	BeginMFAEnrollment(context.Context, *BeginMFAEnrollmentRequest) (*BeginMFAEnrollmentResponse, error)
 	ConfirmMFAEnrollment(context.Context, *ConfirmMFAEnrollmentRequest) (*ConfirmMFAEnrollmentResponse, error)
@@ -299,6 +351,18 @@ func (UnimplementedIdentityServiceServer) GetCurrentUserProfile(context.Context,
 }
 func (UnimplementedIdentityServiceServer) UpdateCurrentUserProfile(context.Context, *UpdateCurrentUserProfileRequest) (*UpdateCurrentUserProfileResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method UpdateCurrentUserProfile not implemented")
+}
+func (UnimplementedIdentityServiceServer) CompleteWeChatLogin(context.Context, *CompleteWeChatLoginRequest) (*LoginResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method CompleteWeChatLogin not implemented")
+}
+func (UnimplementedIdentityServiceServer) GetWeChatBinding(context.Context, *GetWeChatBindingRequest) (*GetWeChatBindingResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetWeChatBinding not implemented")
+}
+func (UnimplementedIdentityServiceServer) BeginWeChatBinding(context.Context, *BeginWeChatBindingRequest) (*BeginWeChatBindingResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method BeginWeChatBinding not implemented")
+}
+func (UnimplementedIdentityServiceServer) DeleteWeChatBinding(context.Context, *DeleteWeChatBindingRequest) (*DeleteWeChatBindingResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method DeleteWeChatBinding not implemented")
 }
 func (UnimplementedIdentityServiceServer) GetMFAStatus(context.Context, *GetMFAStatusRequest) (*GetMFAStatusResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetMFAStatus not implemented")
@@ -522,6 +586,78 @@ func _IdentityService_UpdateCurrentUserProfile_Handler(srv interface{}, ctx cont
 	return interceptor(ctx, in, info, handler)
 }
 
+func _IdentityService_CompleteWeChatLogin_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CompleteWeChatLoginRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IdentityServiceServer).CompleteWeChatLogin(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: IdentityService_CompleteWeChatLogin_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IdentityServiceServer).CompleteWeChatLogin(ctx, req.(*CompleteWeChatLoginRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _IdentityService_GetWeChatBinding_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetWeChatBindingRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IdentityServiceServer).GetWeChatBinding(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: IdentityService_GetWeChatBinding_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IdentityServiceServer).GetWeChatBinding(ctx, req.(*GetWeChatBindingRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _IdentityService_BeginWeChatBinding_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(BeginWeChatBindingRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IdentityServiceServer).BeginWeChatBinding(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: IdentityService_BeginWeChatBinding_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IdentityServiceServer).BeginWeChatBinding(ctx, req.(*BeginWeChatBindingRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _IdentityService_DeleteWeChatBinding_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeleteWeChatBindingRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IdentityServiceServer).DeleteWeChatBinding(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: IdentityService_DeleteWeChatBinding_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IdentityServiceServer).DeleteWeChatBinding(ctx, req.(*DeleteWeChatBindingRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _IdentityService_GetMFAStatus_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(GetMFAStatusRequest)
 	if err := dec(in); err != nil {
@@ -694,6 +830,22 @@ var IdentityService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "UpdateCurrentUserProfile",
 			Handler:    _IdentityService_UpdateCurrentUserProfile_Handler,
+		},
+		{
+			MethodName: "CompleteWeChatLogin",
+			Handler:    _IdentityService_CompleteWeChatLogin_Handler,
+		},
+		{
+			MethodName: "GetWeChatBinding",
+			Handler:    _IdentityService_GetWeChatBinding_Handler,
+		},
+		{
+			MethodName: "BeginWeChatBinding",
+			Handler:    _IdentityService_BeginWeChatBinding_Handler,
+		},
+		{
+			MethodName: "DeleteWeChatBinding",
+			Handler:    _IdentityService_DeleteWeChatBinding_Handler,
 		},
 		{
 			MethodName: "GetMFAStatus",

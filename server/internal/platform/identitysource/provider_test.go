@@ -2,6 +2,7 @@ package identitysource
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
@@ -13,6 +14,40 @@ import (
 	"github.com/go-ldap/ldap/v3"
 	"golang.org/x/oauth2"
 )
+
+func TestProviderCodeLinkRequiresCasdoorSessionAndUsesServerSideCallback(t *testing.T) {
+	var gotCookie string
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotCookie = r.Header.Get("Cookie")
+		var body map[string]string
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			t.Fatal(err)
+		}
+		if body["provider"] != "wechat-open" || body["method"] != "link" || body["redirectUri"] != "https://auth.example/_velora/wechat/callback" || body["state"] != "velora" {
+			t.Errorf("unexpected body: %#v", body)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"status":"ok","data":true}`))
+	}))
+	defer server.Close()
+	p := &OIDCProvider{name: "casdoor", issuer: server.URL, httpClient: server.Client(), application: "velora", organization: "built-in", config: oauth2.Config{ClientID: "client", RedirectURL: "https://home.example/callback", Scopes: []string{"openid"}}}
+	if err := p.LinkProviderCode(context.Background(), "wechat-open", "wx-code", "https://auth.example/_velora/wechat/callback", "session-secret"); err != nil {
+		t.Fatal(err)
+	}
+	if gotCookie != "casdoor_session_id=session-secret" {
+		t.Fatalf("cookie = %q", gotCookie)
+	}
+	if err := p.LinkProviderCode(context.Background(), "wechat-open", "wx-code", "https://auth.example/_velora/wechat/callback", ""); !errors.Is(err, ErrAuthenticationFailed) {
+		t.Fatalf("missing session error = %v", err)
+	}
+}
+
+func TestProviderCodeExchangeRejectsInsecureCallbackAndProviderFailure(t *testing.T) {
+	p := &OIDCProvider{application: "velora", organization: "built-in"}
+	if _, err := p.exchangeProviderCode(context.Background(), "wechat", "code", "http://auth.example/_velora/wechat/callback", "signin", ""); !errors.Is(err, ErrAuthenticationFailed) {
+		t.Fatalf("insecure callback error = %v", err)
+	}
+}
 
 func TestNewLDAPProviderRequiresSecureTransportByDefault(t *testing.T) {
 	_, err := NewLDAPProvider(LDAPConfig{Name: "ad", URL: "ldap://directory.example", BindDN: "cn=svc", BaseDN: "dc=example,dc=com", LoginAttribute: "sAMAccountName"})

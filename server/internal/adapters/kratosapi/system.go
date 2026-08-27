@@ -2,6 +2,7 @@ package kratosapi
 
 import (
 	"context"
+	"net/url"
 	"strings"
 
 	kratoserrors "github.com/go-kratos/kratos/v2/errors"
@@ -29,6 +30,13 @@ func (s *SystemService) Health(context.Context, *forgev1.HealthRequest) (*forgev
 	if authMode == "oidc" && s.cfg.Security.CasdoorPasswordLoginEnabled {
 		passwordLoginEnabled = true
 	}
+	wechatURL := ""
+	if s.cfg.Security.WeChatLoginEnabled {
+		if callback, err := url.Parse(s.cfg.Security.WeChatCallbackURL); err == nil {
+			callback.Path, callback.RawQuery, callback.Fragment = "/_velora/wechat/start", "", ""
+			wechatURL = callback.String()
+		}
+	}
 	return &forgev1.HealthResponse{
 		Status:               "UP",
 		Service:              s.cfg.App.Name,
@@ -38,6 +46,8 @@ func (s *SystemService) Health(context.Context, *forgev1.HealthRequest) (*forgev
 		TurnstileEnabled:     s.cfg.Security.TurnstileConfigured(),
 		TurnstileSiteKey:     s.cfg.Security.TurnstileSiteKey,
 		TurnstileAction:      s.cfg.Security.EffectiveTurnstileAction(),
+		WechatLoginEnabled:   s.cfg.Security.WeChatLoginEnabled,
+		WechatLoginUrl:       wechatURL,
 	}, nil
 }
 

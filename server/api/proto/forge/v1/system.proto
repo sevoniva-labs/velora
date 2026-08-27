@@ -108,6 +108,8 @@ message HealthResponse {
   bool turnstile_enabled = 7;
   string turnstile_site_key = 8;
   string turnstile_action = 9;
+  bool wechat_login_enabled = 10;
+  string wechat_login_url = 11;
 }
 
 message ReadinessRequest {}

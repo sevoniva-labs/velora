@@ -67,6 +67,25 @@ type userWire struct {
 	Type              string `json:"type,omitempty"`
 	SignupApplication string `json:"signupApplication,omitempty"`
 	IsForbidden       bool   `json:"isForbidden"`
+	WeChat            string `json:"wechat"`
+}
+
+func (c *Client) WeChatBinding(ctx context.Context, login string) (bool, error) {
+	u, found, err := c.get(ctx, login)
+	return found && strings.TrimSpace(u.WeChat) != "", err
+}
+
+func (c *Client) UnlinkWeChat(ctx context.Context, login string) error {
+	u, found, err := c.get(ctx, login)
+	if err != nil {
+		return err
+	}
+	if !found {
+		return errors.New("casdoor user not found")
+	}
+	u.Password = ""
+	u.WeChat = ""
+	return c.modify(ctx, "update-user", u.Owner+"/"+u.Name, []string{"wechat"}, u)
 }
 
 func (c *Client) UpdateUserProfile(ctx context.Context, login string, in appidentity.ManagedUserProfileInput) error {

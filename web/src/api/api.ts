@@ -181,6 +181,8 @@ async function fetchPortalApplications(params: ListApplicationsParams = {}, admi
 export interface AuthCapabilities {
   authMode: 'oidc' | 'password'
   passwordLoginEnabled: boolean
+  wechatLoginEnabled: boolean
+  wechatLoginUrl: string
 }
 
 const OIDC_REDIRECT_STORAGE_KEY = 'velora.oidc.redirect'
@@ -205,8 +207,36 @@ export async function getAuthCapabilities(): Promise<AuthCapabilities> {
     // In OIDC mode this flag may represent the explicitly enabled Casdoor
     // password compatibility flow; production health must still fail closed.
     passwordLoginEnabled: Boolean(data.passwordLoginEnabled),
+    wechatLoginEnabled: Boolean(data.wechatLoginEnabled),
+    wechatLoginUrl: String(data.wechatLoginUrl ?? ''),
   }
 }
+
+export function beginWeChatLoginURL(baseURL: string, redirect?: string): string {
+  if (!/^https:\/\//i.test(baseURL)) throw new Error('微信登录入口不可用')
+  const target = new URL(baseURL)
+  if (target.username || target.password || target.pathname !== '/_velora/wechat/start' || target.search || target.hash) throw new Error('微信登录入口不可用')
+  const query = buildQuery({ return: internalRedirect(redirect) })
+  return `${target.toString()}${query}`
+}
+
+export async function completeWeChatLogin(ticket: string, redirect?: string, mfa?: { code?: string; recoveryCode?: string }): Promise<{ redirect: string; bridgeAction?: string; bridgeTicket?: string }> {
+  const data = await apiFetch<{ bridgeAction?: string; bridgeTicket?: string }>('/auth/wechat/complete', { method: 'POST', body: { ticket, returnPath: internalRedirect(redirect), mfaCode: mfa?.code || undefined, recoveryCode: mfa?.recoveryCode || undefined } })
+  return { redirect: internalRedirect(redirect), bridgeAction: data.bridgeAction, bridgeTicket: data.bridgeTicket }
+}
+
+export async function getWeChatBinding(): Promise<{ enabled: boolean; bound: boolean; boundAt?: string }> {
+  const data = await apiFetch<{ enabled?: boolean; bound?: boolean; boundAt?: string }>('/me/wechat')
+  return { enabled: Boolean(data.enabled), bound: Boolean(data.bound), boundAt: data.boundAt }
+}
+
+export async function beginWeChatBinding(): Promise<string> {
+  const data = await apiFetch<{ redirectUrl?: string }>('/me/wechat/binding', { method: 'POST', body: {} })
+  if (!data.redirectUrl || !/^https:\/\//i.test(data.redirectUrl) || new URL(data.redirectUrl).pathname !== '/_velora/wechat/start') throw new Error('微信绑定入口不可用')
+  return data.redirectUrl
+}
+
+export function deleteWeChatBinding(): Promise<unknown> { return apiFetch('/me/wechat/binding', { method: 'DELETE' }) }
 
 export async function getMe(): Promise<CurrentUser> { const data = await apiFetch<unknown>('/me'); return mapUser(record(data).user ?? data) }
 export async function logout(): Promise<{ status: string; federatedLogoutUrl?: string }> {

@@ -244,6 +244,12 @@ type Security struct {
 	CasdoorPasswordLoginEnabled bool   `yaml:"casdoor_password_login_enabled"`
 	CasdoorApplication          string `yaml:"casdoor_application"`
 	CasdoorOrganization         string `yaml:"casdoor_organization"`
+	// WeChat login is brokered server-side through Casdoor. AppSecret remains
+	// in Casdoor; Velora only needs the public Open Platform AppID and provider.
+	WeChatLoginEnabled bool   `yaml:"wechat_login_enabled"`
+	WeChatAppID        string `yaml:"wechat_app_id"`
+	WeChatProvider     string `yaml:"wechat_provider"`
+	WeChatCallbackURL  string `yaml:"wechat_callback_url"`
 	// Turnstile protects the Velora-hosted credential form. The secret is
 	// environment/file-only; the site key and hostname allowlist are public
 	// deployment configuration.
@@ -604,6 +610,10 @@ func ApplyEnvironment(cfg *Config) {
 	overrideBool(&cfg.Security.CasdoorPasswordLoginEnabled, "VELORA_CASDOOR_PASSWORD_LOGIN_ENABLED")
 	overrideString(&cfg.Security.CasdoorApplication, "VELORA_CASDOOR_APPLICATION")
 	overrideString(&cfg.Security.CasdoorOrganization, "VELORA_CASDOOR_ORGANIZATION")
+	overrideBool(&cfg.Security.WeChatLoginEnabled, "VELORA_WECHAT_LOGIN_ENABLED")
+	overrideString(&cfg.Security.WeChatAppID, "VELORA_WECHAT_APP_ID")
+	overrideString(&cfg.Security.WeChatProvider, "VELORA_WECHAT_PROVIDER")
+	overrideString(&cfg.Security.WeChatCallbackURL, "VELORA_WECHAT_CALLBACK_URL")
 	overrideString(&cfg.Security.TurnstileSiteKey, "VELORA_TURNSTILE_SITE_KEY")
 	overrideCSV(&cfg.Security.TurnstileHostnames, "VELORA_TURNSTILE_HOSTNAMES")
 	overrideString(&cfg.Security.TurnstileAction, "VELORA_TURNSTILE_ACTION")
@@ -824,6 +834,21 @@ func (c Config) Validate() error {
 		}
 		if strings.TrimSpace(c.Security.CasdoorOrganization) == "" {
 			errs = append(errs, "security.casdoor_organization is required when Casdoor password login is enabled")
+		}
+	}
+	if c.Security.WeChatLoginEnabled {
+		if !c.Security.CasdoorPasswordLoginEnabled {
+			errs = append(errs, "security.wechat_login_enabled requires the private Casdoor session bridge")
+		}
+		if strings.TrimSpace(c.Security.WeChatAppID) == "" || strings.TrimSpace(c.Security.WeChatProvider) == "" {
+			errs = append(errs, "security.wechat_app_id and security.wechat_provider are required when WeChat login is enabled")
+		}
+		callback, err := url.Parse(strings.TrimSpace(c.Security.WeChatCallbackURL))
+		if err != nil || callback.Scheme != "https" || callback.Host == "" || callback.User != nil || callback.RawQuery != "" || callback.Fragment != "" || callback.Path != "/_velora/wechat/callback" {
+			errs = append(errs, "security.wechat_callback_url must be an HTTPS /_velora/wechat/callback URL")
+		}
+		if strings.EqualFold(strings.TrimSpace(c.Cache.Provider), "disabled") {
+			errs = append(errs, "security.wechat_login_enabled requires a distributed cache")
 		}
 	}
 	turnstileParts := []string{strings.TrimSpace(c.Security.TurnstileSiteKey), strings.TrimSpace(c.Security.TurnstileSecret)}

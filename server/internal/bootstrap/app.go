@@ -219,7 +219,7 @@ func New(ctx context.Context, opts Options) (*App, error) {
 	}
 	publicOperation := func(_ context.Context, operation string) bool {
 		switch operation {
-		case forgev1.OperationSystemServiceHealth, forgev1.OperationSystemServiceReadiness, forgev1.OperationIdentityServiceLogin, forgev1.OperationIdentityServiceBeginOIDCLogin, forgev1.OperationIdentityServiceCompleteOIDCLogin, forgev1.OperationIdentityServiceLoginLDAP, forgev1.OperationPortalServiceConsumeApplicationEnrollment, forgev1.OperationPortalServiceGetApplicationDirectoryOrganization, forgev1.OperationPortalServiceListApplicationDirectoryDepartments, forgev1.OperationPortalServiceListApplicationDirectoryUsers:
+		case forgev1.OperationSystemServiceHealth, forgev1.OperationSystemServiceReadiness, forgev1.OperationIdentityServiceLogin, forgev1.OperationIdentityServiceBeginOIDCLogin, forgev1.OperationIdentityServiceCompleteOIDCLogin, forgev1.OperationIdentityServiceCompleteWeChatLogin, forgev1.OperationIdentityServiceLoginLDAP, forgev1.OperationPortalServiceConsumeApplicationEnrollment, forgev1.OperationPortalServiceGetApplicationDirectoryOrganization, forgev1.OperationPortalServiceListApplicationDirectoryDepartments, forgev1.OperationPortalServiceListApplicationDirectoryUsers:
 			return false
 		default:
 			return true
@@ -317,6 +317,14 @@ func New(ctx context.Context, opts Options) (*App, error) {
 			return err
 		})
 		identityService.ConfigureSessionBridge(bridge)
+		wechatBroker, wechatErr := kratosapi.NewWeChatBroker(kratosapi.WeChatConfig{Enabled: cfg.Security.WeChatLoginEnabled, AppID: cfg.Security.WeChatAppID, Provider: cfg.Security.WeChatProvider, CallbackURL: cfg.Security.WeChatCallbackURL, Secure: cfg.Security.SecureCookies}, c, db, oidcProviders[providerName], bridge, casdoorIdentity, identityService)
+		if wechatErr != nil {
+			return nil, fmt.Errorf("WeChat login: %w", wechatErr)
+		}
+		if wechatBroker != nil {
+			identityService.ConfigureWeChat(wechatBroker)
+			httpServer.HandlePrefix("/_velora/wechat/", wechatBroker.Handler())
+		}
 		httpServer.Handle("/_velora/session/bridge", bridge.Handler())
 		httpServer.Handle("/_velora/authorize", bridge.AuthorizationHandler())
 		httpServer.Handle("/_velora/session/logout", bridge.GatewayLogoutHandler())

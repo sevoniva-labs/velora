@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { App as AntdApp, Button, Form, Input } from 'antd'
+import { useEffect, useRef, useState } from 'react'
+import { App as AntdApp, Button, Divider, Form, Input } from 'antd'
 import {
   AppstoreOutlined,
   CheckSquareOutlined,
@@ -7,6 +7,7 @@ import {
   MailOutlined,
   SafetyCertificateOutlined,
   UserOutlined,
+  WechatOutlined,
 } from '@ant-design/icons'
 import { useSearchParams, Navigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
@@ -19,6 +20,8 @@ import {
   beginOIDCLogin,
   loginWithPassword,
   submitSessionBridge,
+  beginWeChatLoginURL,
+  completeWeChatLogin,
 } from '../api/api'
 import type { AuthCapabilities } from '../api/api'
 import { portalConfig } from '../config/portal'
@@ -50,6 +53,8 @@ export default function Login() {
   const [searchParams] = useSearchParams()
   const { message } = AntdApp.useApp()
   const [submitting, setSubmitting] = useState(false)
+  const completingWeChat = useRef(false)
+  const [wechatTicket] = useState(() => searchParams.get('wechat_ticket') || '')
   const { data: authCapabilities, isPending: authCapabilitiesPending } = useQuery<AuthCapabilities>({
     queryKey: ['auth-capabilities'],
     queryFn: getAuthCapabilities,
@@ -78,6 +83,40 @@ export default function Login() {
   const authorizationContinuation = Boolean(redirect?.startsWith('/login/oauth/authorize?'))
   // 能力接口返回前保持稳定的登录骨架，避免刷新时先闪出错误的 OIDC 按钮。
   const oidcOnly = !authCapabilities || !authCapabilities.passwordLoginEnabled
+
+  const finishWeChat = async (ticket: string, mfa?: { code?: string; recoveryCode?: string }) => {
+    const res = await completeWeChatLogin(ticket, redirect ?? undefined, mfa)
+    window.history.replaceState({}, '', '/login')
+    if (res.bridgeAction && res.bridgeTicket) submitSessionBridge(res.bridgeAction, res.bridgeTicket, res.redirect)
+    else window.location.replace(res.redirect)
+  }
+
+  useEffect(() => {
+    const ticket = wechatTicket
+    if (!ticket || completingWeChat.current) return
+    completingWeChat.current = true
+    setSubmitting(true)
+    void finishWeChat(ticket).catch((error) => {
+      if (error instanceof ApiError && error.status === 428) {
+        setMfaRequired(true)
+        completingWeChat.current = false
+        setSubmitting(false)
+        message.info('请输入多因素认证验证码。')
+        return
+      }
+      window.history.replaceState({}, '', '/login?wechat=failed')
+      message.error('微信登录未完成，请重试。')
+      setSubmitting(false)
+    })
+  // finishWeChat intentionally uses the immutable query ticket from the first render.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [message, wechatTicket])
+
+  useEffect(() => {
+    const result = searchParams.get('wechat')
+    if (result === 'unbound') message.warning('该微信尚未绑定企业账号，请先使用账号密码登录后绑定。')
+    else if (result === 'failed') message.error('微信登录未完成，请重试。')
+  }, [message, searchParams])
 
   const loginErrorMessage = (error: unknown, fallback: string): string => {
     const raw = error instanceof Error ? error.message.trim() : ''
@@ -111,6 +150,12 @@ export default function Login() {
   }
 
   const onFinish = async (values: { username: string; password: string; mfaCode?: string; recoveryCode?: string }) => {
+    if (wechatTicket) {
+      setSubmitting(true)
+      try { await finishWeChat(wechatTicket, { code: values.mfaCode, recoveryCode: values.recoveryCode }) }
+      catch (err) { message.error(err instanceof ApiError && err.status === 401 ? '验证码或恢复码不正确，请重试。' : '微信登录未完成，请重试。'); setSubmitting(false) }
+      return
+    }
     if (turnstileEnabled && turnstileRequired && !turnstileToken) {
       message.warning('请完成人机验证后继续。')
       return
@@ -239,22 +284,22 @@ export default function Login() {
               onFinish={onFinish}
               requiredMark={false}
             >
-              <Form.Item label="账号" name="username" rules={[{ required: true, message: '请输入账号或邮箱' }]}>
+              {!wechatTicket && <Form.Item label="账号" name="username" rules={[{ required: true, message: '请输入账号或邮箱' }]}>
                 <Input
                   prefix={<UserOutlined style={{ color: '#98a2b3' }} />}
                   placeholder="请输入账号或邮箱"
                   autoComplete="username"
                   maxLength={64}
                 />
-              </Form.Item>
-              <Form.Item label="密码" name="password" rules={[{ required: true, message: '请输入密码' }]}>
+              </Form.Item>}
+              {!wechatTicket && <Form.Item label="密码" name="password" rules={[{ required: true, message: '请输入密码' }]}>
                 <Input.Password
                   prefix={<LockOutlined style={{ color: '#98a2b3' }} />}
                   placeholder="请输入密码"
                   autoComplete="current-password"
                   maxLength={128}
                 />
-              </Form.Item>
+              </Form.Item>}
               {mfaRequired && !useRecoveryCode && <Form.Item label="验证码" name="mfaCode" rules={[{ required: true, message: '请输入 6 位验证码' }, { pattern: /^\d{6}$/, message: '请输入 6 位数字验证码' }]}>
                 <Input inputMode="numeric" autoComplete="one-time-code" maxLength={6} prefix={<SafetyCertificateOutlined style={{ color: '#98a2b3' }} />} placeholder="6 位验证码" />
               </Form.Item>}
@@ -289,6 +334,10 @@ export default function Login() {
           )}
 
           {!oidcOnly && <p className="velora-login-note">如无法登录，请联系系统管理员。</p>}
+          {authCapabilities?.wechatLoginEnabled && <>
+            <Divider plain>其他登录方式</Divider>
+            <Button block size="large" icon={<WechatOutlined style={{ color: '#07c160' }} />} disabled={submitting} onClick={() => window.location.assign(beginWeChatLoginURL(authCapabilities.wechatLoginUrl, redirect ?? undefined))}>微信扫码登录</Button>
+          </>}
         </div>
       </div>
     </div>

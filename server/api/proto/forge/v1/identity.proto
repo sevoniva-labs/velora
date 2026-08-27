@@ -123,6 +123,21 @@ service IdentityService {
     option (google.api.http) = {patch: "/api/v1/me/profile" body: "*"};
     option (openapi.v3.operation) = {security: [{additional_properties: [{name: "SessionCookie" value: {value: []}}, {name: "CsrfToken" value: {value: []}}]}]};
   }
+  rpc CompleteWeChatLogin(CompleteWeChatLoginRequest) returns (LoginResponse) {
+    option (google.api.http) = {post: "/api/v1/auth/wechat/complete" body: "*"};
+  }
+  rpc GetWeChatBinding(GetWeChatBindingRequest) returns (GetWeChatBindingResponse) {
+    option (google.api.http) = {get: "/api/v1/me/wechat"};
+    option (openapi.v3.operation) = {security: [{additional_properties: [{name: "SessionCookie" value: {value: []}}]}]};
+  }
+  rpc BeginWeChatBinding(BeginWeChatBindingRequest) returns (BeginWeChatBindingResponse) {
+    option (google.api.http) = {post: "/api/v1/me/wechat/binding" body: "*"};
+    option (openapi.v3.operation) = {security: [{additional_properties: [{name: "SessionCookie" value: {value: []}}, {name: "CsrfToken" value: {value: []}}]}]};
+  }
+  rpc DeleteWeChatBinding(DeleteWeChatBindingRequest) returns (DeleteWeChatBindingResponse) {
+    option (google.api.http) = {delete: "/api/v1/me/wechat/binding"};
+    option (openapi.v3.operation) = {security: [{additional_properties: [{name: "SessionCookie" value: {value: []}}, {name: "CsrfToken" value: {value: []}}]}]};
+  }
   rpc GetMFAStatus(GetMFAStatusRequest) returns (GetMFAStatusResponse) {
     option (google.api.http) = {get: "/api/v1/mfa"};
     option (openapi.v3.operation) = {
@@ -360,6 +375,23 @@ message UpdateCurrentUserProfileRequest {
   int64 expected_version = 8;
 }
 message UpdateCurrentUserProfileResponse { User user = 1; }
+
+message CompleteWeChatLoginRequest {
+  string ticket = 1;
+  string return_path = 2;
+  string mfa_code = 3;
+  string recovery_code = 4;
+}
+message GetWeChatBindingRequest {}
+message GetWeChatBindingResponse {
+  bool enabled = 1;
+  bool bound = 2;
+  google.protobuf.Timestamp bound_at = 3;
+}
+message BeginWeChatBindingRequest {}
+message BeginWeChatBindingResponse { string redirect_url = 1; }
+message DeleteWeChatBindingRequest {}
+message DeleteWeChatBindingResponse {}
 
 message GetMFAStatusRequest {}
 message GetMFAStatusResponse {

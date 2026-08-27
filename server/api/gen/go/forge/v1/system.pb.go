@@ -71,6 +71,8 @@ type HealthResponse struct {
 	TurnstileEnabled     bool   `protobuf:"varint,7,opt,name=turnstile_enabled,json=turnstileEnabled,proto3" json:"turnstile_enabled,omitempty"`
 	TurnstileSiteKey     string `protobuf:"bytes,8,opt,name=turnstile_site_key,json=turnstileSiteKey,proto3" json:"turnstile_site_key,omitempty"`
 	TurnstileAction      string `protobuf:"bytes,9,opt,name=turnstile_action,json=turnstileAction,proto3" json:"turnstile_action,omitempty"`
+	WechatLoginEnabled   bool   `protobuf:"varint,10,opt,name=wechat_login_enabled,json=wechatLoginEnabled,proto3" json:"wechat_login_enabled,omitempty"`
+	WechatLoginUrl       string `protobuf:"bytes,11,opt,name=wechat_login_url,json=wechatLoginUrl,proto3" json:"wechat_login_url,omitempty"`
 	unknownFields        protoimpl.UnknownFields
 	sizeCache            protoimpl.SizeCache
 }
@@ -164,6 +166,20 @@ func (x *HealthResponse) GetTurnstileSiteKey() string {
 func (x *HealthResponse) GetTurnstileAction() string {
 	if x != nil {
 		return x.TurnstileAction
+	}
+	return ""
+}
+
+func (x *HealthResponse) GetWechatLoginEnabled() bool {
+	if x != nil {
+		return x.WechatLoginEnabled
+	}
+	return false
+}
+
+func (x *HealthResponse) GetWechatLoginUrl() string {
+	if x != nil {
+		return x.WechatLoginUrl
 	}
 	return ""
 }
@@ -441,7 +457,7 @@ var File_forge_v1_system_proto protoreflect.FileDescriptor
 const file_forge_v1_system_proto_rawDesc = "" +
 	"\n" +
 	"\x15forge/v1/system.proto\x12\bforge.v1\x1a\x1cgoogle/api/annotations.proto\x1a\x1bopenapiv3/annotations.proto\"\x0f\n" +
-	"\rHealthRequest\"\xe5\x02\n" +
+	"\rHealthRequest\"\xc1\x03\n" +
 	"\x0eHealthResponse\x12\x16\n" +
 	"\x06status\x18\x01 \x01(\tR\x06status\x12\x18\n" +
 	"\aservice\x18\x02 \x01(\tR\aservice\x12\x18\n" +
@@ -451,7 +467,10 @@ const file_forge_v1_system_proto_rawDesc = "" +
 	"\x13casdoor_account_url\x18\x06 \x01(\tR\x11casdoorAccountUrl\x12+\n" +
 	"\x11turnstile_enabled\x18\a \x01(\bR\x10turnstileEnabled\x12,\n" +
 	"\x12turnstile_site_key\x18\b \x01(\tR\x10turnstileSiteKey\x12)\n" +
-	"\x10turnstile_action\x18\t \x01(\tR\x0fturnstileAction\"\x12\n" +
+	"\x10turnstile_action\x18\t \x01(\tR\x0fturnstileAction\x120\n" +
+	"\x14wechat_login_enabled\x18\n" +
+	" \x01(\bR\x12wechatLoginEnabled\x12(\n" +
+	"\x10wechat_login_url\x18\v \x01(\tR\x0ewechatLoginUrl\"\x12\n" +
 	"\x10ReadinessRequest\"X\n" +
 	"\x10DependencyStatus\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x16\n" +

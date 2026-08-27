@@ -2637,6 +2637,24 @@ paths:
             security:
                 - SessionCookie: []
                   CsrfToken: []
+    /api/v1/auth/wechat/complete:
+        post:
+            tags:
+                - IdentityService
+            operationId: IdentityService_CompleteWeChatLogin
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/forge.v1.CompleteWeChatLoginRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/forge.v1.LoginResponse'
     /api/v1/example/organizations/{organizationId}/settlements/{settlementId}:
         get:
             tags:
@@ -2783,6 +2801,55 @@ paths:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/forge.v1.UpdateCurrentUserProfileResponse'
+            security:
+                - SessionCookie: []
+                  CsrfToken: []
+    /api/v1/me/wechat:
+        get:
+            tags:
+                - IdentityService
+            operationId: IdentityService_GetWeChatBinding
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/forge.v1.GetWeChatBindingResponse'
+            security:
+                - SessionCookie: []
+    /api/v1/me/wechat/binding:
+        post:
+            tags:
+                - IdentityService
+            operationId: IdentityService_BeginWeChatBinding
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/forge.v1.BeginWeChatBindingRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/forge.v1.BeginWeChatBindingResponse'
+            security:
+                - SessionCookie: []
+                  CsrfToken: []
+        delete:
+            tags:
+                - IdentityService
+            operationId: IdentityService_DeleteWeChatBinding
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/forge.v1.DeleteWeChatBindingResponse'
             security:
                 - SessionCookie: []
                   CsrfToken: []
@@ -3433,6 +3500,14 @@ components:
             properties:
                 redirectUrl:
                     type: string
+        forge.v1.BeginWeChatBindingRequest:
+            type: object
+            properties: {}
+        forge.v1.BeginWeChatBindingResponse:
+            type: object
+            properties:
+                redirectUrl:
+                    type: string
         forge.v1.ChangePasswordRequest:
             type: object
             properties:
@@ -3458,6 +3533,17 @@ components:
                 user:
                     $ref: '#/components/schemas/forge.v1.User'
                 csrfToken:
+                    type: string
+        forge.v1.CompleteWeChatLoginRequest:
+            type: object
+            properties:
+                ticket:
+                    type: string
+                returnPath:
+                    type: string
+                mfaCode:
+                    type: string
+                recoveryCode:
                     type: string
         forge.v1.ConfigChange:
             type: object
@@ -3933,6 +4019,9 @@ components:
         forge.v1.DeletePortalTagResponse:
             type: object
             properties: {}
+        forge.v1.DeleteWeChatBindingResponse:
+            type: object
+            properties: {}
         forge.v1.Department:
             type: object
             properties:
@@ -4182,6 +4271,16 @@ components:
             properties:
                 user:
                     $ref: '#/components/schemas/forge.v1.User'
+        forge.v1.GetWeChatBindingResponse:
+            type: object
+            properties:
+                enabled:
+                    type: boolean
+                bound:
+                    type: boolean
+                boundAt:
+                    type: string
+                    format: date-time
         forge.v1.HealthResponse:
             type: object
             properties:
@@ -4203,6 +4302,10 @@ components:
                 turnstileSiteKey:
                     type: string
                 turnstileAction:
+                    type: string
+                wechatLoginEnabled:
+                    type: boolean
+                wechatLoginUrl:
                     type: string
         forge.v1.LaunchPortalApplicationRequest:
             type: object

@@ -19,7 +19,7 @@ describe('OIDC web adapter', () => {
       status: 'UP', auth_mode: 'oidc', password_login_enabled: false, casdoor_account_url: 'https://casdoor.example/account',
     } }), { status: 200 }))
     await expect(getAuthCapabilities()).resolves.toEqual({
-      authMode: 'oidc', passwordLoginEnabled: false,
+      authMode: 'oidc', passwordLoginEnabled: false, wechatLoginEnabled: false, wechatLoginUrl: '',
     })
   })
 

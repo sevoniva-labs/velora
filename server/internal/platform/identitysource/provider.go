@@ -333,6 +333,136 @@ func (p *OIDCProvider) AuthenticatePassword(ctx context.Context, loginName, pass
 	return identity, nil
 }
 
+// AuthenticateProviderCode exchanges a third-party provider callback through
+// Casdoor's server-side application API. The browser never visits a Casdoor
+// page: Velora owns the callback and Casdoor remains the private identity
+// broker. Casdoor application sign-up and automatic account linking must be
+// disabled; an unbound provider identity therefore fails closed.
+func (p *OIDCProvider) AuthenticateProviderCode(ctx context.Context, providerName, code, providerRedirectURL string) (FederatedIdentity, error) {
+	result, err := p.exchangeProviderCode(ctx, providerName, code, providerRedirectURL, "signin", "")
+	if err != nil || strings.TrimSpace(result.Code) == "" {
+		return FederatedIdentity{}, ErrAuthenticationFailed
+	}
+	identity, err := p.AuthenticateCode(ctx, result.Code, result.Nonce, result.Verifier)
+	if err != nil {
+		return FederatedIdentity{}, err
+	}
+	identity.CasdoorSessionCookie = result.SessionCookie
+	return identity, nil
+}
+
+// LinkProviderCode links a verified third-party provider identity to the
+// Casdoor user represented by the host-only Casdoor session cookie.
+func (p *OIDCProvider) LinkProviderCode(ctx context.Context, providerName, code, providerRedirectURL, sessionCookie string) error {
+	result, err := p.exchangeProviderCode(ctx, providerName, code, providerRedirectURL, "link", sessionCookie)
+	if err != nil || !result.Linked {
+		return ErrAuthenticationFailed
+	}
+	return nil
+}
+
+type providerCodeResult struct {
+	Code, Nonce, Verifier, SessionCookie string
+	Linked                               bool
+}
+
+func (p *OIDCProvider) exchangeProviderCode(ctx context.Context, providerName, code, providerRedirectURL, method, sessionCookie string) (providerCodeResult, error) {
+	providerName = strings.TrimSpace(providerName)
+	code = strings.TrimSpace(code)
+	providerRedirectURL = strings.TrimSpace(providerRedirectURL)
+	if p.application == "" || p.organization == "" || providerName == "" || code == "" || providerRedirectURL == "" || len(providerName) > 100 || len(code) > 4096 {
+		return providerCodeResult{}, ErrAuthenticationFailed
+	}
+	redirect, err := url.Parse(providerRedirectURL)
+	if err != nil || redirect.Scheme != "https" || redirect.Host == "" || redirect.User != nil || redirect.Fragment != "" {
+		return providerCodeResult{}, ErrAuthenticationFailed
+	}
+	if method != "signin" && (method != "link" || strings.TrimSpace(sessionCookie) == "") {
+		return providerCodeResult{}, ErrAuthenticationFailed
+	}
+	nonce, err := randomValue(32)
+	if err != nil {
+		return providerCodeResult{}, ErrAuthenticationFailed
+	}
+	state, err := randomValue(32)
+	if err != nil {
+		return providerCodeResult{}, ErrAuthenticationFailed
+	}
+	verifier, err := randomValue(32)
+	if err != nil {
+		return providerCodeResult{}, ErrAuthenticationFailed
+	}
+	endpoint, err := url.Parse(strings.TrimRight(p.issuer, "/") + "/api/login")
+	if err != nil {
+		return providerCodeResult{}, ErrAuthenticationFailed
+	}
+	query := endpoint.Query()
+	query.Set("clientId", p.config.ClientID)
+	query.Set("responseType", "code")
+	query.Set("redirectUri", p.config.RedirectURL)
+	query.Set("type", "code")
+	query.Set("scope", strings.Join(p.config.Scopes, " "))
+	query.Set("state", state)
+	query.Set("nonce", nonce)
+	query.Set("code_challenge_method", "S256")
+	query.Set("code_challenge", sha256Base64URL(verifier))
+	endpoint.RawQuery = query.Encode()
+	payload := map[string]string{
+		"application": p.application, "organization": p.organization,
+		"provider": providerName, "code": code, "state": p.application,
+		"redirectUri": providerRedirectURL, "method": method,
+	}
+	body, err := json.Marshal(payload)
+	if err != nil {
+		return providerCodeResult{}, ErrAuthenticationFailed
+	}
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, endpoint.String(), bytes.NewReader(body))
+	if err != nil {
+		return providerCodeResult{}, ErrAuthenticationFailed
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Accept", "application/json")
+	if sessionCookie != "" {
+		req.AddCookie(&http.Cookie{Name: "casdoor_session_id", Value: sessionCookie})
+	}
+	client := p.httpClient
+	if client == nil {
+		client = http.DefaultClient
+	}
+	resp, err := client.Do(req)
+	if err != nil {
+		return providerCodeResult{}, ErrAuthenticationFailed
+	}
+	defer func() { _ = resp.Body.Close() }()
+	var envelope struct {
+		Status string          `json:"status"`
+		Data   json.RawMessage `json:"data"`
+	}
+	if json.NewDecoder(io.LimitReader(resp.Body, 1<<20)).Decode(&envelope) != nil || resp.StatusCode < 200 || resp.StatusCode >= 300 || !strings.EqualFold(envelope.Status, "ok") {
+		return providerCodeResult{}, ErrAuthenticationFailed
+	}
+	result := providerCodeResult{Nonce: nonce, Verifier: verifier}
+	if method == "link" {
+		if json.Unmarshal(envelope.Data, &result.Linked) != nil {
+			return providerCodeResult{}, ErrAuthenticationFailed
+		}
+		return result, nil
+	}
+	if json.Unmarshal(envelope.Data, &result.Code) != nil || strings.TrimSpace(result.Code) == "" {
+		return providerCodeResult{}, ErrAuthenticationFailed
+	}
+	for _, cookie := range resp.Cookies() {
+		if cookie.Name == "casdoor_session_id" && strings.TrimSpace(cookie.Value) != "" {
+			result.SessionCookie = cookie.Value
+			break
+		}
+	}
+	if result.SessionCookie == "" {
+		return providerCodeResult{}, ErrAuthenticationFailed
+	}
+	return result, nil
+}
+
 func claimsIndicateMFA(raw json.RawMessage, acr string) bool {
 	if strings.Contains(strings.ToLower(acr), "mfa") || strings.Contains(strings.ToLower(acr), "multi") {
 		return true

@@ -3,11 +3,14 @@ package repository
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"strings"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/sevoniva-labs/velora/server/internal/domain/identity"
+	"github.com/sevoniva-labs/velora/server/internal/platform/reliablemsg"
 )
 
 var ErrUserProfileVersionConflict = errors.New("user profile version conflict")
@@ -39,11 +42,13 @@ func (r *IdentityRepo) HydrateUserProfile(ctx context.Context, user *identity.Us
 	return nil
 }
 
-func (r *IdentityRepo) UpdateUserProfile(ctx context.Context, organizationID, userID string, input identity.UserProfileInput) (identity.User, error) {
+func (r *IdentityRepo) UpdateUserProfile(ctx context.Context, organizationID, userID, issuer string, input identity.UserProfileInput) (identity.User, error) {
 	now := time.Now().UTC()
 	err := r.db.WithTx(ctx, func(tx *sql.Tx) error {
-		var currentEmail string
-		if err := tx.QueryRowContext(ctx, r.db.Rebind(`SELECT email FROM users WHERE id=? AND organization_id=? FOR UPDATE`), userID, organizationID).Scan(&currentEmail); err != nil {
+		var currentEmail, externalSubject, userStatus string
+		var provisioningVersion int64
+		if err := tx.QueryRowContext(ctx, r.db.Rebind(`SELECT email,external_subject,status,provisioning_version FROM users WHERE id=? AND organization_id=? FOR UPDATE`), userID, organizationID).
+			Scan(&currentEmail, &externalSubject, &userStatus, &provisioningVersion); err != nil {
 			return err
 		}
 		if input.Email != "" {
@@ -97,13 +102,87 @@ func (r *IdentityRepo) UpdateUserProfile(ctx context.Context, organizationID, us
 				return ErrUserProfileVersionConflict
 			}
 		}
-		_, err := tx.ExecContext(ctx, r.db.Rebind(`UPDATE users SET display_name=?,email=?,updated_at=? WHERE id=? AND organization_id=?`), input.DisplayName, input.Email, now, userID, organizationID)
-		return err
+		if strings.TrimSpace(externalSubject) == "" {
+			_, err := tx.ExecContext(ctx, r.db.Rebind(`UPDATE users SET display_name=?,email=?,updated_at=? WHERE id=? AND organization_id=?`), input.DisplayName, input.Email, now, userID, organizationID)
+			return err
+		}
+
+		version := provisioningVersion + 1
+		if _, err := tx.ExecContext(ctx, r.db.Rebind(`UPDATE users SET display_name=?,email=?,provisioning_version=?,updated_at=? WHERE id=? AND organization_id=?`), input.DisplayName, input.Email, version, now, userID, organizationID); err != nil {
+			return err
+		}
+		return r.enqueueProfileProvisioning(ctx, tx, profileProvisioningInput{
+			OrganizationID: organizationID, UserID: userID, Subject: externalSubject,
+			Issuer: issuer, LoginName: "", DisplayName: input.DisplayName, Email: input.Email,
+			UserStatus: userStatus, Version: version, OccurredAt: now,
+		})
 	})
 	if err != nil {
 		return identity.User{}, err
 	}
 	return r.UserByID(ctx, userID)
+}
+
+type profileProvisioningInput struct {
+	OrganizationID, UserID, Subject, Issuer, LoginName, DisplayName, Email, UserStatus string
+	Version                                                                            int64
+	OccurredAt                                                                         time.Time
+}
+
+// enqueueProfileProvisioning refreshes every existing application projection
+// after a managed profile change. It deliberately reuses the stable 1.0 event
+// shape so already-integrated applications receive the new display name/email
+// without a lock-step receiver upgrade.
+func (r *IdentityRepo) enqueueProfileProvisioning(ctx context.Context, tx *sql.Tx, input profileProvisioningInput) error {
+	if err := tx.QueryRowContext(ctx, r.db.Rebind(`SELECT login_name FROM users WHERE id=? AND organization_id=?`), input.UserID, input.OrganizationID).Scan(&input.LoginName); err != nil {
+		return err
+	}
+	rows, err := tx.QueryContext(ctx, r.db.Rebind(`SELECT a.id,a.code,e.roles_json,e.status
+		FROM user_application_entitlements e
+		JOIN portal_applications a ON a.id=e.application_id
+		WHERE e.user_id=? AND a.organization_id=? ORDER BY a.id`), input.UserID, input.OrganizationID)
+	if err != nil {
+		return err
+	}
+	type projection struct{ applicationID, applicationCode, rolesJSON, status string }
+	items := make([]projection, 0)
+	for rows.Next() {
+		var item projection
+		if err := rows.Scan(&item.applicationID, &item.applicationCode, &item.rolesJSON, &item.status); err != nil {
+			_ = rows.Close()
+			return err
+		}
+		items = append(items, item)
+	}
+	if err := rows.Close(); err != nil {
+		return err
+	}
+	if err := rows.Err(); err != nil {
+		return err
+	}
+	for _, item := range items {
+		var roles []string
+		if err := json.Unmarshal([]byte(item.rolesJSON), &roles); err != nil {
+			return err
+		}
+		status, eventType := item.status, "user.entitlements.changed"
+		if input.UserStatus != "ACTIVE" {
+			status, roles, eventType = "DISABLED", nil, "user.disabled"
+		} else if status != "ACTIVE" {
+			status, roles = "DISABLED", nil
+		}
+		if _, err := tx.ExecContext(ctx, r.db.Rebind(`UPDATE user_application_entitlements SET version=?,updated_at=? WHERE user_id=? AND application_id=?`), input.Version, input.OccurredAt, input.UserID, item.applicationID); err != nil {
+			return err
+		}
+		event := EntitlementEvent{SchemaVersion: "1.0", EventID: uuid.NewString(), EventType: eventType, AggregateVersion: input.Version, OccurredAt: input.OccurredAt, Source: "velora"}
+		event.User.Subject, event.User.Issuer, event.User.LoginName = input.Subject, input.Issuer, input.LoginName
+		event.User.DisplayName, event.User.Email, event.User.Status = input.DisplayName, input.Email, status
+		event.Entitlements.ApplicationCode, event.Entitlements.Roles = item.applicationCode, roles
+		if _, err := reliablemsg.EnqueueTx(ctx, r.db, tx, reliablemsg.Event{ID: event.EventID, OrganizationID: input.OrganizationID, Topic: "velora.provisioning." + item.applicationCode, Key: input.UserID, Type: event.EventType, OrderingKey: input.UserID, Payload: event}); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func nullableTime(value sql.NullTime) any {

@@ -997,7 +997,7 @@ func (s *Service) UpdateUserProfile(ctx context.Context, actor domain.Principal,
 			return domain.User{}, err
 		}
 	}
-	return s.repo.UpdateUserProfile(ctx, actor.OrganizationID, current.ID, clean)
+	return s.repo.UpdateUserProfile(ctx, actor.OrganizationID, current.ID, s.identityIssuer, clean)
 }
 
 func normalizeUserProfile(input domain.UserProfileInput) (domain.UserProfileInput, error) {

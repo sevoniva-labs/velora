@@ -336,6 +336,13 @@ func (s *IdentityService) BeginWeChatBinding(ctx context.Context, _ *forgev1.Beg
 	if s.wechat == nil {
 		return nil, kerrors.ServiceUnavailable("WECHAT_DISABLED", "WeChat binding is unavailable")
 	}
+	if enabled, err := s.identity.MFAEnabled(ctx, principal); err != nil {
+		return nil, internalError(err)
+	} else if enabled {
+		if err = appidentity.RequireRecentMFA(principal); err != nil {
+			return nil, kerrors.Forbidden("STEP_UP_REQUIRED", "recent multi-factor authentication is required")
+		}
+	}
 	if allowed, err := s.limiter.Allow(ctx, "wechat-bind|"+principal.UserID, 5, time.Hour, time.Now()); err != nil || !allowed {
 		return nil, kerrors.New(http.StatusTooManyRequests, "RATE_LIMITED", "too many requests")
 	}

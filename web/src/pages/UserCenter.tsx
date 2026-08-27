@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Alert, Avatar, Button, Card, Descriptions, Divider, Form, Input, List, Modal, QRCode, Space, Tag, Typography, message } from 'antd'
 import { KeyOutlined, LaptopOutlined, LogoutOutlined, SafetyCertificateOutlined, WechatOutlined } from '@ant-design/icons'
 import { ModalForm, ProForm, ProFormSelect, ProFormText } from '@ant-design/pro-components'
@@ -21,7 +21,9 @@ import {
   getWeChatBinding,
   beginWeChatBinding,
   deleteWeChatBinding,
+  stepUpAuthentication,
 } from '../api/api'
+import { ApiError, STEP_UP_REQUIRED_EVENT } from '../api/client'
 
 const { Title, Text } = Typography
 
@@ -34,6 +36,9 @@ export default function UserCenter() {
   const [beginMFAOpen, setBeginMFAOpen] = useState(false)
   const [disableMFAOpen, setDisableMFAOpen] = useState(false)
   const [profileOpen, setProfileOpen] = useState(false)
+  const [stepUpOpen, setStepUpOpen] = useState(false)
+  const [stepUpRecovery, setStepUpRecovery] = useState(false)
+  const [pendingWeChatAction, setPendingWeChatAction] = useState<'bind' | 'unbind'>()
   const [enrollment, setEnrollment] = useState<{ secret: string; provisioningUri: string }>()
   const [recoveryCodes, setRecoveryCodes] = useState<string[]>([])
 
@@ -59,8 +64,14 @@ export default function UserCenter() {
   const confirmMFA = useMutation({ mutationFn: confirmMFAEnrollment, onSuccess: async (data) => { setEnrollment(undefined); setRecoveryCodes(data.recoveryCodes ?? []); await queryClient.invalidateQueries({ queryKey: ['auth', 'mfa'] }); msg.success('多因素认证已启用') }, onError: (error: Error) => msg.error(error.message || '验证码不正确') })
   const disableMFAMutation = useMutation({ mutationFn: (values: { currentPassword: string; code?: string; recoveryCode?: string }) => disableMFA(values.currentPassword, values.code, values.recoveryCode), onSuccess: async () => { setDisableMFAOpen(false); await queryClient.invalidateQueries({ queryKey: ['auth', 'mfa'] }); msg.success('多因素认证已关闭') }, onError: (error: Error) => msg.error(error.message || '无法关闭多因素认证') })
   const updateProfileMutation = useMutation({ mutationFn: updateUserProfile, onSuccess: async () => { setProfileOpen(false); await Promise.all([queryClient.invalidateQueries({ queryKey: ['user-center', 'profile'] }), queryClient.invalidateQueries({ queryKey: ['me'] })]); msg.success('个人资料已更新') }, onError: (error: Error) => msg.error(error.message || '个人资料保存失败') })
-  const bindWeChat = useMutation({ mutationFn: beginWeChatBinding, onSuccess: (target) => window.location.assign(target), onError: (error: Error) => msg.error(error.message || '无法开始绑定微信') })
-  const unbindWeChat = useMutation({ mutationFn: deleteWeChatBinding, onSuccess: async () => { await queryClient.invalidateQueries({ queryKey: ['auth', 'wechat-binding'] }); msg.success('微信已解绑') }, onError: (error: Error) => msg.error(error.message || '微信解绑失败，请先完成多因素认证') })
+  const bindWeChat = useMutation({ mutationFn: beginWeChatBinding, onSuccess: (target) => window.location.assign(target), onError: (error: Error) => { if (!(error instanceof ApiError && error.status === 403)) msg.error(error.message || '无法开始绑定微信') } })
+  const unbindWeChat = useMutation({ mutationFn: deleteWeChatBinding, onSuccess: async () => { setPendingWeChatAction(undefined); await queryClient.invalidateQueries({ queryKey: ['auth', 'wechat-binding'] }); msg.success('微信已解绑') }, onError: (error: Error) => { if (!(error instanceof ApiError && error.status === 403)) msg.error(error.message || '微信解绑失败') } })
+
+  useEffect(() => {
+    const requireStepUp = () => setStepUpOpen(true)
+    window.addEventListener(STEP_UP_REQUIRED_EVENT, requireStepUp)
+    return () => window.removeEventListener(STEP_UP_REQUIRED_EVENT, requireStepUp)
+  }, [])
 
   const onFinish = useCallback(
     (values: { oldPassword: string; newPassword: string }) => {
@@ -201,7 +212,7 @@ export default function UserCenter() {
       {wechatBinding.data?.enabled && <Card title="微信" style={{ marginBottom: 16 }} extra={<Tag color={wechatBinding.data.bound ? 'success' : 'default'}>{wechatBinding.data.bound ? '已绑定' : '未绑定'}</Tag>}>
         <Space direction="vertical" size={12} style={{ width: '100%' }}>
           <Text type="secondary">绑定后可在登录页使用微信扫码登录。一个微信只能绑定一个企业账号。</Text>
-          {wechatBinding.data.bound ? <Button danger loading={unbindWeChat.isPending} onClick={() => Modal.confirm({ title: '解绑微信？', content: '解绑后将不能使用微信扫码登录。', okText: '确认解绑', okButtonProps: { danger: true }, cancelText: '取消', onOk: () => unbindWeChat.mutateAsync() })}>解绑微信</Button> : <Button icon={<WechatOutlined />} loading={bindWeChat.isPending} onClick={() => bindWeChat.mutate()}>绑定微信</Button>}
+          {wechatBinding.data.bound ? <Button danger loading={unbindWeChat.isPending} onClick={() => Modal.confirm({ title: '解绑微信？', content: '解绑后将不能使用微信扫码登录。', okText: '确认解绑', okButtonProps: { danger: true }, cancelText: '取消', onOk: () => { setPendingWeChatAction('unbind'); return unbindWeChat.mutateAsync() } })}>解绑微信</Button> : <Button icon={<WechatOutlined />} loading={bindWeChat.isPending} onClick={() => { setPendingWeChatAction('bind'); bindWeChat.mutate() }}>绑定微信</Button>}
         </Space>
       </Card>}
 
@@ -253,6 +264,29 @@ export default function UserCenter() {
           <Button danger type="primary" htmlType="submit" block loading={disableMFAMutation.isPending}>确认关闭</Button>
         </Form>
       </Modal>
+      <ModalForm<{ currentPassword: string; mfaCode?: string; recoveryCode?: string }>
+        title="确认本人操作"
+        open={stepUpOpen}
+        modalProps={{ destroyOnHidden: true, maskClosable: false, onCancel: () => setStepUpOpen(false) }}
+        submitter={{ searchConfig: { submitText: '确认', resetText: '取消' } }}
+        onFinish={async (values) => {
+          try {
+            await stepUpAuthentication(values.currentPassword, values.mfaCode, values.recoveryCode)
+            setStepUpOpen(false)
+            if (pendingWeChatAction === 'bind') bindWeChat.mutate()
+            else if (pendingWeChatAction === 'unbind') await unbindWeChat.mutateAsync()
+            return true
+          } catch (error) {
+            if (error instanceof ApiError && error.code === '200026') msg.warning('请先启用多因素认证。')
+            else msg.error('密码或验证码不正确。')
+            return false
+          }
+        }}
+      >
+        <ProFormText.Password name="currentPassword" label="当前密码" rules={[{ required: true, message: '请输入当前密码' }]} fieldProps={{ autoComplete: 'current-password' }} />
+        {stepUpRecovery ? <ProFormText name="recoveryCode" label="恢复码" rules={[{ required: true, message: '请输入恢复码' }]} /> : <ProFormText name="mfaCode" label="验证码" rules={[{ required: true, message: '请输入 6 位验证码' }, { pattern: /^\d{6}$/, message: '请输入 6 位数字验证码' }]} fieldProps={{ inputMode: 'numeric', maxLength: 6, autoComplete: 'one-time-code' }} />}
+        <Button type="link" size="small" style={{ paddingInline: 0 }} onClick={() => setStepUpRecovery((value) => !value)}>{stepUpRecovery ? '使用验证码' : '使用恢复码'}</Button>
+      </ModalForm>
     </div>
   )
 }

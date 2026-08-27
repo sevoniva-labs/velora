@@ -16,6 +16,7 @@ PUBLIC = {
     ("post", "/api/v1/auth/federated/oidc/{provider}/callback"),
     ("get", "/api/v1/auth/federated/oidc/{provider}/callback"),
     ("post", "/api/v1/auth/federated/ldap/{provider}"),
+    ("post", "/api/v1/auth/wechat/complete"),
     ("post", "/api/v1/application-enrollments:consume"),
 }
 CSRF_REQUIRED = {
@@ -28,6 +29,10 @@ CSRF_REQUIRED = {
     ("post", "/api/v1/api-tokens"),
     ("delete", "/api/v1/api-tokens/{token_id}"),
     ("post", "/api/v1/admin/users"),
+    ("patch", "/api/v1/admin/users/{user_id}/profile"),
+    ("patch", "/api/v1/me/profile"),
+    ("post", "/api/v1/me/wechat/binding"),
+    ("delete", "/api/v1/me/wechat/binding"),
     ("put", "/api/v1/admin/users/{user_id}/entitlements/{application_code}"),
     ("post", "/api/v1/admin/departments"),
     ("patch", "/api/v1/admin/departments/{department_id}"),
